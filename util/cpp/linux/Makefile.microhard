@@ -1,0 +1,38 @@
+include Makefile.inc
+
+cppflags += -DUSE_BROADCAST -DMICRO_HARD
+
+%.o : ../%.cpp
+	$(cpp) -c $(cppflags) $<
+
+%.o : ../graph/%.cpp
+	$(cpp) -c $(cppflags) $<
+
+%.o : ../net/%.cpp
+	$(cpp) -c $(cppflags) $<
+
+%.o : ../security/%.cpp
+	$(cpp) -c -I../../../externals/include $(cppflags) $<
+
+%.o : ../comm/%.cpp
+	$(cpp) -c $(cppflags) $<
+
+all: libutil.a libsecurity.a 
+
+libutil.a : $(objects) $(graphobjects) $(netobjects) $(commobjects)
+	ar -rcv libutil.a $(objects) $(graphobjects) $(netobjects) $(commobjects)
+
+libsecurity.a :  $(securityobjects)
+	ar -rcv libsecurity.a $(securityobjects) 
+
+libutil.so: $(objects) $(graphobjects) $(netobjects) $(commobjects)
+	$(cpp) -shared -o libutil.so $(objects) $(graphobjects) $(netobjects) $(commobjects)
+
+libsecurity.so: $(securityobjects)
+	$(cpp) -shared -o libutil.so $(securityobjects)
+
+clean :
+	rm -rf *.o *.a
+
+ThreadTest : ThreadTest.o libutil.a
+	$(cpp) -lpthread -o a.out ThreadTest.o libutil.a

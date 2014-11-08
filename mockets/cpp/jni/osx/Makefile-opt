@@ -1,0 +1,31 @@
+CC  = gcc
+
+CXXFLAGS = -O2 -DUNIX -DOSX \
+           -DLITTLE_ENDIAN_SYSTEM -I../.. -I../../../../util/cpp \
+	   -I/System/Library/Frameworks/JavaVM.framework/Headers
+
+wrappers = $(wildcard ../*Wrapper.cpp)
+wrappers_objs = $(wrappers:../%.cpp=%.o)
+
+all: libmocketsjavawrapper.jnilib
+
+libmockets.a : 
+	make -C ../../osx -f Makefile-opt
+
+libutil.a : 
+	make -C ../../../../util/cpp/osx -f Makefile-opt
+
+libmocketsjavawrapper.jnilib : $(wrappers_objs) libutil.a libmockets.a 
+	$(CXX) -dynamiclib -o ../../../bin/libmocketsjavawrapper.jnilib \
+	$(wrappers_objs) \
+	../../osx/libmockets.a  \
+	../../../../util/cpp/osx/libutil.a 
+
+clean :
+	make -C ../../../../util/cpp/osx -f Makefile-opt clean
+	make -C ../../osx -f Makefile-opt clean
+	rm -rf *.o *.a ../../../bin/libmocketsjavawrapper.so ../../../bin/libmocketsjavawrapper.jnilib
+
+%.o : ../%.cpp
+	$(CXX) -c $(CXXFLAGS) $<
+

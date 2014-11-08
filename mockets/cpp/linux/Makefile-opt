@@ -1,0 +1,29 @@
+UTILDIR = ../../../util/cpp
+
+CC  = gcc
+CXX = g++
+
+CXXFLAGS = -O2 -DUNIX -DLINUX \
+           -DLITTLE_ENDIAN_SYSTEM -I.. -I../../../util/cpp \
+           -I../../../externals/JDK -I../../../externals/JDK/linux
+
+sources = $(wildcard ../*.cpp)
+objects = $(sources:../%.cpp=%.o)
+
+all: libmockets.a 
+
+libmockets.a : $(objects) libutil.a
+	ar -rcv libmockets.a $(objects) ../../../util/cpp/linux/libutil.a
+
+libsecurity.a :
+	make -C $(UTILDIR)/linux libsecurity.a -f Makefile-opt
+
+libutil.a : 
+	make -C ../../../util/cpp/linux -f Makefile-opt
+
+clean :
+	rm -rf *.o *.a 
+
+%.o : ../%.cpp
+	$(CXX) -c $(CXXFLAGS) $<
+

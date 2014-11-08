@@ -1,0 +1,33 @@
+CC  = gcc
+CXX = g++
+
+CXXFLAGS = -O2 -DUNIX -DLINUX -DRTT_TIMESTAMP \
+           -DLITTLE_ENDIAN_SYSTEM -I../.. -I../../../../util/cpp \
+	   -I../../../../externals/JDK -I../../../../externals/JDK/linux
+
+wrappers = $(wildcard ../*Wrapper.cpp)
+wrappers_objs = $(wrappers:../%.cpp=%.o)
+
+all: libmocketsjavawrapper.so
+
+libmockets.a : $(objects) libutil.a
+	(make -C ../../linux -f Makefile-opt)
+
+libutil.a : 
+	(make -C ../../../../util/cpp/linux -f Makefile-opt)
+
+libmocketsjavawrapper.so: $(wrappers_objs) libutil.a libmockets.a 
+	$(CXX) -shared -o ../../../bin/libmocketsjavawrapper.so \
+	$(wrappers_objs) \
+	../../linux/libmockets.a \
+	../../../../util/cpp/linux/libutil.a 
+	strip ../../../bin/libmocketsjavawrapper.so
+
+clean :
+	(make -C ../../../../util/cpp/linux clean)
+	(make -C ../../linux clean)
+	rm -rf *.o *.a ../../../bin/libmocketsjavawrapper.so
+
+%.o : ../%.cpp
+	$(CXX) -c $(CXXFLAGS) $<
+

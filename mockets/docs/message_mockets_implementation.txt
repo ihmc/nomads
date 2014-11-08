@@ -1,0 +1,115 @@
+
+ this document describes the message mocket implementation.
+
+
+ RECEIVER
+
+ the receiver uses three data structures to perform its task: 
+
+ 1) the unreliable sequenced packet queue is the data structures in which
+    we put unreliable sequenced packet in case we have a hole in the 
+    sequence of received packets.
+
+    e.g. if we receive packets 1, 2, 3 and 5 we process the first three 
+    packets and put packet 5 in the unreliable sequenced packet queue 
+    until packet 4 arrives or the timeout for the reception of that 
+    packet expires.
+
+ 2) the delivery prerequisites packet queue is the data structures in which
+    we put packets that have an unsatisfied delivery prerequisites condition.
+
+    as of march 10 2005, we have introduced a new feature in the mockets
+    framework: delivery prerequisites. by using delivery prerequisites we 
+    can tell the received to delay processing a packet until it has processed
+    the packets specified by the delivery prerequisites information.
+
+    notice that we must be very careful in using this option as it might 
+    as well lead to deadlocks in the delivery of packets (e.g. packet A 
+    waiting for packet B to be delivered first while packet B waits for 
+    packet A to be delivered first).
+
+ 3) the received data buffer is the data structures in which we put data
+    waiting to be read from the application.
+
+
+ this is the basic algorithm for the receiver:
+
+       incoming packet 
+
+              |                                                                                                                           
+              |                                                                                                                           
+              |                                                                                                                       
+              |                                                                                                                           
+              |                                                                                                                           
+             \|/
+
+ is packet bigger than window      --------------->  discard the packet (and perhaps send
+ size?                                   yes         an error notification to the other
+                                                     communication endpoint)
+              |                                                                                                                           
+              |                                                                                                                           
+              | no                                                                                                                      
+              |                                                                                                                           
+              |                                                                                                                           
+             \|/
+
+ (un)reliable sequenced packet     --------------->  put packet in (un)reliable sequenced                                                
+ with a sequence number                  yes         packet queue and decrease window size                                             
+ greater than the last delivered                                                                                                          
+ plus one?
+                                                                                                                                           
+              |                                                                                                                           
+              |                                                                                                                           
+              | no                                                                                                                        
+              |                                                                                                                           
+              |                                                                                                                           
+             \|/
+                                                                                                                                           
+ does the packet have unsatisfied  --------------->  put packet in delivery prerequisites                                              
+ delivery prerequisites?                 yes         packet queue and decrease window size
+                                                                                                                                           
+              |                                                                                                                           
+              |                                                                                                                           
+              | no                                                                                                                        
+              |                                                                                                                           
+              |                                                                                                                           
+             \|/
+                                                                                                                                           
+ is this a control packet?         --------------->  perform control operation (and decrease                                           
+                                         yes         window size until the operation is completed)
+              |                                                                                                                             
+              |                                                     |                                                                        
+              | no                                                  |                                                                        
+              |                                                     |                                                                        
+              |                                                     |                                                                        
+             \|/                                                   \|/
+ 
+ process packet by:                               
+ 
+ 1) delivering data to the received                  check if we can unlock one or more 
+    data buffer and decreasing window                packets in the unreliable sequenced
+    size by the amout of data we                     and/or delivery prerequisites 
+    received                       --------------->  packet queues and process them
+                                                     
+ 2) processing control chunks (e.g
+    SHUTDOWN, SACK, etc...) 
+
+ the window size is defined as the size of data in the received data buffer plus
+ the size of packets waiting to be processed (that is, the ones blocked in the unreliable 
+ sequenced and delivery prerequisites packet queues - and perhaps the control packets 
+ being processed).
+
+ when there are holes in the received flow of unreliable sequenced packet we wait for
+ the missing packets up to a well-defined amount of time. after the timeout expires,
+ we simply process the most recent packets we got without waiting for the missing ones.
+ so the receiver should also keep checking the unreliable sequenced packet queue to 
+ find out if we have any expired timeout.
+
+ every read from the application increases the window size by the amout of read data.
+
+ control packets must ALWAYS have the delivery prerequisite option header, since they
+ are sequenced respect to other packets.
+
+ cross-sequencing is just for sequenced flows. if cross-sequencing is on, then the
+ transmitter will add delivery prerequisite option header to each sequenced packet.
+

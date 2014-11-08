@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utillib", "utillib.vcxproj", "{8B739421-E28C-4FC1-B6ED-26D635617F7B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "securitylib", "securitylib.vcxproj", "{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+		Static Release|Win32 = Static Release|Win32
+		Static Release|x64 = Static Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Debug|x64.ActiveCfg = Debug|x64
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Debug|x64.Build.0 = Debug|x64
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Release|Win32.ActiveCfg = Release|Win32
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Release|x64.ActiveCfg = Release|x64
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Static Release|Win32.ActiveCfg = Static Release|Win32
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Static Release|x64.ActiveCfg = Static Release|x64
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Debug|Win32.Build.0 = Debug|Win32
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Debug|x64.ActiveCfg = Debug|x64
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Debug|x64.Build.0 = Debug|x64
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Release|Win32.ActiveCfg = Release|Win32
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Release|Win32.Build.0 = Release|Win32
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Release|x64.ActiveCfg = Release|x64
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Release|x64.Build.0 = Release|x64
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Static Release|Win32.ActiveCfg = Static Release|Win32
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Static Release|Win32.Build.0 = Static Release|Win32
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Static Release|x64.ActiveCfg = Static Release|x64
+		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11}.Static Release|x64.Build.0 = Static Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

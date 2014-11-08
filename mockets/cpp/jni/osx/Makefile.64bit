@@ -1,0 +1,40 @@
+CC  = gcc
+
+CXXFLAGS = -g -DUNIX -DUNIX64 -DOSX -DENABLE_DEBUG -DERROR_CHECKING \
+           -DLITTLE_ENDIAN_SYSTEM -I../.. -I../../../../util/cpp \
+           -I../../../../util/cpp/security \
+	   -I../../../../externals/JDK -I../../../../externals/JDK/osx \
+	   -I/System/Library/Frameworks/JavaVM.framework/Headers \
+	   -m64 -fPIC
+
+wrappers = $(wildcard ../*Wrapper.cpp)
+wrappers_objs = $(wrappers:../%.cpp=%.o)
+
+all: libmocketsjavawrapper.jnilib
+
+libmockets.a : 
+	(make -C ../../osx -f Makefile.64bit) 
+
+libutil.a : 
+	(make -C ../../../../util/cpp/osx -f Makefile.64bit)
+
+libsecurity.a:
+	(make -C ../../../../util/cpp/osx -f Makefile.64bit)
+
+libmocketsjavawrapper.jnilib : $(wrappers_objs) libutil.a libmockets.a libsecurity.a
+	$(CXX) $(CXXFLAGS) -dynamiclib -o ../../../bin/libmocketsjavawrapper.jnilib \
+	$(wrappers_objs) \
+	../../osx/libmockets.a  \
+	../../../../util/cpp/osx/libutil.a \
+	../../../../util/cpp/osx/libsecurity.a \
+	../../../../externals/lib/osx-intel_64/libcrypto.a \
+	../../../../externals/lib/osx-intel_64/libssl.a
+
+clean :
+	(make -C ../../../../util/cpp/osx clean)
+	(make -C ../../osx clean)
+	rm -rf *.o *.a ../../../bin/libmocketsjavawrapper.so ../../../bin/libmocketsjavawrapper.jnilib
+
+%.o : ../%.cpp
+	$(CXX) -c $(CXXFLAGS) $<
+

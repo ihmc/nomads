@@ -1,0 +1,26 @@
+all: toTxt toPs toHTML
+
+MANPAGESDIR=../man
+MANPAGE=DisServiceLauncher.1
+
+check:
+	if test `which nroff`; \
+		then echo "Requested program nroff was found."; \
+		else echo "Requested program nroff was not found."; \
+	fi
+	if test `which groff`; \
+		then echo "Requested program groff was found."; \
+		else echo "Requested program groff was not found."; \
+	fi
+
+toTxt: check
+	nroff -man ${MANPAGESDIR}/${MANPAGE} | col -b > ${MANPAGE}.txt
+
+toPs: check
+	groff -man -Tps ${MANPAGESDIR}/${MANPAGE} > ${MANPAGE}.ps
+
+toHTML: check
+	man2html ${MANPAGESDIR}/${MANPAGE} > ${MANPAGE}.html
+
+clean:
+	rm -f ${MANPAGE}*

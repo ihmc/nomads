@@ -1,0 +1,67 @@
+
+Message Mockets TODO list:
+
+ 1) support messages larger than queue size
+ 2) merge "cancelled packets" messages in pending and unacknowledged
+    packet queue
+ 3) implement new delivery prerequisite handling in
+    MessageTransmitter::send and MessagePacket
+ 4) rename "delete" methods to "cancel" for compatibility with C++
+ 5) think if the dynamicity of enable cross sequencing breaks something
+    and/or should be revisited
+ 6) add size limit to ACKManager::getSACKInformation
+ 7) signal ACKManager when you cancel a reliable or control packet
+ 8) support cancel for unreliable packets as well (at least be
+    compatible with C++ implementation, which does canceling of
+    unreliable sequenced packets)
+ 9) maybe send a cancelled packets message also for unreliable sequenced
+    packets?
+10) handle unsequenced reliable packets in
+    MessageReceiver::processPacket
+11) return an error on MessageMocket::receive and Sender::{send,replace}
+    if another thread calls close (maybe by checking the connection
+    state?)
+    add close method on queues which wakes up threads blocked on
+    {insert,extract}
+12) implement cryptographic protection of state cookie
+13) check that removing a packet from the unsequenced packet queue
+    increases window size
+14) check that all packet IDs are sequentially numbered (like TSN)
+15) change tryTo... methods of MessagePacketProcessor so that the
+    recomposition vectors are data members of the MessagePacketProcessor
+    class
+16) verify that the tryToDefragment... method of the
+    MessagePacketProcessor class does not exit in case of a
+    recomposition attempt gone wrong it must check all the list
+17) implement correct TCP-like window handling. for instance,
+    when i am sending, the maximum amount of new data that i can send is
+    remoteWindowSize - unacknowledgedPacketQueueSize
+18) examine C++ implementation of unacknowledgedPacketQueue and consider
+    using the algorithms in the Java version
+19) figure out what the behaviour should be (on the receiver side)
+    in case of packets bigger than window size. one possibility is to
+    force on the sender side the constraint:
+
+    maximum packet size <= maximum window size
+
+20) reimplement defragmentation algorithms in C++
+21) remove SACK chunk from packets before inserting them in the
+    unacknowledged packet queue
+22) make sure packets have no more than 1 data chunk
+23) put cancel and all control packets in the unacknowledgePacketQueue
+    after transmission
+24) are tags valid for all flows? probably this should be a configurable
+    setting like cross sequencing...
+25) do not send SACK chunks after a SHUTDOWN has been received
+26) check that insertion routines in SequencedPacketQueue and
+    TSNRangeHandler ignore already inserted packets
+27) check and improve implementation of statistics for message mockets
+28) get rid of UIDGenerator and make use of us.ihmc.util.IDGenerator
+29) don't use static timeouts but RTT-based dynamic ones
+30) rename Transmitter and Receiver classes as StreamTransmitter and
+    StreamReceiver
+31) rename MocketStateMachine to StreamMocketStateMachine and
+    MessageStateMachine to MessageMocketStateMachine
+    OR
+    rename MocketStateMachine to StreamStateMachine
+

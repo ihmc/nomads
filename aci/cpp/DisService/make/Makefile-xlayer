@@ -1,0 +1,65 @@
+include Makefile.inc
+
+#Further Libraries
+MANET_HOME = $(PROJECT_ROOT)/manet
+
+#Further CPPFLAGS
+CPPFLAGS += -DUSE_XLAYER \
+		-I$(MANET_HOME)/xlayer/cpp/ \
+			-I$(MANET_HOME)/xlayer/cpp/xlayer \
+			-I$(MANET_HOME)/util/cpp \
+			-I$(MANET_HOME)/xlayer/cpp/proxy \
+			-I$(MANET_HOME)/xlayer/cpp/services \
+
+
+#Further LD_FLAGS
+LD_FLAGS += -liw
+
+#Further libraries
+LIB_LIST += $(MANET_HOME)/util/cpp/linux/libutil.a \
+	$(MANET_HOME)/xlayer/cpp/proxy/linux/libxlayerproxy.a \
+	$(MANET_HOME)/xlayer/cpp/linux/libxlayer.a
+
+all: libmockets.a libtinyxpath.a libdisservice.a DisServiceProxy
+
+%.o : ../%.cpp
+	$(CPP) -c $(CPPFLAGS) $<
+
+libutil.a :
+	make -C $(NOMADS_HOME)/util/cpp/linux/ libutil.a
+
+libmockets.a :
+	make -C $(MOCKETS_HOME)/cpp/linux/ libmockets.a
+
+libxlayerproxy.a :
+	make -C $(MANET_HOME)/xlayer/cpp/proxy/linux libxlayerproxy.a
+	
+libxlayer.a :
+	make -C $(MANET_HOME)/xlayer/cpp/linux libxlayer.a
+
+libxlayerutil.a :
+	make -C $(MANET_HOME)/util/cpp/linux/ libutil.a
+
+libsqlite3.a :
+	make -C $(SQLITE_HOME)/linux/ sqlite3
+	
+libtinyxpath.a :
+	make -C	$(TINYXPATH_HOME) -f Makefile.DisService libtinyxpath.a
+
+DisServiceProxy : libdisservice.a ../main.cpp libutil.a libxlayerproxy.a libxlayer.a libxlayerutil.a
+	$(CPP) $(CPPFLAGS) $(LD_FLAGS) \
+	../main.cpp \
+	libdisservice.a \
+	$(LIB_LIST) \
+	-o DisServiceProxy
+
+libdisservice.a : $(OBJECTS) libutil.a libxlayerproxy.a libxlayer.a libxlayerutil.a libmockets.a libsqlite3.a libtinyxpath.a
+	ar -rcv libdisservice.a $(OBJECTS) $(TINYXPATH_HOME)/libtinyxpath.a $(NOMADS_HOME)/util/cpp/linux/libutil.a $(MANET_HOME)/xlayer/cpp/proxy/linux/libxlayerproxy.a $(MANET_HOME)/xlayer/cpp/linux/libxlayer.a $(MOCKETS_HOME)/cpp/linux/libmockets.a $(MANET_HOME)/util/cpp/linux/libutil.a
+
+libdisserviceproxy.a : $(OBJECTSPROXY) libutil.a libdisservice.a
+	ar -rcv libdisserviceproxy.a $(OBJECTSPROXY) $(NOMADS_HOME)/util/cpp/linux/libutil.a libdisservice.a
+
+clean :
+	rm -rf *.o *.a *.gch ../*.gch
+
+# vim:ts=4:sw=4

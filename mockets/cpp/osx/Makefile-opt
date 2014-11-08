@@ -1,0 +1,24 @@
+CC  = gcc
+
+CXXFLAGS = -O2 -DUNIX -DOSX -DENABLE_DEBUG -DERROR_CHECKING \
+           -DLITTLE_ENDIAN_SYSTEM -I.. -I../../../util/cpp \
+	   -I/System/Library/Frameworks/JavaVM.framework/Headers
+
+sources = $(wildcard ../*.cpp)
+objects = $(sources:../%.cpp=%.o)
+
+all: libmockets.a 
+
+libmockets.a : $(objects)
+	ar -rcv libmockets.a $(objects)
+
+libutil.a : 
+	make -C ../../../util/cpp/osx -f Makefile-opt
+
+clean :
+	make -C ../../../util/cpp/osx -f Makefile-opt
+	rm -rf *.o *.a 
+
+%.o : ../%.cpp
+	$(CXX) -c $(CXXFLAGS) $<
+

@@ -1,0 +1,6 @@
+MAKEFILE_FOLDER=linux
+LIB_FOLDER=linux
+BUILD_FLAGS = -DLINUX -DLINUX64
+BUILD_FLAGS += -m64 -fPIC
+LD_FLAGS += -lnsl -ldl
+EXTERNALS_LIB ?= $(NOMADS_HOME)/externals/lib/linux-x86_64

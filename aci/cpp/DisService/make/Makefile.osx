@@ -1,0 +1,4 @@
+MAKEFILE_FOLDER=osx
+LIB_FOLDER=osx
+BUILD_FLAGS = -DOSX
+EXTERNALS_LIB ?= $(NOMADS_HOME)/externals/lib/osx-intel

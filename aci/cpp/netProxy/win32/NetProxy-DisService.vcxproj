@@ -1,0 +1,175 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5D5F8A93-53BF-429C-BF14-0AFFCF9BECD4}</ProjectGuid>
+    <RootNamespace>NetProxy</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\util\cpp;..\..\..\..\externals\zlib;..\..\..\..\externals\include;..\..\..\..\externals\xz\src\liblzma\api</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>USE_DISSERVICE;WIN32;_DEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libeay32_debug.lib;ws2_32.lib;lzmalib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\util\cpp;..\..\..\..\externals\zlib;..\..\..\..\externals\include;..\..\..\..\externals\xz\src\liblzma\api</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>USE_DISSERVICE;WIN32;NDEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libeay32_release.lib;ws2_32.lib;lzmalib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\externals\libjpeg\win32\jpeg.vcxproj">
+      <Project>{019dbd2a-273d-4ba4-bf86-b5efe2ed76b1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\externals\zlib\win32\zlib.vcxproj">
+      <Project>{544a0007-9ce2-4a8b-b24d-3aa18924fd15}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\misc\cpp\chunking\win32\chunking.vcxproj">
+      <Project>{1ccb61a3-5949-48ed-81da-f5be1da5fdfd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\misc\cpp\lcppdc\win32\lcppdc.vcxproj">
+      <Project>{01525d5b-26c8-4544-87bd-436dd69be271}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\util\cpp\win32\utillib.vcxproj">
+      <Project>{8b739421-e28c-4fc1-b6ed-26d635617f7b}</Project>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\DisService\win32\DisService.vcxproj">
+      <Project>{acc3c564-d054-4c44-8798-1a60114bd3cf}</Project>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\mockets\cpp\win32\mockets.vcxproj">
+      <Project>{b5b29df6-3670-4806-a979-47f87d27961a}</Project>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\grpMgr\win32\grpMgrLib.vcxproj">
+      <Project>{cf5903ff-b68e-4a52-bf68-7488dd82b7c1}</Project>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\externals\TinyXPath\win32\TinyXPath.vcxproj">
+      <Project>{62f94fce-9e1d-410c-b16f-c91295d3922b}</Project>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\externals\SQLite\win32\SQLite3.vcxproj">
+      <Project>{08692a95-f5e8-4f5b-bb06-d87e4c1c4975}</Project>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\util\cpp\win32\securitylib.vcxproj">
+      <Project>{cb203f46-8586-4aca-a5e0-f87d5bc56c11}</Project>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\ConfigurationManager.cpp" />
+    <ClCompile Include="..\LzmaConnectorReader.cpp" />
+    <ClCompile Include="..\LzmaConnectorWriter.cpp" />
+    <ClCompile Include="..\ProxyMessages.cpp" />
+    <ClCompile Include="..\TapInterface.cpp" />
+    <ClCompile Include="..\ConnectorReader.cpp" />
+    <ClCompile Include="..\ConnectorWriter.cpp" />
+    <ClCompile Include="..\SocketConnector.cpp" />
+    <ClCompile Include="..\MocketConnector.cpp" />
+    <ClCompile Include="..\TCPConnTable.cpp" />
+    <ClCompile Include="..\PacketRouter.cpp" />
+    <ClCompile Include="..\main.cpp" />
+    <ClCompile Include="..\ZLibConnectorReader.cpp" />
+    <ClCompile Include="..\ZLibConnectorWriter.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ConfigurationManager.h" />
+    <ClInclude Include="..\LzmaConnectorReader.h" />
+    <ClInclude Include="..\LzmaConnectorWriter.h" />
+    <ClInclude Include="..\ProxyMessages.h" />
+    <ClInclude Include="..\TapInterface.h" />
+    <ClInclude Include="..\Connector.h" />
+    <ClInclude Include="..\ConnectorReader.h" />
+    <ClInclude Include="..\ConnectorWriter.h" />
+    <ClInclude Include="..\SocketConnector.h" />
+    <ClInclude Include="..\MocketConnector.h" />
+    <ClInclude Include="..\TCPConnTable.h" />
+    <ClInclude Include="..\PacketRouter.h" />
+    <ClInclude Include="..\Constants.h" />
+    <ClInclude Include="..\ZLibConnectorReader.h" />
+    <ClInclude Include="..\ZLibConnectorWriter.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

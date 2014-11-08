@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CSMockets", "ManagedCPPMockets.vcproj", "{E63F0997-D8D3-4727-A168-964DF078E00E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B5B29DF6-3670-4806-A979-47F87D27961A} = {B5B29DF6-3670-4806-A979-47F87D27961A}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mockets", "..\..\cpp\win32\mockets.vcproj", "{B5B29DF6-3670-4806-A979-47F87D27961A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B} = {8B739421-E28C-4FC1-B6ED-26D635617F7B}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utillib", "..\..\..\util\cpp\win32\utillib.vcproj", "{8B739421-E28C-4FC1-B6ED-26D635617F7B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KAoSProxy", "..\..\..\misc\cpp\KAoSProxy\win32\KAoSProxy.vcproj", "{F4A3CED5-7DF7-4AEE-9A00-D826B8E70C74}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E63F0997-D8D3-4727-A168-964DF078E00E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E63F0997-D8D3-4727-A168-964DF078E00E}.Debug|Win32.Build.0 = Debug|Win32
+		{E63F0997-D8D3-4727-A168-964DF078E00E}.Release|Win32.ActiveCfg = Release|Win32
+		{E63F0997-D8D3-4727-A168-964DF078E00E}.Release|Win32.Build.0 = Release|Win32
+		{B5B29DF6-3670-4806-A979-47F87D27961A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B5B29DF6-3670-4806-A979-47F87D27961A}.Debug|Win32.Build.0 = Debug|Win32
+		{B5B29DF6-3670-4806-A979-47F87D27961A}.Release|Win32.ActiveCfg = Release|Win32
+		{B5B29DF6-3670-4806-A979-47F87D27961A}.Release|Win32.Build.0 = Release|Win32
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Debug|Win32.Build.0 = Debug|Win32
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Release|Win32.ActiveCfg = Release|Win32
+		{8B739421-E28C-4FC1-B6ED-26D635617F7B}.Release|Win32.Build.0 = Release|Win32
+		{F4A3CED5-7DF7-4AEE-9A00-D826B8E70C74}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F4A3CED5-7DF7-4AEE-9A00-D826B8E70C74}.Debug|Win32.Build.0 = Debug|Win32
+		{F4A3CED5-7DF7-4AEE-9A00-D826B8E70C74}.Release|Win32.ActiveCfg = Release|Win32
+		{F4A3CED5-7DF7-4AEE-9A00-D826B8E70C74}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

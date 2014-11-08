@@ -1,0 +1,245 @@
+<VisualStudioProject>
+    <VISUALJSHARP
+        ProjectType = "Local"
+        ProductVersion = "7.10.3077"
+        SchemaVersion = "2.0"
+    >
+        <Build>
+            <Settings
+                AssemblyKeyContainerName = ""
+                AssemblyName = "aci"
+                AssemblyOriginatorKeyFile = ""
+                DefaultClientScript = "JScript"
+                DefaultHTMLPageLayout = "Grid"
+                DefaultTargetSchema = "IE50"
+                OutputType = "Library"
+                PreBuildEvent = ""
+                PostBuildEvent = ""
+                RootNamespace = "aci"
+                RunPostBuildEvent = "OnBuildSuccess"
+                StartupObject = ""
+            >
+                <Config
+                    Name = "Debug"
+                    BaseAddress = "285212672"
+                    ConfigurationOverrideFile = ""
+                    DefineConstants = ""
+                    DebugSymbols = "false"
+                    NoWarn = ""
+                    Optimize = "false"
+                    OutputPath = "bin\Debug\"
+                    RegisterForComInterop = "false"
+                    TreatWarningsAsErrors = "false"
+                    WarningLevel = "0"
+                    AdditionalOptions = ""
+                />
+                <Config
+                    Name = "Release"
+                    BaseAddress = "285212672"
+                    ConfigurationOverrideFile = ""
+                    DefineConstants = ""
+                    DebugSymbols = "false"
+                    NoWarn = ""
+                    Optimize = "false"
+                    OutputPath = "bin\Release\"
+                    RegisterForComInterop = "false"
+                    TreatWarningsAsErrors = "false"
+                    WarningLevel = "0"
+                    AdditionalOptions = ""
+                />
+            </Settings>
+            <References>
+                <Reference
+                    Name = "vjslib"
+                    AssemblyName = "vjslib"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\vjslib.dll"
+                />
+                <Reference
+                    Name = "System"
+                    AssemblyName = "System"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\System.dll"
+                />
+                <Reference
+                    Name = "System.XML"
+                    AssemblyName = "System.XML"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\System.XML.dll"
+                />
+                <Reference
+                    Name = "System.Data"
+                    AssemblyName = "System.Data"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\System.Data.dll"
+                />
+            </References>
+        </Build>
+        <Files>
+            <Include>
+                <File
+                    RelPath = "CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\GroupInfo.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\GroupManager.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\GroupManagerException.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\GroupManagerListener.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\JoinInfo.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\MemberInfo.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\PacketCodec.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\ServerListener.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\TCPServer.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\UDPServer.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\blank.gif"
+                    BuildAction = "Content"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\GroupListCellRenderer.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\GroupManagerUI.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\L.gif"
+                    BuildAction = "Content"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\ListEntry.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\LM.gif"
+                    BuildAction = "Content"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\LR.gif"
+                    BuildAction = "Content"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\LRM.gif"
+                    BuildAction = "Content"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\R.gif"
+                    BuildAction = "Content"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\RM.gif"
+                    BuildAction = "Content"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\aci\grpMgr\gui\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\CVS\Root"
+                    BuildAction = "None"
+                />
+            </Include>
+        </Files>
+    </VISUALJSHARP>
+</VisualStudioProject>
+

@@ -1,0 +1,31 @@
+.TH DisseminationServiceProxyLauncher 1
+.SH NAME
+Dissemination Service Proxy Launcher \- Runs the Dissemination Service Proxy Server
+.SH SYNOPSIS
+.B DisServiceLauncher [options]
+.TP
+Options:
+[-h]
+[-c --conf configurationFile]
+.SH DESCRIPTION
+\fBDisService\fR is an information dissemination service that is part of the \fBAgile Computing Middleware\fR. DisService opportunistically discovers and exploits excess communications, storage, and processing capacity in a distributed network to improve the performance of information dissemination. DisService also supports the storage and forwarding of data and caches data throughout the network, making it disruption tolerant and improving the availability of data.
+Nodes subscribe to hierarchically organized groups. Information is published in the context of a group, and may also be tagged to differentiate between multiple types of data. Each node in the network running DisService operates in a distributed, peer-to-peer manner while processing and communicating the published information and requested subscriptions from neighboring nodes.
+Information is disseminated using an efficient combination of push and pull, depending on the number of subscribers, the capacity of the network, the stability of nodes in the network, and the predicted information needs of users.
+Finally, DisService also supports efficient dissemination of large data by replicating and scattering fragments throughout the network. These features combine to realize an effective approach to information dissemination for tactical networks.
+
+.SH OPTIONS
+.TP
+.I "-h"
+Print some help and exits
+.TP
+.I "-c --conf configurationFile
+The path to the DisService configuration file.
+.SH USAGE
+DisServiceLauncher must be run before the application using DisService tries to connect to it.
+.EX
+./DisServiceLauncher -c /path/to/config/file
+
+.SH BUGS
+Please send bug reports to <nsuri@ihmc.us>
+.SH AUTHORS
+\fBDisServiceLauncher\fB was written by Giacomo Benincasa <gbenincasa@ihmc.us>

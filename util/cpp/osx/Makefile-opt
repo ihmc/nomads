@@ -1,0 +1,31 @@
+cpp = gcc
+
+cppflags = -O2 -DUNIX -DOSX -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM -I..
+
+sources = $(wildcard ../*.cpp)
+objects = $(sources:../%.cpp=%.o)
+
+netsources = $(wildcard ../net/*.cpp)
+netobjects = $(netsources:../net/%.cpp=%.o)
+
+securitysources = $(wildcard ../security/*.cpp)
+securityobjects = $(securitysources:../security/%.cpp=%.o)
+
+%.o : ../%.cpp
+	$(cpp) -c $(cppflags) $<
+
+%.o : ../net/%.cpp
+	$(cpp) -c $(cppflags) $<
+
+%.o : ../security/%.cpp
+	$(cpp) -c -I../../../externals/include $(cppflags) $<
+
+libutil.a : $(objects) $(netobjects)
+	ar -rcv libutil.a $(objects) $(netobjects) 
+
+libsecurity.a :  $(securityobjects)
+	ar -rcv libsecurity.a $(securityobjects) 
+
+clean :
+	rm -rf *.o *.a *.dylib
+

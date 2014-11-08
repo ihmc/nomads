@@ -1,0 +1,155 @@
+<?xml version="1.0"?>
+
+<project name="Util" default="utiljar" basedir="..">
+
+  <!-- ================================================================ -->
+  <!-- General build options                                            -->
+  <!-- ================================================================ -->
+
+  <property name="build.sysclasspath" value="ignore"/>
+  <property name="name" value="util"/>
+
+  <property name="build.dir" location="./build/antcache"/>
+  <property name="lib.dir" location="lib"/>
+  <property name="src.dir" location="java"/>
+  <property name="dist.dir" location="dist"/>
+  <property name="comp.debug" value="on"/>
+  <property name="comp.optimize" value="on"/>
+  <property name="comp.deprecation" value="on"/>
+  <property name="comp.verbose" value="off"/>
+
+  <!-- ================================================================ -->
+  <!-- Initializes the environment                                      -->
+  <!-- ================================================================ -->
+  <target name="setenv">
+    <property name="nomads.home" location="../"/>
+    <property name="externals.dir" location="${nomads.home}/externals/java"/>
+    <antcall target="create.fileset"/>
+  </target>
+
+
+  <!-- ================================================================ -->
+  <!-- Initialization target                                            -->
+  <!-- ================================================================ -->
+  <target name="init" depends="setenv">
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${lib.dir}"/>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Compiles the source directory                                    -->
+  <!-- ================================================================ -->
+  <target name="util" depends="init, create.fileset"
+      description="Compiles the source directory.">
+
+    <javac destdir="${build.dir}"
+        debug="${comp.debug}"
+        verbose="${comp.verbose}"
+        optimize="${comp.optimize}"
+        deprecation="${comp.deprecation}">
+
+      <classpath>
+         <fileset refid="externals.fileset"/>
+      </classpath>
+
+      <src path="${nomads.home}/util/java/"/> 
+      <include name="us/ihmc/**/*.java"/>
+      <exclude name="us/ihmc/util/MocketCommHelper.java"/>
+      <exclude name="us/ihmc/ds/fgraph/**"/>
+    </javac>
+
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- List of Externals                                                -->
+  <!-- ================================================================ -->
+  <target name="create.fileset">
+      <echo message="Externals = ${externals.dir}"/>
+      <fileset id="externals.fileset" dir="${externals.dir}">
+          <include name="**/cryptix32.jar"/>
+          <include name="**/commons-lang3-3.1.jar"/>
+          <include name="**/bcprov-jdk14-123.jar"/>
+          <include name="**/puretls.jar"/>
+          <include name="**/comm.jar"/>
+          <include name="**/dom4j-1.6.1.jar"/>
+          <include name="**/jcommon-1.0.6.jar"/>
+          <include name="**/jfreechart-1.0.3.jar"/>
+          <include name="**/kryo-2.20-all.jar"/>
+      </fileset>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Creates jar file                                                 -->
+  <!-- ================================================================ -->
+  <target name="utiljar" depends="util"
+      description="Creates jar file.">
+
+    <delete file="${lib.dir}/${name}.jar"/>
+    <jar jarfile="${lib.dir}/${name}.jar"
+        excludes="META-INF/MANIFEST.MF">
+      <fileset dir="${build.dir}">
+        <include name="us/ihmc/**/*.class" />
+      </fileset>
+    </jar>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Creates a zip with the code for distribution                     -->
+  <!-- ================================================================ -->
+  <target name="dist" depends="init">
+    <delete dir="${dist.dir}"/>
+    <mkdir dir="${dist.dir}"/>
+    <tstamp>
+      <format property="build.timestamp" pattern="yyyyMMdd"/>
+    </tstamp>
+
+    <zip destfile="${dist.dir}/ihmc_util_${build.timestamp}.zip">
+      <fileset dir="${nomads.home}">
+        <include name="util/build/build.xml"/>
+        <include name="util/lib"/>
+        <include name="util/cpp/**/*.cpp"/>
+        <include name="util/cpp/**/*.h"/>
+        <include name="util/cpp/**/*.sln"/>
+        <include name="util/cpp/**/*.vcproj"/>
+        <include name="util/cpp/**/Makefile"/>
+        <include name="util/java/**/*.java"/>
+      </fileset>
+    </zip>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Creates a zip with the code for distribution (includes security) -->
+  <!-- ================================================================ -->
+  <target name="distwithsecurity" depends="init">
+    <delete dir="${dist.dir}"/>
+    <mkdir dir="${dist.dir}"/>
+    <tstamp>
+      <format property="build.timestamp" pattern="yyyyMMdd"/>
+    </tstamp>
+
+    <zip destfile="${dist.dir}/ihmc_util_${build.timestamp}.zip">
+      <fileset dir="${nomads.home}">
+        <include name="util/build/build.xml"/>
+        <include name="util/lib"/>
+        <include name="util/cpp/**/*.cpp"/>
+        <include name="util/cpp/**/*.h"/>
+        <include name="util/cpp/**/*.sln"/>
+        <include name="util/cpp/**/*.vcproj"/>
+        <include name="util/cpp/**/Makefile"/>
+        <include name="util/java/**/*.java"/>
+      </fileset>
+    </zip>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Cleans build directories.                                        -->
+  <!-- ================================================================ -->
+  <target name="clean" depends="init"
+      description="Cleans build directories.">
+    <delete dir="${build.dir}"/>
+    <delete file="${lib.dir}/${name}.jar"/>
+    <mkdir dir="${build.dir}"/>
+  </target>
+
+</project>
+

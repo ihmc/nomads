@@ -1,0 +1,370 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Static Release|Win32">
+      <Configuration>Static Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Static Release|x64">
+      <Configuration>Static Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ACC3C564-D054-4C44-8798-1A60114BD3CF}</ProjectGuid>
+    <RootNamespace>DisService</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'">$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\cpp\grpMgr;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NO_CHUNK;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NO_CHUNK;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NO_CHUNK;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libutil.h;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NO_CHUNK;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libutil.h;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\AckController.cpp" />
+    <ClCompile Include="..\Analytics.cpp" />
+    <ClCompile Include="..\BandwidthSensitiveController.cpp" />
+    <ClCompile Include="..\BandwidthSharing.cpp" />
+    <ClCompile Include="..\BasicWorldState.cpp" />
+    <ClCompile Include="..\ChunkingAdaptor.cpp" />
+    <ClCompile Include="..\ChunkRetrievalController.cpp" />
+    <ClCompile Include="..\ConfigFileReader.cpp" />
+    <ClCompile Include="..\ConnectivityHistory.cpp" />
+    <ClCompile Include="..\Controllable.cpp" />
+    <ClCompile Include="..\ControllerFactory.cpp" />
+    <ClCompile Include="..\DataCache.cpp" />
+    <ClCompile Include="..\DataCacheExpirationController.cpp" />
+    <ClCompile Include="..\DataCacheInterface.cpp" />
+    <ClCompile Include="..\DataCacheReplicationController.cpp" />
+    <ClCompile Include="..\DataRequestHandler.cpp" />
+    <ClCompile Include="..\DefaultDataCacheExpirationController.cpp" />
+    <ClCompile Include="..\DefaultDataCacheReplicationController.cpp" />
+    <ClCompile Include="..\DefaultForwardingController.cpp" />
+    <ClCompile Include="..\DefaultSearchController.cpp" />
+    <ClCompile Include="..\DisseminationService.cpp" />
+    <ClCompile Include="..\DisseminationServiceProxy.cpp" />
+    <ClCompile Include="..\DisseminationServiceProxyAdaptor.cpp" />
+    <ClCompile Include="..\DisseminationServiceProxyCallbackHandler.cpp" />
+    <ClCompile Include="..\DisseminationServiceProxyServer.cpp" />
+    <ClCompile Include="..\DisServiceCommandProcessor.cpp" />
+    <ClCompile Include="..\DisServiceDataCacheQuery.cpp" />
+    <ClCompile Include="..\DisServiceMsg.cpp" />
+    <ClCompile Include="..\DisServiceMsgHelper.cpp" />
+    <ClCompile Include="..\DisServiceStats.cpp" />
+    <ClCompile Include="..\DisServiceStatusMonitor.cpp" />
+    <ClCompile Include="..\DisServiceStatusNotifier.cpp" />
+    <ClCompile Include="..\DSSFLib.cpp" />
+    <ClCompile Include="..\ForwardingController.cpp" />
+    <ClCompile Include="..\History.cpp" />
+    <ClCompile Include="..\HistoryFactory.cpp" />
+    <ClCompile Include="..\Listener.cpp" />
+    <ClCompile Include="..\ListenerNotifier.cpp" />
+    <ClCompile Include="..\Message.cpp" />
+    <ClCompile Include="..\MessageId.cpp" />
+    <ClCompile Include="..\MessageInfo.cpp" />
+    <ClCompile Include="..\MessageReassembler.cpp" />
+    <ClCompile Include="..\MessageRequestScheduler.cpp" />
+    <ClCompile Include="..\NodeId.cpp" />
+    <ClCompile Include="..\PropertyStoreInterface.cpp" />
+    <ClCompile Include="..\ReceivedMessages.cpp" />
+    <ClCompile Include="..\ReceivedMessagesInterface.cpp" />
+    <ClCompile Include="..\SearchController.cpp" />
+    <ClCompile Include="..\Searches.cpp" />
+    <ClCompile Include="..\Services.cpp" />
+    <ClCompile Include="..\SQLPropertyStore.cpp" />
+    <ClCompile Include="..\SubscriptionAdvTable.cpp" />
+    <ClCompile Include="..\SubscriptionForwardingController.cpp" />
+    <ClCompile Include="..\TargetBasedReplicationController.cpp" />
+    <ClCompile Include="..\NetworkTrafficMemory.cpp" />
+    <ClCompile Include="..\NodeInfo.cpp" />
+    <ClCompile Include="..\PeerState.cpp" />
+    <ClCompile Include="..\PersistentDataCache.cpp" />
+    <ClCompile Include="..\PullReplicationController.cpp" />
+    <ClCompile Include="..\PushReplicationController.cpp" />
+    <ClCompile Include="..\PushToConvoyDataCacheReplicationController.cpp" />
+    <ClCompile Include="..\RateEstimator.cpp" />
+    <ClCompile Include="..\RequestsState.cpp" />
+    <ClCompile Include="..\SQLMessageHeaderStorage.cpp" />
+    <ClCompile Include="..\SQLMessageStorage.cpp" />
+    <ClCompile Include="..\SQLTransmissionHistory.cpp" />
+    <ClCompile Include="..\StorageInterface.cpp" />
+    <ClCompile Include="..\Subscription.cpp" />
+    <ClCompile Include="..\SubscriptionFactory.cpp" />
+    <ClCompile Include="..\SubscriptionList.cpp" />
+    <ClCompile Include="..\SubscriptionState.cpp" />
+    <ClCompile Include="..\SubscriptionStateCapped.cpp" />
+    <ClCompile Include="..\TopologyForwardingController.cpp" />
+    <ClCompile Include="..\TopologyWorldState.cpp" />
+    <ClCompile Include="..\TransmissionHistoryInterface.cpp" />
+    <ClCompile Include="..\TransmissionService.cpp" />
+    <ClCompile Include="..\TransmissionServiceListener.cpp" />
+    <ClCompile Include="..\Utils.cpp" />
+    <ClCompile Include="..\WorldState.cpp" />
+    <ClCompile Include="..\WorldStateForwardingController.cpp" />
+    <ClCompile Include="..\XLayerWrapper.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\AckController.h" />
+    <ClInclude Include="..\Analytics.h" />
+    <ClInclude Include="..\BandwidthSensitiveController.h" />
+    <ClInclude Include="..\BandwidthSharing.h" />
+    <ClInclude Include="..\BasicWorldState.h" />
+    <ClInclude Include="..\ChunkingAdaptor.h" />
+    <ClInclude Include="..\ChunkRetrievalController.h" />
+    <ClInclude Include="..\ConfigFileReader.h" />
+    <ClInclude Include="..\ConnectivityHistory.h" />
+    <ClInclude Include="..\Controllable.h" />
+    <ClInclude Include="..\ControllerFactory.h" />
+    <ClInclude Include="..\DataCache.h" />
+    <ClInclude Include="..\DataCacheExpirationController.h" />
+    <ClInclude Include="..\DataCacheInterface.h" />
+    <ClInclude Include="..\DataCacheReplicationController.h" />
+    <ClInclude Include="..\DataRequestHandler.h" />
+    <ClInclude Include="..\DefaultDataCacheExpirationController.h" />
+    <ClInclude Include="..\DefaultDataCacheReplicationController.h" />
+    <ClInclude Include="..\DefaultForwardingController.h" />
+    <ClInclude Include="..\DefaultSearchController.h" />
+    <ClInclude Include="..\DisseminationService.h" />
+    <ClInclude Include="..\DisseminationServiceListener.h" />
+    <ClInclude Include="..\DisseminationServiceProxy.h" />
+    <ClInclude Include="..\DisseminationServiceProxyAdaptor.h" />
+    <ClInclude Include="..\DisseminationServiceProxyCallbackHandler.h" />
+    <ClInclude Include="..\DisseminationServiceProxyListener.h" />
+    <ClInclude Include="..\DisseminationServiceProxyServer.h" />
+    <ClInclude Include="..\DisServiceCommandProcessor.h" />
+    <ClInclude Include="..\DisServiceDataCacheQuery.h" />
+    <ClInclude Include="..\DisServiceDefs.h" />
+    <ClInclude Include="..\DisServiceMsg.h" />
+    <ClInclude Include="..\DisServiceMsgHelper.h" />
+    <ClInclude Include="..\DisServiceStats.h" />
+    <ClInclude Include="..\DisServiceStatus.h" />
+    <ClInclude Include="..\DisServiceStatusMonitor.h" />
+    <ClInclude Include="..\DisServiceStatusNotifier.h" />
+    <ClInclude Include="..\DSSFLib.h" />
+    <ClInclude Include="..\ForwardingController.h" />
+    <ClInclude Include="..\GroupSenderSeqIDHashtable.h" />
+    <ClInclude Include="..\History.h" />
+    <ClInclude Include="..\HistoryFactory.h" />
+    <ClInclude Include="..\LargeObjReassembler.h" />
+    <ClInclude Include="..\Listener.h" />
+    <ClInclude Include="..\ListenerNotifier.h" />
+    <ClInclude Include="..\Message.h" />
+    <ClInclude Include="..\MessageId.h" />
+    <ClInclude Include="..\MessageInfo.h" />
+    <ClInclude Include="..\MessagePropagationServiceInterface.h" />
+    <ClInclude Include="..\MessagePropagationServiceListener.h" />
+    <ClInclude Include="..\MessageReassembler.h" />
+    <ClInclude Include="..\MessageRequestScheduler.h" />
+    <ClInclude Include="..\NodeId.h" />
+    <ClInclude Include="..\PropertyStoreInterface.h" />
+    <ClInclude Include="..\ReceivedMessages.h" />
+    <ClInclude Include="..\ReceivedMessagesInterface.h" />
+    <ClInclude Include="..\SearchController.h" />
+    <ClInclude Include="..\Searches.h" />
+    <ClInclude Include="..\Services.h" />
+    <ClInclude Include="..\SQLPropertyStore.h" />
+    <ClInclude Include="..\SubscriptionAdvTable.h" />
+    <ClInclude Include="..\SubscriptionForwardingController.h" />
+    <ClInclude Include="..\TargetBasedReplicationController.h" />
+    <ClInclude Include="..\NetworkTrafficMemory.h" />
+    <ClInclude Include="..\NodeInfo.h" />
+    <ClInclude Include="..\PeerState.h" />
+    <ClInclude Include="..\PersistentDataCache.h" />
+    <ClInclude Include="..\PullReplicationController.h" />
+    <ClInclude Include="..\PushReplicationController.h" />
+    <ClInclude Include="..\PushToConvoyDataCacheReplicationController.h" />
+    <ClInclude Include="..\RateEstimator.h" />
+    <ClInclude Include="..\RequestsState.h" />
+    <ClInclude Include="..\SQLMessageHeaderStorage.h" />
+    <ClInclude Include="..\SQLMessageStorage.h" />
+    <ClInclude Include="..\SQLTransmissionHistory.h" />
+    <ClInclude Include="..\StorageInterface.h" />
+    <ClInclude Include="..\Subscription.h" />
+    <ClInclude Include="..\SubscriptionFactory.h" />
+    <ClInclude Include="..\SubscriptionList.h" />
+    <ClInclude Include="..\SubscriptionState.h" />
+    <ClInclude Include="..\SubscriptionStateCapped.h" />
+    <ClInclude Include="..\TopologyForwardingController.h" />
+    <ClInclude Include="..\TopologyWorldState.h" />
+    <ClInclude Include="..\TransmissionHistoryInterface.h" />
+    <ClInclude Include="..\TransmissionService.h" />
+    <ClInclude Include="..\TransmissionServiceListener.h" />
+    <ClInclude Include="..\Utils.h" />
+    <ClInclude Include="..\WorldState.h" />
+    <ClInclude Include="..\WorldStateForwardingController.h" />
+    <ClInclude Include="..\XLayerWrapper.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

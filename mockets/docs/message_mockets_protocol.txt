@@ -1,0 +1,477 @@
+
+!!!!!!!!!!!!!!!! THIS DESCRIPTION IS OLD !!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!! It could still be a good reference though
+
+COMMON MESSAGE PACKET HEADER
+
+for each packet we need:
+
+- protocol version
+- packet type (stream/message, reliable/unreliable, sequenced/unsequenced)
+- window size
+- validation tag (which is a connection ID and __NOT__ the mocket ID!!!)
+- sequence number (which must be intepreted as Transmission Sequence Number 
+  for Reliable Sequenced, Unreliable Sequenced or Control Packet flows or
+  flow ID number for Reliable Unsequenced flow, according to message type)
+
+please notice that we don't need to include any information about packet 
+length, source port, destination port and checksum since that information
+is already included in the IP and UDP headers.
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |  version/flags  |   window size   |           validation tag          |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |          sequence number          |
+ +--------+--------+--------+--------+
+
+the most significant 4 bits of the version/flags field contain the protocol 
+version number. at the moment the only version defined is 1, the current 
+version.
+
+the least significant 12 bits of the version/flags field contain the flags.
+at the moment the only defined flags are:
+
+HEADER_FLAG_RELIABLE       (0x001)
+- discriminates between reliable (flag set) and unreliable (flag unset) packets.
+HEADER_FLAG_SEQUENCED      (0x002)
+- discriminates between sequenced (flag set) and unsequenced (flag unset) packets.
+HEADER_FLAG_MSGPKT         (0x004)
+- discriminates between message (flag set) and stream (flag unset) packets.
+HEADER_FLAG_CONTROL        (0x008)
+- set if this is a control packet. conflicts with HEADER_FLAG_SEQUENCED and
+  HEADER_FLAG_MSGPKT flags. which means, if HEADER_FLAG_CONTROL is set those
+  two flags must be unset.
+HEADER_FLAG_DELIVERY_DEPS  (0x010)
+- set if this packet has a delivery prerequisites option header.
+HEADER_FLAG_FIRST_FRAGMENT (0x020)
+- set if this packet is the first fragment of a message.
+HEADER_FLAG_LAST_FRAGMENT  (0x040)
+- set if this packet is the last fragment of a message.
+HEADER_FLAG_MORE_FRAGMENTS (0x080)
+- set if this packet is not the last fragment of a message.
+
+
+
+DELIVERY PREREQUISITES OPTION HEADER
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |         sequence number 1         |         sequence number 2         |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+for control packets it is:
+
+sequence number 1 := reliable sequenced sequence number
+sequence number 2 := unreliable sequenced sequence number
+
+for reliable sequenced packets it is:
+
+sequence number 1 := unreliable sequenced sequence number
+sequence number 2 := control sequence number
+
+for unreliable sequenced packets it is:
+
+sequence number 1 := reliable sequenced sequence number
+sequence number 2 := control sequence number
+
+the basic rule is: the reliable sequenced sequence number will be included first, 
+then the unreliable sequenced sequence number, and the control packet sequence 
+number last.
+
+because of their unreliability, the receiver treats unreliable sequenced sequence 
+number in a special way. to prevent from a deadlock in case of packet loss, if the
+destination endpoint hasn't received the unreliable sequenced packet specified by 
+the delivery prerequisites option header (or an unreliable sequenced packet packet 
+with a greater TSN) after a predefined time interval, then it will consider that 
+packet lost and ignore the delivery prerequisite condition related to that packet.
+
+
+
+CHUNK FORMAT
+
+for each chunk we need:
+
+- chunk type
+- chunk length
+- chunk data
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |    chunk type   |  chunk length   |                                   |
+ +--------+--------+--------+--------+                                   |
+ |                                                                       |
+ |                                chunk data                             |
+ |                                                                       |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+the chunk identifier is a 16 bit id divided in 2 fields: a 4 bit field that
+specifies which class the chunk belongs to and a 12 bit field with the actual
+id which must be unique in the chunk class.
+
+we define the chunk classes:
+
+CHUNK_CLASS_CONTROL     = 0x1000;
+CHUNK_CLASS_DATA        = 0x2000;
+CHUNK_CLASS_STATECHANGE = 0x4000;
+
+the defined chunk types in the CHUNK_CLASS_CONTROL class are:
+
+CHUNK_TYPE_SACK              = CHUNK_CLASS_CONTROL     | 0x0001;
+CHUNK_TYPE_HEARTBEAT         = CHUNK_CLASS_CONTROL     | 0x0002;
+CHUNK_TYPE_CANCELLED_PACKETS = CHUNK_CLASS_CONTROL     | 0x0003;
+
+the defined chunk types in the CHUNK_TYPE_CLASS_DATA class are:
+
+CHUNK_TYPE_DATA              = CHUNK_CLASS_DATA        | 0x0001;
+
+the defined chunk types in the CHUNK_CLASS_STATECHANGE class are:
+
+CHUNK_TYPE_INIT              = CHUNK_CLASS_STATECHANGE | 0x0001;
+CHUNK_TYPE_INIT_ACK          = CHUNK_CLASS_STATECHANGE | 0x0002;
+CHUNK_TYPE_COOKIE_ECHO       = CHUNK_CLASS_STATECHANGE | 0x0003;
+CHUNK_TYPE_COOKIE_ACK        = CHUNK_CLASS_STATECHANGE | 0x0004;
+CHUNK_TYPE_SHUTDOWN          = CHUNK_CLASS_STATECHANGE | 0x0005;
+CHUNK_TYPE_SHUTDOWN_ACK      = CHUNK_CLASS_STATECHANGE | 0x0006;
+CHUNK_TYPE_SHUTDOWN_COMPLETE = CHUNK_CLASS_STATECHANGE | 0x0007;
+CHUNK_TYPE_ABORT             = CHUNK_CLASS_STATECHANGE | 0x0008;
+
+see the MessagePacket class for more details.
+
+chunk length is, just like for SCTP, the lenght (in octets) of the WHOLE chunk,
+including the "chunk type" and "chunk length" fields. 
+
+
+
+INIT CHUNK
+
+for each INIT chunk we need:
+
+ - an initiation tag value (!=0)
+ - initial Transmission Sequence Numbers (TSNs) for Reliable Sequenced,
+   Unreliable Sequenced and Control Packet flows and initial Reliable 
+   Unsequenced flow ID Number.
+
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |            Validation             |    Reliable Sequenced Flow TSN    |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |   Unreliable Sequenced Flow TSN   |      Control Packet Flow TSN      |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |  Reliable Unsequenced Fl. ID Num  |
+ +--------+--------+--------+--------+
+
+
+
+INIT-ACK CHUNK
+
+for each INIT-ACK chunk we need:
+
+ - an initiation tag value (!=0)
+ - initial Transmission Sequence Numbers (TSNs) for Reliable Sequenced,
+   Unreliable Sequenced and Control Packet flows and initial Reliable 
+   Unsequenced flow ID Number.
+ - a state cookie
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |            Validation             |    Reliable Sequenced Flow TSN    |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |   Unreliable Sequenced Flow TSN   |      Control Packet Flow TSN      |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |  Reliable Unsequenced Fl. ID Num  |                                   |
+ +--------+--------+--------+--------+                                   |
+ |                                                                       |
+ |                             State Cookie                              |
+ |                                                                       |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+
+COOKIE-ECHO CHUNK
+
+for each COOKIE-ECHO chunk we need:
+
+ - a state cookie
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |                                                                       |
+ |                             state coookie                             |
+ |                                                                       |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+
+COOKIE-ACK CHUNK
+
+for each COOKIE-ACK chunk we need:
+
+ - the new port
+
+  0               1 
+  0               5 
+ +--------+--------+
+ |       port      |
+ +--------+--------+
+
+
+
+DATA CHUNK
+
+for each DATA chunk we need:
+
+- tag id
+- fragment id (zero for first fragment)
+- data
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |     tag ID      |                                                     |
+ +--------+--------+                                                     +
+ |                                                                       |
+ +                                                                       +
+ |                                  DATA                                 |
+ +                                                                       +
+ |                                                                       |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+
+CANCELLED PACKETS CHUNK
+
+each Cancelled Packets chunk includes one (and only one) acknowledgement
+information. notice that we acknowledge packets, not data.
+
+SACK CHUNK
+
+each SACK chunk includes one (and only one) selective acknowledgement information.
+notice that we acknowledge packets, not data.
+
+
+SELECTIVE ACKNOWLEDGE INFORMATION
+
+this is the acknowledgement information included in each SACK chunk.
+each SELECTIVE ACKNOWLEDGE INFORMATION is composed by:
+
+- one cumulative acknowledgement TSN for each of the Control Packet
+  Reliable Sequenced, and Reliable Unsequenced flows (they appear in 
+  the ACKNOWLEDGE INFORMATION in the above mentioned order).
+- an ACK INFORMATION 
+
+cumulative TSN acknowledegement is the highest consecutive packet TSN 
+that the sender of the SACK chunk has seen. notice that since for Reliable 
+Unsequenced packets we use sequential packet ID numbers, cumulative 
+acknowledgement works for Reliable Unsequenced packets as well.
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |     control cumulative TSN ACK    |    rel. seq. cumulative TSN ACK   |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |  rel. unseq. cumulative TSN ACK   |                                   |
+ +--------+--------+--------+--------+                                   +
+ |                                                                       |
+ +                       acknowledgement information                     +
+ |                                                                       |
+ +                          +--------+--------+--------+--------+--------+
+ |                          |
+ +--------+--------+--------+
+
+
+ACKNOWLEDGE INFORMATION
+
+this is the acknowledgement information included in SACK and CANCELLED PACKETS chunks.
+each ACKNOWLEDGE INFORMATION is composed by a sequence of acknowledgement information 
+blocks.
+
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |                                                                       |
+ +                     1st acknowledgement info block                    +
+ |                                                                       |
+ +                          +--------+--------+--------+--------+--------+
+ |                          |                                            |
+ +--------+--------+--------+       ...                                  +
+ |                                                                       |
+ +        +--------+--------+--------+--------+--------+--------+--------+
+ |        |                                                              |
+ +--------+           Nth acknowledgement info block            +--------+
+ |                                                              |
+ +--------+--------+--------+--------+--------+--------+--------+
+
+
+SHUTDOWN CHUNK
+
+the SHUTDOWN chunk carries no information - it is an empty chunk.
+
+the sender MUST bundle a SACK chunk in every message containing a SHUTDOWN chunk 
+to more completely describe the current view of what has been received.
+
+
+
+SHUTDOWN-ACK CHUNK
+
+the SHUTDOWN-ACK chunk carries no information - it is an empty chunk.
+
+
+
+SHUTDOWN-COMPLETE CHUNK
+
+the SHUTDOWN-COMPLETE chunk carries no information - it is an empty chunk.
+
+
+
+ABORT CHUNK
+
+the ABORT chunk carries no information - it is an empty chunk. in future we
+may decide to add some information related to the error cause.
+
+
+
+HEARTBEAT CHUNK
+
+for each HEARTBEAT chunk we need:
+
+- heartbeat sender-specific information (generally includes system time,
+  etc...)
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |                                                                       |
+ +                 heartbeat sender-specific information                 +
+ |                                                                       |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+
+STATE COOKIE
+
+for each STATE COOKIE we need:
+
+- cookie generation timestamp
+- maximum cookie lifetime
+- local & remote initial Transmission Sequence Numbers (TSNs) for 
+  Reliable Sequenced, Unreliable Sequenced and Control Packet flows 
+  and initial Reliable Unsequenced flow ID Number.
+- local and remote port
+- a HMAC-SHA1 checksum
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |                       cookie generation timestamp                     |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |                            cookie lifespan                            |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |          A validation tag         |          Z validation tag         |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |   A Reliable Sequenced Flow TSN   |  A Unreliable Sequenced Flow TSN  |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |     A Control Packet Flow TSN     |  A Unrel. Unsequenced Fl. ID Num  |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |   Z Reliable Sequenced Flow TSN   |  Z Unreliable Sequenced Flow TSN  |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |     Z Control Packet Flow TSN     |  Z Unrel. Unsequenced Fl. ID Num  |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |      A port     |      Z port     |                                   |
+ +--------+--------+--------+--------+                                   +
+ |                                                                       |
+ +                                                                       +
+ |                           HMAC-SHA1 checksum                          |
+ +                                                                       +
+ |                                                                       |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |                                tie tags                               |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+A is the endpoint that initiates the connection (by sending the INIT msg)
+Z is the passive endpoint of the connection (that waits for the INIT-ACK msg)
+
+we probably should encrypt the cookie someway. in a second time, we probably
+should also add tie-tags (see RFC2960). 
+
+
+
+HEARTBEAT SENDER-SPECIFIC INFORMATION
+
+for each HEARTBEAT SENDER-SPECIFIC INFORMATION we need:
+
+- system time
+  etc...)
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |                              system time                              |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+
+
+ACKNOWLEDGEMENT INFORMATION BLOCK 
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |  flags |      length     |                                            |
+ +--------+--------+--------+                                            +
+ |                                 DATA                                  |
+ +                                                                       +
+ |                                                                       |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+
+the flags field discriminates between several types of packet (or flows) and 
+acknowledgement information blocks. the defined flags are:
+
+ACK_INFO_FLAG_CONTROL_FLOW = 0x01;
+ACK_INFO_FLAG_RELIABLE_SEQUENCED_FLOW = 0x02;
+ACK_INFO_FLAG_RELIABLE_UNSEQUENCED_FLOW = 0x04;
+ACK_INFO_FLAG_TYPE_RANGES = 0x10;
+ACK_INFO_FLAG_TYPE_SINGLES = 0x20;
+
+the lenght field contains the length (in octets) of the whole acknowledgement 
+information block (including type and length fields). so the size of the data
+portion of the acknowledgement information block is length-3.
+
+at the moment the only defined acknowledgement information blocks are:
+
+
+ACKNOWLEDGEMENT INFORMATION BLOCK TYPE 0: RANGE OF SEQUENCE NUMBERS
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |  flags |      length     | begin of 1st sequence number range| end of |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ | 1st sequence number range| begin of 2nd sequence number range|        |
+ +--------+--------+--------+--------+--------+--------+--------+        +
+ |                                                                       |
+ +                                  ...                         +--------+
+ |                                                              | end of |
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ | Nth sequence number range|
+ +--------+--------+--------+
+
+
+ACKNOWLEDGEMENT INFORMATION BLOCK TYPE 1: SINGLE SEQUENCE NUMBERS
+
+  0                                 3 3                                 6
+  0                                 1 2                                 3 
+ +--------+--------+--------+--------+--------+--------+--------+--------+
+ |  flags |      length     |        1st sequence number        |        |
+ +--------+--------+--------+--------+--------+--------+--------+        +
+ |                                                                       |
+ +                                  ...                                  +
+ |                                                                       |
+ +                          +--------+--------+--------+--------+--------+
+ |       ...                |        Nth sequence number        |
+ +--------+--------+--------+--------+--------+--------+--------+
+

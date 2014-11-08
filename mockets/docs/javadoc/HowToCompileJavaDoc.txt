@@ -1,0 +1,7 @@
+To build a new version of the documentation type:
+javadoc us.ihmc.mockets -sourcepath ../../java -stylesheetfile stylesheet_modified.css
+
+NOTE: Execute this command from the current directory!!
+
+The main page of the documentation is index.html
+

@@ -1,0 +1,1 @@
+java -Djava.library.path=..\..\..\..\bin -classpath ..\..\..\..\lib\mockets.jar;..\..\..\..\build\antcache us.ihmc.mockets.test.MsgSend -r -s 10.90.0.10

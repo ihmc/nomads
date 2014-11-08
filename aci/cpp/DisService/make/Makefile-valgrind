@@ -1,0 +1,51 @@
+include Makefile.inc
+
+CPPFLAGS += -Wall -fno-inline -O0
+
+all: libsqlite.a libtinyxpath.a libdisservice.a DisServiceProxy
+
+%.o : ../%.cpp
+	$(CPP) -c $(CPPFLAGS) $<
+
+libutil.a :
+	make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER)/ libutil.a
+
+libsecurity.a :
+	make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER)/ libsecurity.a
+
+libsqlite.a :
+	make -C $(SQLITE_HOME)/$(MAKEFILE_FOLDER)/ libsqlite3.a
+
+libtinyxpath.a :
+	make -C	$(TINYXPATH_HOME)/$(MAKEFILE_FOLDER)/ libtinyxpath.a
+
+liblcppdc.a :
+	make -C	$(LCPPDC_HOME)/$(MAKEFILE_FOLDER)/ liblcppdc.a
+
+libchunking.a :
+	make -C	$(CHUNKING_HOME)/$(MAKEFILE_FOLDER)/ libchunking.a
+
+libdisservice.a : $(OBJECTS)
+	ar -rcv libdisservice.a $(OBJECTS)
+
+DisServiceProxy : libdisservice.a libutil.a libsecurity.a libsqlite.a libtinyxpath.a libchunking.a liblcppdc.a ../DisServiceLauncher.cpp
+	$(CPP) $(CPPFLAGS) \
+	../DisServiceLauncher.cpp \
+	libdisservice.a \
+	$(LIB_LIST) $(LD_FLAGS) \
+	-o DisServiceLauncher
+
+clean :
+	rm -rf *.o *.a *.gch ../*.gch *.dSYM
+	if test -e DisServiceLauncher; \
+		then rm -rf DisServiceLauncher; \
+	fi
+
+SQLITE_MAKEFILE = $(wildcard $(SQLITE_HOME)/linux/Makefile)
+
+cleanall: clean
+	(make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER) clean)
+	(make -C $(SQLITE_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(TINYXPATH_HOME)/$(MAKEFILE_FOLDER) clean)
+
+# vim:ts=4:sw=4

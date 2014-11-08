@@ -1,0 +1,76 @@
+Open issues
+       
+COMMUNICATION PROTOCOL
+
+1. Congestion control
+
+What kind of congestion control mechanism (if any) should we implement?
+
+
+SECURITY
+
+1. Authentication
+
+Only authenticated peers should be able to perform connections, movements of 
+connection endpoint and changings to the endpoint address set for multihoming 
+datagram sockets. WE WILL COVER THIS LATER.
+
+2. Encryption/Compression
+
+We can use SSL on top of stream mockets, or use the mockets framework on top
+of a VPN.
+
+
+IMPLEMENTATION
+
+1. "Connected" UDP sockets
+
+"Connected" UDP sockets can give problems when trying to reconnect them to 
+another address. "Unconnected" UDP sockets instead are prone to asynchronous
+errors. See [UNPv1e3] chapter 8.
+
+2. Interaction between SO_RCV buffer and mocket-layer receive buffer
+
+How do we handle the interactions between the SO_RCV buffer for UDP sockets 
+inside the kernel and the mocket-layer receive buffer? What window size 
+should we advertise?
+
+3. Handling overriding messages on datagram mockets
+
+When we are transmitting a packet which overrides another packet for which
+we didn't receive the ack we should ignore ack for the previous sequenced.
+
+So, when we are creating a flow with messages overriding capabilities, we
+should warn the receiving mocket.
+
+4. Linger
+
+Should we support SO_LINGER like connection close?
+
+5. Limit outgoing bandwidth
+
+We should design some kind of bandwidth limiting restrictions for UDP sockets.
+
+
+Bibliography:
+
+S. Fu and M. Atiquzzaman, SCTP: State of the art in Research, Products, and Technical Challenges
+http://www.cs.ou.edu/~atiq/papers/04-com-mag-sctp-survey.pdf
+
+S. Floyd, Issues of TCP with SACK
+ftp://ftp.ee.lbl.gov/papers/issues_sa.ps.Z
+
+[UNPv1e3] W. R. Stevens, B. Fenner and A. M. Rudoff, Unix Network Programming Vol.1 3rd Edition
+
+RFC2018 - TCP Selective Acknowledgement Options
+
+RFC2581 - TCP Congestion Control
+
+RFC3286 - An Introduction to the Stream Control Transmission Protocol
+
+RFC3309 - Stream Control Transmission Protocol
+
+RFC3390 - Increasing TCP's Initial Window
+
+RFC3758 - SCTP Partial Reliability Extension
+

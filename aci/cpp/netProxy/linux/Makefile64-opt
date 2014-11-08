@@ -1,0 +1,48 @@
+include Makefile-opt.inc64
+
+MAKEFILE_FOLDER=linux
+
+%.o : ../%.cpp
+	$(CPP) -c $(CPPFLAGS) $<
+
+all: libnetproxy.a netProxy
+
+libsecurity.a :
+	make -f Makefile-opt -C $(UTIL_HOME)/cpp/$(MAKEFILE_FOLDER)/ libsecurity.a
+
+libutil.a :
+	make -f Makefile-opt -C $(UTIL_HOME)/cpp/$(MAKEFILE_FOLDER)/ libutil.a
+
+libmockets.a :
+	make -f Makefile-opt -C $(MOCKETS_HOME)/cpp/$(MAKEFILE_FOLDER)/ libmockets.a
+
+libmsgpack.a:
+	make -C $(MSGPACK_HOME)/$(MAKEFILE_FOLDER)/ libmsgpack.a
+
+libz.a :
+	make -C $(LIBZ_HOME)/$(MAKEFILE_FOLDER)/ libz.a
+
+liblzma.a :
+	make -C $(LZMA_HOME)/$(MAKEFILE_FOLDER)/ liblzma.a
+
+libnetproxy.a : $(objects)
+	ar -rcv libnetproxy.a $(objects)
+
+netProxy: libnetproxy.a libmockets.a libutil.a libsecurity.a libmsgpack.a libz.a liblzma.a ../main.cpp
+	$(CPP) $(CPPFLAGS) \
+	../main.cpp \
+	libnetproxy.a \
+	$(LIB_LIST) $(LD_FLAGS) \
+	-o netProxy
+	cp netProxy $(ACI_HOME)/bin/.
+
+clean :
+	rm -rf *.o *.a
+
+cleanall :
+	make clean
+	(make -C $(UTIL_HOME)/cpp/$(MAKEFILE_FOLDER) clean)
+	(make -C $(MOCKETS_HOME)/cpp/$(MAKEFILE_FOLDER) clean)
+	(make -C $(MSGPACK_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(LIBZ_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(LZMA_HOME)/$(MAKEFILE_FOLDER) clean)
