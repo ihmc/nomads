@@ -3,19 +3,19 @@
 
 /*
  * ConnectionManager.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -67,14 +67,14 @@ namespace ACMNetProxy
         Connection * const addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy);
         Connection * const addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy, uint32 ui32RemoteProxyID);
         Connection * const removeActiveConnectionFromTable (const Connection * const pClosedConnection);
-                
+
         bool isRemoteHostIPMapped (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort = 0) const;
         const QueryResult queryConnectionToRemoteHostForConnectorType (ConnectorType connectorType, uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
         const NPDArray2<QueryResult> queryAllConnectionsToRemoteHostForConnectorType (ConnectorType connectorType, uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
         const QueryResult queryConnectionToRemoteProxyIDForConnectorType (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
         const bool isConnectionToRemoteProxyOpenedForConnector (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
         const bool isConnectionToRemoteProxyOpeningForConnector (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
-        
+
         const uint32 getIPAddressForRemoteProxyWithID (uint32 ui32RemoteProxyID) const;
         const char * const getIPAddressAsStringForProxyWithID (uint32 ui32RemoteProxyID) const;
         const NOMADSUtil::InetAddr * getInetAddressForProtocolAndProxyWithID (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
@@ -91,11 +91,11 @@ namespace ACMNetProxy
     private:
         friend class NetProxyConfigManager;
         friend class AutoConnectionEntry;
-        
+
         ConnectionManager (void);
         explicit ConnectionManager (const ConnectionManager & connectionManager);
         ~ConnectionManager (void);
-        
+
         int addNewAddressMappingToBook (const AddressRangeDescriptor & addressRange, uint32 ui32RemoteProxyID);
         int addOrUpdateAutoConnectionToList (const AutoConnectionEntry & autoConnectionEntry);
 
@@ -107,7 +107,7 @@ namespace ACMNetProxy
 
         RemoteProxyInfo * const getRemoteProxyInfoForProxyWithID (uint32 ui32RemoteProxyID) const;
         AutoConnectionEntry * const getAutoConnectionEntryForProxyWithID (uint32 ui32RemoteProxyID) const;
-        
+
         static void updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, const RemoteProxyInfo & updatedRemoteProxyInfo);
         static void updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr * const pInetAddr,
                                            uint16 ui16MocketsServerPort, uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
@@ -130,7 +130,7 @@ namespace ACMNetProxy
 
         return &connectionManagerSingleton;
     }
-    
+
     inline Connector * const ConnectionManager::getConnectorForType (ConnectorType connectorType) const
     {
         return (static_cast<int> (connectorType) <= _connectorsTable.getHighestIndex()) ? _connectorsTable.get (static_cast<int> (connectorType)) : NULL;
@@ -155,12 +155,12 @@ namespace ACMNetProxy
 
         return pConnector;
     }
-    
+
     inline Connection * const ConnectionManager::addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy)
     {
         return addNewActiveConnectionToRemoteProxy (pConnectionToRemoteProxy, pConnectionToRemoteProxy->getRemoteProxyID());
     }
-    
+
     inline bool ConnectionManager::isRemoteHostIPMapped (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
     {
         bool res = false;
@@ -172,7 +172,7 @@ namespace ACMNetProxy
 
         return res;
     }
-    
+
     inline const NOMADSUtil::InetAddr * ConnectionManager::getInetAddressForProtocolAndProxyWithID (ConnectorType connectorType, uint32 ui32RemoteProxyID) const
     {
         const ConnectivitySolutions *pConnectivitySolutions = NULL;
@@ -205,7 +205,7 @@ namespace ACMNetProxy
 
         return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (CT_MOCKETS)->getIPAsString() : "";
     }
-    
+
     inline const bool ConnectionManager::getReachabilityFromRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
     {
         const ConnectivitySolutions * const pConnectivitySolutions = findConnectivitySolutionsToRemoteHost (ui32RemoteHostIP, ui16RemoteHostPort);
@@ -243,12 +243,12 @@ namespace ACMNetProxy
 
         return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getMocketsConfFileName() : "";
     }
-    
+
     inline const NPDArray2<AutoConnectionEntry> * const ConnectionManager::getAutoConnectionTable (void) const
     {
         return &_autoConnectionList;
     }
-    
+
     inline void ConnectionManager::clearAutoConnectionTable (void)
     {
         _autoConnectionList.trimSize (0);

@@ -3,19 +3,19 @@
 
 /*
  * AddressRangeDescriptor.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -76,7 +76,7 @@ namespace ACMNetProxy
         int parse (char const * const pszDescriptor);
 
         void reset (void);
-        
+
         template <typename T> bool matches (T t1, T t2) const;                      // To forbid implicit type conversions
         template <typename T1, typename T2> bool matches (T1 t1, T2 t2) const;      // To forbid implicit type conversions
         template <typename T> bool matchesPort (T t) const;                         // To forbid implicit type conversions
@@ -110,14 +110,14 @@ namespace ACMNetProxy
             reset();
         }
     }
-    
+
     inline AddressRangeDescriptor::~AddressRangeDescriptor (void) { }
-    
+
     inline bool AddressRangeDescriptor::operator== (uint32 ui32IPv4Address) const
     {
         return (*this) == AddressRangeDescriptor (ui32IPv4Address);
     }
-    
+
     inline AddressRangeDescriptor::operator const char * const (void) const
     {
         return _sAddressRangeDescriptor.c_str();

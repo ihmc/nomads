@@ -3,19 +3,19 @@
 
 /*
  * Constants.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -25,6 +25,7 @@
 #include "Mutex.h"
 #include "ConditionVariable.h"
 #include "DArray.h"
+#include "StrClass.h"
 #include "net/NetworkHeaders.h"
 
 #include "PacketBufferManager.h"
@@ -48,6 +49,7 @@ namespace ACMNetProxy
     uint32 NetProxyApplicationParameters::NETPROXY_UNIQUE_ID = 0;
     bool NetProxyApplicationParameters::GATEWAY_MODE = NetProxyApplicationParameters::DEFAULT_GATEWAY_MODE;
     uint32 NetProxyApplicationParameters::NETPROXY_IP_ADDR = 0;
+    uint32 NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR = 0;
     uint32 NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK = 0;
     NOMADSUtil::EtherMACAddr NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR = { 0, 0, 0 };
     NOMADSUtil::EtherMACAddr NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR = { 0, 0, 0 };
@@ -74,8 +76,12 @@ namespace ACMNetProxy
     const int64 NetProxyApplicationParameters::SYN_SENT_RETRANSMISSION_TIMEOUTS[] = {1000LL, 3000LL, 7000LL, 15000LL, 31000LL, 0x7FFFFFFFFFFFFFFFLL};
     bool NetProxyApplicationParameters::UPDATE_GUI_THREAD_ENABLED = NetProxyApplicationParameters::DEFAULT_UPDATE_GUI_THREAD_ENABLED;
     const double NetProxyApplicationParameters::UPDATE_TCP_WINDOW_ACK_THRESHOLD = 30.0;
-    const char * const NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE = "mockets.conf";
     const char * const NetProxyApplicationParameters::DEFAULT_GUI_UPDATE_MESSAGE_HEADER = "ACMNP";
+    #if defined (WIN32)
+        NOMADSUtil::String NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE ("c:\\temp\\mockets.conf");
+    #else
+        NOMADSUtil::String NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE ("/tmp/mockets.conf");
+    #endif
     const char * const NetProxyApplicationParameters::LOGS_DIR = "log";
 
     const CompressionSetting CompressionSetting::DefaultNOCompressionSetting;
@@ -99,7 +105,7 @@ namespace ACMNetProxy
     NetProxyConfigManager * const Connection::_pConfigurationManager = NetProxyConfigManager::getNetProxyConfigManager();
     GUIStatsManager * const Connection::_pGUIStatsManager = GUIStatsManager::getGUIStatsManager();
     PacketRouter * const Connection::_pPacketRouter = PacketRouter::getPacketRouter();
-    
+
     ConnectionManager * const Connector::_pConnectionManager = ConnectionManager::getConnectionManagerInstance();
     GUIStatsManager * const Connector::_pGUIStatsManager = GUIStatsManager::getGUIStatsManager();
     PacketRouter * const Connector::_pPacketRouter = PacketRouter::getPacketRouter();
@@ -122,7 +128,7 @@ namespace ACMNetProxy
 
     ConnectionManager * const NetProxyConfigManager::P_CONNECTION_MANAGER = ConnectionManager::getConnectionManagerInstance();
 
-    PacketBufferManager & PacketRouter::pbm = PacketBufferManager::getPacketBufferManagerInstance();
+    PacketBufferManager * const PacketRouter::_pPBM (PacketBufferManager::getPacketBufferManagerInstance());
     bool PacketRouter::_bTerminationRequested = false;
     bool PacketRouter::_bConnectorsDeleted = false;
     bool PacketRouter::_bInternalReceiverThreadRunning = false;

@@ -1,13 +1,13 @@
 /*
  * ZLibConnectorReader.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
@@ -37,7 +37,7 @@ namespace ACMNetProxy
     ZLibConnectorReader::ZLibConnectorReader (const CompressionSetting * const pCompressionSetting, unsigned int ulInBufSize, unsigned int ulOutBufSize, bool bNoWrapMode)
         : ConnectorReader (pCompressionSetting), _bNoWrapMode (bNoWrapMode)
     {
-         if ((ulOutBufSize == 0) || (ulInBufSize == 0) || 
+         if ((ulOutBufSize == 0) || (ulInBufSize == 0) ||
              (NULL == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
              (NULL == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
             // throw a c++ exception here
@@ -68,12 +68,12 @@ namespace ACMNetProxy
         }
         _pInputBuffer = NULL;
     }
-    
+
     int ZLibConnectorReader::receiveTCPDataProxyMessage (const uint8 *const ui8SrcData, uint16 ui16SrcLen, uint8 **pDest, uint32 &ui32DestLen)
     {
         int rc = 0;
         ui32DestLen = 0;
-        // Check if the buffer is large enough; if not, reallocate it 
+        // Check if the buffer is large enough; if not, reallocate it
         if (_ulInBufSize < (_zsDecompStream.avail_in + ui16SrcLen)) {
             unsigned int uiIncreaseRate = 2;
             while ((uiIncreaseRate * _ulInBufSize) < (_zsDecompStream.avail_in + ui16SrcLen)) {

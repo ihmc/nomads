@@ -1,18 +1,18 @@
 /*
  * ConnectionManager.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -149,7 +149,7 @@ namespace ACMNetProxy
                     _remoteHostAddressMappingBook[_remoteHostAddressMappingBook.getHighestIndex() + 1] = std::make_pair (addressRangeDescriptor, pConnectivitySolutions);
                 }
                 else {
-                    _remoteHostAddressMappingBook[_remoteHostAddressMappingBook.getHighestIndex () + 1] = std::make_pair (addressRange, pConnectivitySolutions);
+                    _remoteHostAddressMappingBook[_remoteHostAddressMappingBook.getHighestIndex() + 1] = std::make_pair (addressRange, pConnectivitySolutions);
                 }
                 pPair = &_remoteHostAddressMappingBook.get (_remoteHostAddressMappingBook.getHighestIndex());
                 res = 2;
@@ -174,7 +174,7 @@ namespace ACMNetProxy
             return 0;
         }
 
-        if (_m.lock () == Mutex::RC_Ok) {
+        if (_m.lock() == Mutex::RC_Ok) {
             // It is necessary to update the remote NetProxy UniqueID and the key of the corresponding entry in the Remote Proxy Connectivity Table
             ConnectivitySolutions * const pConnectivitySolutions = _remoteProxyConnectivityTable.remove (ui32RemoteProxyOldID);
             if (pConnectivitySolutions) {
@@ -223,9 +223,10 @@ namespace ACMNetProxy
                                                           ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort, bRemoteProxyReachability);
             }
             else {
-                // New info needs to be added to the Remote Proxy Info Table
+                // New info needs to be added to the Remote Proxy Info Table; the default Mockets configuration file will be used
                 pConnectivitySolutions = new ConnectivitySolutions (RemoteProxyInfo (ui32RemoteProxyID, pRemoteProxyAddress->getIPAddress(),
-                                                                                     ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort));
+                                                                                     ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort,
+                                                                                     NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE));
                 pConnectivitySolutions->_remoteProxyInfo.setRemoteProxyReachabilityFromLocalHost (bRemoteProxyReachability);
                 _remoteProxyConnectivityTable.put (ui32RemoteProxyID, pConnectivitySolutions);
                 res = 1;
@@ -287,10 +288,11 @@ namespace ACMNetProxy
                                                           ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort, bRemoteProxyReachability);
             }
             else {
-                // New info needs to be added to the Remote Proxy Info Table
+                // New info needs to be added to the Remote Proxy Info Table; the default Mockets configuration file will be used
                 pConnectivitySolutions = new ConnectivitySolutions (pConnectionToRemoteProxy,
                                                                     RemoteProxyInfo (ui32RemoteProxyID, pConnectionToRemoteProxy->getRemoteProxyInetAddr()->getIPAddress(),
-                                                                                     ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort));
+                                                                                     ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort,
+                                                                                     NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE));
                 pConnectivitySolutions->_remoteProxyInfo.setRemoteProxyReachabilityFromLocalHost (bRemoteProxyReachability);
                 _remoteProxyConnectivityTable.put (ui32RemoteProxyID, pConnectivitySolutions);
             }
@@ -299,7 +301,7 @@ namespace ACMNetProxy
 
         return pOldConnection;
     }
-    
+
     Connection * const ConnectionManager::addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy, uint32 ui32RemoteProxyID)
     {
         if (!pConnectionToRemoteProxy || (ui32RemoteProxyID == 0)) {
@@ -349,7 +351,7 @@ namespace ACMNetProxy
             }
             _m.unlock();
         }
-        
+
         return queryResList;
     }
 
@@ -380,7 +382,7 @@ namespace ACMNetProxy
 
         return res;
     }
-    
+
     const bool ConnectionManager::isConnectionToRemoteProxyOpeningForConnector (ConnectorType connectorType, uint32 ui32RemoteProxyID) const
     {
         bool res = false;
@@ -401,7 +403,7 @@ namespace ACMNetProxy
         if (!pClosedConnection || (pClosedConnection->getRemoteProxyID() == 0)) {
             return NULL;
         }
-        
+
         Connection *pOldConnection = NULL;
         if (_m.lock() == Mutex::RC_Ok) {
             ConnectivitySolutions * const pConnectivitySolutions = _remoteProxyConnectivityTable.get (pClosedConnection->getRemoteProxyID());
@@ -440,10 +442,10 @@ namespace ACMNetProxy
 
         return 0;
     }
-    
+
     /* This method should be invoked by the NetProxyConfigManager parser only, and so it does not need to lock() */
     int ConnectionManager::addOrUpdateAutoConnectionToList (const AutoConnectionEntry & autoConnectionEntry) {
-        if (autoConnectionEntry.getRemoteProxyID () == 0) {
+        if (autoConnectionEntry.getRemoteProxyID() == 0) {
             // Invalid remote NetProxy UniqueID
             return -1;
         }
@@ -456,7 +458,7 @@ namespace ACMNetProxy
                 return 0;
             }
         }
-        
+
         if (autoConnectionEntry.getConnectorType() != CT_UNDEF) {
             // Add new entry
             _autoConnectionList.add (autoConnectionEntry);
@@ -488,7 +490,7 @@ namespace ACMNetProxy
         unsigned int solutionsFound = 0;
         DArray<const ConnectivitySolutions *> da2ConnectivitySolutions;
         if (_m.lock() == Mutex::RC_Ok) {
-            for (int i = 0; i <= _remoteHostAddressMappingBook.getHighestIndex (); ++i) {
+            for (int i = 0; i <= _remoteHostAddressMappingBook.getHighestIndex(); ++i) {
                 if (_remoteHostAddressMappingBook.get (i).first.matches (ui32RemoteHostIP, ui16RemoteHostPort)) {
                     da2ConnectivitySolutions[solutionsFound++] = _remoteHostAddressMappingBook.get (i).second;
                 }
@@ -498,7 +500,7 @@ namespace ACMNetProxy
 
         return da2ConnectivitySolutions;
     }
-    
+
     std::pair<AddressRangeDescriptor, ConnectivitySolutions *> * const ConnectionManager::findConnectivitySolutionsInTheMappingBook (uint32 ui32RemoteHostIP,
                                                                                                                                      uint16 ui16RemoteHostPort) const
     {
@@ -511,7 +513,7 @@ namespace ACMNetProxy
 
         return NULL;
     }
-    
+
     AutoConnectionEntry * const ConnectionManager::getAutoConnectionEntryForProxyWithID (uint32 ui32RemoteProxyID) const
     {
         for (int i = 0; i <= _autoConnectionList.getHighestIndex(); i++) {
@@ -524,7 +526,7 @@ namespace ACMNetProxy
 
         return NULL;
     }
-    
+
     void ConnectionManager::updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, const RemoteProxyInfo & updatedRemoteProxyInfo)
     {
         // Update all attributes

@@ -1,18 +1,18 @@
 /*
  * TapInterface.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -47,7 +47,7 @@ using namespace NOMADSUtil;
 namespace ACMNetProxy
 {
     TapInterface::TapInterface (void) :
-        NetworkInterface (T_Tap), pbm (PacketBufferManager::getPacketBufferManagerInstance())
+        NetworkInterface (T_Tap), pPBM (PacketBufferManager::getPacketBufferManagerInstance())
     {
         #if defined (WIN32)
             _hInterface = NULL;
@@ -248,7 +248,7 @@ namespace ACMNetProxy
                     strcpy(pszByte, "0x");
                     strcat(pszByte, nextToken);
                     strcat(pszByte, "\0");
-                    
+
                     unsigned int tmp;
                     std::stringstream ss;
                     ss << std::hex << pszByte;
@@ -301,7 +301,7 @@ namespace ACMNetProxy
             // Process MTU value
             if (sMTU.length() > 0) {
                 // MTU value found
-                int32 i32MTU = atoi (sMTU.c_str());
+                int32 i32MTU = atoi (sMTU);
                 if ((i32MTU <= 0) || (i32MTU > NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU)) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_MildError,
                                     "detected an invalid value of %d bytes as MTU of the TUN/TAP interface\n", i32MTU);
@@ -334,7 +334,7 @@ namespace ACMNetProxy
             }
             //FD_SET (_fdTAP, &fdSet);
             memset(&ifr, 0, sizeof (ifr));
-            strcpy (ifr.ifr_name, _sAdapterName.c_str());
+            strcpy (ifr.ifr_name, _sAdapterName);
             ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
             if ((err = ioctl (_fdTAP, TUNSETIFF, (void *) &ifr)) < 0 ) {
                 checkAndLogMsg ("TapInterface::init", Logger::L_SevereError,
@@ -342,7 +342,7 @@ namespace ACMNetProxy
                 close (_fdTAP);
                 return -2;
             }
-            
+
             _sAdapterName = ifr.ifr_name;
             printf ("TUN/TAP interface name: %s\n", _sAdapterName.c_str());
 
@@ -354,7 +354,7 @@ namespace ACMNetProxy
             else {
                 printf ("\t\tPersistence: ON\n");
             }
-            
+
             // MAC Address
             memset(&ifr, 0, sizeof (ifr));
             strncpy(ifr.ifr_name, _sAdapterName, _sAdapterName.length());
@@ -370,7 +370,7 @@ namespace ACMNetProxy
                 printf ("\t\tMAC address: %2x:%2x:%2x:%2x:%2x:%2x\n", _aui8MACAddr[0], _aui8MACAddr[1],
                         _aui8MACAddr[2], _aui8MACAddr[3], _aui8MACAddr[4], _aui8MACAddr[5]);
             }
-            
+
             // Try and open a UDP/IP socket on the TUN/TAP interface to retrieve IP address, netmask, and MTU
             if ((sock_fd = socket (AF_INET, SOCK_DGRAM, 0)) < 0) {
                 checkAndLogMsg ("TapInterface::init", Logger::L_MildError,
@@ -380,7 +380,7 @@ namespace ACMNetProxy
             else {
                 // IP Address
                 memset(&ifr, 0, sizeof (ifr));
-                strncpy(ifr.ifr_name, _sAdapterName.c_str(), sizeof (ifr.ifr_name) - 1);
+                strncpy(ifr.ifr_name, _sAdapterName, sizeof (ifr.ifr_name) - 1);
                 ifr.ifr_addr.sa_family = AF_INET;
                 if ((err = ioctl (sock_fd, SIOCGIFADDR, (void *) &ifr)) < 0) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_Warning,
@@ -394,7 +394,7 @@ namespace ACMNetProxy
 
                 // Netmask
                 memset(&ifr, 0, sizeof (ifr));
-                strncpy(ifr.ifr_name, _sAdapterName.c_str(), sizeof (ifr.ifr_name) - 1);
+                strncpy(ifr.ifr_name, _sAdapterName, sizeof (ifr.ifr_name) - 1);
                 ifr.ifr_addr.sa_family = AF_INET;
                 if ((err = ioctl (sock_fd, SIOCGIFNETMASK, (void *) &ifr)) < 0) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_Warning,
@@ -408,7 +408,7 @@ namespace ACMNetProxy
 
                 // Netmask
                 memset(&ifr, 0, sizeof (ifr));
-                strncpy(ifr.ifr_name, _sAdapterName.c_str(), sizeof (ifr.ifr_name) - 1);
+                strncpy(ifr.ifr_name, _sAdapterName, sizeof (ifr.ifr_name) - 1);
                 ifr.ifr_addr.sa_family = AF_INET;
                 if ((err = ioctl (sock_fd, SIOCGIFMTU, (void *) &ifr)) < 0 ) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_MildError,
@@ -421,7 +421,7 @@ namespace ACMNetProxy
                 }
                 close (sock_fd);
             }
-            
+
             tvTimeout.tv_sec = NetProxyApplicationParameters::TAP_READ_TIMEOUT / 1000;
             tvTimeout.tv_usec = (NetProxyApplicationParameters::TAP_READ_TIMEOUT % 1000) * 1000;
             checkAndLogMsg ("TapInterface::init", Logger::L_Info,
@@ -533,7 +533,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("TapInterface::writePacket", Logger::L_MildError,
                                     "WriteFile failed with error %d\n", GetLastError());
                     _mWrite.unlock();
-                    if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+                    if (0 != pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                         checkAndLogMsg ("TapInterface::writePacket", Logger::L_Warning,
                                         "could not find a lock to release; maybe an external buffer was used?\n");
                     }
@@ -544,7 +544,7 @@ namespace ACMNetProxy
                         checkAndLogMsg ("TapInterface::writePacket", Logger::L_MildError,
                                         "GetOverlappedResult failed with error %d\n", GetLastError());
                         _mWrite.unlock();
-                        if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+                        if (0 != pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                             checkAndLogMsg ("TapInterface::writePacket", Logger::L_Warning,
                                             "could not find a lock to release; maybe an external buffer was used?\n");
                         }
@@ -561,7 +561,7 @@ namespace ACMNetProxy
                 checkAndLogMsg ("TapInterface::writePacket", Logger::L_MildError,
                                 "write() failed with error %d\n", errno);
                 _mWrite.unlock();
-                if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+                if (0 != pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                     checkAndLogMsg ("TapInterface::writePacket", Logger::L_Warning,
                                     "could not find a lock to release; maybe an external buffer was used?\n");
                 }
@@ -571,7 +571,7 @@ namespace ACMNetProxy
                 checkAndLogMsg ("TapInterface::writePacket", Logger::L_MildError,
                                 "write() wrote only %d bytes to the TUN/TAP interface\n", dwBytesWritten);
                 _mWrite.unlock();
-                if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+                if (0 != pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                     checkAndLogMsg ("TapInterface::writePacket", Logger::L_Warning,
                                     "could not find a lock to release; maybe an external buffer was used?\n");
                 }

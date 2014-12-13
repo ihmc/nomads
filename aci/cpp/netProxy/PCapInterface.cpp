@@ -1,18 +1,18 @@
 /*
  * PCapInterface.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -60,7 +60,7 @@ namespace ACMNetProxy
         }
     }
 
-    PCapInterface * const PCapInterface::getPCapInterface (const char *pszDevice)
+    PCapInterface * const PCapInterface::getPCapInterface (const char * const pszDevice)
     {
         int rc;
         pcap_if_t *pAllDevs;
@@ -69,8 +69,14 @@ namespace ACMNetProxy
         if (pcap_findalldevs (&pAllDevs, errbuf) == -1) {
             return NULL;
         }
-        
-        PCapInterface *pPCapInterface = new PCapInterface (NetworkInterface::getDeviceNameFromUserFriendlyName(pszDevice));
+
+        String sDeviceName (NetworkInterface::getDeviceNameFromUserFriendlyName (pszDevice));
+        if (sDeviceName.length() <= 0) {
+            checkAndLogMsg ("PCapInterface::getPCapInterface", Logger::L_MildError,
+                            "impossible to retrieve the network device name from the user friendly name %s \n", pszDevice);
+            return NULL;
+        }
+        PCapInterface *pPCapInterface = new PCapInterface (sDeviceName);
         if (0 != (rc = pPCapInterface->init())) {
             checkAndLogMsg ("PCapInterface::getPCapInterface", Logger::L_MildError,
                             "failed to initialize PCapInterface; rc = %d\n", rc);

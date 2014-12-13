@@ -1,18 +1,18 @@
 /*
  * PacketRouter.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -23,8 +23,8 @@
 
 #include "SequentialArithmetic.h"
 #include "net/NetUtils.h"
+#include "StringTokenizer.h"
 #include "InetAddr.h"
-#include "ConfigManager.h"
 #include "Logger.h"
 
 #include "PacketRouter.h"
@@ -148,7 +148,7 @@ namespace ACMNetProxy
             return -8;
         }
         if (NetProxyApplicationParameters::UPDATE_GUI_THREAD_ENABLED) {
-            _updateGUIThread.init (_pConfigurationManager->getValue ("StatusNotificationAddress", "127.0.0.1"));
+            _updateGUIThread.init (_pConfigurationManager->getValue ("StatusNotificationAddresses"));
             if (0 != _updateGUIThread.start (false)) {
                 return -9;
             }
@@ -246,7 +246,7 @@ namespace ACMNetProxy
         if (_pExternalInterface) {
             _pExternalInterface->requestTermination();     // This will end the execution of the external receiver thread
         }
-        
+
         // Lock AutoConnectionManager thread, clean AutoConnection Table, and notify the thread so that it can terminate its execution
         _mAutoConnectionManager.lock();
         _pConnectionManager->clearAutoConnectionTable();
@@ -664,7 +664,7 @@ namespace ACMNetProxy
                 _mLocalUDPDatagramsManager.unlock();
             }
             if (ui32TotalEnqueuedBytes >= NetworkConfigurationSettings::MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD) {
-                // Forcing yielding to LocalUDPDatagramsManagerThread so that transmission can be performed
+                // Force yielding to LocalUDPDatagramsManagerThread so that transmission can be performed
                 yield();
             }
         }
@@ -770,7 +770,7 @@ namespace ACMNetProxy
                             pData = NULL;
                             continue;
                         }
-                        
+
                         if ((pEntry->localStatus == TCTLS_SYN_SENT) && ((pData->getTCPFlags() & TCPHeader::TCPF_SYN) != 0) &&
                             ((i64CurrTime - pEntry->i64LastAckTime) > NetProxyApplicationParameters::SYN_SENT_RETRANSMISSION_TIMEOUTS[pEntry->ui8RetransmissionAttempts])) {
                             // A retransmission for the SYN packet is required
@@ -940,7 +940,7 @@ namespace ACMNetProxy
                         // Check if there is an enqueued FIN packet
                         if (pData && ((pData->getTCPFlags() & TCPHeader::TCPF_FIN) != 0) && ((pEntry->localStatus == TCTLS_ESTABLISHED) ||
                             (pEntry->localStatus == TCTLS_CLOSE_WAIT) || ((i64CurrTime - pData->_i64LastTransmitTime) >= pEntry->ui16RTO))) {
-                            /* 
+                            /*
                              * Placeholder for a FIN packet. Note that, technically, before transmitting the FIN, we should
                              * check that the remote window size has at least one free byte to enqueue the FIN.
                              */
@@ -1689,19 +1689,27 @@ namespace ACMNetProxy
         _bCleanerThreadRunning = false;
     }
 
-    int PacketRouter::UpdateGUIThread::init (const char *pszNotificationAddress)
+    int PacketRouter::UpdateGUIThread::init (const char * const pszNotificationAddressList)
     {
-        _notificationAddress = pszNotificationAddress;
-        checkAndLogMsg ("PacketRouter::UpdteGUIThread::init", Logger::L_Info,
-                        "configured notification address to be <%s>\n", pszNotificationAddress);
+        StringTokenizer stAddressList (pszNotificationAddressList, ',');
+
+        // Parse notification address list
+        while (const char * const pszPairToken = stAddressList.getNextToken()) {
+            StringTokenizer stPair (pszPairToken, ':');
+            String sIP = stPair.getNextToken();
+            String sPort = stPair.getNextToken();
+
+            _notificationAddressList.add (std::make_pair (sIP, static_cast<uint16> (atoi (sPort))));
+        }
+
         return 0;
     }
 
     void PacketRouter::UpdateGUIThread::run (void)
     {
         int rc;
-        const char *pcUpdateGUIMessage = NULL;
-        uint16 ui16UpdateGUIMessageLen = 0;
+        const char *pcUpdateGUIMessage = NULL, *pszIPAddress = NULL;
+        uint16 ui16UpdateGUIMessageLen = 0, ui16Port = 0;
 
         _bUpdateGUIThreadRunning = true;
         _mGUIUpdater.lock();
@@ -1710,15 +1718,20 @@ namespace ACMNetProxy
             _pGUIStatsManager->packGUIUpdateMessage();
             _pGUIStatsManager->getGUIUpdateMessage (pcUpdateGUIMessage, ui16UpdateGUIMessageLen);
 
-            if (ui16UpdateGUIMessageLen != (rc = _udpSocket.sendTo (_notificationAddress, NetProxyApplicationParameters::GUI_LOCAL_PORT, pcUpdateGUIMessage, ui16UpdateGUIMessageLen))) {
-                checkAndLogMsg ("PacketRouter::UpdateGUIThread::run", Logger::L_Warning,
-                                "sendTo() of an UpdateGUI message of %hu bytes failed with rc = %d\n",
-                                ui16UpdateGUIMessageLen, rc);
-            }
-            else {
-                checkAndLogMsg ("PacketRouter::UpdateGUIThread::run", Logger::L_HighDetailDebug,
-                                "successfully sent an UpdateGUI message of %hu bytes to %s on port %hu\n",
-                                ui16UpdateGUIMessageLen, _notificationAddress.c_str(), NetProxyApplicationParameters::GUI_LOCAL_PORT);
+            // Send an UpdateGUI message to all addresses in the Notification Address List
+            for (int i = 0; i <= _notificationAddressList.getHighestIndex(); ++i) {
+                pszIPAddress = _notificationAddressList.get (i).first;
+                ui16Port = _notificationAddressList.get (i).second;
+                if (ui16UpdateGUIMessageLen != (rc = _udpSocket.sendTo (pszIPAddress, ui16Port, pcUpdateGUIMessage, ui16UpdateGUIMessageLen))) {
+                    checkAndLogMsg ("PacketRouter::UpdateGUIThread::run", Logger::L_Warning,
+                                    "sendTo() failed to send an UpdateGUI message of %hu bytes to address %s:%hu; rc = %d\n",
+                                    ui16UpdateGUIMessageLen, pszIPAddress, ui16Port, rc);
+                }
+                else {
+                    checkAndLogMsg ("PacketRouter::UpdateGUIThread::run", Logger::L_HighDetailDebug,
+                                    "successfully sent an UpdateGUI message of %hu bytes to %s:%hu\n",
+                                    ui16UpdateGUIMessageLen, pszIPAddress, ui16Port);
+                }
             }
 
             if (PacketRouter::isTerminationRequested()) {
@@ -1753,7 +1766,7 @@ namespace ACMNetProxy
                                 (int) pEthHeader->dest.ui8Byte4, (int) pEthHeader->dest.ui8Byte5, (int) pEthHeader->dest.ui8Byte6);
                 return 0;
             }
-            
+
             if (!hostBelongsToTheInternalNetwork (pEthHeader->src)) {
                 // Add new host to the list of hosts in the internal network
                 _daInternalHosts[_daInternalHosts.getHighestIndex() + 1] = pEthHeader->src;
@@ -1808,7 +1821,7 @@ namespace ACMNetProxy
                                     "successfully forwarded an ARP probe packet (target protocol address: %s) of %hu bytes long on the "
                                     "external network interface; both the source Ethernet MAC address and the source hardware address of "
                                     "the ARP packet were changed to be the MAC address of the external network interface of this host\n",
-                                    InetAddr (pARPPacket->tpa.ui32Addr).getIPAsString (), ui16PacketLen);
+                                    InetAddr (pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen);
                 }
                 else {
                     // Another host is trying to use our own address! --> reply with a gratuitous ARP announcement on both interfaces
@@ -1931,7 +1944,7 @@ namespace ACMNetProxy
                                     InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
                     return 0;
                 }
-                
+
                 // The destination MAC address of ARP Requests should always be broadcast
                 pARPPacket->sha = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                 pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
@@ -2300,7 +2313,7 @@ namespace ACMNetProxy
                                         "not match the entry in the Address Mapping Table on the external network interface; both the source and "
                                         "destination Ethernet MAC addresses of the Ethernet packet were changed to be the MAC address of the "
                                         "external network interface of this host and %2x:%2x:%2x:%2x:%2x:%2x, respectively\n",
-                                        InetAddr (ui32SrcAddr).getIPAsString (), pUDPHeader->ui16SPort, InetAddr (ui32DestAddr).getIPAsString(),
+                                        InetAddr (ui32SrcAddr).getIPAsString(), pUDPHeader->ui16SPort, InetAddr (ui32DestAddr).getIPAsString(),
                                         pUDPHeader->ui16DPort, ui16PacketLen, pDestEther->ui8Byte1, pDestEther->ui8Byte2,
                                         pDestEther->ui8Byte3, pDestEther->ui8Byte4, pDestEther->ui8Byte5, pDestEther->ui8Byte6);
                         return 0;
@@ -2430,7 +2443,7 @@ namespace ACMNetProxy
                 TCPHeader *pTCPHeader = (TCPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
                 pTCPHeader->ntoh();
                 if (!_pConnectionManager->isRemoteHostIPMapped (pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort)) {
-                    /* TCP packet with an IP address that is mapped to a remote NetProxy, but the port number does 
+                    /* TCP packet with an IP address that is mapped to a remote NetProxy, but the port number does
                      * not match --> change destination Ethernet MAC address and forward it to the network gateway. */
                     pTCPHeader->hton();
                     pIPHeader->hton();
@@ -2547,7 +2560,7 @@ namespace ACMNetProxy
         int rc;
         EtherFrameHeader * const pEthHeader = (EtherFrameHeader*) pPacket;
         pEthHeader->ntoh();
-        
+
         if (hostBelongsToTheInternalNetwork (pEthHeader->src)) {
             // Packet originated on the internal network was just reinjected on the external one --> ignore it
             checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
@@ -2671,7 +2684,7 @@ namespace ACMNetProxy
 
                             const EtherMACAddr * const pSrcEther = _pARPCache.lookup (pARPPacket->tpa.ui32Addr);
                             if (pSrcEther && hostBelongsToTheInternalNetwork (*pSrcEther)) {
-                                /* The NetProxy knows that the destination belongs to the internal network --> immediately reply to it. 
+                                /* The NetProxy knows that the destination belongs to the internal network --> immediately reply to it.
                                  * If this is not done, the OS will see the ARP Response coming from both the internal and external interface,
                                  * in this order, and it will not generate packets, since the internal interface does not have an IP address. */
                                 if (0 != (rc = sendARPReplyToHost (_pExternalInterface, pARPPacket, *pSrcEther))) {
@@ -2793,7 +2806,7 @@ namespace ACMNetProxy
             pIPHeader->ntoh();
             pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
             pIPHeader->destAddr.ui32Addr = ui32DestAddr;
-            
+
             if (pEthHeader->dest == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
                 // The packet was sent to this node; check if the NetProxy needs to process it
                 if (ui32DestAddr == NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
@@ -2805,7 +2818,7 @@ namespace ACMNetProxy
                                     InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString());
                     return 0;
                 }
-                
+
                 const EtherMACAddr * const pDestEther = _pARPCache.lookup (EndianHelper::ntohl (pIPHeader->destAddr.ui32Addr));
                 if (!pDestEther) {
                     // No entry in the ARP Cache matches the destination IP address of the received IP packet --> drop it!
@@ -3015,7 +3028,7 @@ namespace ACMNetProxy
                                     InetAddr(EndianHelper::htonl (pIPHeader->destAddr.ui32Addr)).getIPAsString());
                 }
             }
-            
+
             pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
             pEthHeader->dest = *pMACAddr;
         }
@@ -3097,7 +3110,7 @@ namespace ACMNetProxy
             return -1;
         }
 
-        uint8 *pui8Buf = (uint8 *) pbm.getAndLockWriteBuf();
+        uint8 *pui8Buf = (uint8 *) _pPBM->getAndLockWriteBuf();
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Buf;
         ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof (EtherFrameHeader));
         pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
@@ -3123,14 +3136,14 @@ namespace ACMNetProxy
         if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof (EtherFrameHeader) + sizeof (ARPPacket)))) {
             checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                     checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_SevereError,
                                     "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -2;
         }
 
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                 checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
                 return -3;
@@ -3152,7 +3165,7 @@ namespace ACMNetProxy
             return -2;
         }
 
-        uint8 *pui8Buf = (uint8 *) pbm.getAndLockWriteBuf();
+        uint8 *pui8Buf = (uint8 *) _pPBM->getAndLockWriteBuf();
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Buf;
         ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof (EtherFrameHeader));
         pEthHeader->dest = pARPReqPacket->sha;
@@ -3173,14 +3186,14 @@ namespace ACMNetProxy
         if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof (EtherFrameHeader) + sizeof (ARPPacket)))) {
             checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                     checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_SevereError,
                                     "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -3;
         }
 
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                 checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
                 return -4;
@@ -3196,7 +3209,7 @@ namespace ACMNetProxy
         }
 
         int rc;
-        uint8 *pui8Buf = (uint8 *) pbm.getAndLockWriteBuf();
+        uint8 *pui8Buf = (uint8 *) _pPBM->getAndLockWriteBuf();
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Buf;
         ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof (EtherFrameHeader));
         pEthHeader->dest = NetProxyApplicationParameters::BROADCAST_MAC_ADDR;
@@ -3217,14 +3230,14 @@ namespace ACMNetProxy
         if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof (EtherFrameHeader) + sizeof (ARPPacket)))) {
             checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                     checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_SevereError,
                                     "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -2;
         }
 
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Buf)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
                 checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
                 return -3;
@@ -3237,7 +3250,7 @@ namespace ACMNetProxy
                                                      uint32 ui32SourceIP, uint32 ui32DestinationIP, IPHeader * const pRcvdIPPacket)
     {
         int rc;
-        uint8 *pui8Packet = (uint8 *) pbm.getAndLockWriteBuf();
+        uint8 *pui8Packet = (uint8 *) _pPBM->getAndLockWriteBuf();
         IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
         size_t uiICMPDataLen = ((pRcvdIPPacket->ui8VerAndHdrLen & 0x0F) * 4) + 8;
         uint16 ui16IPPacketLen = sizeof (IPHeader) + sizeof (ICMPHeader) + uiICMPDataLen;
@@ -3247,7 +3260,7 @@ namespace ACMNetProxy
             checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_MildError,
                             "ICMP packet length with %hu bytes of data exceeds maximum packet size (%hu)\n",
                             ui16IPPacketLen, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
@@ -3298,7 +3311,7 @@ namespace ACMNetProxy
                     {
                         checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_Warning,
                                         "could not find an entry for ICMP Message Type Destination Unreachable with Code %d\n", ICMPCode);
-                        if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+                        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                             checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                                             "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
                         }
@@ -3311,7 +3324,7 @@ namespace ACMNetProxy
             {
                 checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_Warning,
                                 "could not find an entry for ICMP Message Type %d\n", ICMPType);
-                if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+                if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                     checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                                     "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
                 }
@@ -3322,13 +3335,13 @@ namespace ACMNetProxy
         if (0 != (rc = wrapEtherAndSendPacketToHost (pNI, pui8Packet, ui16IPPacketLen))) {
             checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_MildError,
                             "wrapEtherAndSendPacketToHost() failed with rc = %d - could not send an ICMP message to host\n", rc);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -4;
         }
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
             checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                             "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             return -5;
@@ -3341,14 +3354,14 @@ namespace ACMNetProxy
                                                 ICMPHeader::Code_Destination_Unreachable ICMPCode, uint32 ui32RoH, const uint8 * const pICMPData, uint16 ui16PayloadLen)
     {
         int rc;
-        uint8 *pui8Packet = (uint8 *) pbm.getAndLockWriteBuf();
+        uint8 *pui8Packet = (uint8 *) _pPBM->getAndLockWriteBuf();
         IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
         uint16 ui16IPPacketLen = sizeof (IPHeader) + sizeof (ICMPHeader) + ui16PayloadLen;
         if (ui16IPPacketLen > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
             checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_MildError,
                             "ICMP packet length with %hu bytes of data exceeds maximum packet size (%hu)\n",
                             ui16IPPacketLen, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
@@ -3377,7 +3390,7 @@ namespace ACMNetProxy
             checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_MildError,
                             "wrapEtherAndSendPacketToHost() failed trying to send an ICMP message to host with "
                             "IP address %s; rc = %d\n", InetAddr (ui32LocalTargetIP).getIPAsString(), rc);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
@@ -3391,7 +3404,7 @@ namespace ACMNetProxy
                             ((uint8*) &pICMPHeader->ui32RoH)[3], ((uint8*) &pICMPHeader->ui32RoH)[2],
                             ((uint8*) &pICMPHeader->ui32RoH)[1], ((uint8*) &pICMPHeader->ui32RoH)[0]);
         }
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
             checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_SevereError,
                             "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             return -3;
@@ -3425,7 +3438,7 @@ namespace ACMNetProxy
             return -3;
         }
         if (!pAutoConnectionEntry) {
-            checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_LowDetailDebug, 
+            checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_LowDetailDebug,
                             "no protocol specification for AutoConnections to remote NetProxy with address %s:%hu was found; "
                             "using the same protocol as the remote proxy (%s)\n", pRemoteProxyAddr->getIPAsString(),
                             pRemoteProxyAddr->getPort(), connectorTypeToString (connectorType));
@@ -3474,7 +3487,7 @@ namespace ACMNetProxy
         static const uint16 ui16MaxUDPPacketLen = NetProxyApplicationParameters::TAP_INTERFACE_MTU - sizeof (IPHeader);
 
         int rc;
-        uint8 *pui8Packet = (uint8 *) pbm.getAndLockWriteBuf();
+        uint8 *pui8Packet = (uint8 *) _pPBM->getAndLockWriteBuf();
         IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
         UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*)pIPHeader) + sizeof (IPHeader));
         uint16 ui16IPPacketLen = sizeof (IPHeader) + pUDPPacket->ui16Len;
@@ -3504,7 +3517,7 @@ namespace ACMNetProxy
             if (0 != (rc = wrapEtherAndSendPacketToHost (_pInternalInterface, pui8Packet, pIPHeader->ui16TLen))) {
                 checkAndLogMsg ("PacketRouter::sendUDPUniCastPacketToHost", Logger::L_MildError,
                                 "wrapEtherAndSendPacketToHost() failed with rc = %d - could not send a UDP message to host\n", rc);
-                if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+                if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                     checkAndLogMsg ("PacketRouter::sendUDPUniCastPacketToHost", Logger::L_SevereError,
                                     "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
                 }
@@ -3516,7 +3529,7 @@ namespace ACMNetProxy
                         "successfully forwarded UDP Packet of %hu bytes from %s:%hu to %s:%hu\n",
                         pUDPPacket->ui16Len, InetAddr(ui32RemoteOriginationIP).getIPAsString(), pUDPPacket->ui16SPort,
                         InetAddr(ui32LocalTargetIP).getIPAsString(), pUDPPacket->ui16DPort);
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
             checkAndLogMsg ("PacketRouter::sendUDPUniCastPacketToHost", Logger::L_SevereError,
                             "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             return -2;
@@ -3528,7 +3541,7 @@ namespace ACMNetProxy
     int PacketRouter::sendUDPBCastMCastPacketToHost (const uint8 * const pPacket, uint16 ui16PacketLen)
     {
         int rc;
-        uint8* pui8Packet = (uint8*) pbm.getAndLockWriteBuf();
+        uint8* pui8Packet = (uint8*) _pPBM->getAndLockWriteBuf();
         memcpy (pui8Packet, pPacket, ui16PacketLen);
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Packet;
         IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
@@ -3550,13 +3563,13 @@ namespace ACMNetProxy
         if (0 != (rc = sendPacketToHost (_pInternalInterface, const_cast<const uint8 * const> (pui8Packet), ui16PacketLen))) {
             checkAndLogMsg ("PacketRouter::sendUDPBCastMCastPacketToHost", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::sendUDPBCastMCastPacketToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -1;
         }
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
             checkAndLogMsg ("PacketRouter::sendUDPBCastMCastPacketToHost", Logger::L_SevereError,
                             "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             return -2;
@@ -3672,7 +3685,7 @@ namespace ACMNetProxy
                             pConnector->getConnectorTypeAsString());
             return -2;
         }
-        
+
         const NPDArray2<QueryResult> daQueryList (_pConnectionManager->queryAllConnectionsToRemoteHostForConnectorType (connectorType, ui32BroadcastDestIP, ui16DestPort));
         for (int i = 0; i <= daQueryList.getHighestIndex(); ++i) {
             const QueryResult &query = daQueryList.get (i);
@@ -3737,7 +3750,7 @@ namespace ACMNetProxy
                             pConnector->getConnectorTypeAsString());
             return -2;
         }
-        
+
         const NPDArray2<QueryResult> daQueryList (_pConnectionManager->queryAllConnectionsToRemoteHostForConnectorType (connectorType, ui32MulticastDestIP, ui16DestPort));
         for (int i = 0; i <= daQueryList.getHighestIndex(); ++i) {
             const QueryResult &query = daQueryList.get (i);
@@ -3875,7 +3888,7 @@ namespace ACMNetProxy
                 return true;
             }
         }
-        
+
         return false;
     }
 

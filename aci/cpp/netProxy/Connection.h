@@ -3,19 +3,19 @@
 
 /*
  * Connection.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -90,7 +90,7 @@ namespace ACMNetProxy
                     bool isReadyToRun (void) const;
                     bool isTerminationRequested (void);
                     void setConnectorAdapter (ConnectorAdapter * const pConnectorAdapter);
-                    
+
                     int lockMessageHandlingMutex (void) const;
                     int tryLockMessageHandlingMutex (void) const;
                     int unlockMessageHandlingMutex (void) const;
@@ -104,12 +104,12 @@ namespace ACMNetProxy
                     mutable NOMADSUtil::Mutex _mMessageHandlingMutex;
             };
 
-            
+
         private:
             class BackgroundConnectionThread : public NOMADSUtil::Thread
             {
                 public:
-                    BackgroundConnectionThread (Connection * const pConnection, const NOMADSUtil::String &sConfigFile);
+                    BackgroundConnectionThread (Connection * const pConnection);
                     ~BackgroundConnectionThread (void);
 
                     void run (void);
@@ -120,12 +120,11 @@ namespace ACMNetProxy
 
                     Connection * _pConnection;
                     ConnectorAdapter * _pConnectorAdapter;
-                    NOMADSUtil::String _sConfigFile;
 
                     bool _bDeleteConnectorAdapter;
             };
 
-            
+
         public:
             // Constructor used when a connection has been accepted (HostRole server)
             Connection (ConnectorAdapter * const pConnectorAdapter, Connector * const pConnector);
@@ -136,8 +135,8 @@ namespace ACMNetProxy
             int startMessageHandler (void);
             void connectionThreadTerminating (void);
 
-            int connectSync (const NOMADSUtil::String &profileType);
-            int connectAsync (const NOMADSUtil::String &profileType);
+            int connectSync (void);
+            int connectAsync (void);
             int waitForConnectionEstablishment (void);
 
             bool isConnected (void) const;
@@ -182,13 +181,13 @@ namespace ACMNetProxy
 
         private:
             friend class IncomingMessageHandler;
-            
+
             void updateRemoteProxyID (uint32 ui32RemoteProxyID);
             void updateRemoteProxyInformation (uint32 ui32RemoteProxyID, uint16 ui16MocketsServerPort, uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
             void enforceConnectionsConsistency (Connection * const pOldConnection, uint32 ui32RemoteProxyID);
 
             static bool peerUnreachableWarning (void *pCallbackArg, unsigned long ulTimeSinceLastContact);
-            
+
             static bool isCommunicationReliable (ProxyMessage::Protocol pmProtocol);
             static bool isCommunicationSequenced (ProxyMessage::Protocol pmProtocol);
 
@@ -211,7 +210,7 @@ namespace ACMNetProxy
             mutable NOMADSUtil::ConditionVariable _cvBCThread;
 
             bool _bDeleteRequested;
-            
+
             static ConnectionManager * const _pConnectionManager;
             static NetProxyConfigManager * const _pConfigurationManager;
             static GUIStatsManager * const _pGUIStatsManager;
@@ -240,12 +239,12 @@ namespace ACMNetProxy
     {
         return _pConnection && _pConnectorAdapter;
     }
-    
+
     inline bool Connection::IncomingMessageHandler::isTerminationRequested (void)
     {
         return terminationRequested();
     }
-    
+
     inline void Connection::IncomingMessageHandler::setConnectorAdapter (ConnectorAdapter * const pConnectorAdapter)
     {
         _pConnectorAdapter = pConnectorAdapter;
@@ -266,8 +265,8 @@ namespace ACMNetProxy
         return _mMessageHandlingMutex.unlock();
     }
 
-    inline Connection::BackgroundConnectionThread::BackgroundConnectionThread (Connection * const pConnection, const NOMADSUtil::String &sConfigFile) :
-        _pConnection (pConnection), _pConnectorAdapter (pConnection->getConnectorAdapter()), _sConfigFile (sConfigFile), _bDeleteConnectorAdapter (false) { }
+    inline Connection::BackgroundConnectionThread::BackgroundConnectionThread (Connection * const pConnection) :
+        _pConnection (pConnection), _pConnectorAdapter (pConnection->getConnectorAdapter()), _bDeleteConnectorAdapter (false) { }
 
     inline void Connection::connectionThreadTerminating (void)
     {

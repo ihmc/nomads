@@ -1,18 +1,18 @@
 /*
  * TCPManager.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -95,7 +95,7 @@ namespace ACMNetProxy
                 ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL;
                 ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
                 if (!pProtocolSetting) {
-                    checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning, 
+                    checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
                                     "the protocol specification for this address was not found; using default protocol (id = %d)\n",
                                     ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL);
                 }
@@ -357,7 +357,7 @@ namespace ACMNetProxy
                                 checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_MildError,
                                                 "L%hu-R%hu: could not send connection opened response to remote proxy %s; rc = %d\n",
                                                 pEntry->ui16ID, pEntry->ui16RemoteID,
-                                                pEntry->remoteProxyAddr.getIPAsString (), rc);
+                                                pEntry->remoteProxyAddr.getIPAsString(), rc);
                                 if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                                     checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_SevereError,
                                                     "L%hu-R%hu: failed to send RST packet to local host; rc = %d\n",
@@ -366,7 +366,7 @@ namespace ACMNetProxy
                                 else {
                                     checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_LowDetailDebug,
                                                     "L%hu-R%hu: sent an RST packet to local host because of an error in the remote connection with proxy %s\n",
-                                                    pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString ());
+                                                    pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString());
                                 }
                                 PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
                                 pEntry->reset();
@@ -1147,18 +1147,18 @@ namespace ACMNetProxy
 
     int TCPManager::sendTCPPacketToHost (Entry * const pEntry, uint8 ui8TCPFlags, uint32 ui32SeqNum, const uint8 * const pui8Payload, uint16 ui16PayloadLen)
     {
-        static PacketBufferManager pbm (PacketBufferManager::getPacketBufferManagerInstance());
+        static PacketBufferManager * const pPBM (PacketBufferManager::getPacketBufferManagerInstance());
         static const uint16 ui16TCPHeaderLen = sizeof (TCPHeader);
 
         int rc;
-        uint8* pui8Packet = (uint8*) pbm.getAndLockWriteBuf();
+        uint8* pui8Packet = (uint8*) pPBM->getAndLockWriteBuf();
         const uint16 ui16PacketLen = sizeof (IPHeader) + ui16TCPHeaderLen + ui16PayloadLen;
         if (ui16PacketLen > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
             checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_MildError,
                             "L%hu-R%hu: packet length with data (%hu - ack %u) exceeds maximum packet size (%hu)\n",
                             pEntry->ui16ID, pEntry->ui16RemoteID, ui16PacketLen,
                             pEntry->ui32NextExpectedInSeqNum, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
@@ -1198,14 +1198,14 @@ namespace ACMNetProxy
             checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_SevereError,
                             "L%hu-R%hu: wrapEtherAndSendPacketToHost() failed with rc = %d\n",
                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-            if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -2;
         }
 
-        if (0 != pbm.findAndUnlockWriteBuf (pui8Packet)) {
+        if (0 != pPBM->findAndUnlockWriteBuf (pui8Packet)) {
             checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_SevereError,
                             "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             return -3;
@@ -1223,7 +1223,7 @@ namespace ACMNetProxy
         ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL;
         ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
         if (!pProtocolSetting) {
-            checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning, 
+            checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
                             "the protocol specification for this address was not found; using default protocol (id = %d)\n",
                             ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL);
         }
@@ -1569,7 +1569,7 @@ namespace ACMNetProxy
                                                                     *pui8Data + ui32SentData, ui8FlagsToEnqueue);
                         if (0 != (rc = pEntry->outBuf.enqueue (pNewData))) {
                             checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_Warning,
-                                            "L%hu-R%hu: error trying to enqueue new packet with SEQ num %u and %hu bytes of data\n", 
+                                            "L%hu-R%hu: error trying to enqueue new packet with SEQ num %u and %hu bytes of data\n",
                                             pEntry->ui16ID, pEntry->ui16RemoteID,
                                             pNewData->getSequenceNumber(), pNewData->getItemLength());
                             if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {

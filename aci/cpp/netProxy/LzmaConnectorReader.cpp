@@ -1,18 +1,18 @@
 /*
  * ZLibConnectorReader.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -33,7 +33,7 @@ namespace ACMNetProxy
 {
     LzmaConnectorReader::LzmaConnectorReader (const CompressionSetting * const pCompressionSetting, unsigned int ulInBufSize, unsigned int ulOutBufSize) : ConnectorReader (pCompressionSetting)
     {
-         if ((ulOutBufSize == 0) || (ulInBufSize == 0) || 
+         if ((ulOutBufSize == 0) || (ulInBufSize == 0) ||
              (NULL == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
              (NULL == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
             // throw a c++ exception here

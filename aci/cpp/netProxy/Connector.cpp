@@ -1,22 +1,22 @@
 /*
  * Connector.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
- 
+
 #include "Logger.h"
 
 #include "Connector.h"
@@ -35,7 +35,7 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    Connector::~Connector (void) 
+    Connector::~Connector (void)
     {
         Connector::terminateExecution();
 
@@ -77,7 +77,7 @@ namespace ACMNetProxy
         if (query.getActiveConnectionToRemoteProxy()) {
             return query.getActiveConnectionToRemoteProxy();
         }
-        
+
         int rc;
         const InetAddr * const pRemoteProxyAddr = query.getRemoteProxyServerAddress();
         const uint64 ui64HashKey = generateUInt64Key (pRemoteProxyAddr);
@@ -94,9 +94,9 @@ namespace ACMNetProxy
         pConnection->lock();
         if (pConnection->isDeleteRequested()) {
             // Connection marked for delete --> create new Connection and add it to the Connections Table
-            pConnection->unlock();  // unlock old Connection
+            pConnection->unlock();  // unlock old Connection instance
             pConnection = new Connection (_connectorType, query.getRemoteProxyUniqueID(), pRemoteProxyAddr, this);
-            pConnection->lock();    // lock new Connection
+            pConnection->lock();    // lock new Connection instance
             _connectionsTable.put (ui64HashKey, pConnection);
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_Warning,
                             "retrieved a %sConnection object for the remote NetProxy with address %s:%hu, but the object is marked for deletion; "
@@ -139,7 +139,7 @@ namespace ACMNetProxy
 
         // Do nothing if status of the Connection instance is not CS_NotConnected
         if (bBlocking) {
-            if (0 != (rc = pConnection->connectSync (_pConnectionManager->getMocketsConfigFileForProxyWithID (query.getRemoteProxyUniqueID())))) {
+            if (0 != (rc = pConnection->connectSync())) {
                 checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_MildError,
                                 "failed to establish a %s connection to remote NetProxy at address %s; rc = %d\n",
                                 getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), rc);
@@ -152,7 +152,7 @@ namespace ACMNetProxy
                             "starting a %sConnection background thread to connect asynchronously to the remote NetProxy at address %s:%hu\n",
                             getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
 
-            if (0 != (rc = pConnection->connectAsync (_pConnectionManager->getMocketsConfigFileForProxyWithID (query.getRemoteProxyUniqueID())))) {
+            if (0 != (rc = pConnection->connectAsync())) {
                 checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_MildError,
                                 "failed to start background %sConnection thread to connect to the remote NetProxy at address %s:%hu; rc = %d\n",
                                 getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(), rc);
@@ -164,7 +164,7 @@ namespace ACMNetProxy
 
         return pConnection->isConnected() ? pConnection : NULL;
     }
-    
+
     const uint16 Connector::getAcceptServerPortForConnector (ConnectorType connectorType)
     {
         switch (connectorType) {

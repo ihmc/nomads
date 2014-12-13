@@ -3,14 +3,14 @@
 
 /*
  * ZlibConnectorWriter.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
@@ -18,7 +18,7 @@
 
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
- * 
+ *
  * ConnectorWriter compresses data using the ZLib library
  */
 
@@ -34,7 +34,7 @@ namespace ACMNetProxy
     public:
         ZLibConnectorWriter (const CompressionSetting * const pCompressionSetting , unsigned long ulOutBufSize = 2048);
         virtual ~ZLibConnectorWriter (void);
-        
+
         virtual const ProxyMessage::CompressionType getCompressionFlag (void) const;
         using ConnectorWriter::getCompressionLevel;
         using ConnectorWriter::getCompressionName;

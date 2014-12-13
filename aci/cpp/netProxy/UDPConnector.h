@@ -3,14 +3,14 @@
 
 /*
  * UDPConnector.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
@@ -59,7 +59,7 @@ namespace ACMNetProxy
     private:
         unsigned char _pucInBuf[NetProxyApplicationParameters::PROXY_MESSAGE_MTU];
         int32 _i32BytesInBuffer;
-        
+
         static UDPSocketAdapter * const _pUDPSocketAdapter;
     };
 

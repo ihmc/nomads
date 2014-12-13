@@ -3,19 +3,19 @@
 
 /*
  * QueryResult.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -39,9 +39,9 @@ namespace ACMNetProxy
     public:
         QueryResult (void);
         QueryResult (const QueryResult & queryResult);
-        
+
         QueryResult & operator= (const QueryResult & queryResult);
-        
+
         bool isValid (void) const;
         const NOMADSUtil::InetAddr * const getBestConnectionSolution (void) const;
 
@@ -49,7 +49,7 @@ namespace ACMNetProxy
         const NOMADSUtil::InetAddr * const getRemoteProxyServerAddress (void) const;
         Connection * const getActiveConnectionToRemoteProxy (void) const;
 
-        
+
     private:
         friend class ConnectivitySolutions;
         friend class ConnectionManager;
@@ -62,8 +62,8 @@ namespace ACMNetProxy
         const NOMADSUtil::InetAddr *_pRemoteProxyServerAddress;
         Connection *_pActiveConnectionToRemoteProxy;
     };
-    
-    
+
+
     inline QueryResult::QueryResult (void) :
         _ui32RemoteProxyUniqueID (0), _pRemoteProxyServerAddress (NULL), _pActiveConnectionToRemoteProxy (NULL) { }
 
@@ -89,17 +89,17 @@ namespace ACMNetProxy
     {
         return _pActiveConnectionToRemoteProxy ? _pActiveConnectionToRemoteProxy->getRemoteProxyInetAddr() : _pRemoteProxyServerAddress;
     }
-    
+
     inline uint32 QueryResult::getRemoteProxyUniqueID (void) const
     {
         return _ui32RemoteProxyUniqueID;
     }
-    
+
     inline const NOMADSUtil::InetAddr * const QueryResult::getRemoteProxyServerAddress (void) const
     {
         return _pRemoteProxyServerAddress;
     }
-    
+
     inline Connection * const QueryResult::getActiveConnectionToRemoteProxy (void) const
     {
         return _pActiveConnectionToRemoteProxy;

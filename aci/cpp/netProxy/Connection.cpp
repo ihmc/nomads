@@ -1,18 +1,18 @@
 /*
  * Connection.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -42,7 +42,7 @@ namespace ACMNetProxy
         int rc;
         uint32 ui32BufLen = 0;
         Connection *pOldConnection = NULL;
-        
+
         while (!terminationRequested()) {
             if ((rc = _pConnectorAdapter->receiveMessage (_ui8InBuf, sizeof (_ui8InBuf))) < 0) {
                 if (!terminationRequested()) {
@@ -95,7 +95,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
                                     "received a ConnectionInitializedProxyMessage via %s from the remote NetProxy with address %s\n",
                                     _pConnection->getConnectorTypeAsString(), _pConnectorAdapter->getRemoteInetAddr()->getIPAsString());
-                    
+
                     _pConnection->updateRemoteProxyInformation (pCIPM->ui32ProxyUniqueID, pCIPM->ui16LocalMocketsServerPort, pCIPM->ui16LocalTCPServerPort,
                                                                 pCIPM->ui16LocalUDPServerPort, pCIPM->getRemoteProxyReachability());
                     break;
@@ -323,7 +323,7 @@ namespace ACMNetProxy
     void Connection::BackgroundConnectionThread::run (void)
     {
         int rc;
-        if (0 != (rc = _pConnection->connectSync (_sConfigFile))) {
+        if (0 != (rc = _pConnection->connectSync())) {
             checkAndLogMsg ("MocketConnection::BackgroundConnectionThread::run", Logger::L_MildError,
                             "connectSync() failed with rc = %d\n", rc);
         }
@@ -349,7 +349,7 @@ namespace ACMNetProxy
     Connection::~Connection (void)
     {
         _mConnection.lock();
-        
+
         _bDeleteRequested = true;
         setStatusAsDisconnected();
         if (getConnectorType() != CT_UDP) {
@@ -437,7 +437,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int Connection::connectSync (const String &sConfigFile)
+    int Connection::connectSync (void)
     {
         _mBCThread.lock();
         if ((_status == CS_Connecting) || (_status == CS_Connected)) {
@@ -452,12 +452,12 @@ namespace ACMNetProxy
             _mBCThread.unlock();
             return -2;
         }
-        
+
         int rc;
         _status = CS_Connecting;
-        // Rita: add configuration profile. The config file name must be profileType.mockets.conf
-        if ((sConfigFile.length() > 0) && (sConfigFile != NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE)) {
-            _pConnectorAdapter->readConfigFile (sConfigFile.c_str());
+        const String sConfigFile (_pConnectionManager->getMocketsConfigFileForProxyWithID (getRemoteProxyID()));
+        if (sConfigFile.length() > 0) {
+            _pConnectorAdapter->readConfigFile (sConfigFile);
         }
 
         if (!_pConnectorAdapter->isConnected()) {
@@ -506,7 +506,7 @@ namespace ACMNetProxy
             return -4;
         }
         _mBCThread.unlock();
-        
+
         /*!!*/// Here there is a short amount of time during which the new Connection would be the actual active Connection used to reach the remote NetProxy
         Connection * const pOldConnection = _pConnectionManager->addNewActiveConnectionToRemoteProxy (this);
         if (pOldConnection) {
@@ -531,7 +531,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int Connection::connectAsync (const String &profileType)
+    int Connection::connectAsync (void)
     {
         _mBCThread.lock();
         if (_pBCThread) {
@@ -546,7 +546,7 @@ namespace ACMNetProxy
             _mBCThread.unlock();
             return -2;
         }
-        _pBCThread = new BackgroundConnectionThread (this, profileType);
+        _pBCThread = new BackgroundConnectionThread (this);
         _pBCThread->start();
         _mBCThread.unlock();
 
@@ -558,8 +558,8 @@ namespace ACMNetProxy
         if (isConnected()) {
             return 0;
         }
-        
-        // Synchronize with the BackgroundConnectionThread 
+
+        // Synchronize with the BackgroundConnectionThread
         _mBCThread.lock();
         _mBCThread.unlock();
 
@@ -657,7 +657,7 @@ namespace ACMNetProxy
                         "with parameters: bReliable = %s, bSequenced = %s\n", getConnectorTypeAsString(),
                         _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(),
                         bReliable ? "true" : "false", bSequenced ? "true" : "false");
-        
+
         _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                               getRemoteProxyInetAddr()->getPort(), PT_ICMP, sizeof (ICMPHeader) + ui16BufLen);
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
@@ -711,7 +711,7 @@ namespace ACMNetProxy
                         "(%hu bytes before compression, if any) to host at address <%s:%hu>\n",
                         getConnectorTypeAsString(), udpUDPM.ui16PayloadLen, ui16PacketLen,
                         _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
-        
+
         _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, ui16PacketLen);
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
@@ -837,7 +837,7 @@ namespace ACMNetProxy
                         "(%hu bytes before compression, if any) to host at address <%s:%hu>\n",
                         getConnectorTypeAsString(), udpBCMCPM.ui16PayloadLen, ui16PacketLen,
                         _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
-        
+
         _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, ui16PacketLen);
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
@@ -1059,6 +1059,7 @@ namespace ACMNetProxy
 
         Connection::_pConnectionManager->updateRemoteProxyUniqueID (getRemoteProxyID(), ui32RemoteProxyID);
         Connection * const pOldConnection = Connection::_pConnectionManager->addNewActiveConnectionToRemoteProxy (this, ui32RemoteProxyID);
+        _pConnectorAdapter->readConfigFile (_pConnectionManager->getMocketsConfigFileForProxyWithID (ui32RemoteProxyID));
         enforceConnectionsConsistency (pOldConnection, ui32RemoteProxyID);
         _ui32RemoteProxyID = ui32RemoteProxyID;
     }
@@ -1073,6 +1074,7 @@ namespace ACMNetProxy
 
         Connection * const pOldConnection = Connection::_pConnectionManager->updateRemoteProxyInfo (this, ui32RemoteProxyID, ui16MocketsServerPort, ui16TCPServerPort,
                                                                                                     ui16UDPServerPort, bRemoteProxyReachability);
+        _pConnectorAdapter->readConfigFile (_pConnectionManager->getMocketsConfigFileForProxyWithID (ui32RemoteProxyID));
         enforceConnectionsConsistency (pOldConnection, ui32RemoteProxyID);
         _ui32RemoteProxyID = ui32RemoteProxyID;
     }

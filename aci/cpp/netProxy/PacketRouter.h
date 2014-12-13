@@ -3,27 +3,27 @@
 
 /*
  * PacketRouter.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
  * Central class of the NetProxy component.
- * It starts all threads, reads the configuration files, 
+ * It starts all threads, reads the configuration files,
  * and handles incoming and outgoing network packets.
  */
- 
+
 #include "DArray.h"
 #include "UInt32Hashtable.h"
 #include "ManageableThread.h"
@@ -34,6 +34,7 @@
     #include "DisseminationServiceListener.h"
 #endif
 
+#include "NPDArray2.h"
 #include "ProxyMessages.h"
 #include "PacketBufferManager.h"
 #include "MutexCounter.h"
@@ -196,7 +197,7 @@ namespace ACMNetProxy
             {
                 public:
                     UpdateGUIThread (void);
-                    int init (const char *pszNotificationAddress);
+                    int init (const char * const pszNotificationAddressList);
 
                     void run (void);
                     void setupSocket (void);
@@ -206,7 +207,7 @@ namespace ACMNetProxy
 
                     GUIStatsManager * const _pGUIStatsManager;
                     NOMADSUtil::UDPDatagramSocket _udpSocket;
-                    NOMADSUtil::String _notificationAddress;
+                    NPDArray2<std::pair<NOMADSUtil::String, uint16> > _notificationAddressList;
             };
 
             PacketRouter (void);
@@ -255,7 +256,7 @@ namespace ACMNetProxy
                 bool dataAvailable (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const char * pszId,
                                     const void *pMetadata, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
             #endif
-            
+
             static bool isMACAddrBroadcast (NOMADSUtil::EtherMACAddr macAddr);
             static bool isMACAddrMulticast (NOMADSUtil::EtherMACAddr macAddr);
 
@@ -263,7 +264,7 @@ namespace ACMNetProxy
             static bool hostBelongsToTheExternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost);
             static bool isKnownHost (const NOMADSUtil::EtherMACAddr & emaHost);
 
-            static PacketBufferManager & pbm;
+            static PacketBufferManager * const _pPBM;
 
             static bool _bTerminationRequested;
             static bool _bConnectorsDeleted;
@@ -317,9 +318,9 @@ namespace ACMNetProxy
             static NOMADSUtil::ConditionVariable _cvCleaner;
             static NOMADSUtil::ConditionVariable _cvGUIUpdater;
     };
-    
 
-    inline PacketRouter * PacketRouter::getPacketRouter (void) 
+
+    inline PacketRouter * PacketRouter::getPacketRouter (void)
     {
         static PacketRouter packetRouter;
 
@@ -357,7 +358,7 @@ namespace ACMNetProxy
     inline PacketRouter::CleanerThread::CleanerThread (void) {}
 
     inline PacketRouter::UpdateGUIThread::UpdateGUIThread (void)
-        : _pGUIStatsManager (GUIStatsManager::getGUIStatsManager()) 
+        : _pGUIStatsManager (GUIStatsManager::getGUIStatsManager())
     {
         setupSocket();
     }
@@ -413,7 +414,7 @@ namespace ACMNetProxy
         }
         return false;
     }
-    
+
     inline bool PacketRouter::isKnownHost (const NOMADSUtil::EtherMACAddr & emaHost)
     {
         return hostBelongsToTheInternalNetwork (emaHost) || hostBelongsToTheExternalNetwork (emaHost);

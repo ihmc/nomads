@@ -3,19 +3,19 @@
 
 /*
  * ARPCache.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -44,7 +44,7 @@ namespace ACMNetProxy
         private:
             NOMADSUtil::UInt32Hashtable<NOMADSUtil::EtherMACAddr> _arpCache;
     };
-    
+
 
     inline ARPCache::ARPCache (void) : _arpCache (true) {}
 
@@ -54,7 +54,7 @@ namespace ACMNetProxy
     {
         return _arpCache.get (ui32IPAddr);
     }
-    
+
     inline int ARPCache::insert (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &pMACAddr)
     {
         delete _arpCache.put (ui32IPAddr, new NOMADSUtil::EtherMACAddr (pMACAddr));
@@ -63,4 +63,3 @@ namespace ACMNetProxy
 }
 
 #endif   // #ifndef INCL_ARP_CACHE_H
-

@@ -1,13 +1,13 @@
 /*
  * UDPSocketAdapter.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
@@ -127,7 +127,7 @@ namespace ACMNetProxy
         if (ui32TotalMessageSize != _pSocket->sendTo (pProxyAddr->getIPAddress(), pProxyAddr->getPort(), _pucOutBuf, ui32TotalMessageSize)) {
             return -2;
         }
-        
+
         QueryResult query (pConnectionManager->queryConnectionToRemoteHostForConnectorType (CT_UDP, ui32DestVirtualIPAddr, 0));
         pGUIStatsManager->increaseTrafficOut (CT_UDP, ui32DestVirtualIPAddr, query.getRemoteProxyUniqueID(), pProxyAddr->getIPAddress(), pProxyAddr->getPort(),
                                               pProxyMessage->getProtocolType(), pProxyMessage->getMessageHeaderSize() + ui16MessagePayloadLen);

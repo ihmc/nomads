@@ -1,18 +1,18 @@
 /*
  * NetProxyConfigManager.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -215,7 +215,7 @@ namespace ACMNetProxy
         if (pVirtualAddrRange == NULL) {
             return -2;
         }
-        
+
         /* The constructor parses a range of IP addresses in the format <X.Y.W.Z:P> (without <>).
          * Any of the symbols X, Y, W, Z, and P can be represented as a range in the format A-B;
          * a range A-B will include all IPs (or ports) from A to B in that network.
@@ -313,12 +313,13 @@ namespace ACMNetProxy
         if (remoteProxyIP.getIPAddress() == 0) {
             return -3;
         }
-        
+
         /* The next element in the line could be either the UniqueID, the first option, or nothing. */
         uint32 ui32UniqueID = 0;
         String sUniqueID = st.getNextToken();
         ui32UniqueID = sUniqueID.contains ("=") ? remoteProxyIP.getIPAddress() : (atoi (sUniqueID) ? atoi (sUniqueID) : remoteProxyIP.getIPAddress());
-        RemoteProxyInfo remoteProxyInfo (ui32UniqueID, static_cast<uint32> (remoteProxyIP.getIPAddress ()));
+        RemoteProxyInfo remoteProxyInfo (ui32UniqueID, static_cast<uint32> (remoteProxyIP.getIPAddress()));
+        remoteProxyInfo.setMocketsConfFileName (NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE);        // Set the default Mockets Configuration file
         if (P_CONNECTION_MANAGER->addNewRemoteProxyInfo (remoteProxyInfo) < 0) {
             checkAndLogMsg ("NetProxyConfigManager::UniqueIDsConfigFileReader::parseAndAddEntry", Logger::L_Warning,
                             "error returned by call to addNewRemoteProxyInfo() after parsing "
@@ -326,7 +327,7 @@ namespace ACMNetProxy
             return -4;
         }
 
-        RemoteProxyInfo * const pRemoteProxyInfo = P_CONNECTION_MANAGER->getRemoteProxyInfoForProxyWithID (ui32UniqueID);        
+        RemoteProxyInfo * const pRemoteProxyInfo = P_CONNECTION_MANAGER->getRemoteProxyInfoForProxyWithID (ui32UniqueID);
         // Parsing a list of port numbers per protocol (e.g., MocketsPort=8751;TCPPort=8080)
         String sKeyValuePair = sUniqueID.contains ("=") ? sUniqueID : String(st.getNextToken()), sKey, sValue;
         while (sKeyValuePair.length() >= 0) {
@@ -344,7 +345,7 @@ namespace ACMNetProxy
                 }
             }
             else {
-                // Mockets Configuration file
+                // Set a specific Mockets Configuration file for the remote host
                 if (updateInfoWithMocketsConfigFilePath (*pRemoteProxyInfo, sKey) < 0) {
                     checkAndLogMsg ("NetProxyConfigManager::UniqueIDsConfigFileReader::parseAndAddEntry", Logger::L_Warning,
                                     "error encountered while trying to parse Mockets configuration file "
@@ -427,7 +428,7 @@ namespace ACMNetProxy
                                     autoConnectionEntry.getRemoteProxyInetAddress()->getIPAsString(),
                                     connectorTypeToString (autoConnectionEntry.getConnectorType()));
                 }
-                
+
             }
             else {
                 checkAndLogMsg ("NetProxyConfigManager::UniqueIDsConfigFileReader::updateInfoWithKeyValuePair", Logger::L_Warning,
@@ -782,7 +783,7 @@ namespace ACMNetProxy
                     char szTimestamp[15] = "";
                     generateTimestamp (szTimestamp, sizeof (szTimestamp));
                     sprintf (szLogFileName, "netproxy.%s.log", szTimestamp);
-                    if (_homeDir.length () > 0) {
+                    if (_homeDir.length() > 0) {
                         strcpy (szLogFilePath, _homeDir);
                         strcat (szLogFilePath, getPathSepCharAsString());
                         strcat (szLogFilePath, NetProxyApplicationParameters::LOGS_DIR);
@@ -826,7 +827,7 @@ namespace ACMNetProxy
                         "using <%s> as the home directory\n", (const char*) _homeDir);
         checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
                         "using <%s> as the config file\n", _pszConfigFile);
-        
+
         // Check if a Unique ID has been specified
         if (hasValue ("NetProxyUniqueID")) {
             NetProxyApplicationParameters::NETPROXY_UNIQUE_ID = getValueAsUInt32 ("NetProxyUniqueID");
@@ -855,8 +856,9 @@ namespace ACMNetProxy
                 // IP Address of the external interface
                 String sExternalInterfaceIPAddress = getValue ("IPAddress");
                 if (sExternalInterfaceIPAddress.length() > 0) {
-                    InetAddr externalInterfaceInetAddr (sExternalInterfaceIPAddress.c_str());
+                    InetAddr externalInterfaceInetAddr (sExternalInterfaceIPAddress);
                     NetProxyApplicationParameters::NETPROXY_IP_ADDR = externalInterfaceInetAddr.getIPAddress();
+                    NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR = NetProxyApplicationParameters::NETPROXY_IP_ADDR;
                     checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
                                     "IP Address of the external interface set to %s\n",
                                     externalInterfaceInetAddr.getIPAsString());
@@ -879,7 +881,7 @@ namespace ACMNetProxy
                                 "Impossible to set any value for the external network netmask; "
                                 "NetProxy will try and query it from the adapter.\n");
             }
-            
+
             // Use configured value for the gateway
             if (hasValue ("GatewayAddress")) {
                 NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR = InetAddr(getValue ("GatewayAddress")).getIPAddress();
@@ -901,7 +903,7 @@ namespace ACMNetProxy
                     // Value of the IP Address of the TUN/TAP Interface
                     String sTAPInterfaceIPAddress = getValue ("IPAddress");
                     if (sTAPInterfaceIPAddress.length() > 0) {
-                        InetAddr tapInterfaceInetAddr (sTAPInterfaceIPAddress.c_str());
+                        InetAddr tapInterfaceInetAddr (sTAPInterfaceIPAddress);
                         NetProxyApplicationParameters::NETPROXY_IP_ADDR = tapInterfaceInetAddr.getIPAddress();
                         checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
                                         "IP Address of the TUN/TAP interface set to %s\n",
@@ -969,13 +971,13 @@ namespace ACMNetProxy
             uint32 ui32MocketsTimeout = getValueAsUInt32 ("MocketsTimeout");
             NetProxyApplicationParameters::MOCKET_TIMEOUT = ui32MocketsTimeout;
             checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
-                            "set mocket timeout to %lu milliseconds\n",
+                            "set Mockets timeout to %lu milliseconds\n",
                             NetProxyApplicationParameters::MOCKET_TIMEOUT);
         }
         else {
             NetProxyApplicationParameters::MOCKET_TIMEOUT = NetProxyApplicationParameters::DEFAULT_MOCKET_TIMEOUT;
             checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
-                            "using default mocket timeout of %lu milliseconds\n",
+                            "using default Mockets timeout of %lu milliseconds\n",
                             NetProxyApplicationParameters::MOCKET_TIMEOUT);
         }
 
@@ -1013,6 +1015,17 @@ namespace ACMNetProxy
                             NetProxyApplicationParameters::UDP_SERVER_PORT);
         }
 
+        if (hasValue ("DefaultMocketsConfigFile")) {
+            // Read default path for the Mockets configuration file
+            const String sDefaultMocketsConfigFile (getValue ("DefaultMocketsConfigFile"));
+            if (sDefaultMocketsConfigFile.length() > 0) {
+                NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE = sDefaultMocketsConfigFile;
+            }
+        }
+        checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
+                        "default Mockets parameter settings will be loaded from file %s\n",
+                        NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE.c_str());
+
         // Enabled connectors
         String enabledConnectors (getValue ("EnabledConnectors"));
         if (enabledConnectors.length() <= 0) {
@@ -1049,27 +1062,53 @@ namespace ACMNetProxy
                         "UpdateGUI Thread is %s\n",
                         NetProxyApplicationParameters::UPDATE_GUI_THREAD_ENABLED ? "enabled" : "disabled");
 
-        if (hasValue ("GUIListenPort")) {
-            // GUI local port number
-            uint32 ui32GUIPortNumber = getValueAsInt ("GUIListenPort");
-            if ((ui32GUIPortNumber > 0) && (ui32GUIPortNumber <= 65535U)) {
-                while ((ui32GUIPortNumber == NetProxyApplicationParameters::MOCKET_SERVER_PORT) || (ui32GUIPortNumber == NetProxyApplicationParameters::UDP_SERVER_PORT)) {
-                    ui32GUIPortNumber++;
+        if (NetProxyApplicationParameters::UPDATE_GUI_THREAD_ENABLED) {
+            // Parse addresses to which status updates need to be sent
+            String sCleanAddressList, sAddressList (getValue ("StatusNotificationAddresses", "127.0.0.1"));
+            StringTokenizer stAddressList (sAddressList, ',');
+
+            while (const char * const pszPairToken = stAddressList.getNextToken()) {
+                StringTokenizer stPair (pszPairToken, ':');
+                String sIP = stPair.getNextToken();
+                String sPort = stPair.getNextToken();
+                uint32 ui32GUIPortNumber = 0;
+                char pszGUIPortNumber[6];
+                memset (pszGUIPortNumber, 0, 6);
+
+                if (sIP.length() <= 0) {
+                    checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Warning,
+                                    "found an empty entry in the StatusNotificationAddresses list\n");
+                    continue;
                 }
-                NetProxyApplicationParameters::GUI_LOCAL_PORT = ui32GUIPortNumber;
-                checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
-                                "GUI update packets will be sent to localhost on port %hu\n",
-                                NetProxyApplicationParameters::GUI_LOCAL_PORT);
+                if (!InetAddr::isIPv4Addr (sIP)) {
+                    checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Warning,
+                                    "entry <%s> in the StatusNotificationAddresses list does not contain a valid IP address\n",
+                                    pszPairToken);
+                    continue;
+                }
+                if (sPort.length() <= 0) {
+                    checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
+                                    "port not specified for address %s in the StatusNotificationAddresses list; using the default port %hu\n",
+                                    sIP.c_str(), NetProxyApplicationParameters::GUI_LOCAL_PORT);
+                    ui32GUIPortNumber = NetProxyApplicationParameters::GUI_LOCAL_PORT;
+                }
+                else {
+                    // Parsing port number
+                    ui32GUIPortNumber = atoi (sPort);
+                    if (ui32GUIPortNumber > 65535U) {
+                        checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Warning,
+                                        "%u is not an acceptable port number; the default value %hu will be used, instead, for notifications sent to %s\n",
+                                        ui32GUIPortNumber, NetProxyApplicationParameters::GUI_LOCAL_PORT, sIP.c_str());
+                        ui32GUIPortNumber = NetProxyApplicationParameters::GUI_LOCAL_PORT;
+                    }
+                }
+                sPort = itoa (pszGUIPortNumber, ui32GUIPortNumber);
+
+                sCleanAddressList += ((sCleanAddressList.length() > 0) ? "," : "") + sIP + ":" + sPort;
             }
-        }
-        else {
-            while ((NetProxyApplicationParameters::GUI_LOCAL_PORT == NetProxyApplicationParameters::MOCKET_SERVER_PORT) ||
-                    (NetProxyApplicationParameters::GUI_LOCAL_PORT == NetProxyApplicationParameters::UDP_SERVER_PORT)) {
-                NetProxyApplicationParameters::GUI_LOCAL_PORT++;
-            }
-            checkAndLogMsg ("NetProxyConfigManager::processConfigFile", Logger::L_Info,
-                            "GUI update packets will be sent to localhost on port %hu\n",
-                            NetProxyApplicationParameters::GUI_LOCAL_PORT);
+
+            // Change set value with the clean one
+            setValue ("StatusNotificationAddresses", sCleanAddressList);
         }
 
         // Check if a maximum transmit packet size has been specified
@@ -1222,7 +1261,7 @@ namespace ACMNetProxy
                             "maximum UDP Connection buffer size set with default value of %u bytes\n",
                             NetworkConfigurationSettings::DEFAULT_UDP_CONNECTION_BUFFER_SIZE);
         }
-        
+
         // Disable console logging if specified in the config file
         if (!bConsoleLogging) {
             pLogger->disableScreenOutput();
@@ -1273,12 +1312,12 @@ namespace ACMNetProxy
         }
 
         String pcTempStr;
-        StringTokenizer st (sIPPortPair.c_str(), ':');
+        StringTokenizer st (sIPPortPair, ':');
         if (NULL != (pcTempStr = st.getNextToken())) {
             if (bAllowWildcards && (pcTempStr == "*")) {
                 strcpy (pcKeyIPAddress, "0.0.0.0");
             }
-            else if ((INADDR_NONE != inet_addr (pcTempStr.c_str())) && (INADDR_ANY != inet_addr (pcTempStr.c_str()))) {
+            else if ((INADDR_NONE != inet_addr (pcTempStr)) && (INADDR_ANY != inet_addr (pcTempStr))) {
                 strcpy (pcKeyIPAddress, pcTempStr);
             }
             else {

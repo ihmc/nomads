@@ -3,19 +3,19 @@
 
 /*
  * AutoConnectionEntry.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -80,7 +80,7 @@ namespace ACMNetProxy
             static ConnectionManager * const P_CONNECTION_MANAGER;
     };
 
-    
+
     inline AutoConnectionEntry::AutoConnectionEntry (void) :
         _ui32RemoteProxyID (0), _connectorType (CT_UNDEF), _pConnectivitySolutions (NULL), _ui32AutoReconnectTimeInMillis (NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME),
         _ui64LastConnectionAttemptTime (0), _bSynchronized (false) { }
@@ -109,7 +109,7 @@ namespace ACMNetProxy
     {
         return _connectorType;
     }
-    
+
     inline const NOMADSUtil::InetAddr * const AutoConnectionEntry::getRemoteProxyInetAddress (void) const
     {
         return _pConnectivitySolutions ? _pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType).getBestConnectionSolution() : NULL;

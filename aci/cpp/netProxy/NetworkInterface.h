@@ -3,19 +3,19 @@
 
 /*
  * NetworkInterface.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -61,8 +61,8 @@ namespace ACMNetProxy
 
             virtual int readPacket (uint8 *pui8Buf, uint16 ui16BufSize) = 0;
             virtual int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen) = 0;
-            
-            static NOMADSUtil::String getDeviceNameFromUserFriendlyName (const char *const pszUserFriendlyInterfaceName);
+
+            static NOMADSUtil::String getDeviceNameFromUserFriendlyName (const char * const pszUserFriendlyInterfaceName);
 
         protected:
             NetworkInterface (Type tType);
@@ -80,7 +80,7 @@ namespace ACMNetProxy
             bool _bDefaultGatewayFound;
             bool _bMTUFound;
             bool _bIsTerminationRequested;
-            
+
             static const uint8 * const getMACAddrForDevice (const char * const pszUserFriendlyInterfaceName);
             static NOMADSUtil::IPv4Addr getDefaultGatewayForInterface (const char *const pszUserFriendlyInterfaceName);
 

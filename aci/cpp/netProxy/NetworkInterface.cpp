@@ -1,18 +1,18 @@
 /*
  * NetworkInterface.cpp
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -39,7 +39,7 @@
 #include "Logger.h"
 
 #include "NetworkInterface.h"
- 
+
 #define BUFFER_SIZE 4096
 
 
@@ -261,29 +261,29 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
         char msgbuf[BUFFER_SIZE], buffer[BUFFER_SIZE];
         char *ptr = buffer;
         struct timeval tv;
- 
+
         if ((sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) < 0) {
             checkAndLogMsg ("NetworkInterface::getDefaultGatewayForInterface", Logger::L_SevereError,
                             "socket() failed with error: %d\n", errno);
             return res;
         }
- 
+
         // Reset all allocated memory
         memset(msgbuf, 0, sizeof(msgbuf));
         memset(gateway_address, 0, sizeof(gateway_address));
         memset(interface, 0, sizeof(interface));
         memset(buffer, 0, sizeof(buffer));
- 
+
         // point the header and the msg structure pointers into the buffer
         nlmsg = (struct nlmsghdr *)msgbuf;
- 
+
         // Fill in the nlmsg header
         nlmsg->nlmsg_len = NLMSG_LENGTH (sizeof (struct rtmsg));
         nlmsg->nlmsg_type = RTM_GETROUTE;                   // Get the routes from kernel routing table .
         nlmsg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;    // The message is a request for dump.
         nlmsg->nlmsg_seq = msgseq++;                        // Sequence of the message packet.
         nlmsg->nlmsg_pid = getpid();                        // PID of process sending the request.
- 
+
         // 1 Sec Timeout to avoid stall
         tv.tv_sec = 1;
         setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv, sizeof (struct timeval));
@@ -293,7 +293,7 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
                             "send() failed with error: %d\n", errno);
             return res;
         }
- 
+
         do
         {
             // receive response
@@ -303,7 +303,7 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
                                 "recv() from socket failed with error: %d\n", errno);
                 return res;
             }
- 
+
             nlh = (struct nlmsghdr *) ptr;
             // Check if the header is valid
             if ((NLMSG_OK (nlmsg, received_bytes) == 0) || (nlmsg->nlmsg_type == NLMSG_ERROR))
@@ -312,7 +312,7 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
                                 "error in the packet received from kernel\n");
                 return res;
             }
- 
+
             // If we received all data break
             if (nlh->nlmsg_type == NLMSG_DONE) {
                 break;
@@ -321,14 +321,14 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
                 ptr += received_bytes;
                 msg_len += received_bytes;
             }
- 
+
             // Break if its not a multi part message
             if ((nlmsg->nlmsg_flags & NLM_F_MULTI) == 0) {
                 break;
             }
         }
         while ((nlmsg->nlmsg_seq != msgseq) || (nlmsg->nlmsg_pid != getpid()));
- 
+
         // parse response
         for (; NLMSG_OK (nlh, received_bytes); nlh = NLMSG_NEXT (nlh, received_bytes))
         {
@@ -337,10 +337,10 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
             if (route_entry->rtm_table != RT_TABLE_MAIN) {
                 // We are just interested in main routing table
                 continue;
-            } 
-        
+            }
+
             route_attribute = (struct rtattr *) RTM_RTA (route_entry);
-            route_attribute_len = RTM_PAYLOAD (nlh); 
+            route_attribute_len = RTM_PAYLOAD (nlh);
             for (; RTA_OK (route_attribute, route_attribute_len); route_attribute = RTA_NEXT (route_attribute, route_attribute_len)) {
                 // Loop through all attributes
                 switch (route_attribute->rta_type) {
@@ -354,13 +354,13 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
                     break;
                 }
             }
- 
+
             if ((*gateway_address) && !stricmp (interface, pszAdapterName)) {
                 fprintf(stdout, "\t\tGateway: %s\n", gateway_address);
                 res.ui32Addr = InetAddr (gateway_address).getIPAddress();
                 break;
             }
-        } 
+        }
         close(sock);
     #endif
 

@@ -3,19 +3,19 @@
 
 /*
  * ConfigurationParameters.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -30,6 +30,7 @@
  */
 
 #include "FTypes.h"
+#include "StrClass.h"
 #include "net/NetworkHeaders.h"
 
 #include "ProxyMessages.h"
@@ -60,7 +61,8 @@ namespace ACMNetProxy
         static uint32 NETPROXY_UNIQUE_ID;                                                           // The 32bits unique ID of this NetProxy instance
         static bool GATEWAY_MODE;                                                                   // true if the NetProxy runs in gateway mode
         static const bool DEFAULT_GATEWAY_MODE = false;                                             // Default gateway mode is false
-        static uint32 NETPROXY_IP_ADDR;                                                             // Local IP Address of the NetProxy (either the TAP interface or the external interface)
+        static uint32 NETPROXY_IP_ADDR;                                                             // Local IP address (of the TAP interface if running in HM, of the external network interface otherwise)
+        static uint32 NETPROXY_EXTERNAL_IP_ADDR;                                                    // IP address of the external network interface (same as the above if running in GM)
         static uint32 NETPROXY_NETWORK_NETMASK;                                                     // Netmask of the physical network to which the NetProxy and the configured gateway belong
         static NOMADSUtil::EtherMACAddr NETPROXY_INTERNAL_INTERFACE_MAC_ADDR;                       // MAC address of the internal network interface
         static NOMADSUtil::EtherMACAddr NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;                       // MAC address of the external network interface
@@ -109,7 +111,7 @@ namespace ACMNetProxy
         static const uint32 DEFAULT_SOCKET_TIMEOUT = 30000;
 
         static const bool DEFAULT_LOCAL_PROXY_REACHABILITY_FROM_REMOTE = true;
-        
+
         static const uint16 PROXY_MESSAGE_MTU = 8192U + sizeof (TCPDataProxyMessage);               // MTU (in bytes) for packets addressed to remote proxies
         static const uint16 TCP_WINDOW_SIZE = 65535U;                                               // Window size for incoming TCP connections (in bytes)
         static const uint32 MAX_UDP_CONNECTION_BUFFER_SIZE = 262144U;                               // Maximum allowed size of the buffer which stores outgoing data in the UDP connection thread
@@ -131,10 +133,10 @@ namespace ACMNetProxy
         static bool UPDATE_GUI_THREAD_ENABLED;                                                      // Bool that states whether to start the UpdateGUIThread or not
         static const bool DEFAULT_UPDATE_GUI_THREAD_ENABLED = true;                                 // Default behavior is to enable UpdateGUIThread
         static const int64 DEFAULT_UDP_CONNECTOR_INACTIVITY_TIME = 30000;                           // Time above which the statistics for the UDP Connector are not included in the GUI Update Message
-        
-        static const char * const LOGS_DIR;                                                         // Name of the directory where log files are stored
-        static const char * const DEFAULT_MOCKETS_CONFIG_FILE;                                      // Standard Mockets config file name
+
         static const char * const DEFAULT_GUI_UPDATE_MESSAGE_HEADER;                                // Standard Mockets config file name
+        static NOMADSUtil::String DEFAULT_MOCKETS_CONFIG_FILE;                                      // Default Mockets config file name when no default Mockets config file is specified in netProxy.cfg
+        static const char * const LOGS_DIR;                                                         // Name of the directory where log files are stored
     };
 
 }

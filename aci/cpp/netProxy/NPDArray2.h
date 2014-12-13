@@ -3,19 +3,19 @@
 
 /*
  * NPDarray2.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -35,8 +35,8 @@
  *
  * Written by Niranjan Suri
  *
- * RCSInfo: "$Header: /export/cvs/nomads.root/aci/cpp/netProxy/NPDArray2.h,v 1.3 2014/10/29 21:06:03 amorelli Exp $"
- * Revision: "$Revision: 1.3 $"
+ * RCSInfo: "$Header: /export/cvs/nomads.root/aci/cpp/netProxy/NPDArray2.h,v 1.5 2014/12/12 21:56:36 amorelli Exp $"
+ * Revision: "$Revision: 1.5 $"
  */
 
 #include <stdlib.h>
@@ -107,7 +107,7 @@ namespace ACMNetProxy
                   Array [i] = new T (*(SourceArray.Array.get (i)));
              }
         }
-        Array.setHighestIndex (SourceArray.getHighestIndex ());
+        Array.setHighestIndex (SourceArray.getHighestIndex());
         #ifdef USE_ERROR_HANDLER_FOR_DARRAY2
              pErr->leaveOk();
         #endif

@@ -3,19 +3,19 @@
 
 /*
  * NetProxyConfigManager.h
- * 
+ *
  * This file is part of the IHMC NetProxy Library/Component
  * Copyright (c) 2010-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -135,7 +135,7 @@ namespace ACMNetProxy
 
         private:
             friend class NetProxyConfigManager;
-            
+
             // To prevent erroneous method calls due to automatic type promotion
             template <typename InvalidT> const EndpointConfigParameters * const getConfigParams (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
                                                                                                  InvalidT ui16SourcePort = 0, InvalidT ui16DestPort = 0);
@@ -206,7 +206,7 @@ namespace ACMNetProxy
         case NOMADSUtil::IP_PROTO_TCP:
             return _psTCPProtocolSetting;
         }
-        
+
         return ProtocolSetting::getInvalidProtocolSetting();
     }
 
@@ -222,11 +222,11 @@ namespace ACMNetProxy
     inline NetProxyConfigManager::UniqueIDsConfigFileReader::UniqueIDsConfigFileReader (void) { }
 
     inline NetProxyConfigManager::UniqueIDsConfigFileReader::~UniqueIDsConfigFileReader (void) { }
-    
+
     inline NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::EndpointConfigEntry (void) {}
 
     inline NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::~EndpointConfigEntry (void) {}
-    
+
     inline const NetProxyConfigManager::EndpointConfigParameters * const
         NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::getConfigParams (void) const
     {
