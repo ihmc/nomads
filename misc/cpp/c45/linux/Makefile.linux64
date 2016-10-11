@@ -1,0 +1,3 @@
+BUILD_FLAGS = -DLINUX -DLINUX64 -m64 -fPIC
+LD_FLAGS += -lnsl -ldl
+EXTERNALS_LIB ?= $(NOMADS_HOME)/externals/lib/linux-x86_64

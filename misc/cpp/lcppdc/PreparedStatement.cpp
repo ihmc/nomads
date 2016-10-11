@@ -1,21 +1,23 @@
 /*
-  * PreparedStatement.cpp
-  *
-  * This file is part of the IHMC Misc Library
-  * Copyright (c) 2011-2014 IHMC.
-  *
-  * This program is free software; you can redistribute it and/or
-  * modify it under the terms of the GNU General Public License
-  * version 3 (GPLv3) as published by the Free Software Foundation.
-  *
-  * U.S. Government agencies and organizations may redistribute
-  * and/or modify this program under terms equivalent to
-  * "Government Purpose Rights" as defined by DFARS 
-  * 252.227-7014(a)(12) (February 2014).
-  *
-  * Alternative licenses that allow for use within commercial products may be
-  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
-  */
+ * PreparedStatement.cpp
+ *
+ * This file is part of the IHMC Database Connectivity Library.
+ * Copyright (c) 1993-2016 IHMC.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 3 (GPLv3) as published by the Free Software Foundation.
+ *
+ * U.S. Government agencies and organizations may redistribute
+ * and/or modify this program under terms equivalent to
+ * "Government Purpose Rights" as defined by DFARS 
+ * 252.227-7014(a)(12) (February 2014).
+ *
+ * Alternative licenses that allow for use within commercial products may be
+ * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
+ *
+ * Author: Giacomo Benincasa            (gbenincasa@ihmc.us)
+ */
 
 #include "PreparedStatement.h"
 
@@ -70,7 +72,7 @@ int SQLitePreparedStatement::init (const char *pszStmt, sqlite3 *pDB)
     return 0;
 }
 
-int SQLitePreparedStatement::bind (unsigned short usColumnIdx, const char *pszVal)
+int SQLitePreparedStatement::bind (unsigned short usColumnIdx, const char *pszVal, bool bStaticValue)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind", emptySqlStmt);
@@ -84,7 +86,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, const char *pszVa
     }
     else {
         rc = sqlite3_bind_text (_pPrepStmt, (int) usColumnIdx, pszVal,
-                                iLen, SQLITE_STATIC);
+                                iLen, bStaticValue ? SQLITE_STATIC : SQLITE_TRANSIENT);
     }
 
     if (rc != SQLITE_OK) {
@@ -98,12 +100,12 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, const char *pszVa
 
 int SQLitePreparedStatement::bind (unsigned short usColumnIdx, uint8 ui8Val)
 {
-    return bind (usColumnIdx, (uint32) ui8Val);
+    return bind (usColumnIdx, static_cast<uint32>(ui8Val));
 }
 
 int SQLitePreparedStatement::bind (unsigned short usColumnIdx, uint16 ui16Val)
 {
-    return bind (usColumnIdx, (uint32) ui16Val);
+    return bind (usColumnIdx, static_cast<uint32>(ui16Val));
 }
 
 int SQLitePreparedStatement::bind (unsigned short usColumnIdx, uint32 ui32Val)
@@ -142,12 +144,12 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, uint64 ui64Val)
 
 int SQLitePreparedStatement::bind (unsigned short usColumnIdx, int8 i8Val)
 {
-    return bind (usColumnIdx, (int32) i8Val);
+    return bind (usColumnIdx, static_cast<int32>(i8Val));
 }
 
 int SQLitePreparedStatement::bind (unsigned short usColumnIdx, int16 i16Val)
 {
-    return bind (usColumnIdx, (int32) i16Val);
+    return bind (usColumnIdx, static_cast<int32>(i16Val));
 }
 
 int SQLitePreparedStatement::bind (unsigned short usColumnIdx, int32 i32Val)
@@ -236,7 +238,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, bool bVal)
     return 0;
 }
 
-int SQLitePreparedStatement::bind (unsigned short usColumnIdx, void *pBuf, int iLen)
+int SQLitePreparedStatement::bind (unsigned short usColumnIdx, const void *pBuf, int iLen, bool bStaticValue)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (blob)", emptySqlStmt);
@@ -260,7 +262,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, void *pBuf, int i
     }
     else {
         rc = sqlite3_bind_blob (_pPrepStmt, (int) usColumnIdx, pBuf,
-                                iLen, SQLITE_STATIC);
+                                iLen, bStaticValue ? SQLITE_STATIC : SQLITE_TRANSIENT);
     }
 
     if (rc != SQLITE_OK) {
@@ -364,5 +366,4 @@ void SQLitePreparedStatement::reset()
 
     sqlite3_reset (_pPrepStmt);
 }
-
 

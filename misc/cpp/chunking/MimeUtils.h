@@ -2,7 +2,7 @@
  * MimeUtils.h
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,6 +25,10 @@
 
 #include "Chunker.h"
 
+#include "StrClass.h"
+
+#include <stdio.h>
+
 namespace IHMC_MISC
 {
     class MimeUtils
@@ -32,17 +36,11 @@ namespace IHMC_MISC
         public:
             static const char * DEFAULT_MIME_TYPE;
 
-            /**
-             * NOTE: the caller has to deallocate the returned string.
-             */
-            static char * getMimeType (const char *pszFileName);
-            static char * getMimeType (FILE *pFile);
-            static char * getMimeType (const void *pBuf, uint64 ui64Len);
+            static NOMADSUtil::String getMimeType (const char *pszFileName);
             static Chunker::Type mimeTypeToFragmentType (const char *pszMimeType);
-
-        private:
-            /*static magic_t getPredictor (void);
-            static void releasePredictor (magic_t predictor);*/
+            static Chunker::Type toType (const NOMADSUtil::String &extension);
+            static NOMADSUtil::String toExtesion (Chunker::Type extension);
+            static NOMADSUtil::String toMimeType (Chunker::Type extension);
     };
 }
 

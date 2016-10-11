@@ -2,7 +2,7 @@
  * Chunker.h
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,14 +20,11 @@
 #ifndef INCL_CHUNKER_H
 #define	INCL_CHUNKER_H
 
-#include <stdio.h>
-
 #include "FTypes.h"
 #include "PtrLList.h"
 
 namespace NOMADSUtil
 {
-    template <class T> class PtrLList;
     class Reader;
 }
 
@@ -36,14 +33,22 @@ namespace IHMC_MISC
     class Chunker
     {
         public:
+            enum Dimension {
+                X = 0x00,  // x-axes (longitude)
+                Y = 0x01,  // y-axes (latitude)
+                T = 0x03   // time
+            };
+
             enum Type {
-                BMP      = 0x01,
-                JPEG     = 0x02,
-                JPEG2000 = 0x03,
-                A_MPEG   = 0x04, // Audio MPEG
-                V_MPEG   = 0x05, // Video MPEG
-                PNG      = 0x06,
-                UNSUPPORTED = 0x00
+                UNSUPPORTED = 0x00,
+                BMP         = 0x01,
+                JPEG        = 0x02,
+                JPEG2000    = 0x03,
+                PNG         = 0x04,
+                A_MPEG      = 0x05, // Audio MPEG
+                AVI         = 0x06,
+                MOV         = 0x07,
+                V_MPEG      = 0x08 // Video MPEG
             };
 
             struct Fragment {
@@ -57,9 +62,27 @@ namespace IHMC_MISC
                 bool operator == (Fragment &rhsFragment);
             };
 
+            struct Interval {
+                Interval (void);
+                Interval (const Interval &interval);
+                ~Interval (void);
+
+                Dimension dimension;
+                uint64 uiStart;
+                uint64 uiEnd;
+            };
+
+            static NOMADSUtil::PtrLList<Fragment> * fragmentFile (const char *pszFileName, Type inputObjectType,
+                                                                    uint8 ui8NoOfChunks, Type outputChunkType,
+                                                                    uint8 ui8ChunkCompressionQuality);
             static NOMADSUtil::PtrLList<Fragment> * fragmentBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType,
                                                                     uint8 ui8NoOfChunks, Type outputChunkType,
                                                                     uint8 ui8ChunkCompressionQuality);
+
+            static Fragment * extractFromFile (const char *pszFileName, Type inputObjectType, Type outputChunkType,
+                                                 uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals);
+            static Fragment * extractFromBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, Type outputChunkType,
+                                                 uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals);
     };
 
     inline bool Chunker::Fragment::operator == (Chunker::Fragment &rhsFragment)

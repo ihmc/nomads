@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+
+<project name="nms" default="alljars" basedir="..">
+
+  <target name="alljars" depends="nmsjar">
+  </target>
+
+  <property environment="env"/>
+
+  <target name="nomads.home.init" unless="env.NOMADS_HOME">
+        <echo message="Environment varible NOMADS_HOME not set, assuming it is ${basedir}/.." />
+        <property name="nomads.home" location="${basedir}/.."/>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Initializes the environment                                      -->
+  <!-- ================================================================ -->
+  <target name="setenv" depends="nomads.home.init">
+    <property name="nms.name" value="nms"/>
+
+    <property name="build.dir" location="./build/antcache"/>
+    <property name="lib.dir" location="lib"/>
+    <property name="externals.dir" location="${nomads.home}/externals/java"/>
+    <property name="src.dir" location="java"/>
+    <property name="dist.dir" location="./dist"/>
+    <property name="javatest.dir" location="test/java"/>
+
+    <property name="util.dir" location="${nomads.home}/util"/>
+    <echo message="util.dir is ${util.dir}" />
+
+    <property name="comp.debug" value="on"/>
+    <property name="comp.optimize" value="on"/>
+    <property name="comp.deprecation" value="on"/>
+    <property name="comp.verbose" value="off"/>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Initialization target                                            -->
+  <!-- ================================================================ -->
+  <target name="init" depends="setenv,create.fileset">
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${lib.dir}"/>
+  </target>
+  
+  <!-- ================================================================ -->
+  <!-- List of Externals                                                -->
+  <!-- ================================================================ -->
+  <target name="create.fileset">
+      <echo message="Externals = ${externals.dir}"/>
+      <fileset dir="${externals.dir}" id="externals.fileset">
+	<include name="**/log4j-1.2.17.jar"/>
+	<include name="**/guava-12.0.jar"/>
+      </fileset>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Compiles the source directory                                    -->
+  <!-- ================================================================ -->
+  <target name="nms" depends="init"
+      description="Compiles the source directory.">
+
+    <javac destdir="${build.dir}"
+        debug="${comp.debug}"
+        verbose="${comp.verbose}"
+        optimize="${comp.optimize}"
+        deprecation="${comp.deprecation}">
+
+      <src path="${util.dir}/java/"/>
+      <include name="${util.dir}/java/**/.java"/>
+      <classpath>
+      	<fileset refid="externals.fileset"/>
+      </classpath>
+    </javac>
+
+    <javac destdir="${build.dir}"
+        source="1.7"
+        debug="${comp.debug}"
+        verbose="${comp.verbose}"
+        optimize="${comp.optimize}"
+        deprecation="${comp.deprecation}">
+
+      <src path="${util.dir}/java/"/>
+      <src path="${src.dir}"/>
+
+      <!-- <src path="${nomads.home}/manet/java"/> -->
+
+      <include name="us/ihmc/nms/**/*.java"/>
+
+      <classpath>
+        <pathelement path="${build.dir}"/>
+	<fileset refid="externals.fileset"/>
+      </classpath>
+    </javac>
+
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Creates jar file                                                 -->
+  <!-- ================================================================ -->
+  <target name="nmsjar" depends="nms"
+      description="Creates jar file.">
+
+    <delete file="${lib.dir}/${nms.name}.jar"/>
+    <jar jarfile="${lib.dir}/${nms.name}.jar"
+        excludes="META-INF/MANIFEST.MF">
+      <fileset dir="${build.dir}">
+        <include name="us/ihmc/**/*.class" />
+      </fileset>
+
+    </jar>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Cleans build directories.                                        -->
+  <!-- ================================================================ -->
+  <target name="clean" depends="init" description="Cleans build directories.">
+    <delete dir="${build.dir}"/>
+    <delete file="${lib.dir}/${nms.name}.jar"/>
+    <delete dir="${dist.dir}"/>
+    <mkdir dir="${build.dir}"/>
+  </target>
+</project>
+
+<!--
+vim: et ts=2 sw=2
+-->

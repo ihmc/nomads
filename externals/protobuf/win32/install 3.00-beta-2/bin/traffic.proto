@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package ddam;
+
+import "google/protobuf/timestamp.proto";
+
+option java_package = "us.ihmc.aci.ddam";
+option java_generate_equals_and_hash = true;
+option java_multiple_files = true;
+option java_outer_classname = "TrafficProto";
+
+//the status of the link at the current time
+message LinkStatus {
+
+    //examples: LAN, HF, SATCOM, MANET, UNKNOWN
+    string type = 1;
+    //examples: STABLE, IMPROVING, DETERIORATING
+    string projection = 2;
+    double throughput = 3;
+    sint32 latency = 4;
+    sint32 packetLoss = 5;
+}
+
+//contains source IP addresses
+message Traffic {
+    map<string, Source> sources = 1;
+}
+
+//contains destination IP addresses 
+message Source {
+    map<string, Link> destinations = 1;
+    google.protobuf.Timestamp timestamp = 2;
+}
+//represents a connection between source IP and destination IP
+message Link {
+    LinkStatus linkStatus = 1;
+    map<string, Protocol> protocols = 2;
+}
+//represents statistics related to the port of a certain protocol
+message Protocol {
+    map<uint32, Stat> ports = 1;
+}
+
+//represent an individual measure of bandwidth for a certain 
+//source IP, destination IP,  protocol and port
+message Stat {
+    double f = 1; //average bandwidth in the last 5 seconds
+    double m = 2; //average bandwidth in the last minute
+}

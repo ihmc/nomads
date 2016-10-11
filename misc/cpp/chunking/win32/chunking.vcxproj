@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -36,35 +36,41 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -95,7 +101,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;JAS_WIN_MSVC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\misc\cpp\media;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
@@ -110,7 +116,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;JAS_WIN_MSVC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\misc\cpp\media;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
@@ -127,7 +133,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;JAS_WIN_MSVC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp\media;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
@@ -146,7 +152,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;JAS_WIN_MSVC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp\media;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
     </ClCompile>
@@ -166,7 +172,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;JAS_WIN_MSVC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\externals\jasper\src\libjasper\include;..\..\..\..\externals\libjpeg;..\..\..\..\externals\lpng1513;..\..\..\..\util\cpp\media;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
@@ -196,23 +202,34 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\AudioCodec.h" />
     <ClInclude Include="..\BMPHandler.h" />
     <ClInclude Include="..\Chunker.h" />
     <ClInclude Include="..\ChunkReassembler.h" />
     <ClInclude Include="..\Defs.h" />
+    <ClInclude Include="..\FFmpegHandler.h" />
+    <ClInclude Include="..\ImageCodec.h" />
     <ClInclude Include="..\JasperWrapper.h" />
     <ClInclude Include="..\JPEGLibWrapper.h" />
     <ClInclude Include="..\MimeUtils.h" />
+    <ClInclude Include="..\MPEG1Handler.h" />
     <ClInclude Include="..\PNGLibWrapper.h" />
+    <ClInclude Include="..\ChunkingUtils.h" />
+    <ClInclude Include="..\VideoCodec.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\BMPHandler.cpp" />
     <ClCompile Include="..\Chunker.cpp" />
     <ClCompile Include="..\ChunkReassembler.cpp" />
+    <ClCompile Include="..\FFmpegHandler.cpp" />
+    <ClCompile Include="..\ImageCodec.cpp" />
     <ClCompile Include="..\JasperWrapper.cpp" />
     <ClCompile Include="..\JPEGLibWrapper.cpp" />
     <ClCompile Include="..\MimeUtils.cpp" />
+    <ClCompile Include="..\MPEG1Handler.cpp" />
     <ClCompile Include="..\PNGLibWrapper.cpp" />
+    <ClCompile Include="..\ChunkingUtils.cpp" />
+    <ClCompile Include="..\VideoCodec.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

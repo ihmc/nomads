@@ -1,0 +1,9 @@
+all: libtinyxpath.a
+
+libtinyxpath.a : $(wildcard *.o)
+	ar -rcv libtinyxpath.a $(wildcard *.o)
+
+clean:
+	if test -e libtinyxpath.a; \
+		then rm libtinyxpath.a; \
+	fi

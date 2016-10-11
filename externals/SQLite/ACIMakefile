@@ -1,0 +1,16 @@
+all: libsqlite3.a
+
+checkMakefile:
+	if test -e Makefile; \
+		then echo Makefile exists; \
+		else (chmod +x configure; autoreconf -f -i; CFLAGS="-fPIC" ./configure; make clean) \
+	fi
+
+libsqlite3.a: checkMakefile
+	make
+
+clean:
+	if test -e Makefile; \
+                then echo make clean; make distclean;\
+                else echo done; \
+        fi

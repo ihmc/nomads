@@ -1,0 +1,204 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\proxy">
+      <UniqueIdentifier>{e56132b1-65bf-47ee-8010-ff26c6db6a6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\proxy">
+      <UniqueIdentifier>{6fb48c7e-8966-4309-901e-75c59f6a4851}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\proxy\client">
+      <UniqueIdentifier>{e74f77d9-8870-4c0d-9753-0d0a95ff6771}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\proxy\server">
+      <UniqueIdentifier>{3ecb26cd-0362-4128-968e-f39666ee7456}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\proxy\client">
+      <UniqueIdentifier>{db654665-7acd-4f59-be27-59ede5b03588}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\proxy\server">
+      <UniqueIdentifier>{ca0e9275-3df8-4f3e-8d72-83f52d243922}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ifaces">
+      <UniqueIdentifier>{22097e42-63e1-4a45-b619-2955b532af26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ifaces">
+      <UniqueIdentifier>{44753826-6cbf-42ef-b464-2bea67fe41e4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\ManycastForwardingNetworkInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ManycastNetworkMessageReceiver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MessageFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkMessage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkMessageReceiver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkMessageService.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkMessageV1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkMessageV2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Reassembler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TSNRangeHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\client\NetworkMessageServiceProxy.cpp">
+      <Filter>Source Files\proxy\client</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\NetworkMessageServiceUnmarshaller.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\server\NetworkMessageServiceCallbackManager.cpp">
+      <Filter>Source Files\proxy\server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\server\NetworkMessageServiceProxyServer.cpp">
+      <Filter>Source Files\proxy\server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\server\NMSCommandProcessor.cpp">
+      <Filter>Source Files\proxy\server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\SerializationUtil.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NMSProperties.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Fragmenter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkInterfaceFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkMessageServiceImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NetworkInterfaceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ifaces\AbstractNetworkInterface.cpp">
+      <Filter>Source Files\ifaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ifaces\DatagramBasedAbstractNetworkInterface.cpp">
+      <Filter>Source Files\ifaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ifaces\LocalNetworkInterface.cpp">
+      <Filter>Source Files\ifaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ifaces\ProxyNetworkInterface.cpp">
+      <Filter>Source Files\ifaces</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ManycastForwardingNetworkInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ManycastNetworkMessageReceiver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MessageFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessageReceiver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessageService.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessageServiceListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessageV1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessageV2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TSNRangeHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\NetworkMessageServiceUnmarshaller.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\server\NetworkMessageServiceCallbackManager.h">
+      <Filter>Header Files\proxy\server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\server\NetworkMessageServiceProxyServer.h">
+      <Filter>Header Files\proxy\server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\server\NMSCommandProcessor.h">
+      <Filter>Header Files\proxy\server</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\client\NetworkMessageServiceProxy.h">
+      <Filter>Header Files\proxy\client</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\SerializationUtil.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessageServiceInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NMSProperties.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Fragmenter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkInterfaceFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkMessageServiceImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NetworkInterfaceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ifaces\AbstractNetworkInterface.h">
+      <Filter>Header Files\ifaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ifaces\DatagramBasedAbstractNetworkInterface.h">
+      <Filter>Header Files\ifaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ifaces\LocalNetworkInterface.h">
+      <Filter>Header Files\ifaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ifaces\ProxyNetworkInterface.h">
+      <Filter>Header Files\ifaces</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

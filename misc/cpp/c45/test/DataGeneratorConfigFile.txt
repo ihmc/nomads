@@ -1,0 +1,15 @@
+Useful, Not_Useful.
+
+Source: COC, GUI.
+Expiration_Time: 5000, 8000.
+Relevant_Missions: mission_X, mission_Y.
+Left_Upper_Latitude: continuous.
+Left_Upper_Longitude: continuous.
+Right_Lower_Latitude: continuous.
+Right_Lower_Longitude: continuous.
+Location: area_A, area_B, area_C, area_D, area_E.
+Data_Content: Map, Sensor_Data_Update, Document.
+Data_Format: JPG, TXT, XML, PNG, DOC.
+Classification: Unclassified, FOUO, ITAR, Secret, Top_Secret.
+Importance: 1, 2, 3, 4, 5.
+

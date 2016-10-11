@@ -2,7 +2,7 @@
  * ChunkReassembler.h
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,12 +22,16 @@
 
 #include "Chunker.h"
 
-#include "BufferReader.h"
-#include "FTypes.h"
+namespace NOMADSUtil
+{
+    class BufferReader;
+}
 
 namespace IHMC_MISC
 {
     class BMPReassembler;
+    class FFmpegReassembler;
+    class MPEG1Reassembler;
 
     class ChunkReassembler
     {
@@ -41,17 +45,23 @@ namespace IHMC_MISC
             };
 
             ChunkReassembler (void);
+            ~ChunkReassembler (void);
 
             int init (Type reassemblerType, uint8 ui8NoOfChunks);
 
             int incorporateChunk (const void *pBuf, uint32 ui32BufLen, Chunker::Type chunkType, uint8 ui8ChunkId);
+            int incorporateAnnotation (Chunker::Interval **ppIntervals, const void *pBuf, uint32 ui32BufLen,
+                                       Chunker::Type chunkType);
 
-            NOMADSUtil::BufferReader * getReassembedObject (Chunker::Type outputType, uint8 ui8CompressionQuality);
+            NOMADSUtil::BufferReader * getReassembledObject (Chunker::Type outputType, uint8 ui8CompressionQuality);
+            NOMADSUtil::BufferReader * getAnnotatedObject (Chunker::Type outputType, uint8 ui8CompressionQuality);
 
         private:
             Type _type;
             uint8 _ui8NoOfChunks;
             BMPReassembler *_pBMPReassembler;
+            MPEG1Reassembler *_pMpeg1Reassembler;
+            FFmpegReassembler *_pFFMPEGReassembler;
     };
 }
 

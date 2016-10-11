@@ -2,7 +2,7 @@
  * PNGLibWrapper.cpp
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,9 +21,11 @@
 
 #include "png.h"
 
-#include "media/BMPImage.h"
+#include "BMPImage.h"
 #include "BufferReader.h"
 #include "Logger.h"
+
+#include <stdlib.h>
 
 using namespace NOMADSUtil;
 
@@ -38,15 +40,29 @@ namespace PNGLibWrapperNS
         uint32 ui32CurrPos;
     };
 
+    struct OutputData
+    {
+        uint8 *pBuffer;
+        size_t size;
+    };
+
     void user_error_fn (png_structp png_ptr, png_const_charp error_msg);
 
     void user_warning_fn (png_structp png_ptr, png_const_charp warning_msg);
 
     void user_read_data (png_structp png_ptr, png_bytep data, png_size_t length);
+
+    void user_png_write_data (png_structp png_ptr, png_bytep data, png_size_t length);
+
+    void user_png_flush (png_structp png_ptr);
 }
 
 BMPImage * PNGLibWrapper::convertPNGToBMP (const void *pInputBuf, uint32 ui32InputBufLen)
 {
+    #if defined (ANDROID)
+        checkAndLogMsg("Chunker::fragmentBuffer", Logger::L_MildError, "PNG not supported on the Android platform\n");
+        return NULL;
+    #endif
     if ((pInputBuf == NULL) || (ui32InputBufLen == 0)) {
         checkAndLogMsg ("PNGLibWrapper::convertPNGToBMP", Logger::L_MildError,
                         "input buf is null or input buf len is 0\n");
@@ -117,7 +133,7 @@ BMPImage * PNGLibWrapper::convertPNGToBMP (const void *pInputBuf, uint32 ui32Inp
 
     // Initialize a BMP Image to hold the decompressed data
     int rc;
-    BMPImage *pBMPImage = new BMPImage();
+    BMPImage *pBMPImage = new BMPImage (true);
     if (0 != (rc = pBMPImage->initNewImage (width, height, 24))) {
         checkAndLogMsg ("JPEGLibWrapper::convertPNGToBMP", Logger::L_MildError,
                         "failed to initialize BMPImage; rc = %d\n", rc);
@@ -129,7 +145,7 @@ BMPImage * PNGLibWrapper::convertPNGToBMP (const void *pInputBuf, uint32 ui32Inp
     png_bytepp row_pointers = png_get_rows (png_ptr, info_ptr);
     for (uint32 ui32Y = 0; ui32Y < height; ui32Y++) {
         for (uint32 ui32X = 0, ui32ByteIndex = 0; ui32X < width; ui32X++) {
-            if (0 != (rc = pBMPImage->setPixel (ui32X, ui32Y, row_pointers[ui32Y][ui32ByteIndex+2], row_pointers[ui32Y][ui32ByteIndex+1], row_pointers[ui32Y][ui32ByteIndex+0]))) {
+            if (0 != (rc = pBMPImage->setPixel (ui32X, height - ui32Y - 1, row_pointers[ui32Y][ui32ByteIndex+2], row_pointers[ui32Y][ui32ByteIndex+1], row_pointers[ui32Y][ui32ByteIndex+0]))) {
                 checkAndLogMsg ("JPEGLibWrapper::convertPNGToBMP", Logger::L_MildError,
                                 "failed to set pixel (%lu,%lu); rc = %d\n", ui32X, ui32Y, rc);
                 delete pBMPImage;
@@ -148,23 +164,23 @@ BMPImage * PNGLibWrapper::convertPNGToBMP (const void *pInputBuf, uint32 ui32Inp
 BufferReader * PNGLibWrapper::convertBMPtoPNG (const NOMADSUtil::BMPImage *pInputImage)
 {
     if (pInputImage == NULL) {
-        checkAndLogMsg ("PNGLibWrapperNS::convertBMPtoPNG", Logger::L_MildError,
+        checkAndLogMsg ("PNGLibWrapper::convertBMPtoPNG", Logger::L_MildError,
                         "input image is NULL\n");
         return NULL;
     }
     else if ((pInputImage->getWidth() <= 0) || (pInputImage->getHeight() <= 0)) {
-        checkAndLogMsg ("PNGLibWrapperNS::convertBMPtoPNG", Logger::L_MildError,
+        checkAndLogMsg ("PNGLibWrapper::convertBMPtoPNG", Logger::L_MildError,
                         "input image is empty\n");
         return NULL;
     }
     else if (pInputImage->getBitsPerPixel() != 24) {
-        checkAndLogMsg ("PNGLibWrapperNS::convertBMPtoPNG", Logger::L_MildError,
+        checkAndLogMsg ("PNGLibWrapper::convertBMPtoPNG", Logger::L_MildError,
                         "cannot handle BMP with %d bits per pixel\n",
                         (int) pInputImage->getBitsPerPixel());
         return NULL;
     }
 
-    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, PNGLibWrapperNS::user_error_fn, PNGLibWrapperNS::user_warning_fn);
     if (png_ptr == NULL) {
         return NULL;
     }
@@ -173,13 +189,28 @@ BufferReader * PNGLibWrapper::convertBMPtoPNG (const NOMADSUtil::BMPImage *pInpu
         return NULL;
     }
     if (setjmp (png_jmpbuf (png_ptr))) {
+        checkAndLogMsg ("PNGLibWrapper::convertBMPtoPNG", Logger::L_MildError,
+                        "libpng terminated with an error\n");
+        png_destroy_write_struct (&png_ptr, &info_ptr);
         return NULL;
     }
+
+    // Register functions to write PNG image to buffer
+    PNGLibWrapperNS::OutputData state;
+    state.pBuffer = NULL;
+    state.size = 0;
+    png_set_write_fn (png_ptr, &state, PNGLibWrapperNS::user_png_write_data, PNGLibWrapperNS::user_png_flush);
 
     static const uint8 PIXEL_SIZE = 3;
     const int depth = 8;
 
-    // set image attributes
+    // Write header
+    if (setjmp (png_jmpbuf (png_ptr))) {
+        checkAndLogMsg ("PNGLibWrapper::convertBMPtoPNG", Logger::L_MildError,
+                        "libpng terminated with an error while writing header\n");
+        png_destroy_write_struct (&png_ptr, &info_ptr);
+        return NULL;
+    }
     png_set_IHDR (png_ptr,
                   info_ptr,
                   pInputImage->getWidth(),
@@ -189,15 +220,25 @@ BufferReader * PNGLibWrapper::convertBMPtoPNG (const NOMADSUtil::BMPImage *pInpu
                   PNG_INTERLACE_NONE,
                   PNG_COMPRESSION_TYPE_DEFAULT,
                   PNG_FILTER_TYPE_DEFAULT);
+    png_write_info (png_ptr, info_ptr);
 
-    // initialize rows of PNG image
+    // Write image
+    if (setjmp (png_jmpbuf (png_ptr))) {
+        checkAndLogMsg ("PNGLibWrapper::convertBMPtoPNG", Logger::L_MildError,
+                        "libpng terminated with an error while writing image\n");
+        png_destroy_write_struct (&png_ptr, &info_ptr);
+        return NULL;
+    }
+
+    // Initialize rows of PNG image
     png_byte **row_pointers = (png_byte **) png_malloc (png_ptr, pInputImage->getHeight() * sizeof (png_byte *));
     if (row_pointers == NULL) {
         return NULL;
     }
     for (unsigned int y = 0; y < pInputImage->getHeight(); ++y) {
         png_byte *row = (png_byte *) png_malloc (png_ptr, sizeof (uint8) * pInputImage->getWidth() * PIXEL_SIZE);
-        row_pointers[y] = row;
+        const unsigned int actualY = pInputImage->getHeight () - y - 1;
+        row_pointers[actualY] = row;
         for (unsigned int x = 0; x < pInputImage->getWidth(); ++x) {
             uint8 ui8Red = 0;
             uint8 ui8Green = 0;
@@ -212,15 +253,26 @@ BufferReader * PNGLibWrapper::convertBMPtoPNG (const NOMADSUtil::BMPImage *pInpu
     }
 
     // Get Buffer
-    png_voidp puchOutputBuf = png_get_io_ptr (png_ptr);
-    png_set_rows (png_ptr, info_ptr, row_pointers);
+    // png_voidp puchOutputBuf = png_get_io_ptr (png_ptr);
+    // sleepForMilliseconds (10000);
+    png_set_rows (png_ptr, info_ptr, row_pointers);  
     png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+
+    // End Write
+    if (setjmp (png_jmpbuf (png_ptr))) {
+        checkAndLogMsg ("PNGLibWrapper::convertBMPtoPNG", Logger::L_MildError,
+                        "libpng terminated with an error while writing image\n");
+        png_destroy_write_struct (&png_ptr, &info_ptr);
+        return NULL;
+    }
+
+    // Deallocate image
     for (unsigned int y = 0; y < pInputImage->getHeight(); y++) {
         png_free (png_ptr, row_pointers[y]);
     }
     png_free (png_ptr, row_pointers);
 
-    return new BufferReader (puchOutputBuf, sizeof (puchOutputBuf), true);
+    return new BufferReader (state.pBuffer, state.size, true);
 }
 
 void PNGLibWrapperNS::user_error_fn (png_structp png_ptr, png_const_charp error_msg)
@@ -247,3 +299,24 @@ void PNGLibWrapperNS::user_read_data (png_structp png_ptr, png_bytep data, png_s
     memcpy (data, pInputData->pui8InputBuf+pInputData->ui32CurrPos, length);
     pInputData->ui32CurrPos += (uint32) length;
 }
+
+void PNGLibWrapperNS::user_png_write_data (png_structp png_ptr, png_bytep data, png_size_t length)
+{
+    OutputData *pOutputData = (OutputData*) png_get_io_ptr (png_ptr);
+    const size_t nsize = pOutputData->size + length;
+
+    // allocate or increase buffer size
+    pOutputData->pBuffer = (uint8 *) realloc (pOutputData->pBuffer, nsize);
+    if (pOutputData->pBuffer == NULL) {
+        png_error (png_ptr, "Write Error");
+    }
+
+    // copy new bytes to end of buffer
+    memcpy ((pOutputData->pBuffer + pOutputData->size), data, length);
+    pOutputData->size += length;
+}
+
+void PNGLibWrapperNS::user_png_flush (png_structp png_ptr)
+{
+}
+

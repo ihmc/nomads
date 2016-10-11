@@ -2,7 +2,7 @@
  * BMPHandler.cpp
  *
 * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,13 +19,32 @@
 
 #include "BMPHandler.h"
 
+#include "BMPImage.h"
 #include "Logger.h"
-#include "media/BMPImage.h"
+#include "NLFLib.h"
+
+#include <assert.h>
 
 using namespace IHMC_MISC;
 using namespace NOMADSUtil;
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define nullSrcImgErrMsg Logger::L_MildError, "source image is null\n"
+#define wrongBitsPerPixErrMsg(n) Logger::L_MildError, "cannot handle source image with %d bits/pixel\n",n
+#define faildToInitBitmapErrMsg Logger::L_MildError, "failed to initialize a new bitmap of size %lux%lu and %d bits/pixel; rc = %d\n"
+
+namespace IHMC_MISC
+{
+    class BMPHandler
+    {
+        public:
+            static uint8 computeXIncrement (uint8 ui8TotalNoOfChunks);
+            static uint8 computeYIncrement (uint8 ui8TotalNoOfChunks);
+            static uint8 computeXOffset (uint8 ui8ChunkId, uint8 ui8TotalNoOfChunks);
+            static uint8 computeYOffset (uint8 ui8ChunkId, uint8 ui8TotalNoOfChunks);
+            static uint8 computeChunkIdForOffset (uint8 ui8XOffset, uint8 ui8YOffset, uint8 ui8TotalNoOfChunks);
+    };
+}
 
 uint8 BMPHandler::computeXIncrement (uint8 ui8TotalNoOfChunks)
 {
@@ -91,14 +110,12 @@ uint8 BMPHandler::computeChunkIdForOffset (uint8 ui8XOffset, uint8 ui8YOffset, u
 BMPImage * BMPChunker::fragmentBMP (BMPImage *pSourceImage, uint8 ui8DesiredChunkId, uint8 ui8TotalNoOfChunks)
 {
     if (pSourceImage == NULL) {
-        checkAndLogMsg ("BMPChunker::fragmentBMP", Logger::L_MildError,
-                        "source image is null\n");
+        checkAndLogMsg("BMPChunker::fragmentBMP", nullSrcImgErrMsg);
         return NULL;
     }
     if (pSourceImage->getBitsPerPixel() != 24) {
-        checkAndLogMsg ("BMPChunker::fragmentBMP", Logger::L_MildError,
-                        "cannot handle source image with %d bits/pixel\n",
-                        (int) pSourceImage->getBitsPerPixel());
+        checkAndLogMsg ("BMPChunker::fragmentBMP", wrongBitsPerPixErrMsg
+                        ((int)pSourceImage->getBitsPerPixel()));
         return NULL;
     }
     if (ui8DesiredChunkId == 0) {
@@ -123,7 +140,7 @@ BMPImage * BMPChunker::fragmentBMP (BMPImage *pSourceImage, uint8 ui8DesiredChun
     }
     uint32 ui32NewWidth = ceiling ((pSourceImage->getWidth() / ui8XIncr), ui8XIncr);
     uint32 ui32NewHeight = ceiling ((pSourceImage->getHeight() / ui8YIncr), ui8YIncr);
-    BMPImage *pChunkedImage = new BMPImage();
+    BMPImage *pChunkedImage = new BMPImage (true);
     if (0 != (rc = pChunkedImage->initNewImage (ui32NewWidth, ui32NewHeight, pSourceImage->getBitsPerPixel()))) {
         checkAndLogMsg ("BMPChunker::fragmentBMP", Logger::L_MildError,
                         "could not initialize a new bitmap of size %lux%lu and %d bits/pixel; rc = %d\n",
@@ -148,14 +165,54 @@ BMPImage * BMPChunker::fragmentBMP (BMPImage *pSourceImage, uint8 ui8DesiredChun
     return pChunkedImage;
 }
 
-BMPReassembler::BMPReassembler (void)
+BMPImage * BMPChunker::extractFromBMP (BMPImage *pSourceImage, uint32 ui32StartX, uint32 ui32EndX, uint32 ui32StartY, uint32 ui32EndY)
 {
-    _ui8TotalNoOfChunks = 0;
-    _ui8XIncr = _ui8YIncr = 0;
+    if (pSourceImage == NULL) {
+        checkAndLogMsg ("BMPChunker::extractFromBMP", nullSrcImgErrMsg);
+        return NULL;
+    }
+    if (pSourceImage->getBitsPerPixel() != 24) {
+        checkAndLogMsg ("BMPChunker::extractFromBMP", wrongBitsPerPixErrMsg
+                        ((int)pSourceImage->getBitsPerPixel()));
+        return NULL;
+    }
+    if ((ui32EndX <= ui32StartX) || (ui32StartX > pSourceImage->getWidth()) || (ui32EndX > pSourceImage->getWidth())) {
+        return NULL;
+    }
+    if ((ui32EndY <= ui32StartY) || (ui32StartY > pSourceImage->getHeight()) || (ui32EndY > pSourceImage->getHeight())) {
+        return NULL;
+    }
+
+    int rc = 0;
+    const uint32 ui32NewWidth = ui32EndX - ui32StartX + 1;
+    const uint32 ui32NewHeight = ui32EndY - ui32StartY + 1;
+    BMPImage *pExtractedImage = new BMPImage (false);
+    if (0 != (rc = pExtractedImage->initNewImage (ui32NewWidth, ui32NewHeight, pSourceImage->getBitsPerPixel()))) {
+        checkAndLogMsg ("BMPChunker::extractFromBMP", Logger::L_MildError,
+                        "could not initialize a new bitmap of size %lux%lu and %d bits/pixel; rc = %d\n",
+                        ui32NewWidth, ui32NewHeight, pSourceImage->getBitsPerPixel());
+        return NULL;
+    }
+    for (uint32 x = ui32StartX; x <= ui32EndX; x++) {
+        for (uint32 y = ui32StartY; y <= ui32EndY; y++) {
+            uint8 ui8Red, ui8Green, ui8Blue;
+            assert (pSourceImage->getPixel (x, y, &ui8Red, &ui8Green, &ui8Blue) == 0);
+            assert (pExtractedImage->setPixel ((x - ui32StartX), (y - ui32StartY), ui8Red, ui8Green, ui8Blue) == 0);
+        }
+    }
+    return pExtractedImage;
+}
+
+BMPReassembler::BMPReassembler (void)
+    : _addedAnnotations (false),
+      _ui8TotalNoOfChunks (0),
+      _ui8XIncr (0),
+      _ui8YIncr (0),
+      _pResultingImage (NULL)
+{
     for (int i = 0; i < 256; i++) {
         _abAddedChunks [i] = false;
     }
-    _pResultingImage = NULL;
 }
 
 BMPReassembler::~BMPReassembler (void)
@@ -177,44 +234,47 @@ int BMPReassembler::init (uint8 ui8TotalNoOfChunks)
         return -1;
     }
     _ui8TotalNoOfChunks = ui8TotalNoOfChunks;
+    if (_pResultingImage != NULL) {
+        delete _pResultingImage;
+        _pResultingImage = NULL;
+    }
     return 0;
 }
 
 int BMPReassembler::incorporateChunk (BMPImage *pChunk, uint8 ui8ChunkId)
 {
+    const char *pszMethodName = "BMPReassembler::incorporateChunk";
     int rc;
     if ((_ui8XIncr == 0) || (_ui8YIncr == 0)) {
-        checkAndLogMsg ("BMPReassmebler::init", Logger::L_MildError,
+        checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "BMPReassembler has not been initialized\n");
         return -1;
     }
     if (pChunk == NULL) {
-        checkAndLogMsg ("BMPReassembler::init", Logger::L_MildError,
+        checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "chunk parameter is NULL\n");
         return -2;
     }
     if ((ui8ChunkId == 0) || (ui8ChunkId > _ui8TotalNoOfChunks)) {
-        checkAndLogMsg ("BMPReassembler::init", Logger::L_MildError,
+        checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "chunk id of <%s> is invalid\n", ui8ChunkId);
         return -3;
     }
     if (_pResultingImage == NULL) {
-        _pResultingImage = new BMPImage;
+        _pResultingImage = new BMPImage (true);
         if (0 != (rc = _pResultingImage->initNewImage (pChunk->getWidth() * _ui8XIncr, pChunk->getHeight() * _ui8YIncr, pChunk->getBitsPerPixel()))) {
-            checkAndLogMsg ("BMPReassembler::incorporateChunk", Logger::L_MildError,
-                            "failed to initialize a new bitmap of size %lux%lu and %d bits/pixel; rc = %d\n",
-                            pChunk->getWidth() * _ui8XIncr, pChunk->getHeight() * _ui8YIncr, (int) pChunk->getBitsPerPixel());
+            checkAndLogMsg (pszMethodName, faildToInitBitmapErrMsg, pChunk->getWidth() * _ui8XIncr,
+                            pChunk->getHeight() * _ui8YIncr, (int) pChunk->getBitsPerPixel());
             return -4;
         }
     }
-    else {
-        if ((_pResultingImage->getWidth() != (pChunk->getWidth() * _ui8XIncr)) ||
+    else if ((_pResultingImage->getWidth() != (pChunk->getWidth() * _ui8XIncr)) ||
             (_pResultingImage->getHeight() != (pChunk->getHeight() * _ui8YIncr))) {
-            checkAndLogMsg ("BMPReassembler::incorporateChunk", Logger::L_MildError,
-                            "chunk size of %lux%lu is not compatible with reassembled image size of %lux%lu composed of %d chunks\n",
-                            pChunk->getWidth(), pChunk->getHeight(), _pResultingImage->getWidth(), _pResultingImage->getHeight(), (int) _ui8TotalNoOfChunks);
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "chunk size of %lux%lu is not compatible "
+                        "with reassembled image size of %lux%lu composed of %d chunks\n", pChunk->getWidth(),
+                        pChunk->getHeight(), _pResultingImage->getWidth(), _pResultingImage->getHeight(),
+                        (int) _ui8TotalNoOfChunks);
             return -5;
-        }
     }
     uint8 ui8XOff = BMPHandler::computeXOffset (ui8ChunkId, _ui8TotalNoOfChunks);
     uint8 ui8YOff = BMPHandler::computeYOffset (ui8ChunkId, _ui8TotalNoOfChunks);
@@ -235,18 +295,68 @@ int BMPReassembler::incorporateChunk (BMPImage *pChunk, uint8 ui8ChunkId)
     return 0;
 }
 
-const BMPImage * BMPReassembler::getReassembledImage (void)
+int BMPReassembler::incorporateChunk (BMPImage *pChunk, uint32 ui32StartX, uint32 ui32EndX, uint32 ui32StartY, uint32 ui32EndY)
 {
-    if ((_ui8XIncr == 0) || (_ui8YIncr == 0)) {
-        checkAndLogMsg ("BMPReassmebler::getReassembledImage", Logger::L_MildError,
-                        "BMPReassembler has not been initialized\n");
-        return NULL;
+    const char *pszMethodName = "BMPReassembler::incorporateChunk";
+    if (pChunk == NULL) {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "chunk parameter is NULL\n");
+        return -2;
     }
     if (_pResultingImage == NULL) {
-        checkAndLogMsg ("BMPReassembler::getReassembledImage", Logger::L_MildError,
-                        "no chunks have been incorporated\n");
+        return -3;
+    }
+    if ((_pResultingImage->getWidth() < pChunk->getWidth()) || (_pResultingImage->getHeight() < pChunk->getHeight())) {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "chunk size of %lux%lu is not compatible "
+                        "with reassembled image size of %lux%lu\n", pChunk->getWidth(),
+                        pChunk->getHeight(), _pResultingImage->getWidth(), _pResultingImage->getHeight());
+        return -4;
+    }
+    if (!_addedAnnotations) {
+        if (interpolate() < 0) {
+            return -5;
+        }
+        _addedAnnotations = true;
+    }
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "%u %u %u %u\n", ui32StartX, ui32EndX, ui32StartY, ui32EndY);
+    for (uint32 x = 0; x < pChunk->getWidth(); x++) {
+        for (uint32 y = 0; y < pChunk->getHeight(); y++) {
+            uint8 ui8Red, ui8Green, ui8Blue;
+            pChunk->getPixel (x, y, &ui8Red, &ui8Green, &ui8Blue);
+            _pResultingImage->setPixel ((x + ui32StartX), (y + ui32StartY), ui8Red, ui8Green, ui8Blue);
+        }
+    }
+    return 0;
+}
+
+const BMPImage * BMPReassembler::getAnnotatedImage (void)
+{
+    if (_addedAnnotations) {
+        return _pResultingImage;
+    }
+    return NULL;
+}
+
+const BMPImage * BMPReassembler::getReassembledImage (void)
+{
+    if (interpolate() < 0) {
         return NULL;
     }
+    return _pResultingImage;
+}
+
+int BMPReassembler::interpolate (void)
+{
+    if ((_ui8XIncr == 0) || (_ui8YIncr == 0)) {
+        checkAndLogMsg ("BMPReassmebler::interpolate", Logger::L_MildError,
+                        "BMPReassembler has not been initialized\n");
+        return -1;
+    }
+    if (_pResultingImage == NULL) {
+        checkAndLogMsg ("BMPReassembler::interpolate", Logger::L_MildError,
+                        "no chunks have been incorporated\n");
+        return -2;
+    }
+    // Do interpolation
     uint32 ui32X = 0;
     while (ui32X < _pResultingImage->getWidth()) {
         uint32 ui32Y = 0;
@@ -267,9 +377,9 @@ const BMPImage * BMPReassembler::getReassembledImage (void)
             }
             if (ui8SampleCount == 0) {
                 // Should not have happened
-                checkAndLogMsg ("BMPReassembler::getReassembledImage", Logger::L_MildError,
+                checkAndLogMsg ("BMPReassembler::interpolate", Logger::L_MildError,
                                 "internal error - no samples found\n");
-                return NULL;
+                return -3;
             }
             uint8 ui8AvgR = ui16SumR / ui8SampleCount;
             uint8 ui8AvgG = ui16SumG / ui8SampleCount;
@@ -285,5 +395,6 @@ const BMPImage * BMPReassembler::getReassembledImage (void)
         }
         ui32X += _ui8XIncr;
     }
-    return _pResultingImage;
+    return 0;
 }
+

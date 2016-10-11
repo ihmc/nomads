@@ -2,7 +2,7 @@
  * Chunker.cpp
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,158 +19,308 @@
 
 #include "Chunker.h"
 
+#include "AudioCodec.h"
+#include "ChunkingUtils.h"
 #include "BMPHandler.h"
-#include "JasperWrapper.h"
-#include "JPEGLibWrapper.h"
-#include "PNGLibWrapper.h"
+#include "Defs.h"
+#ifdef WIN32
+    #include "FFmpegHandler.h"
+#endif
+#include "ImageCodec.h"
+#include "MPEG1Handler.h"
+#include "VideoCodec.h"
 
 #include "BufferReader.h"
-#include "BufferWriter.h"
-#include "media/BMPImage.h"
+#include "BMPImage.h"
+#include "FFMPEGReader.h"
 
-#include "Defs.h"
-
+#include "FileUtils.h"
 #include "Logger.h"
 
 #include <stdlib.h>
+#include <limits.h>
+
+#define encodingErrMsg Logger::L_MildError, "failed to encode BMP chunk into %s.\n"
+#define decodingErrMsg Logger::L_MildError, "failed to decode %s chunk into BMP.\n"
 
 using namespace NOMADSUtil;
 using namespace IHMC_MISC;
 
-PtrLList<Chunker::Fragment> * Chunker::fragmentBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, uint8 ui8NoOfChunks, Type outputChunkType, uint8 ui8ChunkCompressionQuality)
+namespace IHMC_MISC
 {
-    BMPImage *pBMPImage = NULL;
-    if (inputObjectType == Chunker::BMP) {
-        BufferReader br (pBuf, ui32Len, false);
-        int rc;
-        pBMPImage = new BMPImage();
-        if (0 != (rc = pBMPImage->readHeaderAndImage (&br))) {
-            checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                            "failed to read BMP image; rc = %d\n", rc);
-            delete pBMPImage;
-            return NULL;
-        }
-    }
-    else if (inputObjectType == Chunker::JPEG) {
-        pBMPImage = JPEGLibWrapper::convertJPEGToBMP (pBuf, ui32Len);
-        if (pBMPImage == NULL) {
-            checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                            "failed to convert JPEG image to BMP\n");
-            return NULL;
-        }
-    }
-    else if (inputObjectType == Chunker::JPEG2000) {
-        #if defined (ANDROID)
-            checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                            "JPEG2000 not supported on the Android platform\n");
-            return NULL;
-        #else
-            BufferReader *pReader = JasperWrapper::convertToBMP (pBuf, ui32Len);
-            if (pReader == NULL) {
-                checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                "failed to convert JPEG2000 image to BMP\n");
-                return NULL;
-            }
-            int rc;
-            pBMPImage = new BMPImage();
-            if (0 != (rc = pBMPImage->readHeaderAndImage (pReader))) {
-                checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                "failed to read BMP image after converting JPEG2000 to BMP; rc = %d\n", rc);
-                delete pBMPImage;
-                delete pReader;
-                return NULL;
-            }
-            delete pReader;
-        #endif
-    }
-    else if (inputObjectType == Chunker::PNG) {
-        #if defined (ANDROID)
-            checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                            "JPEG2000 not supported on the Android platform\n");
-            return NULL;
-        #else
-            pBMPImage = PNGLibWrapper::convertPNGToBMP (pBuf, ui32Len);
-            if (pBMPImage == NULL) {
-                checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                "failed to convert PNG image to BMP\n");
-                return NULL;
-            }
-        #endif
-    }
-    else {
-        checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                        "unsupported input type %d\n", (int) inputObjectType);
-        return NULL;
-    }
-    PtrLList<Fragment> *pFragments = new PtrLList<Fragment>;
-    for (uint8 ui8CurrentChunk = 1; ui8CurrentChunk <= ui8NoOfChunks; ui8CurrentChunk++) {
-        BMPImage *pBMPChunk = BMPChunker::fragmentBMP (pBMPImage, ui8CurrentChunk, ui8NoOfChunks);
-        if (pBMPChunk == NULL) {
-            checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                            "failed to fragment BMP to create chunk %d of %d\n", (int) ui8CurrentChunk, (int) ui8NoOfChunks);
-            delete pFragments;
-            return NULL;
-        }
-        int rc;
-        Fragment *pFragment = new Fragment();
+    typedef PtrLList<Chunker::Fragment> Fragments;
+
+    Chunker::Fragment * toFragment (Reader *pReader, Chunker::Type inputObjectType, uint8 ui8CurrentChunk, uint8 ui8NoOfChunks, Chunker::Type outputChunkType)
+    {
+        Chunker::Fragment *pFragment = new Chunker::Fragment();
         pFragment->src_type = inputObjectType;
-        if (outputChunkType == Chunker::BMP) {
-            BufferWriter bw (pBMPChunk->getTotalSize(), 1024);
-            if (0 != (rc = pBMPChunk->writeHeaderAndImage (&bw))) {
-                checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                "failed to write chunk BMP into buffer; rc = %d\n", rc);
-                delete pFragments;
-                return NULL;
-            }
-            uint32 ui32ChunkLen = bw.getBufferLength();
-            pFragment->pReader = new BufferReader (bw.relinquishBuffer(), ui32ChunkLen, true);
-            pFragment->ui64FragLen = ui32ChunkLen;
-        }
-        else if (outputChunkType == Chunker::JPEG) {
-            BufferReader *pReader = JPEGLibWrapper::convertBMPToJPEG (pBMPChunk, ui8ChunkCompressionQuality);
-            if (pReader == NULL) {
-                checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                "failed to encode BMP chunk into JPEG\n");
-                delete pFragments;
-                return NULL;
-            }
-            pFragment->pReader = pReader;
-            pFragment->ui64FragLen = pReader->getBytesAvailable();
-        }
-        else if (outputChunkType == Chunker::JPEG2000) {
-            #if defined (ANDROID)
-                checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                "JPEG2000 not supported on the Android platform\n");
-                delete pFragments;
-                return NULL;
-            #else
-                BufferWriter bw (pBMPChunk->getTotalSize(), 1024);
-                if (0 != (rc = pBMPChunk->writeHeaderAndImage (&bw))) {
-                    checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                    "failed to write chunk BMP into buffer for creating JPEG2000; rc = %d\n", rc);
-                    delete pFragments;
-                    return NULL;
-                }
-                BufferReader *pReader = JasperWrapper::convertToJPEG2000 (bw.getBuffer(), bw.getBufferLength());
-                if (pReader == NULL) {
-                    checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                                    "failed to encode BMP chunk into JPEG2000\n");
-                    delete pFragments;
-                    return NULL;
-                }
-                pFragment->pReader = pReader;
-                pFragment->ui64FragLen = pReader->getBytesAvailable();
-            #endif
-        }
-        else {
-            checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
-                            "unsupported output type %d\n", (int) outputChunkType);
-            return NULL;
-        }
+        pFragment->pReader = pReader;
+        pFragment->ui64FragLen = pReader->getBytesAvailable ();
         pFragment->out_type = outputChunkType;
         pFragment->ui8Part = ui8CurrentChunk;
         pFragment->ui8TotParts = ui8NoOfChunks;
-        pFragments->append (pFragment);
+        return pFragment;
+    }
+
+    int fragmentMpegV1 (MPEG1Parser *pParser, PtrLList<Chunker::Fragment> &fragments, uint8 ui8NoOfChunks,
+                       Chunker::Type inputObjectType, Chunker::Type outputChunkType)
+    {
+        if (pParser == NULL) {
+            return -1;
+        }
+        for (uint8 ui8CurrentChunk = 1; ui8CurrentChunk <= ui8NoOfChunks; ui8CurrentChunk++) {
+            Reader *pReader = MPEG1Chunker::fragmentMpeg1 (pParser, ui8CurrentChunk, ui8NoOfChunks);
+            if (pReader == NULL) {
+                delete pParser;
+                return -2;
+            }
+            fragments.append (toFragment (pReader, inputObjectType, ui8CurrentChunk, ui8NoOfChunks, outputChunkType));
+        }
+        return 0;
+    }
+}
+
+PtrLList<Chunker::Fragment> * Chunker::fragmentFile (const char *pszFileName, Type inputObjectType,
+                                                     uint8 ui8NoOfChunks, Type outputChunkType,
+                                                     uint8 ui8ChunkCompressionQuality)
+{
+    if (pszFileName == NULL) {
+        return NULL;
+    }
+    if (ImageCodec::supports (inputObjectType)) {
+        // Convert to buffer (images are assumed not to be too big...)
+        BufferReader *pReader = ChunkingUtils::toReader (pszFileName);
+        if (pReader == NULL) {
+            return NULL;
+        }
+        PtrLList<Fragment> *pFragments = fragmentBuffer (pReader->getBuffer(), pReader->getBufferLength(),
+                                                         inputObjectType, ui8NoOfChunks, outputChunkType,
+                                                         ui8ChunkCompressionQuality);
+        delete pReader;
+        return pFragments;
+    }
+
+    PtrLList<Fragment> *pFragments = new PtrLList<Fragment>();
+    if (pFragments == NULL) {
+        return NULL;
+    }
+    if ((VideoCodec::supports (inputObjectType) && VideoCodec::supports (outputChunkType)) ||
+        (AudioCodec::supports (inputObjectType) && AudioCodec::supports (outputChunkType))) {
+        if (V_MPEG) {
+            pFragments = new PtrLList<Fragment>();
+            MPEG1Parser *pParser = MPEG1ParserFactory::newParser (pszFileName);
+            if (fragmentMpegV1 (pParser, *pFragments, ui8NoOfChunks, inputObjectType, outputChunkType) < 0) {
+                delete pFragments;
+            }
+            delete pParser;
+        }
+        else {
+#ifdef WIN32
+            FFMPEGReader reader;
+            if (reader.openFile (pszFileName) < 0) {
+                return NULL;
+            }
+            for (uint8 ui8CurrentChunk = 1; ui8CurrentChunk <= ui8NoOfChunks; ui8CurrentChunk++) {
+                Reader *pReader = FFmpegChunker::fragmentFFmpeg (&reader, ui8CurrentChunk, ui8NoOfChunks);
+                if (pReader == NULL) {
+                    delete pFragments;
+                    return NULL;
+                }
+                pFragments->append (toFragment (pReader, inputObjectType, ui8CurrentChunk, ui8NoOfChunks, outputChunkType));
+            }
+#else
+            return NULL;
+#endif
+        }
+    }
+    if (pFragments->getFirst() == NULL) {
+        delete pFragments;
+        pFragments = NULL;
     }
     return pFragments;
 }
+
+PtrLList<Chunker::Fragment> * Chunker::fragmentBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, uint8 ui8NoOfChunks,
+                                                       Type outputChunkType, uint8 ui8ChunkCompressionQuality)
+{
+    PtrLList<Fragment> *pFragments = NULL;
+    if (ImageCodec::supports (inputObjectType)) {
+        BMPImage *pBMPImage = ImageCodec::decode (pBuf, ui32Len, inputObjectType);
+        if (pBMPImage == NULL) {
+            return NULL;
+        }
+        pFragments = new PtrLList<Fragment>();
+        for (uint8 ui8CurrentChunk = 1; ui8CurrentChunk <= ui8NoOfChunks; ui8CurrentChunk++) {
+            BMPImage *pBMPChunk = BMPChunker::fragmentBMP (pBMPImage, ui8CurrentChunk, ui8NoOfChunks);
+            if (pBMPChunk == NULL) {
+                checkAndLogMsg ("Chunker::fragmentBuffer", Logger::L_MildError,
+                                "failed to fragment BMP to create chunk %d of %d\n",
+                                static_cast<int>(ui8CurrentChunk), static_cast<int>(ui8NoOfChunks));
+                delete pFragments;
+                return NULL;
+            }
+
+            BufferReader *pReader = ImageCodec::encode (pBMPChunk, outputChunkType, ui8ChunkCompressionQuality);
+            if (pReader == NULL) {
+                delete pFragments;
+                return NULL;
+            }
+            pFragments->append (toFragment (pReader, inputObjectType, ui8CurrentChunk, ui8NoOfChunks, outputChunkType));
+        }
+    }
+    else if (VideoCodec::supports (inputObjectType)) {
+        if (V_MPEG) {
+            pFragments = new PtrLList<Fragment>();
+            MPEG1Parser *pParser = MPEG1ParserFactory::newParser (pBuf, ui32Len);
+            if (fragmentMpegV1 (pParser, *pFragments, ui8NoOfChunks, inputObjectType, outputChunkType) < 0) {
+                delete pFragments;
+            }
+            delete pParser;
+        }
+        else {
+            String tmpfilename ("TMP-srcvideo.data");
+            if (FileUtils::dumpBufferToFile (pBuf, ui32Len, tmpfilename) < 0) {
+                return NULL;
+            }
+            pFragments = fragmentFile (tmpfilename, inputObjectType, ui8NoOfChunks,
+                                       outputChunkType, ui8ChunkCompressionQuality);
+            FileUtils::deleteFile (tmpfilename);
+            return pFragments;
+        }
+    }
+
+    return pFragments;
+}
+
+Chunker::Fragment * Chunker::extractFromFile (const char *pszFileName, Type inputObjectType, Type outputChunkType,
+                                              uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals)
+{
+    
+    if (ImageCodec::supports (inputObjectType)) {
+        // Convert to buffer (images are assumed not to be too big...)
+        BufferReader *pReader = ChunkingUtils::toReader (pszFileName);
+        if (pReader == NULL) {
+            return NULL;
+        }
+        Chunker::Fragment *pFragment = extractFromBuffer (pReader->getBuffer(), pReader->getBufferLength(),
+                                                          inputObjectType, outputChunkType,
+                                                          ui8ChunkCompressionQuality, ppPortionIntervals);
+        delete pReader;
+        return pFragment;
+    }
+
+    if ((VideoCodec::supports (inputObjectType) && VideoCodec::supports (outputChunkType)) ||
+        (AudioCodec::supports (inputObjectType) && AudioCodec::supports (outputChunkType))) {
+
+        int64 i64StartT = 0U;
+        int64 i64EndT = 0U;
+        if (ppPortionIntervals != NULL) {
+            for (unsigned int i = 0; ppPortionIntervals[i] != NULL; i++) {
+                if ((ppPortionIntervals[i]->uiStart > 0xFFFFFFFFFFFFFFFF) || (ppPortionIntervals[i]->uiEnd > 0xFFFFFFFFFFFFFFFF)) {
+                    return NULL;
+                }
+                if (ppPortionIntervals[i]->dimension == T) {
+                    i64StartT = ppPortionIntervals[i]->uiStart;
+                    i64EndT = ppPortionIntervals[i]->uiEnd;
+                }
+                else {
+                    return NULL;
+                }
+            }
+        }
+
+        #ifdef WIN32
+        FFMPEGReader reader;
+        if (reader.openFile (pszFileName) < 0) {
+            return NULL;
+        }
+        Reader *pReader = FFmpegChunker::extractFromFFmpeg (&reader, i64StartT, i64EndT);
+        if (pReader == NULL) {
+            return NULL;
+        }  
+        return toFragment (pReader, inputObjectType, 1, 1, outputChunkType);
+        #else
+        return NULL;
+        #endif
+    }
+
+    return NULL;
+}
+
+Chunker::Fragment * Chunker::extractFromBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, Type outputChunkType,
+                                                uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals)
+{
+    
+    if (ImageCodec::supports (inputObjectType)) {
+        BMPImage *pBMPImage = ImageCodec::decode (pBuf, ui32Len, inputObjectType);
+        if (pBMPImage == NULL) {
+            return NULL;
+        }
+
+        uint32 ui32StartX = 0U;
+        uint32 ui32EndX = pBMPImage->getWidth();
+        uint32 ui32StartY = 0U;
+        uint32 ui32EndY = pBMPImage->getHeight();
+
+        if (ppPortionIntervals != NULL) {
+            for (unsigned int i = 0; ppPortionIntervals[i] != NULL; i++) {
+                if ((ppPortionIntervals[i]->uiStart > UINT_MAX) || (ppPortionIntervals[i]->uiEnd > UINT_MAX)) {
+                    return NULL;
+                }
+                if (ppPortionIntervals[i]->dimension == X) {
+                    ui32StartX = ppPortionIntervals[i]->uiStart;
+                    ui32EndX = ppPortionIntervals[i]->uiEnd;
+                }
+                else if (ppPortionIntervals[i]->dimension == Y) {
+                    ui32StartY = ppPortionIntervals[i]->uiStart;
+                    ui32EndY = ppPortionIntervals[i]->uiEnd;
+                }
+                else {
+                    return NULL;
+                }
+            }
+        }
+
+        BMPImage *pBMPChunk = BMPChunker::extractFromBMP (pBMPImage, ui32StartX, ui32EndX, ui32StartY, ui32EndY);
+        if (pBMPChunk == NULL) {
+            return NULL;
+        }
+        BufferReader *pReader = ImageCodec::encode (pBMPChunk, outputChunkType, ui8ChunkCompressionQuality);
+        if (pReader == NULL) {
+            return NULL;
+        }
+        return toFragment (pReader, inputObjectType, 1, 1, outputChunkType);   
+    }
+    if ((VideoCodec::supports (inputObjectType) && VideoCodec::supports (outputChunkType)) ||
+             (AudioCodec::supports (inputObjectType) && AudioCodec::supports (outputChunkType))) {
+
+        String tmpfilename ("TMP-srcvideo.data");
+        if (FileUtils::dumpBufferToFile (pBuf, ui32Len, tmpfilename) < 0) {
+            return NULL;
+        }
+        Chunker::Fragment *pFragment = extractFromFile (tmpfilename, inputObjectType, outputChunkType,
+                                                        ui8ChunkCompressionQuality, ppPortionIntervals);
+        FileUtils::deleteFile (tmpfilename);
+        return pFragment;
+    }
+    return NULL;
+}
+
+Chunker::Interval::Interval ()
+    : dimension (Chunker::X),
+      uiStart (0U),
+      uiEnd (0U)
+{
+}
+
+Chunker::Interval::Interval (const Interval& interval)
+    : dimension (interval.dimension),
+      uiStart (interval.uiStart),
+      uiEnd (interval.uiEnd)
+{
+}
+
+Chunker::Interval::~Interval (void)
+{
+}
+

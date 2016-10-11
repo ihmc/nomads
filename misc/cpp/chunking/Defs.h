@@ -2,7 +2,7 @@
  * Defs.h
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,7 +30,7 @@
 #define deserializationError Logger::L_Warning, "Deserialization error.\n"
 
 //snprintf is not part of C89. It's standard only in C99. Microsoft does not support C99.
-#if _MSC_VER
+#if _MSC_VER<1900
     #define snprintf _snprintf
 #endif
 

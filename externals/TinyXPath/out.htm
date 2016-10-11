@@ -1,0 +1,149 @@
+<html><head><title>Result</title>
+<style>em{color: red;}</style>
+</head><body>
+<h1>TinyXPath examples / regression tests</h1>
+<h2>Input XML tree</h2>
+&lt;a&gt;<br>
+&nbsp;&nbsp;&nbsp;&lt;b val='123'&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;b /&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;c /&gt;<br>
+&lt;!--  -122.0  --&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;d /&gt;<br>
+&nbsp;&nbsp;&nbsp;&lt;/b&gt;<br>
+&lt;!--  500.0  --&gt;<br>
+&nbsp;&nbsp;&nbsp;&lt;x target='xyz'&gt;<br>
+sub text
+&nbsp;&nbsp;&nbsp;&lt;/x&gt;<br>
+&lt;/a&gt;<br>
+<br /><br />
+<table border='1'><tr><th>Expression</th><th>Result</th><th>Expected (compiled)</th></tr>
+<h2>Results</h2>
+<tr><td>/a/*[name()!='b']</td><td>x</td><td>x</td></tr>
+<tr><td>//b/@val</td><td>123</td><td>123</td></tr>
+<tr><td>//x/text()</td><td>sub text</td><td>sub text</td></tr>
+<tr><td>//*/comment()</td><td><em> 500.0 </em></td><td><em> -122.0 </em></td></tr>
+<tr><td>( //dummy1 or  //dummy2  or /dummy/dummy2 or /a/b )</td><td>true</td><td>true</td></tr>
+<tr><td>( //dummy1 or  //dummy2  or /dummy/dummy2  )</td><td>false</td><td>false</td></tr>
+<tr><td>translate('aabbccdd','aaabc','AXYB')</td><td>AABBdd</td><td>AABBdd</td></tr>
+<tr><td>translate('aabbccdde','abcd','')</td><td>e</td><td>e</td></tr>
+<tr><td>translate('aabbccdd','','ASDF')</td><td>aabbccdd</td><td>aabbccdd</td></tr>
+<tr><td>translate('aabbccdd','','')</td><td>aabbccdd</td><td>aabbccdd</td></tr>
+<tr><td>translate('The quick brown fox jumps over the lazy dog','abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')</td><td>THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG</td><td>THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG</td></tr>
+<tr><td>count(//*/comment())</td><td>2</td><td>2</td></tr>
+<tr><td>sum(//@*)</td><td>123</td><td>123</td></tr>
+<tr><td>sum(//*/comment())</td><td>378</td><td>378</td></tr>
+<tr><td>true()</td><td>true</td><td>true</td></tr>
+<tr><td>not(false())</td><td>true</td><td>true</td></tr>
+<tr><td>count(//*[position()=2])</td><td>2</td><td>2</td></tr>
+<tr><td>name(/*/*/*[position()=2])</td><td>c</td><td>c</td></tr>
+<tr><td>name(/*/*/*[last()])</td><td>d</td><td>d</td></tr>
+<tr><td>count(//c/following::*)</td><td>2</td><td>2</td></tr>
+<tr><td>count(/a/b/b/following::*)</td><td>3</td><td>3</td></tr>
+<tr><td>count(//d/preceding::*)</td><td>2</td><td>2</td></tr>
+<tr><td>name(//attribute::*)</td><td>val</td><td>val</td></tr>
+<tr><td>count(//b/child::*)</td><td>3</td><td>3</td></tr>
+<tr><td>count(//x/ancestor-or-self::*)</td><td>2</td><td>2</td></tr>
+<tr><td>count(//b/descendant-or-self::*)</td><td>4</td><td>4</td></tr>
+<tr><td>count(//self::*)</td><td>6</td><td>6</td></tr>
+<tr><td>count(/a/descendant::*)</td><td>5</td><td>5</td></tr>
+<tr><td>count(/a/descendant::x)</td><td>1</td><td>1</td></tr>
+<tr><td>count(/a/descendant::b)</td><td>2</td><td>2</td></tr>
+<tr><td>count(/a/descendant::b[@val=123])</td><td>1</td><td>1</td></tr>
+<tr><td>count(//c/ancestor::a)</td><td>1</td><td>1</td></tr>
+<tr><td>name(//d/parent::*)</td><td>b</td><td>b</td></tr>
+<tr><td>count(//c/ancestor::*)</td><td>2</td><td>2</td></tr>
+<tr><td>name(/a/b/ancestor::*)</td><td>a</td><td>a</td></tr>
+<tr><td>name(/a/b/c/following-sibling::*)</td><td>d</td><td>d</td></tr>
+<tr><td>count(//b/following-sibling::*)</td><td>3</td><td>3</td></tr>
+<tr><td>count(//b|//a)</td><td>3</td><td>3</td></tr>
+<tr><td>count(//d/preceding-sibling::*)</td><td>2</td><td>2</td></tr>
+<tr><td>-3 * 4</td><td>-12</td><td>-12</td></tr>
+<tr><td>-3.1 * 4</td><td>-12.4</td><td>-12.4</td></tr>
+<tr><td>12 div 5</td><td>2.4</td><td>2.4</td></tr>
+<tr><td>3 * 7</td><td>21</td><td>21</td></tr>
+<tr><td>-5.5 >= -5.5</td><td>true</td><td>true</td></tr>
+<tr><td>-5.5 < 3</td><td>true</td><td>true</td></tr>
+<tr><td>-6.0 < -7</td><td>false</td><td>false</td></tr>
+<tr><td>12 < 14</td><td>true</td><td>true</td></tr>
+<tr><td>12 > 14</td><td>false</td><td>false</td></tr>
+<tr><td>14 <= 14</td><td>true</td><td>true</td></tr>
+<tr><td>/a or /b</td><td>true</td><td>true</td></tr>
+<tr><td>/c or /b</td><td>false</td><td>false</td></tr>
+<tr><td>/a and /b</td><td>false</td><td>false</td></tr>
+<tr><td>/a and /*/b</td><td>true</td><td>true</td></tr>
+<tr><td>18-12</td><td>6</td><td>6</td></tr>
+<tr><td>18+12</td><td>30</td><td>30</td></tr>
+<tr><td>count(//a|//b)</td><td>3</td><td>3</td></tr>
+<tr><td>count(//*[@val])</td><td>1</td><td>1</td></tr>
+<tr><td>name(//*[@val=123])</td><td>b</td><td>b</td></tr>
+<tr><td>3=4</td><td>false</td><td>false</td></tr>
+<tr><td>3!=4</td><td>true</td><td>true</td></tr>
+<tr><td>12=12</td><td>true</td><td>true</td></tr>
+<tr><td>'here is a string'='here is a string'</td><td>true</td><td>true</td></tr>
+<tr><td>'here is a string'!='here is a string'</td><td>false</td><td>false</td></tr>
+<tr><td>/a/b/@val</td><td>123</td><td>123</td></tr>
+<tr><td>count(//*/b)</td><td>2</td><td>2</td></tr>
+<tr><td>name(/*/*/*[2])</td><td>c</td><td>c</td></tr>
+<tr><td>name(/*)</td><td>a</td><td>a</td></tr>
+<tr><td>name(/a)</td><td>a</td><td>a</td></tr>
+<tr><td>name(/a/b)</td><td>b</td><td>b</td></tr>
+<tr><td>name(/*/*)</td><td>b</td><td>b</td></tr>
+<tr><td>name(/a/b/c)</td><td>c</td><td>c</td></tr>
+<tr><td>count(/a/b/*)</td><td>3</td><td>3</td></tr>
+<tr><td>ceiling(3.5)</td><td>4</td><td>4</td></tr>
+<tr><td>concat('first ','second',' third','')</td><td>first second third</td><td>first second third</td></tr>
+<tr><td>ceiling(5)</td><td>5</td><td>5</td></tr>
+<tr><td>floor(3.5)</td><td>3</td><td>3</td></tr>
+<tr><td>floor(5)</td><td>5</td><td>5</td></tr>
+<tr><td>string-length('try')</td><td>3</td><td>3</td></tr>
+<tr><td>concat(name(/a/b[1]/*[1]),' ',name(/a/b/*[2]))</td><td>b c</td><td>b c</td></tr>
+<tr><td>count(/a/b/*)</td><td>3</td><td>3</td></tr>
+<tr><td>count(//*)</td><td>6</td><td>6</td></tr>
+<tr><td>count(//b)</td><td>2</td><td>2</td></tr>
+<tr><td>contains('base','as')</td><td>true</td><td>true</td></tr>
+<tr><td>contains('base','x')</td><td>false</td><td>false</td></tr>
+<tr><td>not(contains('base','as'))</td><td>false</td><td>false</td></tr>
+<tr><td>starts-with('blabla','bla')</td><td>true</td><td>true</td></tr>
+<tr><td>starts-with('blebla','bla')</td><td>false</td><td>false</td></tr>
+<tr><td>substring('12345',2,3)</td><td>234</td><td>234</td></tr>
+<tr><td>substring('12345',2)</td><td>2345</td><td>2345</td></tr>
+<tr><td>substring('12345',2,6)</td><td>2345</td><td>2345</td></tr>
+<tr><td>concat('[',normalize-space('  before and   after      '),']')</td><td>[before and after]</td><td>[before and after]</td></tr>
+<tr><td>//*</td><td>6</td><td>6</td></tr>
+<tr><td>2+3+4+5</td><td>14</td><td>14</td></tr>
+<tr><td>20-2-3+5</td><td>20</td><td>20</td></tr>
+<tr><td>count(/a/x[1])</td><td>1</td><td>1</td></tr>
+<tr><td>name(/a/*[2])</td><td>x</td><td>x</td></tr>
+<tr><td>name(/a/*[1])</td><td>b</td><td>b</td></tr>
+<tr><td>name(/a/x[1])</td><td>x</td><td>x</td></tr>
+<tr><td>count(/a/b/c[1])</td><td>1</td><td>1</td></tr>
+<tr><td>count(/a/b/c[position()=1])</td><td>1</td><td>1</td></tr>
+<tr><td>count(/a/b/d[position()=3])</td><td>0</td><td>0</td></tr>
+<tr><td>//*[@val]/@val</td><td>123</td><td>123</td></tr>
+<tr><td>//x[text()='sub text']/@target</td><td>xyz</td><td>xyz</td></tr>
+<tr><td>substring('123.4',1)</td><td>123.4</td><td>123.4</td></tr>
+<tr><td>//**</td><td>syntax error</td><td>syntax error</td></tr>
+</table>
+<h2>Input XML tree</h2>
+&lt;xml&gt;<br>
+&nbsp;&nbsp;&nbsp;&lt;text&gt;<br>
+within
+&nbsp;&nbsp;&nbsp;&lt;/text&gt;<br>
+&lt;/xml&gt;<br>
+<br /><br />
+<table border='1'><tr><th>Expression</th><th>Result</th><th>Expected (compiled)</th></tr>
+<tr><td>/xml/text/text()</td><td>within</td><td>within</td></tr>
+</table>
+<h2>RSS feed examples</h2>
+These examples show how to decode a typical XML file : the <a href='http://sourceforge.net/export/rss2_projnews.php?group_id=53396&rss_fulltext=1'>TinyXPath RSS feed</a><br /><br />RSS version (XPath expr : <b>/rss/@version</b>) : 2.0<br />
+Nb of news messages (XPath expr : <b>count(/rss/channel/item)</b>) : 7<br />
+<br /><table border='1'><tr><th>Xpath expr</th><th>value</th></tr>
+<tr><td>concat(/rss/channel/item[1]/pubDate/text(),' : ',/rss/channel/item[1]/title/text())</td><td>Sun, 18 Jan 2004 13:33:55 GMT : TinyXPath 1.2.1 is released</td></tr>
+<tr><td>concat(/rss/channel/item[2]/pubDate/text(),' : ',/rss/channel/item[2]/title/text())</td><td>Fri, 09 Jan 2004 21:24:09 GMT : TinyXPath 1.2 is released</td></tr>
+<tr><td>concat(/rss/channel/item[3]/pubDate/text(),' : ',/rss/channel/item[3]/title/text())</td><td>Wed, 07 Jan 2004 08:52:10 GMT : Version 1.1 is out</td></tr>
+<tr><td>concat(/rss/channel/item[4]/pubDate/text(),' : ',/rss/channel/item[4]/title/text())</td><td>Tue, 11 Jun 2002 19:31:51 GMT : Release 0.3 is out</td></tr>
+<tr><td>concat(/rss/channel/item[5]/pubDate/text(),' : ',/rss/channel/item[5]/title/text())</td><td>Mon, 27 May 2002 20:14:31 GMT : Release 0.2 is out</td></tr>
+<tr><td>concat(/rss/channel/item[6]/pubDate/text(),' : ',/rss/channel/item[6]/title/text())</td><td>Tue, 21 May 2002 21:23:53 GMT : First release 0.1 is out</td></tr>
+<tr><td>concat(/rss/channel/item[7]/pubDate/text(),' : ',/rss/channel/item[7]/title/text())</td><td>Tue, 14 May 2002 20:09:56 GMT : Syntax decoding is done</td></tr>
+</table>
+<br />&nbsp;<br /></body></html>

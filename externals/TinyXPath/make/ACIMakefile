@@ -1,0 +1,30 @@
+all: checkConfigure checkMakefile libtinyxpath libtinyxpath.a
+
+checkConfigure:
+	if test -e ../configure; \
+		then echo configure exists; \
+		else make -C ../ -f Makefile.configure; \
+	fi
+
+checkMakefile: checkConfigure
+	if test -e ../Makefile; \
+		then echo Makefile exists; \
+		else (cd ../; chmod +x configure; CXXFLAGS="-fPIC" ./configure); \
+	fi
+	if test -d ../.deps; \
+        	then echo ./deps exists; \
+		else (cd ../; chmod +x configure; CXXFLAGS="-fPIC" ./configure); \
+	fi
+
+libtinyxpath: checkMakefile
+	make -C ../
+
+libtinyxpath.a: libtinyxpath
+	make -C ../ -f Makefile.DisService
+
+clean:
+	make -C ../ -f Makefile.DisService clean
+	if test -e ../Makefile; \
+		then make -C ../ -f Makefile distclean; \
+	fi
+	make -C ../ -f Makefile.configure clean

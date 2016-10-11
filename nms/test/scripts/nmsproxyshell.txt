@@ -1,0 +1,42 @@
+broadcast 1 239.0.0.239 100
+broadcast 1 239.0.0.239 100  192.168.0.14
+bcast 1 239.0.0.239 100
+broadcast 1 192.168.0.1 100
+bcast 1 192.168.0.1 100
+transmit 1 192.168.0.1 100
+transmit 1 239.0.0.239 100
+transmit-reliable 1 192.168.0.1 100
+transmit-reliable 1 239.0.0.239 100
+set-retransmission-timeout 5000
+set-primary-interface 192.169.0.6
+get-minumium-mtu
+get-interfaces
+get-interfaces 192.168.0.3
+get-interfaces 50374848
+get-propagation-mode
+get-delivery-queue-size
+#
+get-receive-rate  192.168.0.14
+get-receive-rate 192.168.0.10
+get-transmission-queue-size  192.168.0.14
+get-transmission-queue-size 192.168.0.10
+get-rescaled-transmission-queue-size  192.168.0.14
+get-rescaled-transmission-queue-size 192.168.0.10
+#
+set-transmission-queue-max-size  192.168.0.14 100
+set-transmission-queue-max-size 192.168.0.10 100
+get-transmission-queue-max-size  192.168.0.14
+get-transmission-queue-max-size 192.168.0.10
+#
+set-transmit-rate-limit 2000
+get-transmit-rate-limit 192.168.0.10
+set-transmit-rate-limit 192.168.0.4 5000
+get-transmit-rate-limit 192.168.0.10
+set-transmit-rate-limit 192.168.0.10 192.168.0.4 5000
+get-transmit-rate-limit 192.168.0.10
+#
+set-link-capacity 192.168.0.10 2000
+get-link-capacity 192.168.0.10
+get-neighbor-queue-length 192.168.10.14 192.168.10.10
+clear-to-send
+clear-to-send  192.168.0.14

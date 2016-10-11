@@ -8,7 +8,7 @@ include Makefile.inc
 %.o : ../%.cpp
 	$(cpp) -c $(cppflags) $<
 
-all: libchunking.a 
+all: libchunking.a TestDriver 
 
 libutil.a:
 	make -C $(UTIL_HOME)/cpp/$(MAKEFILE_FOLDER)/ libutil.a
@@ -25,8 +25,17 @@ libpng.a:
 libjasper.a:
 	make -C $(JASPER_HOME)/../../$(MAKEFILE_FOLDER)/ libjasper.a
 
-libchunking.a: libjpeg.a libpng.a libjasper.a libutil.a libsecurity.a $(objects)
+libmedia.a:
+	make -C ../../media/$(MAKEFILE_FOLDER)/ libmedia.a
+
+libchunking.a: libjpeg.a libpng.a libjasper.a libmedia.a libutil.a libsecurity.a $(objects)
 	ar -rcv libchunking.a $(objects)
+
+TestDriver: libchunking.a ../TestDriver.cpp
+	$(cpp) $(cppflags) \
+	../TestDriver.cpp \
+	$(LIBS) $(LD_FLAGS) \
+	-o TestDriver
 
 clean:
 	rm -rf *.o *.a $(EXECUTABLE) 

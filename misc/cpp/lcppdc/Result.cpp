@@ -30,6 +30,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef WIN32
+    #define snprintf _snprintf
+#endif
+
 using namespace IHMC_MISC;
 using namespace NOMADSUtil;
 
@@ -418,7 +422,7 @@ int  SQLitePreparedStatementRow::getValue (unsigned short usColumnIdx, char **pp
     switch (sqlite3_column_type (_pStmt, usColumnIdx)) {
         case SQLITE_INTEGER:
         {
-            int64 i64Value = sqlite3_column_int64 (_pStmt, usColumnIdx);
+            const int64 i64Value = sqlite3_column_int64 (_pStmt, usColumnIdx);
             *ppszVal = (char *) calloc (22, sizeof (char));
             if (*ppszVal == NULL) {
                 return -1;
@@ -429,7 +433,14 @@ int  SQLitePreparedStatementRow::getValue (unsigned short usColumnIdx, char **pp
 
         case SQLITE_FLOAT:
         {
-            break;
+            const float fValue = (float) sqlite3_column_double (_pStmt, usColumnIdx);
+            static const int iFloatToStringBufLen = 22;
+            *ppszVal = (char *) calloc (iFloatToStringBufLen, sizeof (char));
+            if (*ppszVal == NULL) {
+                return -1;
+            } 
+            snprintf (*ppszVal, iFloatToStringBufLen, "%f", fValue);
+            return 0;
         }
 
         case SQLITE_BLOB:

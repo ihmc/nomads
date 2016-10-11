@@ -1,0 +1,31 @@
+all: checkConfigure libz
+
+checkConfigure:
+	if test -e ../configure; \
+	then \
+		if test -e ../Makefile; \
+		then echo "No need to configure"; \
+		else (cd ../; chmod +x configure; CFLAGS="-fPIC" ./configure); \
+		fi \
+	else \
+		echo "configure file missing"; \
+		false; \
+	fi
+
+checkMakefile: checkConfigure
+	if test -e ../Makefile; \
+	then echo "Makefile exists"; \
+	else \
+		echo "Makefile is missing"; \
+		false; \
+	fi
+
+libz: checkMakefile
+	echo "Building libz library..."; \
+	make -C ../
+
+clean:
+	if test -e ../Makefile; \
+	then echo "make clean -C ../"; make clean -C ../; \
+	else echo done; \
+	fi

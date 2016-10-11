@@ -2,7 +2,7 @@
  * MimeUtils.cpp
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,11 +20,11 @@
 #include "MimeUtils.h"
 
 #include "Defs.h"
+#include "File.h"
 #include "FileUtils.h"
 #include "Logger.h"
 #include "NLFLib.h"
 
-#include <stddef.h>
 #include <string.h>
 
 #ifdef WIN32
@@ -38,53 +38,20 @@ using namespace NOMADSUtil;
 
 const char * MimeUtils::DEFAULT_MIME_TYPE = "application/octet-stream";
 
-char * MimeUtils::getMimeType (const char *pszFileName)
+NOMADSUtil::String MimeUtils::getMimeType (const char *pszFileName)
 {
     if (pszFileName == NULL) {
         checkAndLogMsg ("MimeUtils::getMimeType", Logger::L_Warning,
                         "File name is null\n");
-        return NULL;
+        return String();
     }
     if (!FileUtils::fileExists (pszFileName)) {
         checkAndLogMsg ("MimeUtils::getMimeType", Logger::L_Warning,
                         "File %s not found\n", pszFileName);
-        return NULL;
+        return String();
     }
-
-    /*magic_t magicMimePredictor = getPredictor();
-    if (magicMimePredictor == NULL) {
-        return strDup (DEFAULT_MIME_TYPE);
-    }
-
-    char *pszMime = strDup (magic_file (magicMimePredictor, pszFileName));
-    releasePredictor (magicMimePredictor);
-
-    checkAndLogMsg ("MimeUtils::getMimeType", Logger::L_Info,
-                    "File %s has MIME type: %s\n", pszFileName, pszMime);
-    return pszMime;*/
-    return NULL;
-}
-
-char * MimeUtils::getMimeType (FILE *pFile)
-{
-    // TODO: implement this
-    return strDup (DEFAULT_MIME_TYPE);
-}
-
-char * MimeUtils::getMimeType (const void *pBuf, uint64 ui64Len)
-{
-    /*magic_t magicMimePredictor = getPredictor();
-    if (magicMimePredictor == NULL) {
-        return strDup (DEFAULT_MIME_TYPE);
-    }
-
-    char *pszMime = strDup (magic_buffer (magicMimePredictor, pBuf, ui64Len));
-    releasePredictor (magicMimePredictor);
-
-    checkAndLogMsg ("MimeUtils::getMimeType", Logger::L_Info,
-                    "Buffer has MIME type: %s\n", pszMime);
-    return pszMime;*/
-    return NULL;
+    File file (pszFileName);
+    return toType (file.getExtension());
 }
 
 Chunker::Type MimeUtils::mimeTypeToFragmentType (const char *pszMimeType)
@@ -96,46 +63,92 @@ Chunker::Type MimeUtils::mimeTypeToFragmentType (const char *pszMimeType)
         (0 == stringcasecmp (pszMimeType, "image/x-bmp"))) {    
         return Chunker::BMP;
     }
-    else if (0 == stringcasecmp (pszMimeType, "image/jpeg")) {
+    if (0 == stringcasecmp (pszMimeType, "image/jpeg")) {
         return Chunker::JPEG;
     }
-    else if (0 == stringcasecmp (pszMimeType, "image/jp2")) {
+    if (0 == stringcasecmp (pszMimeType, "image/jp2")) {
         return Chunker::JPEG2000;
     }
-    else if (0 == stringcasecmp (pszMimeType, "video/mpeg")) {
+    if (0 == stringcasecmp (pszMimeType, "video/mpeg")) {
         return Chunker::V_MPEG;                     
     }
-    else if (0 == stringcasecmp (pszMimeType, "audio/mpeg")) {
+    if (0 == stringcasecmp (pszMimeType, "audio/mpeg")) {
         return Chunker::A_MPEG;
     }
-    else if (0 == stringcasecmp (pszMimeType, "image/png")) {
+    if (0 == stringcasecmp (pszMimeType, "image/png")) {
         return Chunker::PNG;
     }
-    else {
-        return Chunker::UNSUPPORTED;
+    if ((0 == stringcasecmp (pszMimeType, "application/x-troff-msvideo")) ||
+        (0 == stringcasecmp (pszMimeType, "video/avi")) ||
+        (0 == stringcasecmp (pszMimeType, "video/msvideo")) ||
+        (0 == stringcasecmp (pszMimeType, "video/x-msvideo"))) {
+        return Chunker::AVI;
+    }
+    if (0 == stringcasecmp (pszMimeType, "video/quicktime")) {
+        return Chunker::MOV;
+    }
+    if (0 == stringcasecmp (pszMimeType, "video/mpeg")) {
+        return Chunker::V_MPEG;
+    }
+
+    return Chunker::UNSUPPORTED;
+
+}
+
+Chunker::Type MimeUtils::toType (const String &extension)
+{
+    if (extension ^= "bmp") {
+        return Chunker::BMP;
+    }
+    if ((extension ^= "jpeg") || (extension == "jpg")) {
+        return Chunker::JPEG;
+    }
+    if (extension ^= "jp2") {
+        return Chunker::JPEG2000;
+    }
+    if (extension ^= "png") {
+        return Chunker::PNG;
+    }
+    if (extension ^= "avi") {
+        return Chunker::AVI;
+    }
+    if (extension ^= "mov") {
+        return Chunker::MOV;
+    }
+    if (extension ^= "mp4") {
+        return Chunker::V_MPEG;
+    }
+    if (extension ^= "mpg") {
+        return Chunker::V_MPEG;
+    }
+    return Chunker::UNSUPPORTED;
+}
+
+String MimeUtils::toExtesion (Chunker::Type extension)
+{
+    switch (extension) {
+        case Chunker::BMP: return String ("bmp");
+        case Chunker::JPEG: return String ("jpg");
+        case Chunker::JPEG2000: return String ("jp2");
+        case Chunker::PNG: return String ("png");
+        case Chunker::AVI: return String ("avi");
+        case Chunker::MOV: return String ("mov");
+        case Chunker::V_MPEG: return String ("mpeg");
+        default: return String();
     }
 }
 
-/*magic_t MimeUtils::getPredictor()
+String MimeUtils::toMimeType (Chunker::Type extension)
 {
-    magic_t magicMimePredictor = magic_open (MAGIC_MIME_TYPE);
-    if (magicMimePredictor == NULL) {
-        checkAndLogMsg ("MimeUtils::getMimeType", Logger::L_Warning,
-                        "libmagic: Unable to initialize magic library\n");
-        return NULL;
+    switch (extension) {
+        case Chunker::BMP: return String ("image /x-bmp");
+        case Chunker::JPEG: return String ("image/jpeg");
+        case Chunker::JPEG2000: return String ("image/jp2");
+        case Chunker::PNG: return String ("image/png");
+        case Chunker::AVI: return String ("video/avi");
+        case Chunker::MOV: return String ("video/quicktime");
+        case Chunker::V_MPEG: return String ("video/mpeg");
+        default: return String();
     }
-    if (magic_load (magicMimePredictor, 0)) {
-        checkAndLogMsg ("MimeUtils::getMimeType", Logger::L_Warning,
-                        "libmagic: can't load magic database - %s\n",
-                        magic_error (magicMimePredictor));
-        magic_close (magicMimePredictor);
-        return NULL;
-    }
-    return magicMimePredictor;
 }
-
-void MimeUtils::releasePredictor (magic_t predictor)
-{
-    magic_close (predictor);
-}*/
 

@@ -1,0 +1,35 @@
+all: checkConfigure checkMakefile xz
+
+checkConfigure:
+	if test -e ../configure; \
+	then echo "configure exists"; \
+	else \
+		echo "configure file missing"; \
+		false; \
+	fi
+
+checkMakefile: checkConfigure
+	if test -e ../Makefile; \
+		then echo "Makefile exists"; \
+		else (cd ../; chmod +x configure; ./configure); \
+	fi
+
+checkMakefileLzma: checkConfigure
+	if test -e ../Makefile; \
+		then echo "Makefile exists"; \
+		else (cd ../; chmod +x configure; ./configure --disable-xz --disable-xzdec --disable-scripts --enable-share=no); \
+	fi
+
+liblzma.a: checkMakefileLzma
+	echo "Building LZMA Library..."; \
+	make -C ../
+	
+xz: checkMakefile
+	echo "Building XZ Utilities..."; \
+	make -C ../ 
+
+clean:
+	if test -e ../Makefile; \
+        then echo make clean -C ../; make distclean -C ../;\
+        else echo "clean done"; \
+    fi

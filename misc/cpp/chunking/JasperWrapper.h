@@ -2,7 +2,7 @@
  * JasperWrapper.h
  *
  * This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,13 +25,18 @@
 namespace NOMADSUtil
 {
     class BufferReader;
+    class BMPImage;
 }
 
 class JasperWrapper
 {
     public:
         static NOMADSUtil::BufferReader * convertToBMP (const void *pInputBuf, uint32 ui32InputBufLen);
+        static NOMADSUtil::BMPImage * convertToBMPAsImg (const void *pInputBuf, uint32 ui32InputBufLen);
+
         static NOMADSUtil::BufferReader * convertToJPEG (const void *pInputBuf, uint32 ui32InputBufLen);
+
+        static NOMADSUtil::BufferReader * convertToJPEG2000 (const NOMADSUtil::BMPImage *pBMPImage);
         static NOMADSUtil::BufferReader * convertToJPEG2000 (const void *pInputBuf, uint32 ui32InputBufLen);
 
     private:

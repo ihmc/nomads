@@ -2,7 +2,7 @@
  * JPEGLibWrapper.cpp
  *
  *This file is part of the IHMC Misc Library
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +21,7 @@
 
 #include "BufferReader.h"
 #include "Logger.h"
-#include "media/BMPImage.h"
+#include "BMPImage.h"
 
 #include "jpeglib.h"
 
@@ -224,7 +224,7 @@ BMPImage * JPEGLibWrapper::convertJPEGToBMP (const void *pInputBuf, uint32 ui32I
     jpeg_start_decompress (&cinfo);
 
     // Initialize a BMP Image to hold the decompressed data
-    pBMPImage = new BMPImage();
+    pBMPImage = new BMPImage (true);
     if (0 != (rc = pBMPImage->initNewImage (cinfo.output_width, cinfo.output_height, 24))) {
         checkAndLogMsg ("JPEGLibWrapper::convertJPEGToBMP", Logger::L_MildError,
                         "failed to initialize BMPImage; rc = %d\n", rc);
