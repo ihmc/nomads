@@ -1,0 +1,756 @@
+# Visual C++ 2.x and 4.0 makefile
+#
+# Copyright (c) 1995-1996 by Sun Microsystems, Inc.
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# 
+# SCCS: @(#) makefile.vc 1.35 96/10/02 14:04:12
+
+# Project directories
+#
+# ROOT = top of source tree
+# TMPDIR = location where .obj files should be stored during build
+# TCLDIR = location of top of Tcl source heirarchy
+# TOOLS32 = location of VC++ 32-bit development tools
+#
+
+ROOT	= ..
+TMPDIR	= .\obj
+#TOOLS32= c:\msdev
+TOOLS32	= c:\Progra~1\DevStudio
+#TOOLS32= \\jeep\\DevStudio
+TCLDIR	= \\jeep\sandbox\tcl8.0
+TKDIR	= \\jeep\sandbox\tk8.0
+
+# Comment the following line to compile with symbols
+#NODEBUG=1
+CP      = copy
+
+!include    "$(TOOLS32)\vc\include\win32.mak"
+
+
+CON_CFLAGS	= $(cdebug) $(cflags) $(cvars) $(include32) -DCONSOLE
+# uncomment the following line to compile with TCL_MEM_DEBUG
+DEBUGDEFINES	=-DTCL_MEM_DEBUG
+
+# Make sure the VC++ tools are at the head of the path
+PATH=$(TOOLS32)\vc\bin;$(TOOLS32)\SharedIDE\bin;$(PATH)
+
+TCLLIBDIR= $(TCLDIR)\win
+TKLIBDIR= $(TKDIR)\win
+WINDIR= $(ROOT)\win
+PACKAGESDIR= $(ROOT)\packages
+
+cc32 = $(TOOLS32)\vc\bin\cl -I$(TOOLS32)\vc\include
+link32 = $(TOOLS32)\vc\bin\link
+EXTRA_INCLUDES = \
+        -I$(TOOLS32)\vc\include -I$(ROOT)\win -I$(ROOT)\packages \
+        -I$(ROOT)\include -I$(TCLDIR)\generic
+TK_INCLUDES = \
+	-I$(TKDIR)\generic -I$(TKDIR)\xlib
+EXTRA_DEFINES = -nologo $(DEBUGDEFINES) -DUSE_TCLALLOC=1 -DHAVE_MMAP=1
+TCLLIB = tcl80.lib
+TCLDLL = tcl80.dll
+TKLIB  = tk80.lib
+TKDLL  = tk80.dll
+MMLIB = winmm.lib
+DUMPEXTS = dumpexts.exe
+
+#---------------------------------------------------
+# BASIC OBJECTS
+#---------------------------------------------------
+BASICOBJS = \
+	$(TMPDIR)\audio.obj\
+	$(TMPDIR)\bit.obj\
+	$(TMPDIR)\bitmake.obj\
+	$(TMPDIR)\bitparser.obj\
+	$(TMPDIR)\bitscan.obj\
+	$(TMPDIR)\bitsetop.obj\
+	$(TMPDIR)\bitstream.obj\
+	$(TMPDIR)\bitstreamfio.obj\
+	$(TMPDIR)\filter.obj\
+	$(TMPDIR)\bitutil.obj\
+	$(TMPDIR)\byte.obj\
+	$(TMPDIR)\crop.obj\
+	$(TMPDIR)\jrevdct.obj\
+	$(TMPDIR)\sc.obj\
+	$(TMPDIR)\veryfast.obj\
+	$(TMPDIR)\yuvtorgb.obj \
+	$(TMPDIR)\sctobyte.obj\
+	$(TMPDIR)\vector.obj\
+	$(TMPDIR)\dvmmap.obj
+
+BASICTCLOBJS = \
+	$(TMPDIR)\audiocmd.obj\
+	$(TMPDIR)\basicinit.obj\
+	$(TMPDIR)\bitcmd.obj\
+	$(TMPDIR)\bitstreamio.obj\
+	$(TMPDIR)\bytecmd.obj\
+	$(TMPDIR)\commands.obj\
+	$(TMPDIR)\hashtable.obj\
+	$(TMPDIR)\sccmd.obj\
+	$(TMPDIR)\streamscmd.obj\
+	$(TMPDIR)\vectorcmd.obj
+
+BASICLIB = dvmbasic.lib
+BASICDEF = dvmbasic.def
+TCLBASICDLL = tclDvmBasic.dll
+TCLBASICLIB = tclDvmBasic.lib
+
+
+#---------------------------------------------------
+# PNM OBJECTS
+#---------------------------------------------------
+PNMOBJS = \
+	$(TMPDIR)\pnmcast.obj\
+	$(TMPDIR)\pnmfile.obj\
+	$(TMPDIR)\pnmhdr.obj
+
+PNMTCLOBJS = \
+	$(TMPDIR)\pnmcmd.obj\
+	$(TMPDIR)\pnminit.obj
+
+PNMLIB = dvmpnm.lib
+PNMDEF = dvmpnm.def
+TCLPNMDLL = tclDvmPnm.dll
+TCLPNMLIB = tclDvmPnm.lib
+
+#-----------------------------------------------
+# MPEG OBJECTS
+#-----------------------------------------------
+MPEGOBJS = \
+	$(TMPDIR)\mpegaudiohdr.obj\
+	$(TMPDIR)\mpegaudiol1.obj\
+	$(TMPDIR)\mpegaudiol2.obj\
+	$(TMPDIR)\mpegaudiol3.obj\
+	$(TMPDIR)\mpegaudiosyndata.obj\
+	$(TMPDIR)\mpeggophdr.obj\
+	$(TMPDIR)\mpegpic.obj\
+	$(TMPDIR)\mpegpichdr.obj\
+	$(TMPDIR)\mpegseqhdr.obj\
+	$(TMPDIR)\mpegpkthdr.obj\
+	$(TMPDIR)\mpegpckhdr.obj\
+	$(TMPDIR)\mpegsyshdr.obj\
+	$(TMPDIR)\mpegsystoc.obj\
+	$(TMPDIR)\startcode.obj\
+	$(TMPDIR)\synthesis.obj
+
+MPEGTCLOBJS = \
+	$(TMPDIR)\auddatacmd.obj\
+	$(TMPDIR)\audhdrcmd.obj\
+	$(TMPDIR)\gophdrcmd.obj\
+	$(TMPDIR)\mpeginit.obj\
+	$(TMPDIR)\othercmd.obj\
+	$(TMPDIR)\piccmd.obj\
+	$(TMPDIR)\pichdrcmd.obj\
+	$(TMPDIR)\pkthdrcmd.obj\
+	$(TMPDIR)\pckhdrcmd.obj\
+	$(TMPDIR)\syshdrcmd.obj\
+	$(TMPDIR)\seqhdrcmd.obj\
+	$(TMPDIR)\syndatacmd.obj\
+	$(TMPDIR)\systoccmd.obj\
+
+MPEGLIB = dvmmpeg.lib
+MPEGDEF = dvmmpeg.def
+TCLMPEGDLL = tclDvmMpeg.dll
+TCLMPEGLIB = tclDvmMpeg.lib
+
+#-----------------------------------------------
+# JPEG OBJECTS
+#-----------------------------------------------
+JPEGOBJS = \
+	$(TMPDIR)\jpeg.obj\
+
+JPEGTCLOBJS = \
+	$(TMPDIR)\jpegcmd.obj\
+	$(TMPDIR)\jpegwritecmd.obj\
+	$(TMPDIR)\jpeginit.obj\
+
+
+JPEGLIB = dvmjpeg.lib
+JPEGDEF = dvmjpeg.def
+TCLJPEGDLL = tclDvmJpeg.dll
+TCLJPEGLIB = tclDvmJpeg.lib
+
+#-----------------------------------------------
+# AVI OBJECTS
+#-----------------------------------------------
+AVIOBJS = \
+	$(TMPDIR)\avifile.obj\
+	$(TMPDIR)\avistream.obj\
+	$(TMPDIR)\avivideo.obj\
+	$(TMPDIR)\aviutil.obj\
+
+AVITCLOBJS = \
+	$(TMPDIR)\avifilecmd.obj\
+	$(TMPDIR)\avistreamcmd.obj\
+	$(TMPDIR)\avivideocmd.obj\
+	$(TMPDIR)\aviutilcmd.obj\
+	$(TMPDIR)\aviinit.obj\
+
+
+AVILIB = dvmavi.lib
+AVIDEF = dvmavi.def
+TCLAVIDLL = tclDvmAvi.dll
+TCLAVILIB = tclDvmAvi.lib
+
+
+#-----------------------------------------------
+# WAVE OBJECTS
+#-----------------------------------------------
+WAVEOBJS = \
+	$(TMPDIR)\wavehdr.obj\
+	$(TMPDIR)\waveout.obj\
+
+WAVETCLOBJS = \
+	$(TMPDIR)\waveinit.obj\
+	$(TMPDIR)\wavehdrcmd.obj\
+	$(TMPDIR)\waveoutcmd.obj\
+
+WAVELIB = dvmwave.lib
+WAVEDEF = dvmwave.def
+TCLWAVEDLL = tclDvmWave.dll
+TCLWAVELIB = tclDvmWave.lib
+
+#-----------------------------------------------
+# AUDIOMAP OBJECTS
+#-----------------------------------------------
+AUDIOMAPOBJS = \
+	$(TMPDIR)\amapapply.obj\
+	$(TMPDIR)\amapcompose.obj\
+	$(TMPDIR)\amapcopy.obj\
+	$(TMPDIR)\amapfree.obj\
+	$(TMPDIR)\amapinfo.obj\
+	$(TMPDIR)\amapnew.obj\
+	$(TMPDIR)\amapinitbuiltin.obj\
+	$(TMPDIR)\amapinitcustom.obj\
+	$(TMPDIR)\amapinitulaw.obj\
+	$(TMPDIR)\amapinitalaw.obj\
+	$(TMPDIR)\amapset.obj\
+
+AUDIOMAPTCLOBJS = \
+	$(TMPDIR)\amapinit.obj\
+	$(TMPDIR)\amapapplycmd.obj\
+	$(TMPDIR)\amapcomposecmd.obj\
+	$(TMPDIR)\amapcopycmd.obj\
+	$(TMPDIR)\amapfreecmd.obj\
+	$(TMPDIR)\amapinfocmd.obj\
+	$(TMPDIR)\amapnewcmd.obj\
+	$(TMPDIR)\amapinitbuiltincmd.obj\
+	$(TMPDIR)\amapinitcustomcmd.obj\
+	$(TMPDIR)\amapsetcmd.obj\
+
+AUDIOMAPLIB = dvmamap.lib
+AUDIOMAPDEF = dvmamap.def
+TCLAUDIOMAPDLL = tclDvmAmap.dll
+TCLAUDIOMAPLIB = tclDvmAmap.lib
+
+#----------------------------------------------
+# COLOR OBJECTS
+#----------------------------------------------
+COLOROBJS = \
+	$(TMPDIR)\colorhash.obj \
+	$(TMPDIR)\rgbtoyuv.obj \
+	$(TMPDIR)\yuvtorgb.obj \
+	$(TMPDIR)\sqrtable.obj \
+	$(TMPDIR)\colorquant.obj \
+	$(TMPDIR)\vptree.obj \
+	$(TMPDIR)\crop.obj \
+
+COLORTCLOBJS = \
+	$(TMPDIR)\colorinit.obj\
+	$(TMPDIR)\colorcmd.obj\
+
+COLORLIB = dvmcolor.lib
+COLORDEF = dvmcolor.def
+TCLCOLORDLL = tclDvmColor.dll
+TCLCOLORLIB = tclDvmColor.lib
+
+#----------------------------------------------
+# IMAGEMAP OBJECTS
+#----------------------------------------------
+IMAGEMAPOBJS = \
+	$(TMPDIR)\imap.obj \
+
+IMAGEMAPTCLOBJS = \
+	$(TMPDIR)\imapinit.obj\
+	$(TMPDIR)\imapcmd.obj\
+
+IMAGEMAPLIB = dvmimap.lib
+IMAGEMAPDEF = dvmimap.def
+TCLIMAGEMAPDLL = tclDvmImap.dll
+TCLIMAGEMAPLIB = tclDvmImap.lib
+
+#---------------------------------------------------------------------
+# VISION OBJECTS 
+#---------------------------------------------------------------------
+VISIONOBJS = \
+    $(TMPDIR)\canny.obj \
+    $(TMPDIR)\smooth.obj \
+    $(TMPDIR)\edgedetect.obj \
+    $(TMPDIR)\overlap.obj \
+    $(TMPDIR)\dilate.obj \
+    $(TMPDIR)\visionblocks.obj \
+    $(TMPDIR)\threshold.obj \
+
+VISIONTCLOBJS = \
+    $(TMPDIR)\visioninit.obj \
+    $(TMPDIR)\visioncmd.obj \
+
+VISIONLIB = dvmvision.lib
+VISIONDEF = dvmvision.def
+TCLVISIONDLL = tclDvmVision.dll
+TCLVISIONLIB = tclDvmVision.lib
+
+#-----------------------------------------------
+# BYTEGEOM OBJECTS
+#-----------------------------------------------
+BYTEGEOMOBJS = \
+	$(TMPDIR)\bytescale.obj\
+	$(TMPDIR)\byterotate.obj\
+	$(TMPDIR)\byteaffine.obj\
+	$(TMPDIR)\bytehomo.obj\
+
+
+BYTEGEOMTCLOBJS = \
+	$(TMPDIR)\bytegeominit.obj\
+	$(TMPDIR)\bytescalecmd.obj\
+	$(TMPDIR)\byterotatecmd.obj\
+	$(TMPDIR)\byteaffinecmd.obj\
+	$(TMPDIR)\bytehomocmd.obj\
+
+BYTEGEOMLIB = dvmbytegeom.lib
+BYTEGEOMDEF = dvmbytegeom.def
+TCLBYTEGEOMDLL = tclDvmByteGeom.dll
+TCLBYTEGEOMLIB = tclDvmByteGeom.lib
+
+#---------------------------------------------------------------------
+# GIF OBJECTS 
+#---------------------------------------------------------------------
+GIFOBJS = \
+    $(TMPDIR)\gifseq.obj \
+    $(TMPDIR)\gifimg.obj \
+    $(TMPDIR)\gifct.obj \
+    $(TMPDIR)\readGIF.obj \
+    $(TMPDIR)\gifencode.obj \
+    $(TMPDIR)\bitparser.obj \
+
+
+GIFTCLOBJS = \
+    $(TMPDIR)\gifinit.obj \
+    $(TMPDIR)\gifcmd.obj \
+	$(TMPDIR)\gifsetcmd.obj \
+	$(TMPDIR)\gifgetcmd.obj \
+
+GIFLIB = dvmgif.lib
+GIFDEF = dvmgif.def
+TCLGIFDLL = tclDvmGif.dll
+TCLGIFLIB = tclDvmGif.lib
+
+
+#--------------------------------------------------------------------
+# KERNEL OBJECTS
+#--------------------------------------------------------------------
+KERNELOBJS = \
+    $(TMPDIR)\kernel.obj \
+    $(TMPDIR)\kernelconv.obj \
+
+KERNELTCLOBJS = \
+    $(TMPDIR)\kernelinit.obj\
+    $(TMPDIR)\kernelcmd.obj \
+    $(TMPDIR)\kernelconvcmd.obj \
+
+KERNELLIB = dvmkernel.lib
+KERNELDEF = dvmkernel.def
+TCLKERNELDLL = tclDvmKernel.dll
+TCLKERNELLIB = tclDvmKernel.lib
+
+#-----------------------------------------------
+# DISPLAY OBJECTS
+#-----------------------------------------------
+
+DISPLAYTCLOBJS = \
+	$(TMPDIR)\displaycmd.obj\
+	$(TMPDIR)\displayinit.obj\
+
+
+DISPLAYDEF = dvmdisplay.def
+TCLDISPLAYDLL = tclDvmDisplay.dll
+TCLDISPLAYLIB = tclDvmDisplay.lib
+
+#---------------------------------------------------------------------
+# ADD NEW PACKAGE HERE 
+#---------------------------------------------------------------------
+
+all: $(TCLBASICDLL) $(TCLMPEGDLL) $(TCLPNMDLL) $(TCLAUDIOMAPDLL) \
+     $(TCLIMAGEMAPDLL) $(TCLVISIONDLL) $(TCLBYTEGEOMDLL) \
+     $(TCLGIFDLL) $(TCLKERNELDLL) $(TCLJPEGDLL) $(TCLWAVEDLL) $(TCLCOLORDLL) \
+     $(TCLAVIDLL)
+#     $(TCLDISPLAYDLL) \
+
+#--------------------------------------------------------------------
+# Basic Package
+#--------------------------------------------------------------------
+$(BASICLIB): $(BASICOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(BASICLIB) $(BASICOBJS)
+
+$(TCLBASICDLL): $(BASICLIB) $(BASICTCLOBJS) $(BASICDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(BASICDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLBASICDLL) $(BASICLIB) $(BASICTCLOBJS)
+$(BASICDEF): $(DUMPEXTS) $(BASICOBJS) $(BASICTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLBASICDLL) $(BASICOBJS) $(BASICTCLOBJS)
+
+{$(ROOT)\packages\basic}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\basic\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# PNM Package
+#--------------------------------------------------------------------
+
+$(PNMLIB): $(PNMOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(PNMLIB) $(PNMOBJS)
+
+$(TCLPNMDLL): $(PNMLIB) $(PNMTCLOBJS) $(PNMDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(PNMDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLPNMDLL) $(TCLBASICLIB) $(PNMLIB) $(PNMTCLOBJS)
+
+$(PNMDEF): $(DUMPEXTS) $(PNMOBJS) $(PNMTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLPNMDLL) $(PNMOBJS) $(PNMTCLOBJS)
+
+{$(ROOT)\packages\pnm}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		-I$(ROOT)\packages\basic \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\pnm\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES)\
+		-I$(ROOT)\packages\basic \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# MPEG Package
+#--------------------------------------------------------------------
+
+$(MPEGLIB): $(MPEGOBJS) $(BASICLIB)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(MPEGLIB) $(MPEGOBJS) $(BASICLIB)
+
+$(TCLMPEGDLL): $(MPEGLIB) $(MPEGTCLOBJS) $(MPEGDEF) $(BASICLIB)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) \
+	-def:$(MPEGDEF) $(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+	-out:$(TCLMPEGDLL) $(MPEGLIB) $(TCLBASICLIB) $(MPEGTCLOBJS)
+
+$(MPEGDEF): $(DUMPEXTS) $(MPEGOBJS) $(MPEGTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLMPEGDLL) $(MPEGOBJS) $(MPEGTCLOBJS)
+
+{$(ROOT)\packages\mpeg}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\mpeg\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# JPEG Package
+#--------------------------------------------------------------------
+
+$(JPEGLIB): $(JPEGOBJS) $(BASICLIB)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(JPEGLIB) $(JPEGOBJS) $(BASICLIB)
+
+$(TCLJPEGDLL): $(JPEGLIB) $(JPEGTCLOBJS) $(JPEGDEF) $(BASICLIB)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(linkdebug) $(dlllflags) \
+	-def:$(JPEGDEF) $(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+	-out:$(TCLJPEGDLL) $(JPEGLIB) $(TCLBASICLIB) $(JPEGTCLOBJS)
+
+$(JPEGDEF): $(DUMPEXTS) $(JPEGOBJS) $(JPEGTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLJPEGDLL) $(JPEGOBJS) $(JPEGTCLOBJS)
+
+{$(ROOT)\packages\jpeg}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\jpeg\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# AVI Package
+#--------------------------------------------------------------------
+
+$(AVILIB): $(AVIOBJS) $(BASICLIB)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(AVILIB) $(AVIOBJS) $(BASICLIB)
+
+$(TCLAVIDLL): $(AVILIB) $(AVITCLOBJS) $(AVIDEF) $(BASICLIB)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(linkdebug) $(dlllflags) \
+	-def:$(AVIDEF) $(TCLLIBDIR)\$(TCLLIB) \
+        $(guilibsdll) vfw32.lib msacm32.lib \
+	-out:$(TCLAVIDLL) $(AVILIB) $(TCLBASICLIB) $(AVITCLOBJS)
+
+$(AVIDEF): $(DUMPEXTS) $(AVIOBJS) $(AVITCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLAVIDLL) $(AVIOBJS) $(AVITCLOBJS)
+
+{$(ROOT)\packages\avi}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\avi\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# WAVE Package
+#--------------------------------------------------------------------
+
+$(WAVELIB): $(WAVEOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(WAVELIB) $(WAVEOBJS)
+
+$(TCLWAVEDLL): $(WAVELIB) $(WAVETCLOBJS) $(WAVEDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(WAVEDEF) \
+ 		$(MMLIB) $(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLWAVEDLL) $(TCLBASICLIB) $(WAVELIB) $(WAVETCLOBJS)
+
+$(WAVEDEF): $(DUMPEXTS) $(WAVEOBJS) $(WAVETCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLWAVEDLL) $(WAVEOBJS) $(WAVETCLOBJS)
+
+{$(ROOT)\packages\wave}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\wave\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# AUDIOMAP Package
+#--------------------------------------------------------------------
+
+$(AUDIOMAPLIB): $(AUDIOMAPOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(AUDIOMAPLIB) $(AUDIOMAPOBJS)
+
+$(TCLAUDIOMAPDLL): $(AUDIOMAPLIB) $(AUDIOMAPTCLOBJS) $(AUDIOMAPDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(AUDIOMAPDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLAUDIOMAPDLL) $(TCLBASICLIB) $(AUDIOMAPLIB) $(AUDIOMAPTCLOBJS)
+
+$(AUDIOMAPDEF): $(DUMPEXTS) $(AUDIOMAPOBJS) $(AUDIOMAPTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLAUDIOMAPDLL) $(AUDIOMAPOBJS) $(AUDIOMAPTCLOBJS)
+
+{$(ROOT)\packages\amap}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\amap\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# Vision Package
+#--------------------------------------------------------------------
+
+$(VISIONLIB): $(VISIONOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(VISIONLIB) $(VISIONOBJS)
+
+$(TCLVISIONDLL): $(VISIONLIB) $(VISIONTCLOBJS) $(VISIONDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(VISIONDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLVISIONDLL) $(TCLBASICLIB) $(VISIONLIB) $(VISIONTCLOBJS)
+
+$(VISIONDEF): $(DUMPEXTS) $(VISIONOBJS) $(VISIONTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLVISIONDLL) $(VISIONOBJS) $(VISIONTCLOBJS)
+
+{$(ROOT)\packages\vision}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\vision\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# GIF Package
+#--------------------------------------------------------------------
+
+$(GIFLIB): $(GIFOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(GIFLIB) $(GIFOBJS)
+
+$(TCLGIFDLL): $(GIFLIB) $(GIFTCLOBJS) $(GIFDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(GIFDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLGIFDLL) $(TCLBASICLIB) $(GIFLIB) $(GIFTCLOBJS)
+
+$(GIFDEF): $(DUMPEXTS) $(GIFOBJS) $(GIFTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLGIFDLL) $(GIFOBJS) $(GIFTCLOBJS)
+
+{$(ROOT)\packages\gif}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\gif\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# Color Package
+#--------------------------------------------------------------------
+
+$(COLORLIB): $(COLOROBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(COLORLIB) $(COLOROBJS)
+
+$(TCLCOLORDLL): $(COLORLIB) $(COLORTCLOBJS) $(COLORDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(COLORDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLCOLORDLL) $(TCLBASICLIB) $(COLORLIB) $(COLORTCLOBJS)
+
+$(COLORDEF): $(DUMPEXTS) $(COLOROBJS) $(COLORTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLCOLORDLL) $(COLOROBJS) $(COLORTCLOBJS)
+
+{$(ROOT)\packages\color}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\color\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+
+#--------------------------------------------------------------------
+# IMAGEMAP Package
+#--------------------------------------------------------------------
+
+$(IMAGEMAPLIB): $(IMAGEMAPOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(IMAGEMAPLIB) $(IMAGEMAPOBJS)
+
+$(TCLIMAGEMAPDLL): $(IMAGEMAPLIB) $(IMAGEMAPTCLOBJS) $(IMAGEMAPDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(IMAGEMAPDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLIMAGEMAPDLL) $(TCLBASICLIB) $(IMAGEMAPLIB) $(IMAGEMAPTCLOBJS)
+
+$(IMAGEMAPDEF): $(DUMPEXTS) $(IMAGEMAPOBJS) $(IMAGEMAPTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLIMAGEMAPDLL) $(IMAGEMAPOBJS) $(IMAGEMAPTCLOBJS)
+
+{$(ROOT)\packages\imap}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\imap\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# BYTEGEOM Package
+#--------------------------------------------------------------------
+
+$(BYTEGEOMLIB): $(BYTEGEOMOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(BYTEGEOMLIB) $(BYTEGEOMOBJS)
+
+$(TCLBYTEGEOMDLL): $(BYTEGEOMLIB) $(BYTEGEOMTCLOBJS) $(BYTEGEOMDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(BYTEGEOMDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLBYTEGEOMDLL) $(TCLBASICLIB) $(BYTEGEOMLIB) $(BYTEGEOMTCLOBJS)
+
+$(BYTEGEOMDEF): $(DUMPEXTS) $(BYTEGEOMOBJS) $(BYTEGEOMTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLBYTEGEOMDLL) $(BYTEGEOMOBJS) $(BYTEGEOMTCLOBJS)
+
+{$(ROOT)\packages\bytegeom}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\bytegeom\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+
+#--------------------------------------------------------------------
+# KERNEL Package
+#--------------------------------------------------------------------
+
+$(KERNELLIB): $(KERNELOBJS)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) -lib -out:$(KERNELLIB) $(KERNELOBJS)
+
+$(TCLKERNELDLL): $(KERNELLIB) $(KERNELTCLOBJS) $(KERNELDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(KERNELDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(guilibsdll) \
+		-out:$(TCLKERNELDLL) $(TCLBASICLIB) $(KERNELLIB) $(KERNELTCLOBJS)
+
+$(KERNELDEF): $(DUMPEXTS) $(KERNELOBJS) $(KERNELTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLKERNELDLL) $(KERNELOBJS) $(KERNELTCLOBJS)
+
+{$(ROOT)\packages\kernel}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+{$(ROOT)\packages\kernel\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# DISPLAY Package
+#--------------------------------------------------------------------
+
+$(TCLDISPLAYDLL): $(DISPLAYTCLOBJS) $(DISPLAYDEF)
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(ldebug) $(dlllflags) -def:$(DISPLAYDEF) \
+ 		$(TCLLIBDIR)\$(TCLLIB) $(TKLIBDIR)\$(TKLIB) $(guilibsdll) \
+		-out:$(TCLDISPLAYDLL) $(TCLBASICLIB) $(DISPLAYTCLOBJS)
+
+$(DISPLAYDEF): $(DUMPEXTS) $(DISPLAYTCLOBJS)
+	$(DUMPEXTS) -o $@ $(TCLDISPLAYDLL) $(DISPLAYTCLOBJS)
+
+{$(ROOT)\packages\display\tcl}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) $(TK_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+#--------------------------------------------------------------------
+# dumpext.exe
+#--------------------------------------------------------------------
+
+$(DUMPEXTS): $(WINDIR)\winDumpExts.c
+	$(cc32) $(CON_CFLAGS) -Fo$(TMPDIR)\ $?
+	set LIB=$(TOOLS32)\vc\lib
+	$(link32) $(conlflags)\
+	-out:$@ $(TMPDIR)\winDumpExts.obj $(guilibs)
+
+{$(ROOT)\win}.c{$(TMPDIR)}.obj:
+	$(cc32) $(cdebug) $(cflags) $(cvarsdll) $(EXTRA_INCLUDES) \
+		$(EXTRA_DEFINES) -Fo$(TMPDIR)\ $<
+
+
+clean:
+	-@del *.exp
+	-@del *.lib
+	-@del *.dll
+	-@del $(TMPDIR)\obj\*.obj

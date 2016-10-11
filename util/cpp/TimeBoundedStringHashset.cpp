@@ -2,7 +2,7 @@
  * TimeBoundedStringHashset.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -177,28 +177,33 @@ void TimeBoundedStringHashset::rehash()
     deleteTable (pOldHashtable, usOldSize);
 }
 
+void TimeBoundedStringHashset::expireEntry (HashtableEntry *pHTE)
+{
+    if (_bDeleteKeys) {
+        delete[] pHTE->pszKey;
+    }
+    if (pHTE->pNext != NULL) {
+        HashtableEntry *pTmp = pHTE->pNext;
+        pHTE->pszKey = pHTE->pNext->pszKey;
+        pHTE->i64ExpirationTime = pHTE->pNext->i64ExpirationTime;
+        pHTE->pNext = pHTE->pNext->pNext;
+        delete pTmp;
+    }
+    else {
+        pHTE->pszKey = NULL;
+        pHTE->pNext = NULL;
+        pHTE->i64ExpirationTime = 0;
+    }
+    _usCount--;
+}
+
 void TimeBoundedStringHashset::expireEntries (void)
 {
     int64 i64CurrTime = getTimeInMilliseconds();
     for (unsigned short us = 0; us < _usTableSize; us++) {
         HashtableEntry *pHTE = &_pHashtable[us];
         if ((pHTE->pszKey != NULL) && (pHTE->i64ExpirationTime < i64CurrTime)) {
-            if (_bDeleteKeys) {
-                delete[] pHTE->pszKey;
-            }
-            if (pHTE->pNext != NULL) {
-                HashtableEntry *pTmp = pHTE->pNext;
-                pHTE->pszKey = pHTE->pNext->pszKey;
-                pHTE->i64ExpirationTime = pHTE->pNext->i64ExpirationTime;
-                pHTE->pNext = pHTE->pNext->pNext;
-                delete pTmp;
-            }
-            else {
-                pHTE->pszKey = NULL;
-                pHTE->pNext = NULL;
-                pHTE->i64ExpirationTime = 0;
-            }
-            _usCount--;
+            expireEntry (pHTE);
         }
     }
 }

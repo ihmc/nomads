@@ -2,7 +2,7 @@
  * SubscriptionState.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -121,6 +121,8 @@ namespace IHMC_ACI
 
             // Non-thread-safe version of messageArrived.
             uint32 getSubscriptionStateInternal (const char *pszGroupName, const char *pszSenderNodeID);
+            bool isRelevantInternal (const char *pszGroupName, const char *pszSenderNodeID,
+                                     uint32 ui32IncomingMsgSeqId, uint8 ui8ChunkId);
 
             //////////////// SEQUENCED RELIABLE TRANSMISSION ///////////////////
 

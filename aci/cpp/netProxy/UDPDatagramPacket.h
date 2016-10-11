@@ -5,7 +5,7 @@
  * UDPDatagramPacket.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -59,6 +59,7 @@ namespace ACMNetProxy
         uint32 getDestinationIPAddr (void) const;
         uint16 getDestinationPortNum (void) const;
         uint16 getIPIdentification (void) const;
+        uint8 getIPPacketTTL (void) const;
         uint16 getPacketLen (void) const;
         uint16 getCurrentPacketLen (void) const;
         int64 getCreationTime (void) const;
@@ -77,10 +78,11 @@ namespace ACMNetProxy
         Connection * const _pConnection;
         Connector * const _pConnector;
         const CompressionSetting * const _pCompressionSetting;
-        const uint8 _ui8PMProtocol;
         const uint32 _ui32IPSource;
         const uint32 _ui32IPDestination;
         const uint16 _ui16IPIdentification;
+        const uint8 _ui8PMProtocol;
+        const uint8 _ui8IPPacketTTL;
         uint8 *_pui8UDPDatagram;
 
         bool _bIsFragmented;
@@ -147,6 +149,11 @@ namespace ACMNetProxy
     inline uint16 UDPDatagramPacket::getIPIdentification (void) const
     {
         return _ui16IPIdentification;
+    }
+
+    inline uint8 UDPDatagramPacket::getIPPacketTTL(void) const
+    {
+        return _ui8IPPacketTTL;
     }
 
     inline uint16 UDPDatagramPacket::getPacketLen (void) const

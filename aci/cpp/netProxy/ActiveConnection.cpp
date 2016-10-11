@@ -2,7 +2,7 @@
  * ActiveConnection.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,6 +35,8 @@ namespace ACMNetProxy
             return _pSocketConnection;
         case CT_CSR:
             return _pCSRConnection;
+        default:
+            break;
         }
 
         return NULL;
@@ -49,6 +51,8 @@ namespace ACMNetProxy
             return _pSocketConnection ? _pSocketConnection->getRemoteProxyInetAddr() : NULL;
         case CT_CSR:
             return _pCSRConnection ? _pCSRConnection->getRemoteProxyInetAddr() : NULL;
+        default:
+            break;
         }
 
         return NULL;
@@ -56,8 +60,7 @@ namespace ACMNetProxy
 
     Connection * const ActiveConnection::setNewActiveConnection (Connection * const pActiveConnection)
     {
-        if (!pActiveConnection || (pActiveConnection->getConnectorType() == CT_UNDEF) ||
-            (pActiveConnection->getConnectorType() == CT_UDP)) {
+        if (!pActiveConnection) {
             return NULL;
         }
 
@@ -76,6 +79,9 @@ namespace ACMNetProxy
         case CT_CSR:
             _pCSRConnection = pActiveConnection;
             break;
+        case CT_UDP:
+        case CT_UNDEF:
+            return NULL;
         }
 
         return pOldConnection;
@@ -89,13 +95,14 @@ namespace ACMNetProxy
         }
 
         if (getActiveConnection (pActiveConnection->getConnectorType()) == pActiveConnection) {
-            return removeActiveConnectionAddr (pActiveConnection->getConnectorType());
+            return removeActiveConnectionByType (pActiveConnection->getConnectorType());
         }
 
         return NULL;
     }
 
-    Connection * const ActiveConnection::removeActiveConnectionAddr (ConnectorType connectorType)
+    // This method is private and should only be invoked with a MOCKETS, SOCKET, or CSR connectorType
+    Connection * const ActiveConnection::removeActiveConnectionByType (ConnectorType connectorType)
     {
         Connection * const pOldConnection = getActiveConnection (connectorType);
         switch (connectorType) {
@@ -108,6 +115,8 @@ namespace ACMNetProxy
         case CT_CSR:
             _pCSRConnection = NULL;
             break;
+        default:
+            return NULL;
         }
 
         return pOldConnection;

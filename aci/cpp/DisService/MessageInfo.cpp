@@ -2,7 +2,7 @@
  * MessageInfo.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
 #include "StrClass.h"
 #include "Writer.h"
 
+#include <string.h>
 #include <assert.h>
 
 using namespace IHMC_ACI;
@@ -113,6 +114,17 @@ char * MessageHeader::getLargeObjectId()
     return s.r_str();
 }
 
+const char * MessageHeader::getAnnotates(void) const
+{
+    return _annotatedObjMsgId;
+}
+
+const void * MessageHeader::getAnnotationMetadata (uint32 &ui32BufLen) const
+{
+    ui32BufLen = _annotationMetadata.getBufferLength();
+    return _annotationMetadata.getBuffer();
+}
+
 const char * MessageHeader::getGroupName() const
 {
     return _sGroupName;
@@ -180,11 +192,27 @@ uint32 MessageHeader::getTotalMessageLength() const
     return _ui32TotalMessageLength;
 }
 
-bool MessageHeader::isCompleteMessage() const
+void MessageHeader::setAnnotates (const char *pszAnnotatdObjMsgId)
+{
+    _annotatedObjMsgId = pszAnnotatdObjMsgId;
+}
+
+int MessageHeader::setAnnotationMetadata (const void *pBuf, uint32 ui32BufLen)
+{
+    void *pBufCpy = malloc (ui32BufLen);
+    if (pBufCpy == NULL) {
+        return -1;
+    }
+    memcpy (pBufCpy, pBuf, ui32BufLen);
+    _annotationMetadata.init (pBuf, ui32BufLen, true);
+    return 0;
+}
+
+bool MessageHeader::isCompleteMessage (void) const
 {
     return (_ui32TotalMessageLength == _ui32FragmentLength);
 }
-    
+
 bool MessageHeader::operator == (MessageHeader &rhsMessageHeader)
 {
     return ((_sMsgId == (String) rhsMessageHeader.getMsgId()) ? true : false);
@@ -209,28 +237,46 @@ int MessageHeader::read (Reader *pReader, uint32 ui32MaxSize)
 
     // read groupName
     uint16 ui16;
-    pReader->read16 (&ui16);
-    char *pszTemp = new char[ui16+1];
-    pReader->readBytes (pszTemp, ui16);
-    pszTemp[ui16] = '\0';
-    _sGroupName = pszTemp;
-    delete[] pszTemp;
+    if (pReader->read16 (&ui16) < 0) {
+        return -2;
+    }
+    if (ui16 > 0) {
+        char *pszTemp = new char[ui16 + 1];
+        pReader->readBytes (pszTemp, ui16);
+        pszTemp[ui16] = '\0';
+        _sGroupName = pszTemp;
+        delete[] pszTemp;
+    }
+    else {
+        return -3;
+    }
 
     // read publisherId
-    pReader->read16 (&ui16);
-    pszTemp = new char[ui16+1];
-    pReader->readBytes (pszTemp, ui16);
-    pszTemp[ui16] = '\0';
-    _sPublisherNodeId = pszTemp;
-    delete[] pszTemp;
+    if (pReader->read16 (&ui16) < 0) {
+        return -4;
+    }
+    if (ui16 > 0) {
+        char *pszTemp = new char[ui16 + 1];
+        pReader->readBytes (pszTemp, ui16);
+        pszTemp[ui16] = '\0';
+        _sPublisherNodeId = pszTemp;
+        delete[] pszTemp;
+    }
+    else {
+        return -5;
+    }
 
-    pReader->read32 (&_ui32SeqId);
-    pReader->read8 (&_ui8ChunkId);
+    if ((pReader->read32 (&_ui32SeqId) < 0) ||
+        (pReader->read8 (&_ui8ChunkId) < 0)) {
+        return -6;
+    }
 
     // read objectId
-    pReader->read16 (&ui16);
+    if (pReader->read16 (&ui16) < 0) {
+        return -7;
+    }
     if (ui16 > 0) {
-        pszTemp = new char[ui16+1];
+        char *pszTemp = new char[ui16 + 1];
         pReader->readBytes (pszTemp, ui16);
         pszTemp[ui16] = '\0';
         _objectId = pszTemp;
@@ -238,38 +284,69 @@ int MessageHeader::read (Reader *pReader, uint32 ui32MaxSize)
     }
 
     // read instanceId
-    pReader->read16 (&ui16);
+    if (pReader->read16 (&ui16) < 0) {
+        return -8;
+    }
     if (ui16 > 0) {
-        pszTemp = new char[ui16+1];
+        char *pszTemp = new char[ui16 + 1];
         pReader->readBytes (pszTemp, ui16);
         pszTemp[ui16] = '\0';
         _instanceId = pszTemp;
         delete[] pszTemp;
     }
 
-    pReader->read16 (&_ui16Tag);
-    pReader->read16 (&_ui16ClientId);
-    pReader->read8 (&_ui8ClientType);
+    // read annotated object id
+    if (pReader->read16 (&ui16) < 0) {
+        return -9;
+    }
+    if (ui16 > 0) {
+        char *pszTemp = new char[ui16 + 1];
+        pReader->readBytes (pszTemp, ui16);
+        pszTemp[ui16] = '\0';
+        _annotatedObjMsgId = pszTemp;
+        delete[] pszTemp;
+    }
 
-    // read  mimeType
-    pReader->read16 (&ui16);
-    pszTemp = new char[ui16+1];
-    pReader->readBytes (pszTemp, ui16);
-    pszTemp[ui16] = '\0';
-    _mimeType = pszTemp;
-    delete[] pszTemp;
+    uint32 ui32AnnotationMetadataLen = 0U;
+    if (pReader->read32 (&ui32AnnotationMetadataLen) < 0) {
+        return -9;
+    }
+    if (ui32AnnotationMetadataLen > 0) {
+        void *pBuf = malloc (ui32AnnotationMetadataLen);
+        pReader->readBytes (pBuf, ui32AnnotationMetadataLen);
+        _annotationMetadata.init (pBuf, ui32AnnotationMetadataLen, true);
+    }
 
-    pReader->read32 (&_ui32TotalMessageLength);
-    pReader->read32 (&_ui32FragmentOffset);
-    pReader->read32 (&_ui32FragmentLength);
-    pReader->read16 (&_ui16HistoryWindow);
-    pReader->read8 (&_ui8Priority);
-    pReader->read64 (&_i64Expiration);
+    if ((pReader->read16 (&_ui16Tag) < 0) ||
+        (pReader->read16 (&_ui16ClientId) < 0) ||
+        (pReader->read8 (&_ui8ClientType) < 0)) {
+        return -10;
+    }
 
-    ui8 = 2;
-    pReader->read8 (&ui8);
-    assert ((ui8 == 0) || (ui8 == 1));
-    _bAcknowledgment = (ui8 == 1 ? true : false);
+    // read mimeType
+    if (pReader->read16 (&ui16) < 0) {
+        return -11;
+    }
+    if (ui16 > 0) {
+        char *pszTemp = new char[ui16 + 1];
+        pReader->readBytes (pszTemp, ui16);
+        pszTemp[ui16] = '\0';
+        _mimeType = pszTemp;
+        delete[] pszTemp;
+    }
+
+    if ((pReader->read32 (&_ui32TotalMessageLength) < 0) ||
+        (pReader->read32 (&_ui32FragmentOffset) < 0) ||
+        (pReader->read32 (&_ui32FragmentLength) < 0) ||
+        (pReader->read16 (&_ui16HistoryWindow) < 0) ||
+        (pReader->read8 (&_ui8Priority) < 0) ||
+        (pReader->read64 (&_i64Expiration) < 0)) {
+        return -12;
+    }
+
+    if (pReader->readBool (&_bAcknowledgment) < 0) {
+        return -13;
+    }
 
     return 0;
 }
@@ -281,27 +358,40 @@ int MessageHeader::write (Writer *pWriter, uint32 ui32MaxSize)
 
     uint16 ui16 = _sGroupName.length();
     pWriter->write16 (&ui16);
-    pWriter->writeBytes ((const char*) _sGroupName, ui16);
+    pWriter->writeBytes (_sGroupName.c_str(), ui16);
 
     ui16 = _sPublisherNodeId.length();
     pWriter->write16 (&ui16);
-    pWriter->writeBytes ((const char*) _sPublisherNodeId, ui16);
+    pWriter->writeBytes (_sPublisherNodeId.c_str(), ui16);
 
     pWriter->write32 (&_ui32SeqId);
     pWriter->write8 (&_ui8ChunkId);
 
     int i = _objectId.length();
-    ui16 = (i > 0 && i < 0xFFFF) ? (uint16) i : 0;
+    ui16 = (i > 0 && i < 0xFFFF) ? static_cast<uint16>(i) : 0;
     pWriter->write16 (&ui16);
     if (ui16 > 0) {
-        pWriter->writeBytes ((const char*) _objectId, ui16);
+        pWriter->writeBytes (_objectId.c_str(), ui16);
     }
 
     i = _instanceId.length();
-    ui16 = (i > 0 && i < 0xFFFF) ? (uint16) i : 0;
+    ui16 = (i > 0 && i < 0xFFFF) ? static_cast<uint16>(i) : 0;
     pWriter->write16 (&ui16);
     if (ui16 > 0) {
-        pWriter->writeBytes ((const char*) _instanceId, ui16);
+        pWriter->writeBytes (_instanceId.c_str(), ui16);
+    }
+
+    i = _annotatedObjMsgId.length();
+    ui16 = (i > 0 && i < 0xFFFF) ? static_cast<uint16>(i) : 0;
+    pWriter->write16 (&ui16);
+    if (ui16 > 0) {
+        pWriter->writeBytes (_annotatedObjMsgId.c_str(), ui16);
+    }
+
+    uint32 ui32AnnotationMetadataLen = _annotationMetadata.getBufferLength();
+    pWriter->write32 (&ui32AnnotationMetadataLen);
+    if (ui32AnnotationMetadataLen > 0) {
+        pWriter->writeBytes (_annotationMetadata.getBuffer(), ui32AnnotationMetadataLen);
     }
 
     pWriter->write16 (&_ui16Tag);
@@ -309,10 +399,10 @@ int MessageHeader::write (Writer *pWriter, uint32 ui32MaxSize)
     pWriter->write8 (&_ui8ClientType);
 
     i = _mimeType.length();
-    ui16 = (i > 0 && i < 0xFFFF) ? (uint16) i : 0;
+    ui16 = (i > 0 && i < 0xFFFF) ? static_cast<uint16>(i) : 0;
     pWriter->write16 (&ui16);
     if (ui16 > 0) {
-        pWriter->writeBytes ((const char*) _mimeType, ui16);
+        pWriter->writeBytes (_mimeType.c_str(), ui16);
     }
 
     pWriter->write32 (&_ui32TotalMessageLength);
@@ -322,8 +412,7 @@ int MessageHeader::write (Writer *pWriter, uint32 ui32MaxSize)
     pWriter->write8 (&_ui8Priority);
     pWriter->write64 (&_i64Expiration);
 
-    ui8 = _bAcknowledgment ? 1 : 0;
-    pWriter->write8 (&ui8);
+    pWriter->writeBool (&_bAcknowledgment);
 
     return 0;
 }
@@ -465,13 +554,26 @@ int MessageInfo::write (Writer *pWriter, uint32 ui32MaxSize)
 
 MessageInfo * MessageInfo::clone (void)
 {
-    return new MessageInfo ((const char *)_sGroupName, (const char *) _sPublisherNodeId,
-                            _ui32SeqId, getObjectId(), getInstanceId(), getTag(), getClientId(),
-                            getClientType(), _mimeType.c_str(), _checksum.c_str(),
-                            getTotalMessageLength(), _ui32FragmentLength,
+    MessageInfo *pMH = new MessageInfo (_sGroupName, _sPublisherNodeId, _ui32SeqId, getObjectId (),
+                            getInstanceId(), getTag(), getClientId(), getClientType(),
+                            _mimeType, _checksum, getTotalMessageLength(), _ui32FragmentLength,
                             _ui32FragmentOffset, _ui32MetaDataLength, getHistoryWindow(),
                             getPriority(), getExpiration(), getAcknowledgment(), _bMetaData,
-                            _sRefObj.length() > 0 ? (const char *)_sRefObj : NULL);
+                            _sRefObj.length() > 0 ? _sRefObj.c_str() : NULL);
+    if (pMH != NULL) {
+        pMH->setAnnotates (getAnnotates ());
+        const uint32 ui32AnnMetaLen = _annotationMetadata.getBufferLength ();
+        if (ui32AnnMetaLen > 0) {
+            void *pAnnotationMetadata = malloc (ui32AnnMetaLen);
+            if (pAnnotationMetadata == NULL) {
+                delete pMH;
+                return NULL;
+            }
+            memcpy (pAnnotationMetadata, _annotationMetadata.getBuffer (), ui32AnnMetaLen);
+            pMH->setAnnotationMetadata (pAnnotationMetadata, ui32AnnMetaLen);
+        }
+    }
+    return pMH;
 }
 
 void MessageInfo::display (FILE *pFileOut)
@@ -479,8 +581,8 @@ void MessageInfo::display (FILE *pFileOut)
     if (pFileOut == NULL) {
         return;
     }
-    fprintf (pFileOut, "GroupName = %s\nPublisherNodeId = %s\nSeqId = %u\n", (const char *)_sGroupName, (const char *)_sPublisherNodeId, _ui32SeqId);
-    fprintf (pFileOut, "Referes to = %s\n", (const char *)_sRefObj);
+    fprintf (pFileOut, "GroupName = %s\nPublisherNodeId = %s\nSeqId = %u\n", _sGroupName.c_str(), _sPublisherNodeId.c_str(), _ui32SeqId);
+    fprintf (pFileOut, "Referes to = %s\n", _sRefObj.c_str());
     fprintf (pFileOut, "Tag = %d\n", getTag());
     fprintf (pFileOut, "ClientID = %d\n", getClientId());
     fprintf (pFileOut, "ClientType = %d\n", getClientType());
@@ -549,7 +651,6 @@ ChunkMsgInfo::~ChunkMsgInfo()
 {
 }
 
-
 int ChunkMsgInfo::read (Reader *pReader, uint32 ui32MaxSize)
 {
     if (MessageHeader::read (pReader, ui32MaxSize) < 0) {
@@ -576,12 +677,26 @@ int ChunkMsgInfo::write (Writer *pWriter, uint32 ui32MaxSize)
 
 ChunkMsgInfo * ChunkMsgInfo::clone (void)
 {
-    return new ChunkMsgInfo ((const char *) _sGroupName, (const char *) _sPublisherNodeId,
+    ChunkMsgInfo *pMH =  new ChunkMsgInfo ((const char *) _sGroupName, (const char *) _sPublisherNodeId,
                               _ui32SeqId, _ui8ChunkId, getObjectId(), getInstanceId(), getTag(),
                               getClientId(), getClientType(), _mimeType.c_str(), _checksum.c_str(),
                               _ui32FragmentOffset, _ui32FragmentLength, getTotalMessageLength(),
                               _ui8TotalNumOfChunks, getHistoryWindow(), getPriority(), getExpiration(),
                               getAcknowledgment());
+    if (pMH != NULL) {
+        pMH->setAnnotates (getAnnotates());
+        const uint32 ui32AnnMetaLen = _annotationMetadata.getBufferLength ();
+        if (ui32AnnMetaLen > 0) {
+            void *pAnnotationMetadata = malloc (ui32AnnMetaLen);
+            if (pAnnotationMetadata == NULL) {
+                delete pMH;
+                return NULL;
+            }
+            memcpy (pAnnotationMetadata, _annotationMetadata.getBuffer(), ui32AnnMetaLen);
+            pMH->setAnnotationMetadata (pAnnotationMetadata, ui32AnnMetaLen);
+        }
+    }
+    return pMH;
 }
 
 void ChunkMsgInfo::setFragmentLength (uint32 ui32FragmentLength)

@@ -1,0 +1,7 @@
+In Linux, remember to set 
+	LD_LIBRARY_PATH
+
+and in MacOSX, you have to set
+	DYLD_LIBRARY_PATH
+
+

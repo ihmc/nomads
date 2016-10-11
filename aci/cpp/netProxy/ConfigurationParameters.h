@@ -5,7 +5,7 @@
  * ConfigurationParameters.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -103,15 +103,22 @@ namespace ACMNetProxy
         static const uint16 CSR_PROXY_SERVER_PORT;
         static uint16 GUI_LOCAL_PORT;
         static const char * const CSR_PROXY_SERVER_ADDR;
-        static const uint16 DEFAULT_MOCKET_SERVER_PORT = 8751;
-        static const uint16 DEFAULT_TCP_SERVER_PORT = 8751;
-        static const uint16 DEFAULT_UDP_SERVER_PORT = 8752;
-        static const uint16 DEFAULT_GUI_LOCAL_PORT = 8755;
-        static const uint32 DEFAULT_MOCKET_TIMEOUT = 30000;
-        static const uint32 DEFAULT_SOCKET_TIMEOUT = 30000;
+        static const uint16 DEFAULT_MOCKET_SERVER_PORT = 8751U;
+        static const uint16 DEFAULT_TCP_SERVER_PORT = 8751U;
+        static const uint16 DEFAULT_UDP_SERVER_PORT = 8752U;
+        static const uint16 DEFAULT_GUI_LOCAL_PORT = 8755U;
+        static const uint32 DEFAULT_MOCKET_TIMEOUT = 30000U;
 
         static const bool DEFAULT_LOCAL_PROXY_REACHABILITY_FROM_REMOTE = true;
 
+        static bool TRANSPARENT_GATEWAY_MODE;                                                       // When false, the TTL field of IP packets forwarded from the internal to the external network is decremented by 1
+        static const bool DEFAULT_TRANSPARENT_GATEWAY_MODE = true;                                  // By default, the NetProxy operates in transparent Gateway Mode
+        
+        static bool MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE;                             // Specifies whether multicast packets should be forwarded over the external interface
+        static const bool DEFAULT_MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE = false;
+        static bool BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE;                             // Specifies whether broadcast packets should be forwarded over the external interface
+        static const bool DEFAULT_BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE = false;
+        
         static const uint16 PROXY_MESSAGE_MTU = 8192U + sizeof (TCPDataProxyMessage);               // MTU (in bytes) for packets addressed to remote proxies
         static const uint16 TCP_WINDOW_SIZE = 65535U;                                               // Window size for incoming TCP connections (in bytes)
         static const uint32 MAX_UDP_CONNECTION_BUFFER_SIZE = 262144U;                               // Maximum allowed size of the buffer which stores outgoing data in the UDP connection thread
@@ -122,8 +129,9 @@ namespace ACMNetProxy
         static const uint32 SYN_SENT_RETRANSMISSION_TIMEOUTS_ENTRIES = 6;
         static const int64 SYN_SENT_RETRANSMISSION_TIMEOUTS[SYN_SENT_RETRANSMISSION_TIMEOUTS_ENTRIES];
         static const uint32 SYN_SENT_FAILED_TIMEOUT = 60000U;
-        // Time after which an attempt to instantiate a new remote connection is considered failed
-        static const uint32 DEFAULT_REMOTE_CONN_ESTABLISHMENT_TIMEOUT = (DEFAULT_MOCKET_TIMEOUT >= DEFAULT_SOCKET_TIMEOUT) ? DEFAULT_MOCKET_TIMEOUT : DEFAULT_SOCKET_TIMEOUT;
+        // Time after which an attempt to instantiate a new virtual connection is considered failed
+		static uint32 VIRTUAL_CONN_ESTABLISHMENT_TIMEOUT;
+        static const uint32 DEFAULT_VIRTUAL_CONN_ESTABLISHMENT_TIMEOUT = 30000U;
         static const double UPDATE_TCP_WINDOW_ACK_THRESHOLD;                                        // Threshold above which a TCP window update notification is sent to the local application
 
         static const uint32 MIN_ENTRY_BUF_SIZE = 8192U;
@@ -137,6 +145,9 @@ namespace ACMNetProxy
         static const char * const DEFAULT_GUI_UPDATE_MESSAGE_HEADER;                                // Standard Mockets config file name
         static NOMADSUtil::String DEFAULT_MOCKETS_CONFIG_FILE;                                      // Default Mockets config file name when no default Mockets config file is specified in netProxy.cfg
         static const char * const LOGS_DIR;                                                         // Name of the directory where log files are stored
+
+		static char NETSENSOR_CONFIG_FILE[];													// Relative path and name of the NetSensor configuration file
+		static bool ACTIVATE_NETSENSOR;
     };
 
 }

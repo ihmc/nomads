@@ -2,7 +2,7 @@
  * ConfigFileReader.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -108,21 +108,6 @@ namespace IHMC_ACI
             float getMissingFragReqProbabilityByPriority (uint8 ui8Probability);
 
             // Serving the missing fragment request
-
-            /**
-             * Returns the mode in which the probability of serving a request
-             * should be computed. The possible return values are the following:
-             * - FIXED_REPLY_PROB
-             * - NEIGHBOR_DEPENDENT_PROB
-             */
-            uint8 getMissingFragReqReplyMode (void);
-
-            /**
-             * If FIXED_REPLY_PROB is set as missing fragment request reply mode,
-             * it returns the probability (percentage value) a missing fragment
-             * request will be served.
-             */
-            uint8 getMissingFragReqReplyProb (void);
 
             /**
              * Returns the interval of time (in milliseconds) starting from the

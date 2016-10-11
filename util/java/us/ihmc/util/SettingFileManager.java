@@ -2,7 +2,7 @@
  * SettingFileManager.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,7 +41,7 @@ import java.util.NoSuchElementException;
 *   inner ht's keyed by the value as specified by the second 'key' parameter
 * 
 *   @author: Maggie Breedy
-*   @version $Revision: 1.13 $
+*   @version $Revision: 1.14 $
 */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class SettingFileManager

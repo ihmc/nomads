@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<Metadata>
+	<Field>
+		<FieldName>Data_Content</FieldName>
+		<FieldValue>Map</FieldValue>
+		<FieldValue>Sensor_Data</FieldValue>
+		<FieldValue>Squad_Report</FieldValue>
+		<FieldValue>COC_Report</FieldValue>
+		<FieldValue>UAV_Picture</FieldValue>
+	</Field>
+	<Field>
+		<FieldName>Data_Format</FieldName>
+		<FieldValue>JPG</FieldValue>
+		<FieldValue>MPG</FieldValue>
+		<FieldValue>XML</FieldValue>
+		<FieldValue>TXT</FieldValue>
+	</Field>
+	<Field>
+		<FieldName>Classification</FieldName>
+		<FieldValue>Unclassified</FieldValue>
+		<FieldValue>FOUO</FieldValue>
+		<FieldValue>ITAR</FieldValue>
+		<FieldValue>Secret</FieldValue>
+		<FieldValue>Top_Secret</FieldValue>
+	</Field>
+	<Field>
+		<FieldName>Node_Type</FieldName>
+		<FieldValue>Video_Sensor</FieldValue>
+		<FieldValue>Acustic_Sensor</FieldValue>
+		<FieldValue>Sismic_Sensor</FieldValue>
+		<FieldValue>UAV</FieldValue>
+		<FieldValue>COC</FieldValue>
+		<FieldValue>Marine_Squad</FieldValue>
+	</Field>
+</Metadata>
+

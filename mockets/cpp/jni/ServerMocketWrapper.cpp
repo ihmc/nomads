@@ -14,11 +14,18 @@
 
 #include "UtilWrapper.h"
 
-JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_init (JNIEnv *pEnv, jobject joThis)
+JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_init (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile)
 {
     jclass jcServerMocket = pEnv->GetObjectClass (joThis);
     jfieldID jfServerMocket = pEnv->GetFieldID (jcServerMocket, "_serverMocket", "J");
-    ServerMocket *pServerMocket = new ServerMocket();
+    const char *pszConfigFile = NULL;
+    if (jsConfigFile != NULL) {
+        pszConfigFile = pEnv->GetStringUTFChars (jsConfigFile, NULL);
+    }
+    ServerMocket *pServerMocket = new ServerMocket (pszConfigFile);
+    if (pszConfigFile != NULL) {
+        pEnv->ReleaseStringUTFChars (jsConfigFile, pszConfigFile);
+    }
     if (pServerMocket == NULL) {
         pEnv->ThrowNew (pEnv->FindClass ("java/lang/Exception"), "MocketsJavaWrapper not initialized - ServerMocket is null");
         return;      

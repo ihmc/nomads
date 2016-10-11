@@ -2,7 +2,7 @@
  * NetworkHeaders.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,6 +19,7 @@
 
 #ifndef INCL_NETWORK_HEADERS_H
 #define INCL_NETWORK_HEADERS_H
+
 
 #include "FTypes.h"
 
@@ -122,7 +123,8 @@ namespace NOMADSUtil
         IP_PROTO_ICMP = 0x01,
         IP_PROTO_IP_v4 = 0x04,          // For encapsulation purposes
         IP_PROTO_TCP = 0x06,
-        IP_PROTO_UDP = 0x11
+        IP_PROTO_UDP = 0x11,
+        IP_PROTO_IGMP = 0x2
     };
 
     // IP header
@@ -156,6 +158,14 @@ namespace NOMADSUtil
         void hton (void);
     };
     
+
+
+
+
+
+
+
+
     // ICMP header
     struct ICMPHeader
     {

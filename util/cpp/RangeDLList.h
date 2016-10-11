@@ -2,7 +2,7 @@
  * RangeDLList.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -43,7 +43,7 @@ namespace NOMADSUtil
 
             // Returns true if there are any ranges, false if the list is empty
             bool haveInformation (void);
-            bool hasTSN (T el);
+            bool hasTSN (T el) const;
 
             int getFirst (T &beginEl, T &endEl, bool bResetGet=false);
             int getNext (T &beginEl, T &endEl);
@@ -62,6 +62,7 @@ namespace NOMADSUtil
             // Remove all the ranges within [elBegin, elEnd] (including elBegin
             // and elEnd)
             void removeTSN (T elBegin, T elEnd);
+            void removeAllTSN (RangeDLList<T> &ranges);
 
             void reset (void);
 
@@ -79,15 +80,15 @@ namespace NOMADSUtil
                 T end;
             };
 
-            bool lessThanAndDisjoint (T l, T r);
-            bool greaterThanAndDisjoint (T l, T r);
+            bool lessThanAndDisjoint (const T l, const T r) const;
+            bool greaterThanAndDisjoint (const T l, const T r) const;
 
-            bool lessThan (T l, T r);
-            bool greaterThan (T l, T r);
+            bool lessThan (const T l, const T r) const;
+            bool greaterThan (const T l, const T r) const;
             // Returns true if the first range includes the second
-            bool includes (T l1, T r1, T l2, T r2);
-            bool lessThanOrEqual (T l, T r);
-            bool greaterThanOrEqual (T l, T r);
+            bool includes (const T l1, const T r1, const T l2, const T r2) const;
+            bool lessThanOrEqual (const T l, const T r) const;
+            bool greaterThanOrEqual (const T l, const T r) const;
 
         protected:
             const bool _bUseSequentialArithmetic;
@@ -193,7 +194,35 @@ namespace NOMADSUtil
             return 1;
         }
 
+        // Optimization: it often happens that TSN are sent sequentially, and
+        // therefore added in sequence (even though there may be missing TSNs.
+        // Checking whether the TSN should just be appended saves from iterating
+        // through the whole list, which may be long for large files if the drop
+        // probability is high).
+        if (greaterThanOrEqual (elBegin, _pLastNode->begin) && lessThanOrEqual (elBegin, _pLastNode->end)) {
+            if (greaterThan (elEnd, _pLastNode->end)) {
+                _pLastNode->end = elEnd;
+
+                return 1;
+            }
+
+            return 0;
+        }
+        else if (greaterThanAndDisjoint (elBegin, _pLastNode->end)) {
+            Range *pNewNode = new Range();
+            pNewNode->begin = elBegin;
+            pNewNode->end = elEnd;
+            pNewNode->pPrev = _pLastNode;
+            pNewNode->pNext = NULL;
+
+            _pLastNode->pNext = pNewNode;
+            _pLastNode = pNewNode;
+
+            return 1;
+        }
+
         bool bRangeAdded = false;
+        bool bRangeAddedOrMerged = false;
         Range *pCurrNode = _pFirstNode;
         Range *pPrevNode = NULL;
         for (; pCurrNode != NULL; pPrevNode = pCurrNode, pCurrNode = pCurrNode->pNext) {
@@ -207,7 +236,7 @@ namespace NOMADSUtil
             }
 
             // The current range and the new range intersect
-            if (bRangeAdded) {
+            if (bRangeAddedOrMerged) {
                 // This case handles and input range spanning over multiple
                 // ranges in the list.
                 if (greaterThan (pCurrNode->end, elEnd)) {
@@ -231,15 +260,17 @@ namespace NOMADSUtil
             else {
                 if (lessThan (elBegin, pCurrNode->begin)) {
                     pCurrNode->begin = elBegin;
+                    bRangeAdded = true;
                 }
                 if (greaterThan (elEnd, pCurrNode->end)) {
                     pCurrNode->end = elEnd;
+                    bRangeAdded = true;
                 }
-                bRangeAdded = true;
+                bRangeAddedOrMerged = true;
             }
         }
 
-        if (!bRangeAdded) {
+        if (!bRangeAddedOrMerged) {
             // The range did not overlap with any of the ranges in the list,
             // add it right after the last range that was visited
             Range *pNewNode = new Range();
@@ -257,6 +288,8 @@ namespace NOMADSUtil
             if (pNewNode->pNext == NULL) {
                 _pLastNode = pNewNode;
             }
+
+            return 1;
         }
 
         return bRangeAdded ? 1 : 0;
@@ -511,6 +544,14 @@ namespace NOMADSUtil
         }
     }
 
+    template <class T> void RangeDLList<T>::removeAllTSN (RangeDLList &ranges)
+    {
+        T elBegin, elEnd;
+        for (int rc = ranges.getFirst (elBegin, elEnd); rc == 0; rc = ranges.getNext (elBegin, elEnd)) {
+            removeTSN (elBegin, elEnd);
+        }
+    }
+
     template <class T> void RangeDLList<T>::reset()
     {
         while (_pFirstNode != NULL) {
@@ -526,8 +567,11 @@ namespace NOMADSUtil
         return (_pFirstNode != NULL);
     }
 
-    template <class T> bool RangeDLList<T>::hasTSN (T el)
+    template <class T> bool RangeDLList<T>::hasTSN (T el) const
     {
+        if ((_pFirstNode == NULL) || lessThan (el, _pFirstNode->begin) || greaterThan (el, _pLastNode->end))  {
+            return false;
+        }    
         Range *pCurrNode = _pFirstNode;
         while (pCurrNode != NULL) {
             if (lessThanOrEqual (pCurrNode->begin, el) &&
@@ -638,12 +682,12 @@ namespace NOMADSUtil
         return true;
     }
 
-    template <class T> bool RangeDLList<T>::greaterThan (T l, T r)
+    template <class T> bool RangeDLList<T>::greaterThan (const T l, const T r) const
     {
         return _bUseSequentialArithmetic ? SequentialArithmetic::greaterThan (l, r) : (l > r);
     }
 
-    template <class T> bool  RangeDLList<T>::greaterThanAndDisjoint (T l, T r)
+    template <class T> bool  RangeDLList<T>::greaterThanAndDisjoint (const T l, const T r) const
     {
         if (_bUseSequentialArithmetic) {
             return greaterThan (l, r + 1);
@@ -655,22 +699,22 @@ namespace NOMADSUtil
         return false;
     }
 
-    template <class T> bool RangeDLList<T>::greaterThanOrEqual (T l, T r)
+    template <class T> bool RangeDLList<T>::greaterThanOrEqual (const T l, const T r) const
     {
         return _bUseSequentialArithmetic ? SequentialArithmetic::greaterThanOrEqual (l, r) : (l >= r);
     }
 
-    template <class T> bool RangeDLList<T>::includes (T l1, T r1, T l2, T r2)
+    template <class T> bool RangeDLList<T>::includes (const T l1, const T r1, const T l2, const T r2) const
     {
         return (greaterThanOrEqual (l2, l1) && lessThanOrEqual (r2, r1));
     }
 
-    template <class T> bool RangeDLList<T>::lessThan (T l, T r)
+    template <class T> bool RangeDLList<T>::lessThan (const T l, const T r) const
     {
         return _bUseSequentialArithmetic ? SequentialArithmetic::lessThan (l, r) : (l < r);
     }
 
-    template <class T> bool RangeDLList<T>::lessThanAndDisjoint (T l, T r)
+    template <class T> bool RangeDLList<T>::lessThanAndDisjoint (const T l, const T r) const
     {        
         if (_bUseSequentialArithmetic) {
             return lessThan (l + 1, r);
@@ -682,7 +726,7 @@ namespace NOMADSUtil
         return false;
     }       
 
-    template <class T> bool RangeDLList<T>::lessThanOrEqual (T l, T r)
+    template <class T> bool RangeDLList<T>::lessThanOrEqual (const T l, const T r) const
     {
         return _bUseSequentialArithmetic ? SequentialArithmetic::lessThanOrEqual (l, r) : (l <= r);
     }

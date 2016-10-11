@@ -17,10 +17,10 @@ libmockets.a : $(objects) libutil.a libsecurity.a
 	ar -rcv libmockets.a $(objects) 
 
 libsecurity.a :
-	make -C $(UTILDIR)/linux -f Makefile.64bit libsecurity.a
+	make -C $(UTILDIR)/linux libsecurity.a
 
 libutil.a :
-	make -C $(UTILDIR)/linux -f Makefile.64bit libutil.a
+	make -C $(UTILDIR)/linux libutil.a
 
 clean :
 	rm -rf *.o *.a 

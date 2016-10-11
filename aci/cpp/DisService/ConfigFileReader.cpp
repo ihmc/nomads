@@ -2,7 +2,7 @@
  * ConfigFileReader.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -217,38 +217,6 @@ float ConfigFileReader::getMissingFragReqProbabilityByPriority (uint8 ui8Probabi
         exit (-1);
     }
     return -1;
-}
-
-uint8 ConfigFileReader::getMissingFragReqReplyMode()
-{
-    const char *pszMethodName = "ConfigFileReader::getMissingFragReqReplyMode";
-    const char *pszPropertyName = "aci.disService.fragReqReply.mode";
-    uint8 ui8MissingFragReqReplyMode;
-    if (_pCfgMgr->hasValue (pszPropertyName)) {
-        ui8MissingFragReqReplyMode = (uint8) _pCfgMgr->getValueAsInt (pszPropertyName);
-    }
-    else {
-        ui8MissingFragReqReplyMode = DisseminationService::DEFAULT_MISSING_FRAG_REQUEST_REPLY_MODE;
-    }
-    checkAndLogMsg (pszMethodName, Logger::L_Info, "Missing Fragmet Request Mode "
-                    "set to %d.\n", ui8MissingFragReqReplyMode);
-    return ui8MissingFragReqReplyMode;
-}
-
-uint8 ConfigFileReader::getMissingFragReqReplyProb()
-{
-    const char *pszMethodName = "ConfigFileReader::getMissingFragReqReplyProb";
-    const char *pszPropertyName = "aci.disService.fragReqReply.probability";
-    uint8 ui8MissingFragReqReplyFixedProb;
-    if (_pCfgMgr->hasValue(pszPropertyName)) {
-        ui8MissingFragReqReplyFixedProb = (uint8) _pCfgMgr->getValueAsInt(pszPropertyName);
-    }
-    else {
-        ui8MissingFragReqReplyFixedProb = DisseminationService::DEFAULT_MISSING_FRAG_REQUEST_REPLY_PROB;
-    }
-    checkAndLogMsg (pszMethodName, Logger::L_Info, "Missing Fragmet Request Reply "
-                    "Probability set to %d.\n", ui8MissingFragReqReplyFixedProb);
-    return ui8MissingFragReqReplyFixedProb;
 }
 
 uint16 ConfigFileReader::getIgnoreRequestInterval()

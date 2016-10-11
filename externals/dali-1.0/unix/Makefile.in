@@ -1,0 +1,588 @@
+#------------------------------------------------------------------
+# stuff modified by configure
+#------------------------------------------------------------------
+
+TCL_DIR=@TCL_DIR@
+TCL_LIB=@TCL_LIB@
+DEFS=@DEFS@
+EXTRA_LIBS=@EXTRA_LIBS@
+TCLSH = @TCLSH@
+
+#-------------------------------------------------------------------
+# to add a new file to a package :
+# - add the file into the variables PACKAGE_OBJS
+#
+# to add a new package do the following 4 steps :
+#
+# 1. add these 3 variables :
+# PACKAGE_DIR=$(PACKAGES_DIR)/basic
+# PACKAGE_OBJ_DIR=$(PACKAGE_DIR)/obj
+# PACKAGE_OBJS = \
+#	$(PACKAGE_OBJ_DIR)/foo.o\
+#	$(PACKAGE_OBJ_DIR)/bar.o
+# 
+# 2. add you package to the clean target
+#
+# 3. add the rule :
+# $(AUDIO_OBJ_DIR)/%.o : $(AUDIO_DIR)/%.c
+# 	$(CC) -c $(CFLAGS) $< -o $@
+#
+# 4. add the variables PACKAGE_OBJS to the variable OBJS
+#
+#--------------------------------------------------------------------
+.SUFFIXES: .c .o
+CC=gcc
+AR=ar -rsc
+LD=ld -G -z text
+MKDIR=mkdir -p
+MV=mv
+
+PACKAGES_DIR=../packages
+OBJ_DIR=./obj
+DVM_LIB_DIR=./lib
+
+INCLUDE=-I$(TCL_DIR)/include -I$(TCL_DIR)/generic\
+	-I../include
+#Solaris 2.x
+#CFLAGS= -O2 -Kpic $(INCLUDE) 
+CFLAGS= -Wall -O6 -fpic $(DEFS) $(INCLUDE) 
+LIBS=-l$(TCL_LIB) -lm -ldl $(EXTRA_LIBS)
+
+#SunOS 4.x
+#CFLAGS= -Wall -fpic $(INCLUDE) 
+#LIBS=-ltcl8.0 -lm
+
+
+LIBDIR=-L$(TCL_DIR)/lib -L$(TCL_DIR)/unix -L$(DVM_LIB_DIR)
+
+
+TARGET=dvmsh
+
+#---------------------------------------------------------------
+# BASIC
+#---------------------------------------------------------------
+
+BASIC_DIR=$(PACKAGES_DIR)/basic
+BASIC_LIB=$(DVM_LIB_DIR)/libdvmbasic.a
+BASIC_SO=$(DVM_LIB_DIR)/tclDvmBasic.so
+BASIC_OBJ_DIR=$(BASIC_DIR)/obj
+BASIC_OBJS=\
+        $(BASIC_OBJ_DIR)/audio.o\
+        $(BASIC_OBJ_DIR)/bit.o\
+        $(BASIC_OBJ_DIR)/bitmake.o\
+        $(BASIC_OBJ_DIR)/bitparser.o\
+        $(BASIC_OBJ_DIR)/bitscan.o\
+        $(BASIC_OBJ_DIR)/bitsetop.o\
+        $(BASIC_OBJ_DIR)/bitstream.o\
+        $(BASIC_OBJ_DIR)/bitstreamfio.o\
+        $(BASIC_OBJ_DIR)/bitutil.o\
+        $(BASIC_OBJ_DIR)/byte.o\
+        $(BASIC_OBJ_DIR)/byte16.o\
+        $(BASIC_OBJ_DIR)/byte32.o\
+        $(BASIC_OBJ_DIR)/bytearith.o\
+        $(BASIC_OBJ_DIR)/float.o\
+        $(BASIC_OBJ_DIR)/bytetosc.o\
+        $(BASIC_OBJ_DIR)/crop.o\
+        $(BASIC_OBJ_DIR)/filter.o\
+        $(BASIC_OBJ_DIR)/jrevdct.o\
+        $(BASIC_OBJ_DIR)/mfwddct.o\
+        $(BASIC_OBJ_DIR)/qtables.o\
+        $(BASIC_OBJ_DIR)/sc.o\
+        $(BASIC_OBJ_DIR)/sctobyte.o\
+        $(BASIC_OBJ_DIR)/scarith.o\
+        $(BASIC_OBJ_DIR)/vector.o\
+	$(OBJ_DIR)/dvmmap.o
+
+BASIC_TCL_OBJS=\
+        $(BASIC_OBJ_DIR)/basicinit.o\
+        $(BASIC_OBJ_DIR)/hashtable.o\
+        $(BASIC_OBJ_DIR)/bitstreamio.o\
+        $(BASIC_OBJ_DIR)/filterio.o\
+        $(BASIC_OBJ_DIR)/commands.o\
+        $(BASIC_OBJ_DIR)/debugalloc.o\
+        $(BASIC_OBJ_DIR)/bitcmd.o\
+        $(BASIC_OBJ_DIR)/bytecmd.o\
+        $(BASIC_OBJ_DIR)/byte16cmd.o\
+        $(BASIC_OBJ_DIR)/byte32cmd.o\
+        $(BASIC_OBJ_DIR)/floatcmd.o\
+        $(BASIC_OBJ_DIR)/sccmd.o\
+        $(BASIC_OBJ_DIR)/vectorcmd.o\
+        $(BASIC_OBJ_DIR)/audiocmd.o\
+        $(BASIC_OBJ_DIR)/streamscmd.o
+
+#---------------------------------------------------------------
+# PNM
+#---------------------------------------------------------------
+
+PNM_DIR=$(PACKAGES_DIR)/pnm
+PNM_LIB=$(DVM_LIB_DIR)/libdvmpnm.a
+PNM_SO=$(DVM_LIB_DIR)/tclDvmPnm.so
+PNM_OBJ_DIR=$(PNM_DIR)/obj
+PNM_OBJS = \
+	$(PNM_OBJ_DIR)/pnmhdr.o\
+	$(PNM_OBJ_DIR)/pnmfile.o\
+	$(PNM_OBJ_DIR)/pnmcast.o
+PNM_TCL_OBJS = \
+	$(PNM_OBJ_DIR)/pnminit.o\
+	$(PNM_OBJ_DIR)/pnmcmd.o
+
+#---------------------------------------------------------------
+# BYTEGEOM
+#---------------------------------------------------------------
+
+BYTEGEOM_DIR=$(PACKAGES_DIR)/bytegeom
+BYTEGEOM_LIB=$(DVM_LIB_DIR)/libdvmbytegeom.a
+BYTEGEOM_SO=$(DVM_LIB_DIR)/tclDvmByteGeom.so
+BYTEGEOM_OBJ_DIR=$(BYTEGEOM_DIR)/obj
+BYTEGEOM_OBJS = \
+	$(BYTEGEOM_OBJ_DIR)/bytehomo.o\
+	$(BYTEGEOM_OBJ_DIR)/bytescale.o\
+	$(BYTEGEOM_OBJ_DIR)/byterotate.o\
+	$(BYTEGEOM_OBJ_DIR)/byteaffine.o
+BYTEGEOM_TCL_OBJS = \
+	$(BYTEGEOM_OBJ_DIR)/bytegeominit.o\
+	$(BYTEGEOM_OBJ_DIR)/bytehomocmd.o\
+	$(BYTEGEOM_OBJ_DIR)/bytescalecmd.o\
+	$(BYTEGEOM_OBJ_DIR)/byterotatecmd.o\
+	$(BYTEGEOM_OBJ_DIR)/byteaffinecmd.o
+
+#---------------------------------------------------------------
+# MPEG
+#---------------------------------------------------------------
+
+MPEG_DIR=$(PACKAGES_DIR)/mpeg
+MPEG_LIB=$(DVM_LIB_DIR)/libdvmmpeg.a
+MPEG_SO=$(DVM_LIB_DIR)/tclDvmMpeg.so
+MPEG_OBJ_DIR=$(MPEG_DIR)/obj
+MPEG_OBJS = \
+	$(MPEG_OBJ_DIR)/block.o\
+	$(MPEG_OBJ_DIR)/bsearch.o\
+	$(MPEG_OBJ_DIR)/huffencode.o\
+	$(MPEG_OBJ_DIR)/motionsearch.o\
+	$(MPEG_OBJ_DIR)/mpegaudiohdr.o\
+	$(MPEG_OBJ_DIR)/mpegaudiol1.o\
+	$(MPEG_OBJ_DIR)/mpegaudiol2.o\
+	$(MPEG_OBJ_DIR)/mpegaudiol3.o\
+	$(MPEG_OBJ_DIR)/mpegaudiosyndata.o\
+	$(MPEG_OBJ_DIR)/mpegencode.o\
+	$(MPEG_OBJ_DIR)/mpeggophdr.o\
+	$(MPEG_OBJ_DIR)/mpegmacroblockhdr.o\
+	$(MPEG_OBJ_DIR)/mpegpckhdr.o\
+	$(MPEG_OBJ_DIR)/mpegpic.o\
+	$(MPEG_OBJ_DIR)/mpegpichdr.o\
+	$(MPEG_OBJ_DIR)/mpegpkthdr.o\
+	$(MPEG_OBJ_DIR)/mpegseqhdr.o\
+	$(MPEG_OBJ_DIR)/mpegslicehdr.o\
+	$(MPEG_OBJ_DIR)/mpegsyshdr.o\
+	$(MPEG_OBJ_DIR)/mpegsystoc.o\
+	$(MPEG_OBJ_DIR)/mpegvideoindex.o\
+	$(MPEG_OBJ_DIR)/psearch.o\
+	$(MPEG_OBJ_DIR)/startcode.o\
+	$(MPEG_OBJ_DIR)/synthesis.o\
+	$(MPEG_OBJ_DIR)/tables.o
+MPEG_TCL_OBJS = \
+	$(MPEG_OBJ_DIR)/auddatacmd.o\
+	$(MPEG_OBJ_DIR)/audhdrcmd.o\
+	$(MPEG_OBJ_DIR)/gophdrcmd.o\
+	$(MPEG_OBJ_DIR)/mpeginit.o\
+	$(MPEG_OBJ_DIR)/othercmd.o\
+	$(MPEG_OBJ_DIR)/pckhdrcmd.o\
+	$(MPEG_OBJ_DIR)/piccmd.o\
+	$(MPEG_OBJ_DIR)/pichdrcmd.o\
+	$(MPEG_OBJ_DIR)/pkthdrcmd.o\
+	$(MPEG_OBJ_DIR)/seqhdrcmd.o\
+	$(MPEG_OBJ_DIR)/syndatacmd.o\
+	$(MPEG_OBJ_DIR)/syshdrcmd.o\
+	$(MPEG_OBJ_DIR)/systoccmd.o\
+	$(MPEG_OBJ_DIR)/videoindexcmd.o
+
+#---------------------------------------------------------------
+# AMAP
+#---------------------------------------------------------------
+
+AMAP_DIR=$(PACKAGES_DIR)/amap
+AMAP_LIB=$(DVM_LIB_DIR)/libdvmamap.a
+AMAP_SO=$(DVM_LIB_DIR)/tclDvmAmap.so
+AMAP_OBJ_DIR=$(AMAP_DIR)/obj
+AMAP_OBJS = \
+	$(AMAP_OBJ_DIR)/amapapply.o\
+	$(AMAP_OBJ_DIR)/amapcompose.o\
+	$(AMAP_OBJ_DIR)/amapcopy.o\
+	$(AMAP_OBJ_DIR)/amapfree.o\
+	$(AMAP_OBJ_DIR)/amapinfo.o\
+	$(AMAP_OBJ_DIR)/amapnew.o\
+	$(AMAP_OBJ_DIR)/amapinitbuiltin.o\
+	$(AMAP_OBJ_DIR)/amapinitcustom.o\
+	$(AMAP_OBJ_DIR)/amapinitulaw.o\
+	$(AMAP_OBJ_DIR)/amapinitalaw.o\
+	$(AMAP_OBJ_DIR)/amapset.o
+AMAP_TCL_OBJS = \
+	$(AMAP_OBJ_DIR)/amapinit.o\
+	$(AMAP_OBJ_DIR)/amapapplycmd.o\
+	$(AMAP_OBJ_DIR)/amapcomposecmd.o\
+	$(AMAP_OBJ_DIR)/amapcopycmd.o\
+	$(AMAP_OBJ_DIR)/amapfreecmd.o\
+	$(AMAP_OBJ_DIR)/amapinfocmd.o\
+	$(AMAP_OBJ_DIR)/amapnewcmd.o\
+	$(AMAP_OBJ_DIR)/amapinitbuiltincmd.o\
+	$(AMAP_OBJ_DIR)/amapinitcustomcmd.o\
+	$(AMAP_OBJ_DIR)/amapsetcmd.o
+
+#---------------------------------------------------------------
+# IMAP
+#---------------------------------------------------------------
+
+IMAP_DIR=$(PACKAGES_DIR)/imap
+IMAP_LIB=$(DVM_LIB_DIR)/libdvmimap.a
+IMAP_SO=$(DVM_LIB_DIR)/tclDvmImap.so
+IMAP_OBJ_DIR=$(IMAP_DIR)/obj
+IMAP_OBJS = \
+	$(IMAP_OBJ_DIR)/imap.o
+IMAP_TCL_OBJS = \
+	$(IMAP_OBJ_DIR)/imapinit.o\
+	$(IMAP_OBJ_DIR)/imapcmd.o
+
+#---------------------------------------------------------------
+# COLOR
+#---------------------------------------------------------------
+
+COLOR_DIR=$(PACKAGES_DIR)/color
+COLOR_LIB=$(DVM_LIB_DIR)/libdvmcolor.a
+COLOR_SO=$(DVM_LIB_DIR)/tclDvmColor.so
+COLOR_OBJ_DIR=$(COLOR_DIR)/obj
+COLOR_OBJS = \
+        $(COLOR_OBJ_DIR)/yuvtorgb.o\
+        $(COLOR_OBJ_DIR)/rgbtoyuv.o\
+	$(COLOR_OBJ_DIR)/colorquant.o\
+	$(COLOR_OBJ_DIR)/vptree.o\
+	$(COLOR_OBJ_DIR)/sqrtable.o\
+	$(COLOR_OBJ_DIR)/colorhash.o
+COLOR_TCL_OBJS = \
+	$(COLOR_OBJ_DIR)/colorcmd.o\
+	$(COLOR_OBJ_DIR)/colorinit.o
+
+
+
+#---------------------------------------------------------------
+# GIF
+#---------------------------------------------------------------
+
+GIF_DIR=$(PACKAGES_DIR)/gif
+GIF_LIB=$(DVM_LIB_DIR)/libdvmgif.a
+GIF_SO=$(DVM_LIB_DIR)/tclDvmGif.so
+GIF_OBJ_DIR=$(GIF_DIR)/obj
+GIF_OBJS = \
+	$(GIF_OBJ_DIR)/gifct.o\
+	$(GIF_OBJ_DIR)/gifencode.o\
+	$(GIF_OBJ_DIR)/gifimg.o\
+	$(GIF_OBJ_DIR)/gifseq.o\
+	$(GIF_OBJ_DIR)/readGif.o
+
+GIF_TCL_OBJS = \
+	$(GIF_OBJ_DIR)/gifcmd.o\
+	$(GIF_OBJ_DIR)/gifgetcmd.o\
+	$(GIF_OBJ_DIR)/gifinit.o\
+	$(GIF_OBJ_DIR)/gifsetcmd.o
+
+#---------------------------------------------------------------
+# JPEG
+#---------------------------------------------------------------
+
+JPEG_DIR=$(PACKAGES_DIR)/jpeg
+JPEG_LIB=$(DVM_LIB_DIR)/libdvmjpeg.a
+JPEG_SO=$(DVM_LIB_DIR)/tclDvmJpeg.so
+JPEG_OBJ_DIR=$(JPEG_DIR)/obj
+JPEG_OBJS = \
+	$(JPEG_OBJ_DIR)/jpeg.o\
+	$(JPEG_OBJ_DIR)/jpegdecode.o\
+	$(JPEG_OBJ_DIR)/jpegencode.o\
+	$(JPEG_OBJ_DIR)/jpeghuff.o
+JPEG_TCL_OBJS = \
+	$(JPEG_OBJ_DIR)/huffcmd.o\
+	$(JPEG_OBJ_DIR)/jpeghdrcmd.o\
+	$(JPEG_OBJ_DIR)/jpeginit.o\
+	$(JPEG_OBJ_DIR)/scancmd.o\
+	$(JPEG_OBJ_DIR)/scanhdrcmd.o
+
+
+#---------------------------------------------------------------
+# Vision
+#---------------------------------------------------------------
+VISION_DIR=$(PACKAGES_DIR)/vision
+VISION_LIB=$(DVM_LIB_DIR)/libdvmvision.a
+VISION_SO=$(DVM_LIB_DIR)/tclDvmVision.so
+VISION_OBJ_DIR=$(VISION_DIR)/obj
+VISION_OBJS = \
+	$(VISION_OBJ_DIR)/canny.o\
+	$(VISION_OBJ_DIR)/dilate.o\
+	$(VISION_OBJ_DIR)/edgedetect.o\
+	$(VISION_OBJ_DIR)/erode.o\
+	$(VISION_OBJ_DIR)/gsmooth.o\
+	$(VISION_OBJ_DIR)/overlap.o\
+	$(VISION_OBJ_DIR)/slide.o\
+	$(VISION_OBJ_DIR)/smooth.o\
+	$(VISION_OBJ_DIR)/threshold.o\
+	$(VISION_OBJ_DIR)/visionblocks.o
+
+VISION_TCL_OBJS = \
+	$(VISION_OBJ_DIR)/visioncmd.o\
+	$(VISION_OBJ_DIR)/slidecmd.o\
+	$(VISION_OBJ_DIR)/visioninit.o
+
+
+#---------------------------------------------------------------
+# WAVE
+#---------------------------------------------------------------
+
+WAVE_DIR=$(PACKAGES_DIR)/wave
+WAVE_LIB=$(DVM_LIB_DIR)/libdvmwave.a
+WAVE_SO=$(DVM_LIB_DIR)/tclDvmWave.so
+WAVE_OBJ_DIR=$(WAVE_DIR)/obj
+WAVE_OBJS = \
+	$(WAVE_OBJ_DIR)/wavehdr.o\
+
+WAVE_TCL_OBJS = \
+	$(WAVE_OBJ_DIR)/wavehdrcmd.o\
+	$(WAVE_OBJ_DIR)/waveinit.o
+
+#---------------------------------------------------------------
+# KERNEL
+#---------------------------------------------------------------
+
+KERNEL_DIR=$(PACKAGES_DIR)/kernel
+KERNEL_LIB=$(DVM_LIB_DIR)/libdvmkernel.a
+KERNEL_SO=$(DVM_LIB_DIR)/tclDvmKernel.so
+KERNEL_OBJ_DIR=$(KERNEL_DIR)/obj
+KERNEL_OBJS = \
+	$(KERNEL_OBJ_DIR)/kernel.o\
+	$(KERNEL_OBJ_DIR)/kernelconv.o
+
+KERNEL_TCL_OBJS = \
+	$(KERNEL_OBJ_DIR)/kernelcmd.o\
+	$(KERNEL_OBJ_DIR)/kernelconvcmd.o\
+	$(KERNEL_OBJ_DIR)/kernelinit.o
+
+#-----------------------------------------------------------------------------------
+# Modify the following when add new package.
+#-----------------------------------------------------------------------------------
+
+TCL_OBJS=\
+	$(OBJ_DIR)/main.o\
+	$(PNM_TCL_OBJS)\
+	$(BASIC_TCL_OBJS)\
+	$(MPEG_TCL_OBJS)\
+	$(JPEG_TCL_OBJS)\
+	$(GIF_TCL_OBJS)\
+	$(AMAP_TCL_OBJS)\
+	$(IMAP_TCL_OBJS)\
+	$(COLOR_TCL_OBJS)\
+	$(WAVE_TCL_OBJS)\
+	$(VISION_TCL_OBJS)\
+	$(KERNEL_TCL_OBJS)\
+	$(BYTEGEOM_TCL_OBJS)
+
+DVM_LIBS=\
+	$(MPEG_LIB) $(JPEG_LIB) $(BASIC_LIB) $(PNM_LIB) $(AMAP_LIB) $(IMAP_LIB) \
+	$(GIF_LIB) $(BYTEGEOM_LIB) $(WAVE_LIB) $(VISION_LIB) $(KERNEL_LIB) $(COLOR_LIB)
+
+DVM_SOS=\
+	$(MPEG_SO) $(JPEG_SO) $(PNM_SO) $(BASIC_SO) $(AMAP_SO) $(IMAP_SO) $(GIF_SO) \
+	$(VISION_SO) $(BYTEGEOM_SO) $(WAVE_SO) $(KERNEL_SO) $(COLOR_SO)
+
+
+#-----------------------------------------------------------------------------------
+# TCL_OBJS should follows DVM_LIBS
+#-----------------------------------------------------------------------------------
+all : $(TARGET) $(DVM_SOS)
+
+install : all
+	$(TCLSH) install.tcl
+
+clibs : $(OBJ_DIR) $(DVM_LIB_DIR) $(DVM_LIBS)
+
+$(TARGET) : clibs $(TCL_OBJS)
+	$(CC) $(CFLAGS) $(LIBDIR) $(TCL_OBJS)  -o $@ $(DVM_LIBS) $(LIBS)
+
+clean :
+	\rm -rf $(DVM_LIBS)
+	\rm -rf $(TCL_OBJS)
+	\rm -rf $(MPEG_OBJS)
+	\rm -rf $(MPEG_TCL_OBJS)
+	\rm -rf $(PNM_OBJS)
+	\rm -rf $(PNM_TCL_OBJS)
+	\rm -rf $(COLOR_OBJS)
+	\rm -rf $(COLOR_TCL_OBJS)
+	\rm -rf $(GIF_OBJS)
+	\rm -rf $(GIF_TCL_OBJS)
+	\rm -rf $(BASIC_OBJS)
+	\rm -rf $(BASIC_TCL_OBJS)
+	\rm -rf $(JPEG_OBJS)
+	\rm -rf $(JPEG_TCL_OBJS)
+	\rm -rf $(WAVE_OBJS)
+	\rm -rf $(WAVE_TCL_OBJS)
+	\rm -rf $(AMAP_OBJS)
+	\rm -rf $(AMAP_TCL_OBJS)
+	\rm -rf $(IMAP_OBJS)
+	\rm -rf $(IMAP_TCL_OBJS)
+	\rm -rf $(VISION_OBJS)
+	\rm -rf $(VISION_TCL_OBJS)
+	\rm -rf $(KERNEL_OBJS)
+	\rm -rf $(KERNEL_TCL_OBJS)
+	\rm -rf $(BYTEGEOM_OBJS)
+	\rm -rf $(BYTEGEOM_TCL_OBJS)
+	\rm -rf $(KERNEL_OBJS)
+	\rm -rf $(KERNEL_TCL_OBJS)
+
+$(DVM_LIB_DIR) :
+	$(MKDIR) $(DVM_LIB_DIR)
+
+$(LIB_INSTALL_DIR) :
+	$(MKDIR) $(LIB_INSTALL_DIR)
+
+$(BIN_INSTALL_DIR) :
+	$(MKDIR) $(BIN_INSTALL_DIR)
+
+$(OBJ_DIR) :
+	$(MKDIR) $(OBJ_DIR)
+
+#-----------------------------------------------------------------------------------
+# General rules
+#-----------------------------------------------------------------------------------
+
+
+$(BASIC_OBJ_DIR) :
+	$(MKDIR) $@
+$(BASIC_OBJ_DIR)/%.o : $(BASIC_DIR)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(BASIC_OBJ_DIR)/%.o : $(BASIC_DIR)/tcl/%.c
+	$(CC) -I$(BASIC_DIR) -c $(CFLAGS) $< -o $@
+$(BASIC_LIB) : $(BASIC_OBJ_DIR) $(BASIC_OBJS)
+	$(AR)  $(BASIC_LIB) $(BASIC_OBJS)
+$(BASIC_SO) : $(BASIC_OBJ_DIR) $(BASIC_OBJS) $(BASIC_TCL_OBJS)
+	$(LD) $(BASIC_OBJS) $(BASIC_TCL_OBJS) -o $@
+
+$(MPEG_OBJ_DIR) :
+	$(MKDIR) $@
+$(MPEG_OBJ_DIR)/%.o : $(MPEG_DIR)/%.c 
+	$(CC) -c $(CFLAGS) $< -o $@
+$(MPEG_OBJ_DIR)/%.o : $(MPEG_DIR)/tcl/%.c 
+	$(CC) -I$(MPEG_DIR) -c $(CFLAGS) $< -o $@
+$(MPEG_LIB) : $(MPEG_OBJ_DIR) $(MPEG_OBJS)
+	$(AR)  $(MPEG_LIB) $(MPEG_OBJS)
+$(MPEG_SO) : $(MPEG_OBJ_DIR) $(MPEG_OBJS) $(MPEG_TCL_OBJS)
+	$(LD) $(MPEG_OBJS) $(MPEG_TCL_OBJS) -o $@
+
+$(JPEG_OBJ_DIR) :
+	$(MKDIR) $@
+$(JPEG_OBJ_DIR)/%.o : $(JPEG_DIR)/%.c 
+	$(CC) -c $(CFLAGS) $< -o $@
+$(JPEG_OBJ_DIR)/%.o : $(JPEG_DIR)/tcl/%.c 
+	$(CC) -I$(JPEG_DIR) -c $(CFLAGS) $< -o $@
+$(JPEG_LIB) : $(JPEG_OBJ_DIR) $(JPEG_OBJS)
+	$(AR)  $(JPEG_LIB) $(JPEG_OBJS)
+$(JPEG_SO) : $(JPEG_OBJ_DIR) $(JPEG_OBJS) $(JPEG_TCL_OBJS)
+	$(LD) $(JPEG_OBJS) $(JPEG_TCL_OBJS) -o $@
+
+$(PNM_OBJ_DIR) :
+	$(MKDIR) $@
+$(PNM_OBJ_DIR)/%.o : $(PNM_DIR)/%.c
+	$(CC) -c $(CFLAGS) -I$(BASIC_DIR) $< -o $@
+$(PNM_OBJ_DIR)/%.o : $(PNM_DIR)/tcl/%.c
+	$(CC) -I$(PNM_DIR) -I$(BASIC_DIR) -c $(CFLAGS) $< -o $@
+$(PNM_LIB) : $(PNM_OBJ_DIR) $(PNM_OBJS)
+	$(AR)  $@ $(PNM_OBJS)
+$(PNM_SO) : $(PNM_OBJ_DIR) $(PNM_OBJS) $(PNM_TCL_OBJS)
+	$(LD) $(PNM_OBJS) $(PNM_TCL_OBJS) -o $@
+
+$(AMAP_OBJ_DIR) :
+	$(MKDIR) $@
+$(AMAP_OBJ_DIR)/%.o : $(AMAP_DIR)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(AMAP_OBJ_DIR)/%.o : $(AMAP_DIR)/tcl/%.c
+	$(CC) -I$(AMAP_DIR) -c $(CFLAGS) $< -o $@
+$(AMAP_LIB) : $(AMAP_OBJ_DIR) $(AMAP_OBJS)
+	$(AR)  $@ $(AMAP_OBJS)
+$(AMAP_SO) : $(AMAP_OBJ_DIR) $(AMAP_OBJS) $(AMAP_TCL_OBJS)
+	$(LD) $(AMAP_OBJS) $(AMAP_TCL_OBJS) -o $@
+
+$(IMAP_OBJ_DIR) :
+	$(MKDIR) $@
+$(IMAP_OBJ_DIR)/%.o : $(IMAP_DIR)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(IMAP_OBJ_DIR)/%.o : $(IMAP_DIR)/tcl/%.c
+	$(CC) -I$(IMAP_DIR) -c $(CFLAGS) $< -o $@
+$(IMAP_LIB) : $(IMAP_OBJ_DIR) $(IMAP_OBJS)
+	$(AR)  $@ $(IMAP_OBJS)
+$(IMAP_SO) : $(IMAP_OBJ_DIR) $(IMAP_OBJS) $(IMAP_TCL_OBJS)
+	$(LD) $(IMAP_OBJS) $(IMAP_TCL_OBJS) -o $@
+
+$(COLOR_OBJ_DIR) :
+	$(MKDIR) $@
+$(COLOR_OBJ_DIR)/%.o : $(COLOR_DIR)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(COLOR_OBJ_DIR)/%.o : $(COLOR_DIR)/tcl/%.c
+	$(CC) -I$(COLOR_DIR) -c $(CFLAGS) $< -o $@
+$(COLOR_LIB) : $(COLOR_OBJ_DIR) $(COLOR_OBJS)
+	$(AR)  $@ $(COLOR_OBJS)
+$(COLOR_SO) : $(COLOR_OBJ_DIR) $(COLOR_OBJS) $(COLOR_TCL_OBJS)
+	$(LD) $(COLOR_OBJS) $(COLOR_TCL_OBJS) -o $@
+
+$(GIF_OBJ_DIR) :
+	$(MKDIR) $@
+$(GIF_OBJ_DIR)/%.o : $(GIF_DIR)/%.c 
+	$(CC) -c $(CFLAGS) $< -o $@
+$(GIF_OBJ_DIR)/%.o : $(GIF_DIR)/tcl/%.c
+	$(CC) -I$(GIF_DIR) -c $(CFLAGS) $< -o $@
+$(GIF_LIB) : $(GIF_OBJ_DIR) $(GIF_OBJS)
+	$(AR)  $@ $(GIF_OBJS)
+$(GIF_SO) : $(GIF_OBJ_DIR) $(GIF_OBJS) $(GIF_TCL_OBJS)
+	$(LD) $(GIF_OBJS) $(GIF_TCL_OBJS) -o $@
+
+$(VISION_OBJ_DIR) :
+	$(MKDIR) $@
+$(VISION_OBJ_DIR)/%.o : $(VISION_DIR)/%.c 
+	$(CC) -c $(CFLAGS) $< -o $@
+$(VISION_OBJ_DIR)/%.o : $(VISION_DIR)/tcl/%.c
+	$(CC) -I$(VISION_DIR) -c $(CFLAGS) $< -o $@
+$(VISION_LIB) : $(VISION_OBJ_DIR) $(VISION_OBJS)
+	$(AR)  $@ $(VISION_OBJS)
+$(VISION_SO) : $(VISION_OBJ_DIR) $(VISION_OBJS) $(VISION_TCL_OBJS)
+	$(LD) $(VISION_OBJS) $(VISION_TCL_OBJS)  -o $@
+
+$(BYTEGEOM_OBJ_DIR) :
+	$(MKDIR) $@
+$(BYTEGEOM_OBJ_DIR)/%.o : $(BYTEGEOM_DIR)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(BYTEGEOM_OBJ_DIR)/%.o : $(BYTEGEOM_DIR)/tcl/%.c
+	$(CC) -I$(BYTEGEOM_DIR) -c $(CFLAGS) $< -o $@
+$(BYTEGEOM_LIB) : $(BYTEGEOM_OBJ_DIR) $(BYTEGEOM_OBJS)
+	$(AR) $@ $(BYTEGEOM_OBJS)
+$(BYTEGEOM_SO) : $(BYTEGEOM_OBJ_DIR) $(BYTEGEOM_OBJS) $(BYTEGEOM_TCL_OBJS)
+	$(LD) $(BYTEGEOM_OBJS) $(BYTEGEOM_TCL_OBJS) -o $@
+
+$(WAVE_OBJ_DIR) :
+	$(MKDIR) $@
+$(WAVE_OBJ_DIR)/%.o : $(WAVE_DIR)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(WAVE_OBJ_DIR)/%.o : $(WAVE_DIR)/tcl/%.c
+	$(CC) -I$(WAVE_DIR) -c $(CFLAGS) $< -o $@
+$(WAVE_LIB) : $(WAVE_OBJ_DIR) $(WAVE_OBJS)
+	$(AR) $@ $(WAVE_OBJS)
+$(WAVE_SO) : $(WAVE_OBJ_DIR) $(WAVE_OBJS) $(WAVE_TCL_OBJS)
+	$(LD) $(WAVE_OBJS) $(WAVE_TCL_OBJS) -o $@
+
+$(KERNEL_OBJ_DIR) :
+	$(MKDIR) $@
+$(KERNEL_OBJ_DIR)/%.o : $(KERNEL_DIR)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(KERNEL_OBJ_DIR)/%.o : $(KERNEL_DIR)/tcl/%.c
+	$(CC) -I$(KERNEL_DIR) -c $(CFLAGS) $< -o $@
+$(KERNEL_LIB) : $(KERNEL_OBJ_DIR) $(KERNEL_OBJS)
+	$(AR) $@ $(KERNEL_OBJS)
+$(KERNEL_SO) : $(KERNEL_OBJ_DIR) $(KERNEL_OBJS) $(KERNEL_TCL_OBS)
+	$(LD) $(KERNEL_OBJS) $(KERNEL_TCL_OBJS) -o $@
+
+$(OBJ_DIR)/main.o : main.c
+	$(CC) -c $(CFLAGS) $< -o $@
+$(OBJ_DIR)/dvmmap.o : dvmmap.c
+	$(CC) -c $(CFLAGS) $< -o $@

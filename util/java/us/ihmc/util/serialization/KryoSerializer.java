@@ -2,7 +2,7 @@
  * KryoSerializer.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,22 +37,10 @@ import java.util.List;
  */
 public class KryoSerializer implements Serializer
 {
-    private KryoSerializer()
+    public KryoSerializer()
     {
         _kryo = new Kryo();
         _registrationList = new ArrayList<Class>();
-    }
-
-    /**
-     * Gets the <code>KryoSerializer</code> instance
-     * @return the <code>KryoSerializer</code> instance
-     */
-    static synchronized KryoSerializer getInstance()
-    {
-        if (INSTANCE == null) {
-            INSTANCE = new KryoSerializer();
-        }
-        return INSTANCE;
     }
 
     @Override
@@ -108,5 +96,4 @@ public class KryoSerializer implements Serializer
 
     private final Kryo _kryo;
     private final List<Class> _registrationList;
-    private static KryoSerializer INSTANCE;
 }

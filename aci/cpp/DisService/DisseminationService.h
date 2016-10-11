@@ -2,7 +2,7 @@
  * DisseminationService.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,28 +21,20 @@
 #define INCL_DISSEMINATION_SERVICE_H
 
 #include "DisServiceMsg.h"
-#include "ChunkingAdaptor.h"
 
-#include "DArray.h"
-#include "DArray2.h"
 #include "ManageableThread.h"
 #include "LoggingMutex.h"
-#include "StrClass.h"
-#include "StringHashtable.h"
 
 namespace NOMADSUtil
 {
     class ConfigManager;
     class Reader;
-    template <class T> class DArray;
-    template <class T> class DArray2;
-    template <class T> class PtrLList;
-    template <class T> class StringHashtable;
 }
 
 namespace IHMC_ACI
 {
     class BandwidthSharing;
+    class ChunkingConfiguration;
     class ChunkDiscoveryController;
     class ChunkRetrievalController;
     class DisServiceMsg;
@@ -70,6 +62,7 @@ namespace IHMC_ACI
     class DataCacheReplicationController;
     class DataCacheExpirationController;
     class DataRequestHandler;
+    class DataRequestServer;
     class DisseminationServiceListener;
     class DisServiceCommandProcessor;
     class DisServiceStats;
@@ -831,15 +824,6 @@ namespace IHMC_ACI
 
             ////////////////// Missing Fragments/Messages Config /////////////////
 
-            // Mode by which the probability a node serves a request for a missing
-            // fragment/message is computed
-            enum MissingFragmentRequestReplyMode {
-                FIXED_REPLY_PROB = 0x00,    // The prob. value is static
-                NEIGHBOR_DEPENDENT_PROB = 0x01 // The prob. depends on the number of neighbors
-            };
-            static const uint8 DEFAULT_MISSING_FRAG_REQUEST_REPLY_MODE = NEIGHBOR_DEPENDENT_PROB;
-            static const uint8 DEFAULT_MISSING_FRAG_REQUEST_REPLY_PROB = 100;
-
             // Specifies the interval of time from the last time the message/fragment has
             // been broadcasted (by whatever neighbors) in which  a request for the same
             // message/fragment must not be served
@@ -971,6 +955,7 @@ namespace IHMC_ACI
             friend class TransmissionServiceListener;
             friend class ConnHandler;
             friend class DataRequestHandler;
+            friend class DataRequestServer;
             friend class SearchService;
 
             friend class WorldState;
@@ -1162,7 +1147,8 @@ namespace IHMC_ACI
             bool _bReplicationAcked;
 
             bool _bTargetFilteringEnabled;
-
+            bool _bOppListeningEnabled;
+ 
             bool _bQueryDataCacheEnabled;
             uint8 _ui8QueryDataCacheReplyType;
 
@@ -1186,20 +1172,18 @@ namespace IHMC_ACI
             uint16 _ui16CacheCleanCycle;		// Set by the DataCacheExpirationController
             uint16 _ui16HistoryReqCycle;
 
-            uint8 _ui8MissingFragReqReplyMode;
-            uint8 _ui8MissingFragReqReplyFixedProb;
-
             DisServiceStats *_pStats;
             DisServiceStatusNotifier *_pStatusNotifier;
 
             NOMADSUtil::DArray2<ClientInfo> _clients;
             NOMADSUtil::DArray2<PeerStatusClientInfo> _peerStatusClients;
-            ChunkingConfiguration _chunkingConf;
+            ChunkingConfiguration *_pChunkingConf;
 
             LocalNodeInfo *_pLocalNodeInfo;
             PeerState *_pPeerState;
             SubscriptionState *_pSubscriptionState;
             SearchNotifier *_pSearchNotifier;
+            DataRequestServer *_pDataReqSvr;
 
             DataCacheInterface *_pDataCacheInterface;
             DataCacheReplicationController *_pDCRepCtlr;

@@ -2,7 +2,7 @@
  * TCPSocket.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,8 +16,8 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/TCPSocket.cpp,v 1.60 2014/11/06 21:30:46 gbenincasa Exp $
- * Revision: $Revision: 1.60 $
+ * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/TCPSocket.cpp,v 1.61 2016/06/09 20:02:45 gbenincasa Exp $
+ * Revision: $Revision: 1.61 $
  */
 
 #include <stdio.h>

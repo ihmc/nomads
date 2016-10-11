@@ -2,7 +2,7 @@
  * SQLMessageHeaderStorage.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,14 +30,8 @@
 #include "LoggingMutex.h"
 #include "PtrLList.h"
 #include "StringHashtable.h"
-#include "ConnectivityHistory.h"
 
 #include "Database.h"
-
-namespace NOMADSUtil
-{
-    class String;
-}
 
 namespace IHMC_MISC
 {
@@ -54,8 +48,7 @@ namespace IHMC_ACI
     class SQLMessageHeaderStorage : public StorageInterface
     {
         public:
-            SQLMessageHeaderStorage (void);
-            SQLMessageHeaderStorage (const char *pszDBName);
+            SQLMessageHeaderStorage (const char *pszDBName = NULL);
             virtual ~SQLMessageHeaderStorage (void);
 
             virtual int init (void);
@@ -101,6 +94,11 @@ namespace IHMC_ACI
                                                                                 uint32 ui32StartOffset, uint32 ui32EndOffset);
             NOMADSUtil::PtrLList<MessageHeader> * getCompleteChunkMessageInfos (const char *pszGroupName, const char *pszSender,
                                                                                 uint32 ui32MsgSeqId);
+            NOMADSUtil::PtrLList<MessageHeader> * getAnnotationsOnMsgMessageInfos (const char *pszAnnotatedObjMsgId);
+            /**
+             * It returns a copy of the object.  It musy be deallocated by the caller.
+             */
+            void * getAnnotationMetadata (const char *pszGroupName, const char *pszSenderNodeId, uint32 ui32MsgSeqId, uint32 &ui32Len);
 
             NOMADSUtil::PtrLList<MessageId> * getMessageIdsForFragments (void);
 
@@ -170,6 +168,12 @@ namespace IHMC_ACI
 
             static const NOMADSUtil::String FIELD_INSTANCE_ID;
             static const uint8 FIELD_INSTANCE_ID_COLUMN_NUMBER;
+
+            static const NOMADSUtil::String FIELD_ANNOTATION_MSG_ID;
+            static const uint8 FIELD_ANNOTATION_MSG_ID_COLUMN_NUMBER;
+
+            static const NOMADSUtil::String FIELD_ANNOTATION_METADATA;
+            static const uint8 FIELD_ANNOTATION_METADATA_COLUMN_NUMBER;
 
             static const NOMADSUtil::String FIELD_TAG;
             static const uint8 FIELD_TAG_COLUMN_NUMBER;
@@ -276,8 +280,8 @@ namespace IHMC_ACI
              */
             virtual NOMADSUtil::DArray2<NOMADSUtil::String> * getExpiredEntries (void);
 
-            virtual char * getCreateTableSQLStatement (void);
-            virtual char * getInsertIntoTableSQLStatement (void);
+            virtual NOMADSUtil::String getCreateTableSQLStatement (void);
+            virtual NOMADSUtil::String getInsertIntoTableSQLStatement (void);
 
             virtual int eliminateAllTheMessageFragments (const char *pszGroupName, const char *pszSenderNodeId,
                                                          uint32 ui32MsgSeqId, uint8 ui8ChunkId,
@@ -338,6 +342,8 @@ namespace IHMC_ACI
             IHMC_MISC::PreparedStatement *_pGetMatchingFragmentMsgInfoPrepStmt_2;
             IHMC_MISC::PreparedStatement *_pGetMatchingFragmentMsgInfoPrepStmt_3;
             IHMC_MISC::PreparedStatement *_pGetComplChunkMsgHeadersPrepStmt;
+            IHMC_MISC::PreparedStatement *_pGetAnnotationMetadataPrepStmt;
+            IHMC_MISC::PreparedStatement *_pGetComplAnnotationsPrepStmt;
             IHMC_MISC::PreparedStatement *_pEliminateFragments;
             IHMC_MISC::PreparedStatement *_pEliminateFragmentIDs;
             IHMC_MISC::PreparedStatement *_pFindAllMessageIDsWithFragments;

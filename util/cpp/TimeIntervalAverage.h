@@ -2,7 +2,7 @@
  * TimeIntervalAverage.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,10 +26,11 @@
 #ifndef INCL_TIME_INTERVAL_AVERAGE_H
 #define INCL_TIME_INTERVAL_AVERAGE_H
 
+#include "NLFLib.h"
 template <class T> class TimeIntervalAverage
 {
     public:
-        TimeIntervalAverage (uint32 ui32TimeIntervalInMS);
+        explicit TimeIntervalAverage (uint32 ui32TimeIntervalInMS);
         ~TimeIntervalAverage (void);
 
         void add (T value);
@@ -157,7 +158,7 @@ template <class T> int TimeIntervalAverage<T>::insertEntry (int64 i64TimeStamp, 
         return 0;
     }
     // Insert at the tail of the queue if the node is the most recent
-    else if (_pTail->i64TimeStamp <= i64TimeStamp) {
+    if (_pTail->i64TimeStamp <= i64TimeStamp) {
         pNewNode->pPrev = _pTail;
         _pTail->pNext = pNewNode;
         _pTail = pNewNode;
@@ -166,29 +167,26 @@ template <class T> int TimeIntervalAverage<T>::insertEntry (int64 i64TimeStamp, 
         return 0;
     }
     // Insert at the correct point in the list
-    else {
-        Node *pTempNode = _pTail->pPrev;
-        while (pTempNode != NULL) {
-            if (pTempNode->i64TimeStamp <= i64TimeStamp) {
-                pNewNode->pPrev = pTempNode;
-                pNewNode->pNext = pTempNode->pNext;
-                pTempNode->pNext->pPrev = pNewNode;
-                pTempNode->pNext = pNewNode;
-                _sum += value;
-                _ui32NumValues++;
-                return 0;
-            }
-            pTempNode = pTempNode->pPrev;
+    Node *pTempNode = _pTail->pPrev;
+    while (pTempNode != NULL) {
+        if (pTempNode->i64TimeStamp <= i64TimeStamp) {
+            pNewNode->pPrev = pTempNode;
+            pNewNode->pNext = pTempNode->pNext;
+            pTempNode->pNext->pPrev = pNewNode;
+            pTempNode->pNext = pNewNode;
+            _sum += value;
+            _ui32NumValues++;
+            return 0;
         }
-        // Reached the head
-        pNewNode->pNext = _pHead;
-        _pHead->pPrev = pNewNode;
-        _pHead = pNewNode;
-        _sum += value;
-        _ui32NumValues++;
-        return 0;
+        pTempNode = pTempNode->pPrev;
     }
-    return -1;
+    // Reached the head
+    pNewNode->pNext = _pHead;
+    _pHead->pPrev = pNewNode;
+    _pHead = pNewNode;
+    _sum += value;
+    _ui32NumValues++;
+    return 0;
 }
 
 template <class T> void TimeIntervalAverage<T>::expireOldEntries (void)
@@ -196,12 +194,14 @@ template <class T> void TimeIntervalAverage<T>::expireOldEntries (void)
     if (_pHead == NULL) {
         // Empty structure
         return;
-    }
+    } 
     int64 i64ExpireUntil = NOMADSUtil::getTimeInMilliseconds() - _ui32TimeInterval;
+    //printf("Expire Until = %I64d\n", i64ExpireUntil);
     Node *pExpiredNode;
     Node *pTempNode = _pHead;
     while (pTempNode != NULL) {
         if (pTempNode->i64TimeStamp <= i64ExpireUntil) {
+            //printf("  expiring packet with timestamp %I64d\n", pTempNode->i64TimeStamp);
             _sum -= pTempNode->value;
             _ui32NumValues --;
             pExpiredNode = pTempNode;

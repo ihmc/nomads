@@ -2,7 +2,7 @@
  * BasicWorldState.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,14 +21,11 @@
 
 #include "DisseminationService.h"
 #include "DisServiceMsg.h"
-#include "MessageInfo.h"
 #include "NodeInfo.h"
 
 #include "ConfigFileReader.h"
-#include "BufferWriter.h"
 #include "NetUtils.h"
 #include "NLFLib.h"
-#include "Writer.h"
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
@@ -49,7 +46,7 @@ BasicWorldState::BasicWorldState (DisseminationService *pDisService)
     _ui32DeadPeerInterval = DisseminationService::DEFAULT_DEAD_PEER_INTERVAL;
 }
 
-BasicWorldState::~BasicWorldState()
+BasicWorldState::~BasicWorldState (void)
 {
 }
 
@@ -58,19 +55,19 @@ void BasicWorldState::setDeadPeerInterval (uint32 ui32DeadPeerInterval)
     _ui32DeadPeerInterval = ui32DeadPeerInterval;
 }
 
-int BasicWorldState::incrementDataCacheStateSeqId()
+int BasicWorldState::incrementDataCacheStateSeqId (void)
 {
     _ui32DataCacheStateSeqId++;
     return 0;
 }
 
-int BasicWorldState::incrementTopologyStateSeqId()
+int BasicWorldState::incrementTopologyStateSeqId (void)
 {
     _ui32TopologyStateSeqId++;
     return 0;
 }
 
-int BasicWorldState::incrementSubscriptionStateSeqId()
+int BasicWorldState::incrementSubscriptionStateSeqId (void)
 {
     _ui32SubscriptionStateSeqId++;
     return 0;
@@ -188,7 +185,7 @@ int BasicWorldState::updateNeighbors (void)
     }
 
     for (unsigned int i = 0; i < index; i++) {
-        _notifier.deadNeighbor ((const char *) deadPeers[i]);
+        _notifier.deadNeighbor (static_cast<const char *>(deadPeers[i]));
     }
 
     return 0;

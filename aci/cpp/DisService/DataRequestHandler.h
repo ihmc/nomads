@@ -2,7 +2,7 @@
  * DataRequestHandler.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,6 +32,7 @@
 
 #include "ManageableThread.h"
 #include "StringHashset.h"
+#include "TimeIntervalAverage.h"
 
 namespace IHMC_ACI
 {
@@ -47,8 +48,9 @@ namespace IHMC_ACI
 
             static DataRequestHandler * getInstance (DisseminationService *pDisService,
                                                      TransmissionService *pTrSvc, int64 i64SleepTime,
-                                                     int64 i64BaseTimeMs, uint16 u16OffsetRange,
-                                                     float fReceiveRateThreshold, bool bHandleRequests);
+                                                     int64 i64BaseTimeMs, int64 iMissingFragReqTimeout,
+                                                     uint16 u16OffsetRange, float fReceiveRateThreshold,
+                                                     bool bHandleRequests);
 
             /**
              * the DRH will take care of MFR. if it's configured to handle them,
@@ -58,7 +60,9 @@ namespace IHMC_ACI
             virtual void dataRequestMessageArrived (DisServiceDataReqMsg *pDSDRMsg,
                                                     const char *pszIncomingInterface) = 0;
 
+            static int64 getRandomSleepTime (int64 i64SleepTime);
             static void registerWithListeners (DisseminationService *pDisService, DataRequestHandler *pDRH);
+            static void halt (DataRequestHandler *pDRH);
 
         public:
             static const int64 DEFAULT_SLEEP_TIME;
@@ -67,13 +71,19 @@ namespace IHMC_ACI
             static const float DEFAULT_RECEIVE_RATE_THRESHOLD;
 
         protected:
-            DataRequestHandler (DisseminationService *pDisService);
+            enum Type
+            {
+                SYNC,
+                ASYNC
+            };
+            explicit DataRequestHandler (Type type, DisseminationService *pDisService);
             void handleDataRequestMessage (DisServiceDataReqMsg *pDSDRMsg, const char *pszIncomingInterface, int64 i64Timeout);
             void handleDataRequestMessage (const char *pszMsgId, DisServiceMsg::Range *pRange, bool bIsChunk, const char *pszTarget,
                                            unsigned int uiNumberOfActiveNeighbors, int64 i64RequestArrivalTime,
                                            const char **ppszOutgoingInterfaces, int64 i64Timeout);
 
         protected:
+            const Type _type;
             int64 _i64DiscardTime;
 
             NOMADSUtil::LoggingMutex _mx;
@@ -177,32 +187,112 @@ namespace IHMC_ACI
             void run (void);
 
         private:
-            void serveRequest (void);
+            /*
+             * Return true if available interfaces were found, false otherwise
+             */
+            bool serveRequest (void);
 
         private:
-            struct QueuedRequest {
-                QueuedRequest (const char *pszMsgId, DisServiceMsg::Range &range, bool bIsChunk);
+            struct QueuedRequest
+            {
+                QueuedRequest (const char *pszMsgId, DisServiceMsg::Range &range, bool bIsChunk,
+                               uint16 ui16MinimumNumberOfActiveNeighbors, const char *pszRequestingNodeId);
                 ~QueuedRequest (void);
 
-                bool operator > (QueuedRequest &rhsQueuedReq);
-                bool operator < (QueuedRequest &rhsQueuedReq);
-                bool operator == (QueuedRequest &rhsQueuedReq);
+                bool operator > (const QueuedRequest &rhsQueuedReq) const;
+                bool operator < (const QueuedRequest &rhsQueuedReq) const;
+                int operator == (const QueuedRequest &rhsQueuedReq) const;
+                QueuedRequest & operator += (QueuedRequest &rhsQueuedReq);
 
                 const bool _bIsChunk;
+                const int64 _i64ArrivalOfFirstRequestTimestamp;
+                int64 _i64ArrivalOfLatestRequestTimestamp;
                 const MessageId _messageId;
-                DisServiceMsg::Range _range;
-                uint16 _ui16RequestCount;
-                uint16 _ui16NumberOfActiveNeighbors;
-                int64 _i64ArrivalTimestamp;
-                NOMADSUtil::StringHashset _incomingInterfaces;
+                NOMADSUtil::UInt32RangeDLList _requestedFragments;
                 NOMADSUtil::StringHashset _requestingPeers;
+                TimeIntervalAverage<uint16> _avgMinimumNumberOfActiveNeighbors;
             };
 
-            void requestArrived (AsynchronousDataRequestHandlerV2::QueuedRequest *pNewQueuedReq,
-                                 const char *pszSender, const char *pszIncomingInterface);
+            struct RequestsByMessageIdList
+            {
+                RequestsByMessageIdList (void);
+                ~RequestsByMessageIdList (void);
+
+                NOMADSUtil::PtrLList<QueuedRequest> * getRequests (void);
+                bool insertMerge (QueuedRequest *pReq);
+                QueuedRequest * pop (uint32 ui32AgeThreshold);
+
+                private:
+                    mutable NOMADSUtil::Mutex _m;
+                    NOMADSUtil::PtrLList<QueuedRequest> _queuedRequests;
+            };
+
+            struct RequestByInterface
+            {
+                RequestByInterface (const char *pszIncomingInterface);
+                ~RequestByInterface (void);
+
+                int operator == (const RequestByInterface &rhsReqsByIface) const;
+
+                const NOMADSUtil::String _incomingInterface;
+                RequestsByMessageIdList _reqByMsgId;
+                mutable NOMADSUtil::Mutex _m;
+            };
+
+            struct RequestByInterfaceList
+            {
+                RequestByInterfaceList (void);
+                ~RequestByInterfaceList (void);
+
+                RequestByInterface * getFirst (void);
+                RequestByInterface * getNext (void);
+
+                RequestByInterface * insertUnique (RequestByInterface *pByIface);
+
+                private:
+                    mutable NOMADSUtil::Mutex _m;
+                    NOMADSUtil::PtrLList<RequestByInterface> _requestsByIncomingInterface;
+            };
 
         private:
-            NOMADSUtil::PtrLList<QueuedRequest> _queuedRequests;
+            RequestByInterfaceList _requestsByIncomingInterface;
+    };
+
+    class AsynchronousDataRequestHandlerV4 : public AsynchronousDataRequestHandler
+    {
+        public:
+            AsynchronousDataRequestHandlerV4 (DisseminationService *pDisService, TransmissionService *pTrSvc,
+                                              int64 i64SleepTime, int64 i64BaseTimeMs, uint16 u16OffsetRange,
+                                              float fReceiveRateThreshold);
+            ~AsynchronousDataRequestHandlerV4 (void);
+
+            void dataRequestMessageArrived (DisServiceDataReqMsg *pDSDRMsg,
+                                            const char *pszIncomingInterface);
+
+            void display (FILE *pOutputFile);
+
+            void run (void);
+
+        private:
+            struct Ranges
+            {
+                explicit Ranges (bool bOriginatedLocally);
+                ~Ranges (void);
+
+                void reset (void);
+
+                const bool _bOriginatedLocally;
+                const int64 _i64FirstRequest;
+                int64 _i64LatestRequest;
+                NOMADSUtil::UInt32RangeDLList _ranges;
+                NOMADSUtil::StringHashset _requestingPeers;
+                TimeIntervalAverage<uint16> _avgMinimumNumberOfActiveNeighbors;
+            };
+            bool _bIsServingRequests;
+            NOMADSUtil::Mutex _m;
+            const NOMADSUtil::String _nodeId;
+            typedef NOMADSUtil::StringHashtable<Ranges> RangesByMsgId;
+            NOMADSUtil::StringHashtable<RangesByMsgId> *_pIncompleteMsgsByIface;
     };
 
     class SynchronousDataRequestHandler : public DataRequestHandler
@@ -220,6 +310,47 @@ namespace IHMC_ACI
     inline AsynchronousDataRequestHandler::DataReqMsgWrapper::~DataReqMsgWrapper()
     {
     }
+
+    //==========================================================================
+    //  STRUCT RequestByInterface inline functions
+    //==========================================================================
+
+    inline int AsynchronousDataRequestHandlerV2::RequestByInterface::operator == (const AsynchronousDataRequestHandlerV2::RequestByInterface &rhsReqsByIface) const
+    {
+        return (_incomingInterface == rhsReqsByIface._incomingInterface);
+    }
+
+    //==========================================================================
+    //  STRUCT RequestByMessageId inline functions
+    //==========================================================================
+
+    inline NOMADSUtil::PtrLList<AsynchronousDataRequestHandlerV2::QueuedRequest> * AsynchronousDataRequestHandlerV2::RequestsByMessageIdList::getRequests (void)
+    {
+        _m.lock();
+        NOMADSUtil::PtrLList<AsynchronousDataRequestHandlerV2::QueuedRequest> *pReqs = new NOMADSUtil::PtrLList<AsynchronousDataRequestHandlerV2::QueuedRequest> (_queuedRequests);
+        _m.unlock();
+        return pReqs;
+    }
+
+    inline bool AsynchronousDataRequestHandlerV2::RequestsByMessageIdList::insertMerge (AsynchronousDataRequestHandlerV2::QueuedRequest *pReq)
+    {
+        if (pReq == NULL) {
+            return false;
+        }
+        _m.lock();
+        QueuedRequest *pOld = _queuedRequests.search (pReq);
+        if (pOld == NULL) {
+            _queuedRequests.insert (pReq);
+            _m.unlock();
+            return false;
+        }
+        else {
+            *pOld += *pReq;
+            _m.unlock();
+            return true;
+        }
+    }
 }
 
 #endif // INCL_DATA_REQUEST_HANDLER_H
+

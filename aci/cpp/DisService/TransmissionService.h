@@ -2,7 +2,7 @@
  * TransmissionService.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,6 +23,8 @@
 #ifndef INCL_TRANSMISSION_SERVICE_H
 #define INCL_TRANSMISSION_SERVICE_H
 
+#include "NMSHelper.h"
+
 #include "DisServiceMsg.h"
 #include "RateEstimator.h"
 
@@ -32,7 +34,7 @@
 namespace NOMADSUtil
 {
     class ConfigManager;
-    class NetworkMessageService;
+    class NetworkMessageServiceInterface;
     class NICInfo;
 }
 
@@ -62,7 +64,8 @@ namespace IHMC_ACI
             enum TRANSMISSION_SVC_MODE
             {
                 MULTICAST = 0x00,
-                BROADCAST = 0x01
+                BROADCAST = 0x01,
+                NORM = 0x02
             };
 
             struct TransmissionResults
@@ -107,6 +110,7 @@ namespace IHMC_ACI
                               const char **ppszBindingInterfaces = NULL,
                               const char **ppszIgnoredInterfaces = NULL,
                               const char **ppszAddedInterfaces = NULL);
+            bool isInitialized (void);
 
             int registerWithListeners (DisseminationService *pDisService);
 
@@ -148,6 +152,8 @@ namespace IHMC_ACI
              * Blocks until threads are terminated
              */
             void stop (void);
+
+            void requestTermination (void);
 
             /**
              * Returns the NICInfo/Network interface IP Address of all the
@@ -302,19 +308,19 @@ namespace IHMC_ACI
             const bool _bAsyncDelivery;
             const bool _bAsyncTransmission;
             uint8 _ui8McastTTL;
-            uint8 _ui8NInterfaces;
             uint8 _ui8MessageVersion;
             const uint16 _ui16Port;
             uint16 _ui16MaxFragmentSize;
             uint32 _ui32RateLimitCap;
 
-            NOMADSUtil::NetworkMessageService *_pMPS;
+            NOMADSUtil::NetworkMessageServiceInterface *_pMPS;
             NOMADSUtil::Mutex _m;
             const NOMADSUtil::String _dstAddr;
             NOMADSUtil::String _primaryIface;
             const NOMADSUtil::String _nodeId;
             const NOMADSUtil::String _sessionId;
             TransmissionServiceLogger _logger;
+            NMSHelper _nmsHelper;
             NOMADSUtil::StringHashtable<int64> _latestBcastTimeByIface;
     };
 

@@ -1,3 +1,8 @@
+#
+# Makefile
+# author: Giacomo Benincasa	(gbenincasa@ihmc.us)
+#
+
 include Makefile.inc
 
 %.o : ../%.cpp
@@ -10,24 +15,24 @@ include Makefile.inc
 	$(cpp) -c $(cppflags) $<
 
 %.o : ../security/%.cpp
-	$(cpp) -c -I../../../externals/include $(cppflags) $<
+	$(cpp) -c  $(cppflags) $<
 
 %.o : ../comm/%.cpp
 	$(cpp) -c $(cppflags) $<
 
-%.o : ../media/%.cpp
+%.o : ../proxy/%.cpp
 	$(cpp) -c $(cppflags) $<
 
 all: libutil.a libsecurity.a 
 
-libutil.a : $(objects) $(graphobjects) $(netobjects) $(commobjects) $(mediaobjects)
-	ar -rcv libutil.a $(objects) $(graphobjects) $(netobjects) $(commobjects) $(mediaobjects)
+libutil.a : $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
+	ar -rcv libutil.a $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
 
 libsecurity.a :  $(securityobjects)
 	ar -rcv libsecurity.a $(securityobjects) 
 
-libutil.so: $(objects) $(graphobjects) $(netobjects) $(commobjects) $(mediaobjects)
-	$(cpp) -shared -o libutil.so $(objects) $(graphobjects) $(netobjects) $(commobjects) $(mediaobjects)
+libutil.so: $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
+	$(cpp) -shared -o libutil.so $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
 
 libsecurity.so: $(securityobjects)
 	$(cpp) -shared -o libutil.so $(securityobjects)

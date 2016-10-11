@@ -2,7 +2,7 @@
  * UDPSocketAdapter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,7 +41,7 @@ namespace ACMNetProxy
         _mUDPConnectionThread.lock();
         while (!terminationRequested()) {
             _mPtrQueue.lock();
-            while (pProxyNetworkMessage = _ProxyNetworkMessagesPtrQueue.dequeue()) {
+            while ((pProxyNetworkMessage = _ProxyNetworkMessagesPtrQueue.dequeue())) {
                 _mPtrQueue.unlock();
                 ui16MessageSize = pProxyNetworkMessage->getMessageTotalLength();
                 if (0 != (rc = sendProxyNetworkMessageToRemoteProxy (pProxyNetworkMessage))) {
@@ -142,7 +142,7 @@ namespace ACMNetProxy
             const ProxyNetworkMessage *pProxyNetworkMessage = NULL;
             _mPtrQueue.lock();
             _ProxyNetworkMessagesPtrQueue.resetGet();
-            while (pProxyNetworkMessage = _ProxyNetworkMessagesPtrQueue.getNext()) {
+            while ((pProxyNetworkMessage = _ProxyNetworkMessagesPtrQueue.getNext())) {
                 if (ProxyMessage::belongsToVirtualConnection (pProxyNetworkMessage->getProxyMessage(),uiLocalID, uiRemoteID) &&
                     pProxyNetworkMessage->getMessageType() != ProxyMessage::PMT_TCPResetConnection) {
                     // TCP Reset packets are skipped, so that is still possible to notify remote applications about any received RST
@@ -188,6 +188,9 @@ namespace ACMNetProxy
     int UDPSocketAdapter::gsend (const InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
                                  const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2)
     {
+        (void) bReliable;
+        (void) bSequenced;
+        
         if (!pInetAddr) {
             return -1;
         }
@@ -240,7 +243,6 @@ namespace ACMNetProxy
         switch (ui8ProxyPcktType) {
             case ProxyMessage::PMT_InitializeConnection:
             {
-                const InitializeConnectionProxyMessage * const pICPM = (InitializeConnectionProxyMessage*) pBuf;
                 if (ui32BufSize != sizeof (InitializeConnectionProxyMessage)) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_InitializeConnection - %d bytes have been received, but message header is %u bytes\n",
@@ -252,7 +254,6 @@ namespace ACMNetProxy
 
             case ProxyMessage::PMT_ConnectionInitialized:
             {
-                const ConnectionInitializedProxyMessage * const pCIPM = (ConnectionInitializedProxyMessage*) pBuf;
                 if (ui32BufSize != sizeof (ConnectionInitializedProxyMessage)) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_ConnectionInitialized - %d bytes have been received, but message header is %u bytes\n",
@@ -265,10 +266,10 @@ namespace ACMNetProxy
             case ProxyMessage::PMT_ICMPMessage:
             {
                 const ICMPProxyMessage * const pICMPPM = (ICMPProxyMessage*) pBuf;
-                if (ui32BufSize != (sizeof (ICMPProxyMessage) + pICMPPM->ui16PayloadLen)) {
+                if (ui32BufSize != (sizeof (ICMPProxyMessage) + pICMPPM->getPayloadLen())) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_ICMPMessage - %d bytes have been received, but message header is %u bytes and payload is %hu bytes long\n",
-                                    ui32BufSize, sizeof (ICMPProxyMessage), pICMPPM->ui16PayloadLen);
+                                    ui32BufSize, sizeof (ICMPProxyMessage), pICMPPM->getPayloadLen());
                     return 0;
                 }
                 break;
@@ -277,10 +278,10 @@ namespace ACMNetProxy
             case ProxyMessage::PMT_UDPUnicastData:
             {
                 const UDPUnicastDataProxyMessage * const pUDPUDPM = (UDPUnicastDataProxyMessage*) pBuf;
-                if (ui32BufSize != (sizeof (UDPUnicastDataProxyMessage) + pUDPUDPM->ui16PayloadLen)) {
+                if (ui32BufSize != (sizeof (UDPUnicastDataProxyMessage) + pUDPUDPM->getPayloadLen())) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_UDPUnicastData - %d bytes have been received, but message header is %u bytes and payload is %hu bytes long\n",
-                                    ui32BufSize, sizeof (UDPUnicastDataProxyMessage), pUDPUDPM->ui16PayloadLen);
+                                    ui32BufSize, sizeof (UDPUnicastDataProxyMessage), pUDPUDPM->getPayloadLen());
                     return 0;
                 }
                 break;
@@ -289,10 +290,10 @@ namespace ACMNetProxy
             case ProxyMessage::PMT_MultipleUDPDatagrams:
             {
                 const MultipleUDPDatagramsProxyMessage * const pMUDPDPM = (MultipleUDPDatagramsProxyMessage*) pBuf;
-                if (ui32BufSize != (sizeof (MultipleUDPDatagramsProxyMessage) + pMUDPDPM->ui16PayloadLen)) {
+                if (ui32BufSize != (sizeof (MultipleUDPDatagramsProxyMessage) + pMUDPDPM->getPayloadLen())) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_MultipleUDPDatagrams - %d bytes have been received, but message header is %u bytes and payload is %hu bytes long\n",
-                                    ui32BufSize, sizeof (MultipleUDPDatagramsProxyMessage), pMUDPDPM->ui16PayloadLen);
+                                    ui32BufSize, sizeof (MultipleUDPDatagramsProxyMessage), pMUDPDPM->getPayloadLen());
                     return 0;
                 }
                 break;
@@ -301,10 +302,10 @@ namespace ACMNetProxy
             case ProxyMessage::PMT_UDPBCastMCastData:
             {
                 const UDPBCastMCastDataProxyMessage * const udpBMDPM = (UDPBCastMCastDataProxyMessage*) pBuf;
-                if (ui32BufSize != (sizeof (UDPBCastMCastDataProxyMessage) + udpBMDPM->ui16PayloadLen)) {
+                if (ui32BufSize != (sizeof (UDPBCastMCastDataProxyMessage) + udpBMDPM->getPayloadLen())) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_UDPBCastMCastData - %d bytes have been received, but message header is %u bytes and payload is %hu bytes long\n",
-                                    ui32BufSize, sizeof (UDPBCastMCastDataProxyMessage), udpBMDPM->ui16PayloadLen);
+                                    ui32BufSize, sizeof (UDPBCastMCastDataProxyMessage), udpBMDPM->getPayloadLen());
                     return 0;
                 }
                 break;
@@ -312,7 +313,6 @@ namespace ACMNetProxy
 
             case ProxyMessage::PMT_TCPOpenConnection:
             {
-                const OpenConnectionProxyMessage * const pOCPM = (OpenConnectionProxyMessage*) pBuf;
                 if (ui32BufSize != sizeof (OpenConnectionProxyMessage)) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_TCPOpenConnection - %d bytes have been received, but message header is %u bytes long\n",
@@ -324,7 +324,6 @@ namespace ACMNetProxy
 
             case ProxyMessage::PMT_TCPConnectionOpened:
             {
-                const ConnectionOpenedProxyMessage * const pCOPM = (ConnectionOpenedProxyMessage*) pBuf;
                 if (ui32BufSize != sizeof (ConnectionOpenedProxyMessage)) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_TCPConnectionOpened - %d bytes have been received, but message header is %u bytes long\n",
@@ -337,10 +336,10 @@ namespace ACMNetProxy
             case ProxyMessage::PMT_TCPData:
             {
                 const TCPDataProxyMessage * const pTCPDataMsg = (TCPDataProxyMessage*) pBuf;
-                if (ui32BufSize != (sizeof (TCPDataProxyMessage) + pTCPDataMsg->ui16PayloadLen)) {
+                if (ui32BufSize != (sizeof (TCPDataProxyMessage) + pTCPDataMsg->_ui16PayloadLen)) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_TCPData - %d bytes have been received, but message header is %u bytes and payload is %hu bytes long\n",
-                                    ui32BufSize, sizeof (TCPDataProxyMessage), pTCPDataMsg->ui16PayloadLen);
+                                    ui32BufSize, sizeof (TCPDataProxyMessage), pTCPDataMsg->getPayloadLen());
                     return 0;
                 }
                 break;
@@ -348,7 +347,6 @@ namespace ACMNetProxy
 
             case ProxyMessage::PMT_TCPCloseConnection:
             {
-                const CloseConnectionProxyMessage * const pCCPM = (CloseConnectionProxyMessage*) pBuf;
                 if (ui32BufSize != sizeof (CloseConnectionProxyMessage)) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "PMT_TCPCloseConnection - %d bytes have been received, but message header is %u bytes long\n",
@@ -360,7 +358,6 @@ namespace ACMNetProxy
 
             case ProxyMessage::PMT_TCPResetConnection:
             {
-                const ResetConnectionProxyMessage * const pRCPM = (ResetConnectionProxyMessage*) pBuf;
                 if (ui32BufSize != sizeof (ResetConnectionProxyMessage)) {
                     checkAndLogMsg ("UDPSocketAdapter::receiveMessage", Logger::L_Warning,
                                     "ResetConnectionProxyMessage - %d bytes have been received, but message header is %u bytes long\n",

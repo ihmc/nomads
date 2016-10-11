@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<RankerPolicy>
+	<Type>Static</Type>
+	<Attribute>Affiliation</Attribute>
+	<Weight>5.3</Weight>
+	<Match>
+		<Value>Friendly</Value>
+		<Rank>5.0</Rank>
+	</Match>
+	<Match>
+		<Value>Hostile</Value>
+		<Rank>9.3</Rank>
+	</Match>
+</RankerPolicy>
+

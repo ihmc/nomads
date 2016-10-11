@@ -22,10 +22,11 @@
  *
  * @author Rita Lenzi (rlenzi@ihmc.us)
  */
- 
- package us.ihmc.mockets;
+
+package us.ihmc.mockets;
 
 import us.ihmc.comm.CommException;
+import us.ihmc.comm.CommHelperInterface;
 import us.ihmc.comm.ProtocolException;
 import us.ihmc.util.ByteConverter;
 
@@ -33,7 +34,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.StringTokenizer;
 
-public class MocketsCommHelper
+public class MocketsCommHelper implements CommHelperInterface
 {
     /**
      * Constructor for <code>MocketsCommHelper</code>
@@ -93,6 +94,7 @@ public class MocketsCommHelper
             if (rc < 0) {
                 throw new CommException("Unable to send data on the mocket");
             }
+
         }
         catch (Exception e) {
             throw new CommException("Filed to send a line", e);
@@ -249,10 +251,10 @@ public class MocketsCommHelper
                 return buf;
             }
             else {
-//                if (rc > 0) {
-//                    return Arrays.copyOf(buf, rc);
-//                } else
-                if (rc == -1) {
+                if (rc > 0) {
+                    return Arrays.copyOf(buf, rc);
+                }
+                else if (rc == -1) {
                     throw new CommException("An error occurred in the receive method call");
                 }
                 else if (rc == -10) {
@@ -261,8 +263,8 @@ public class MocketsCommHelper
                 else if (rc == -11) {
                     throw new CommException("The parameter buffer is invalid, buffer is null");
                 }
-                throw new CommException ("The length of the buffer doesn't correspond to the expected one");
-                //throw new CommException("Unable to process data of size " + rc);
+                //throw new CommException ("The length of the buffer doesn't correspond to the expected one");
+                throw new CommException("Unable to process data of size " + rc);
             }
         }
         catch (IOException e) {
@@ -282,6 +284,7 @@ public class MocketsCommHelper
             byte[] buf = new byte[4];
             ByteConverter.fromUnsignedIntTo4Bytes(i32Val, buf, 0);
             int rc = _mocket.send(true, true, buf, 0, (short) 5, 0, 0);
+
             if (rc < 0) {
                 throw new CommException("Unable to send data on the mocket");
             }

@@ -1,8 +1,8 @@
 /**
- * ProtocolException.java
+ * ConnectionManager.java
  * 
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +27,6 @@ import java.net.UnknownHostException;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Hashtable;
 
 import us.ihmc.net.NetUtils;
 import us.ihmc.net.SocketFactory;
@@ -38,6 +37,7 @@ import us.ihmc.util.crypto.MASTPKITools;
 import us.ihmc.util.ConfigLoader;
 import COM.claymoresystems.ptls.SSLServerSocket;
 import COM.claymoresystems.ptls.SSLSocket;
+import java.util.HashMap;
 
 public class ConnectionManager
 {
@@ -417,10 +417,10 @@ public class ConnectionManager
                     String peer = PureTLSUtils.getPeersCommonName ((SSLSocket) sock) + "." + sock.getInetAddress();
                     boolean peerEntryExists = false;
                     Long timestamp = new Long (0L);
-                    if (_verifiedPeers.containsKey ((Object) peer)) {
+                    if (_verifiedPeers.containsKey (peer)) {
                         printDebugLog ("Server SSL Connection, peer: " + peer + " entry previously cached");
                         peerEntryExists = true;
-                        timestamp = (Long) _verifiedPeers.get (peer);
+                        timestamp = _verifiedPeers.get (peer);
                     }
                     if (!peerEntryExists || (timestamp.longValue() + (30 * 60 * 1000)) < System.currentTimeMillis()) {
                         //docheck
@@ -432,7 +432,7 @@ public class ConnectionManager
                         }
                         else {
                             printDebugLog ("Server SSL Connection, caching peer's: " + peer + " timestamp");
-                            _verifiedPeers.put ((Object) peer, (Object) new Long (System.currentTimeMillis()));
+                            _verifiedPeers.put (peer, System.currentTimeMillis());
                         }
                     }
                     else {
@@ -697,7 +697,7 @@ public class ConnectionManager
     private PureTLSServerSocketFactory _serverSocketFactory = null;
     private ServerSocket _serverSocket;
     private CommHelper _commHelper = null;
-    private static Hashtable _verifiedPeers;
+    private static final HashMap<String, Long> _verifiedPeers;
     public static final byte ENCRYPTION_UNINITIALIZED = -1;
     public static final byte NO_ENCRYPTION = 0;
     public static final byte SSL_LOCALPLAIN = 1;
@@ -714,6 +714,6 @@ public class ConnectionManager
 
     static
     {
-        _verifiedPeers = new Hashtable();
+        _verifiedPeers = new HashMap<String, Long>();
     }
 }

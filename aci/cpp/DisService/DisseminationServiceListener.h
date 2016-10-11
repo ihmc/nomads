@@ -2,7 +2,7 @@
  * DisseminationServiceListener.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -67,9 +67,9 @@ namespace IHMC_ACI
             */
             virtual bool dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName,
                                       uint32 ui32SeqId, const char *pszObjectId, const char *pszInstanceId,
-                                      const char *pszMimeType, const void *pData, uint32 ui32Length,
-                                      uint32 ui32MetadataLength, uint16 ui16Tag, uint8 ui8Priority,
-                                      const char *pszQueryId) = 0;
+                                      const char *pszAnnotatedObjMsgId, const char *pszMimeType,
+                                      const void *pData, uint32 ui32Length, uint32 ui32MetadataLength,
+                                      uint16 ui16Tag, uint8 ui8Priority, const char *pszQueryId) = 0;
 
             virtual bool chunkArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName,
                                        uint32 ui32SeqId, const char *pszObjectId, const char *pszInstanceId,

@@ -1,0 +1,72 @@
+AC_INIT(tcl/displayinit.c)
+
+dvm_tcl_dir="/usr/local/tcltk"
+dvm_tcl_lib="tcl80"
+
+#------------------------------------------------------------------
+# Get tcl-dir and tcl-lib
+#------------------------------------------------------------------
+
+AC_ARG_WITH(tcl-dir, [ --with-tcl-dir=DIR  find tcl headers and library in DIR ],
+    dvm_tcl_dir=$withval)
+AC_ARG_WITH(tcl-lib, [ --with-tcl-lib=NAME name of the tcl library (e.g. "tcl80") ],
+    dvm_tcl_lib=$withval)
+TCL_DIR=${dvm_tcl_dir}
+TCL_LIB=${dvm_tcl_lib}
+
+#------------------------------------------------------------------
+# Get tk-dir and tk-lib
+#------------------------------------------------------------------
+
+AC_ARG_WITH(tk-dir, [ --with-tk-dir=DIR  find tk headers and library in DIR ],
+    dvm_tk_dir=$withval)
+AC_ARG_WITH(tk-lib, [ --with-tk-lib=NAME name of the tk library (e.g. "tk40")],
+    dvm_tk_lib=$withval)
+TK_DIR=${dvm_tk_dir}
+TK_LIB=${dvm_tk_lib}
+
+
+#-------------------------------------------------------------------
+# if user did not set prefix (==NONE) set it to /usr/local/dvm
+#-------------------------------------------------------------------
+if test "$prefix" = "NONE"; then
+    if test "x$PREFIX" != "x"; then
+	prefix=$PREFIX
+    else
+	prefix=/usr/local/dvm
+    fi
+fi
+AC_PREFIX_DEFAULT($prefix)
+PREFIX=$ac_default_prefix
+PREFIX=$prefix
+
+#-------------------------------------------------------------------
+# check for memmove and mmap
+#-------------------------------------------------------------------
+AC_CHECK_FUNC(bcopy, AC_DEFINE(USE_BCOPY))
+AC_CHECK_FUNC(mmap, AC_DEFINE(HAVE_MMAP))
+
+#-------------------------------------------------------------------
+# check for socket and nsl
+#-------------------------------------------------------------------
+AC_CHECK_FUNC(connect, dvm_socket=0, dvm_socket=1)
+if test "$dvm_socket" = 1; then
+    AC_CHECK_LIB(socket, main, EXTRA_LIBS="$EXTRA_LIBS -lsocket", dvm_both=1)
+fi
+if test "$dvm_both" = 1; then
+    dvm_orig_libs=$EXTRA_LIBS
+    EXTRA_LIBS="$EXTRA_LIBS -lsocket -lnsl"
+    AC_CHECK_FUNC(accept, dvm_nsl=0, [EXTRA_LIBS=$dvm_orig_libs])
+fi
+AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, main, [EXTRA_LIBS="$EXTRA_LIBS -lnsl"]))
+
+#-------------------------------------------------------------------
+# do the subsitution and output makefile.
+#-------------------------------------------------------------------
+AC_SUBST(TCL_DIR)
+AC_SUBST(TCL_LIB)
+AC_SUBST(PREFIX)
+AC_SUBST(DEFS)
+AC_SUBST(EXTRA_LIBS)
+
+AC_OUTPUT(Makefile)

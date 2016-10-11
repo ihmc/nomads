@@ -2,7 +2,7 @@
  * ConnectionManager.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -80,12 +80,12 @@ namespace ACMNetProxy
         }
 
         if (!addressRange.isAnIPRange()) {
-            const std::pair<AddressRangeDescriptor, ConnectivitySolutions *> *const pPair = _remoteHostAddressMappingCache.get (addressRange.getLowestAddress());
+            const std::pair<AddressRangeDescriptor, ConnectivitySolutions *> * const pPair = _remoteHostAddressMappingCache.get (addressRange.getLowestAddress());
             if (pPair) {
                 return 0;
             }
         }
-
+		
         ConnectivitySolutions * const pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
         if (!pConnectivitySolutions) {
             checkAndLogMsg ("ConnectionManager::updateAddressMappingBook", Logger::L_Warning,
@@ -219,8 +219,8 @@ namespace ACMNetProxy
             ConnectivitySolutions *pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
             if (pConnectivitySolutions) {
                 // ConnectivitySolutions to reach the remote proxy already in the table; updating it will update all related entry in the Remote Host Mapping Table
-                ConnectionManager::updateRemoteProxyInfo (pConnectivitySolutions->_remoteProxyInfo, ui32RemoteProxyID, pRemoteProxyAddress,
-                                                          ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort, bRemoteProxyReachability);
+                ConnectionManager::updateRemoteProxyInfo (pConnectivitySolutions->_remoteProxyInfo, pRemoteProxyAddress, ui16MocketsServerPort,
+                                                          ui16TCPServerPort, ui16UDPServerPort, bRemoteProxyReachability);
             }
             else {
                 // New info needs to be added to the Remote Proxy Info Table; the default Mockets configuration file will be used
@@ -284,7 +284,7 @@ namespace ACMNetProxy
                 /* ConnectivitySolutions to reach the remote proxy already in the table.
                  * Updating this object will in turn update all the entries in the Remote Host Mapping Table that point to it. */
                 pOldConnection = pConnectivitySolutions->setActiveConnection (pConnectionToRemoteProxy);
-                ConnectionManager::updateRemoteProxyInfo (pConnectivitySolutions->_remoteProxyInfo, ui32RemoteProxyID, pConnectionToRemoteProxy->getRemoteProxyInetAddr(),
+                ConnectionManager::updateRemoteProxyInfo (pConnectivitySolutions->_remoteProxyInfo, pConnectionToRemoteProxy->getRemoteProxyInetAddr(),
                                                           ui16MocketsServerPort, ui16TCPServerPort, ui16UDPServerPort, bRemoteProxyReachability);
             }
             else {
@@ -325,6 +325,25 @@ namespace ACMNetProxy
         }
 
         return pOldConnection;
+    }
+
+    bool ConnectionManager::isRemoteHostIPMapped (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
+    {
+        bool res = false;
+        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+            std::pair<AddressRangeDescriptor, ConnectivitySolutions *> *pPair = _remoteHostAddressMappingCache.get (ui32RemoteHostIP);
+            if (pPair) {
+                res = pPair->first.matchesPort (ui16RemoteHostPort);
+            }
+            if (!res) {
+                /* This second lookup makes sure to find address mappings when 
+                 * defined on multiple lines in the proxyAddrMapping.cfg file. */
+                res = isAddressAMatchInTheMappingBook (ui32RemoteHostIP, ui16RemoteHostPort);
+            }
+            _m.unlock();
+        }
+
+        return res;
     }
 
     const QueryResult ConnectionManager::queryConnectionToRemoteHostForConnectorType (ConnectorType connectorType, uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
@@ -427,6 +446,21 @@ namespace ACMNetProxy
 
         return NULL;
     }
+
+	NOMADSUtil::LList<uint32> *ConnectionManager::getRemoteProxyAddrList()
+	{
+		if (_m.lock() == Mutex::RC_Ok) {
+			NOMADSUtil::LList<uint32> *uint32remoteProxyAddrList = new NOMADSUtil::LList<uint32>();
+			for (int count = 0; count < _remoteHostAddressMappingBook.size(); count++) {
+				uint32remoteProxyAddrList->add((((_remoteHostAddressMappingBook[count]).second)->getRemoteProxyInfo()).getRemoteProxyID());
+			}
+			_m.unlock();
+			return uint32remoteProxyAddrList;
+		}
+		return NULL;
+	}
+
+
 
     /* This method should be invoked by the NetProxyConfigManager parser only, and so it does not need to lock() */
     int ConnectionManager::addNewAddressMappingToBook (const AddressRangeDescriptor & addressRange, uint32 ui32RemoteProxyID)
@@ -540,7 +574,7 @@ namespace ACMNetProxy
         currentRemoteProxyInfo.setRemoteProxyReachabilityFromLocalHost (updatedRemoteProxyInfo.isRemoteProxyReachableFromLocalHost());
     }
 
-    void ConnectionManager::updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr * const pInetAddr,
+    void ConnectionManager::updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, const NOMADSUtil::InetAddr * const pInetAddr,
                                                    uint16 ui16MocketsServerPort, uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability)
     {
         // Update all attributes

@@ -2,7 +2,7 @@
  * FastMutex.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,6 +21,7 @@
 
 #if defined (WIN32)
     #define _WIN32_WINNT 0x0400
+#include <winsock2.h>
     #include <windows.h>
 #elif defined (UNIX)
     #include <errno.h>

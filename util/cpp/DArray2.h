@@ -2,7 +2,7 @@
  * darray2.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,8 +31,6 @@
  *
  * Written by Niranjan Suri
  *
- * RCSInfo: "$Header: /export/cvs/nomads.root/util/cpp/DArray2.h,v 1.11 2014/11/06 21:30:17 gbenincasa Exp $"
- * Revision: "$Revision: 1.11 $"
  */
 
 #ifndef INCL_DARRAY2_H

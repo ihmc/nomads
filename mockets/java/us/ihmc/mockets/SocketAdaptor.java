@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.net.SocketException;
 
 public class SocketAdaptor
 {
@@ -51,7 +50,7 @@ public class SocketAdaptor
         }
     }
 
-    private SocketAdaptor (Type type) throws SocketException
+    private SocketAdaptor (Type type) throws IOException
     {
         _type = type;
         switch (_type) {
@@ -76,14 +75,14 @@ public class SocketAdaptor
         _streamMocket = streamMocket;
     }
 
-    public static SocketAdaptor newInstance (Type type) throws SocketException
+    public static SocketAdaptor newInstance (Type type) throws IOException
     {
         return new SocketAdaptor(type);
     }
 
-    public static SocketAdaptor newInstance (Type type, String host, int port) throws SocketException
+    public static SocketAdaptor newInstance (Type type, String host, int port) throws IOException
     {
-        return new SocketAdaptor(type);
+        return new SocketAdaptor(type, host, port);
     }
 
     public static SocketAdaptor newInstance (Socket socket)
@@ -108,6 +107,23 @@ public class SocketAdaptor
                 return _socket.isConnected();
             case Mockets:
                 return _streamMocket.isConnected();
+            default:
+                throw new UnsupportedOperationException("Unable to execute isConnected() on this type");
+        }
+    }
+
+    /**
+     * Returns whether this <code>SocketAdaptor</code> is bound to local host.
+     *
+     * @return {@code true} if the <code>SocketAdaptor</code> is bound, {@code false} otherwise.
+     */
+    public boolean isBound ()
+    {
+        switch (_type) {
+            case TCP:
+                return _socket.isBound();
+            case Mockets:
+                return _streamMocket.isBound();
             default:
                 throw new UnsupportedOperationException("Unable to execute isConnected() on this type");
         }
@@ -142,7 +158,7 @@ public class SocketAdaptor
             case TCP:
                 _socket.close();
             case Mockets:
-                _streamMocket.close();
+                _streamMocket.closeSync();
         }
     }
 

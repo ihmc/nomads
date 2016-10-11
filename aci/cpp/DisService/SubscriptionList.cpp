@@ -2,7 +2,7 @@
  * SubscriptionList.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -234,7 +234,7 @@ bool SubscriptionList::hasSubscriptionWild (Message *pMessage)
     for (StringHashtable<Subscription>::Iterator i = _subscriptions.getAllElements(); !i.end(); i.nextElement()) {
         // for each subscription matching the group name
         if (wildcardStringCompare(pszGroupName, i.getKey()) || wildcardStringCompare(i.getKey(), pszGroupName)) {
-            if ((i.getValue())->matches(pMessage)) {
+            if ((i.getValue())->matches (pMessage)) {
                 // if there's 1 or more matching the whole subscription return true
                 return true;
             }
@@ -278,7 +278,7 @@ bool SubscriptionList::requireReliability (const char *pszGroupName, uint16 ui16
     }
 
     bool bRet = false;
-    for (Subscription * pS = pSubscriptions->getFirst(); pS != NULL; pS = pSubscriptions->getNext()) {
+    for (Subscription *pS = pSubscriptions->getFirst(); pS != NULL; pS = pSubscriptions->getNext()) {
         if (ui16Tag == 0) {
             if (pS->getSubscriptionType() == Subscription::GROUP_SUBSCRIPTION) {
                 if (((GroupSubscription*) pS)->isGroupReliable()) {

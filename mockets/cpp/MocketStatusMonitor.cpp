@@ -109,6 +109,7 @@ int MocketStatusMonitor::initFileOutput (FILE *fileLog)
     return 0;
 }
 
+
 int MocketStatusMonitor::initHandler (MessageHandlerCallbackFnPtr pHandlerFn, void *pCallbackArg)
 {
     _pHandlerFn = pHandlerFn;

@@ -5,7 +5,7 @@
  * UDPSocketAdapter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -167,6 +167,7 @@ namespace ACMNetProxy
 
     inline int UDPSocketAdapter::bufferingMode (int iMode)
     {
+        (void) iMode;
         return -1;
     }
 
@@ -177,6 +178,8 @@ namespace ACMNetProxy
 
     inline int UDPSocketAdapter::registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg)
     {
+        (void) pCallbackFn;
+        (void) pCallbackArg;
         return -1;
     }
 
@@ -187,6 +190,8 @@ namespace ACMNetProxy
 
     inline int UDPSocketAdapter::connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort)
     {
+        (void) pcRemoteProxyIP;
+        (void) ui16RemoteProxyPort;
         return 0;
     }
 
@@ -208,6 +213,9 @@ namespace ACMNetProxy
     inline int UDPSocketAdapter::send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
                                        bool bSequenced, const void *pBuf, uint32 ui32BufSize)
     {
+        (void) bReliable;
+        (void) bSequenced;
+        (void) ui32BufSize;
         if (!pInetAddr) {
             return -1;
         }
@@ -221,11 +229,13 @@ namespace ACMNetProxy
 
     inline int UDPSocketAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)
     {
+        (void) i64Timeout;
         return _pUDPSocket->receive (pBuf, ui32BufSize);
     }
 
     inline int UDPSocketAdapter::receive (void * const pBuf, uint32 ui32BufSize, NOMADSUtil::InetAddr * const pInetAddr, int64 i64Timeout)
     {
+        (void) i64Timeout;
         return _pUDPSocket->receive (pBuf, ui32BufSize, pInetAddr);
     }
 

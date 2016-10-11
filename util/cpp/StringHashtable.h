@@ -2,7 +2,7 @@
  * StringHashtable.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -154,7 +154,7 @@ namespace NOMADSUtil
             virtual uint32 getSize (void);
 
             // Returns the number of elements in the hashtable
-            virtual uint32 getCount (void);
+            virtual uint32 getCount (void) const;
 
             virtual Iterator getAllElements (void);
 
@@ -194,7 +194,7 @@ namespace NOMADSUtil
             friend class Iterator;
     };
 
-    template <class T> uint32 StringHashtable<T>::getCount (void)
+    template <class T> uint32 StringHashtable<T>::getCount (void) const
     {
         return _ui32Count;
     }

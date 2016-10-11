@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="Area2DChartPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+            prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="us.ihmc.charts.controller.Area2DXNumberController">
+   <children>
+      <AreaChart fx:id="_area2DChart" layoutX="50.0" layoutY="64.0" prefHeight="322.0" prefWidth="500.0"
+                 AnchorPane.bottomAnchor="14.0" AnchorPane.leftAnchor="50.0" AnchorPane.rightAnchor="50.0"
+                 AnchorPane.topAnchor="64.0">
+          <xAxis>
+              <NumberAxis fx:id="_xAxis" minorTickVisible="false" side="BOTTOM" tickUnit="10.0" upperBound="10" />
+          </xAxis>
+          <yAxis>
+              <NumberAxis fx:id="_yAxis" side="LEFT" />
+          </yAxis>
+      </AreaChart>
+   </children>
+</AnchorPane>

@@ -2,7 +2,7 @@
  * RequestsState.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -144,10 +144,6 @@ namespace IHMC_ACI
 
             int addRequest (RequestInfo &reqInfo, NOMADSUtil::UInt32RangeDLList *pMsgSeqIDs,
                             MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
-                            MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqIdStart,
-                            uint32 ui32MsgSeqIdEnd, MessageReassembler *pMsgReassembler);
 
             RequestDetails * messageArrived (MessageInfo *pMI);
 
@@ -190,10 +186,6 @@ namespace IHMC_ACI
             int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
                             NOMADSUtil::UInt8RangeDLList *pChunkIDs,
                             MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId, uint8 ui8ChunkId,
-                            MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId, uint8 ui8ChunkIdStart,
-                            uint8 ui8ChunkIdEnd, MessageReassembler *pMsgReassembler);
 
             RequestDetails * messageArrived (ChunkMsgInfo *pCMI);
 
@@ -243,35 +235,23 @@ namespace IHMC_ACI
 
             int addRequest (RequestInfo &reqInfo, NOMADSUtil::UInt32RangeDLList *pMsgSeqIDs,
                             MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
-                            MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqIdStart,
-                            uint32 ui32MsgSeqIdEnd, MessageReassembler *pMsgReassembler);
- 
+
             int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
                             NOMADSUtil::UInt8RangeDLList *pChunkIDs,
                             MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId, uint8 ui8ChunkId,
-                            MessageReassembler *pMsgReassembler);
-            int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId, uint8 ui8ChunkIdStart,
-                            uint8 ui8ChunkIdEnd, MessageReassembler *pMsgReassembler);
 
             /**
              * Returns the query ID with which the message was requested.
              */
             RequestDetails * messageArrived (Message *pMsg);
-            RequestDetails * messageArrived (Message *pMsg, bool bIsInHistory);
 
             void getMissingMessageRequests (MessageRequestScheduler *pReqScheduler,
                                             MessageReassembler *pMessageReassembler);
 
-            bool wasRequested (Message *pMsg);
-            bool wasRequested (MessageHeader *pMHeader);
             bool wasRequested (const char *pszGroupName, const char *pszPublisherNodeId,
                                uint32 ui32MsgSeqId, uint8 ui8ChunkId = MessageHeader::UNDEFINED_CHUNK_ID);
 
        private:
-           NOMADSUtil::LoggingMutex _m;
            MessageRequestState _msgReqState;
            ChunkRequestsState _chunkReqState;
     };

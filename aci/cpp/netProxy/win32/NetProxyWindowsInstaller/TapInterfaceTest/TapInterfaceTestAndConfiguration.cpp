@@ -27,20 +27,16 @@
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 //ACINetProxy::TapInterface *ACINetProxy::TapInterface::_pTapInterface = NULL;
-namespace ACMNetProxy {
+namespace ACMNetProxy
+{
+    uint32 ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR = 0U;
+    uint16 ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU = ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_DEFAULT_MTU;
 
-    uint32 ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_IP_ADDRESS = 0U;
-    uint16 ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU = ACMNetProxy::NetProxyApplicationParameters::DEFAULT_TAP_INTERFACE_MTU;
+    TapInterfaceTestAndConfiguration::TapInterfaceTestAndConfiguration (void) { }
 
-    TapInterfaceTestAndConfiguration::TapInterfaceTestAndConfiguration (void)
-    {
-    }
+    TapInterfaceTestAndConfiguration::~TapInterfaceTestAndConfiguration (void) { }
 
-    TapInterfaceTestAndConfiguration::~TapInterfaceTestAndConfiguration (void)
-    {
-    }
-
-    int TapInterfaceTestAndConfiguration::runTapInterfaceTest ()
+    int TapInterfaceTestAndConfiguration::runTapInterfaceTest (void)
     {
         //TapInterface *pTITest = TapInterface::getTAPInterface();
         ACMNetProxy::TapInterface *pTITest = ACMNetProxy::TapInterface::getTAPInterface();
@@ -104,15 +100,15 @@ namespace ACMNetProxy {
     {
         FILE * pFile = fopen (fileName,"w");
 
-        const char * adapterDescr = pTITest->getInterfaceName();
+        const char * adapterDescr = pTITest->getAdapterName();
         if (adapterDescr != NULL) {
-            fprintf (pFile, "adapter descriptor=%s\n", adapterDescr);
+            fprintf (pFile, "adapter descriptor = %s\n", adapterDescr);
         }
         else {
-            fprintf (pFile, "adapter descriptor=\n");
+            fprintf (pFile, "adapter descriptor = \n");
         }
 
-        const InetAddr ipInetAddr(ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_IP_ADDRESS);
+        const InetAddr ipInetAddr(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR);
         if (ipInetAddr.getIPAddress() != 0U) {
             const char *pcIPAddr = ipInetAddr.getIPAsString();
             fprintf (pFile, "ip=%s\n", pcIPAddr);

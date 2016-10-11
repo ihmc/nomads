@@ -1,11 +1,20 @@
 /*
- * AVList.h
+ * AVList.cpp
  *
- * This file is part of the IHMC Utility Library
- * Copyright (c) IHMC. All Rights Reserved.
+ * This file is part of the IHMC Util Library
+ * Copyright (c) 1993-2016 IHMC.
  *
- * Usage restricted to not-for-profit use only.
- * Contact IHMC for other types of licenses.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 3 (GPLv3) as published by the Free Software Foundation.
+ *
+ * U.S. Government agencies and organizations may redistribute
+ * and/or modify this program under terms equivalent to
+ * "Government Purpose Rights" as defined by DFARS 
+ * 252.227-7014(a)(12) (February 2014).
+ *
+ * Alternative licenses that allow for use within commercial products may be
+ * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  * 
  * authors : Silvia Rota         srota@ihmc.us
  *           Giacomo Benincasa   gbenincasa@ihmc.us
@@ -21,23 +30,11 @@
 
 using namespace NOMADSUtil;
 
-AVList::AVList (void)
-{
-    _uiMaxSize = 0;
-    _uiCurrSize = 0;
-    _pPair = NULL;
-}
-
 AVList::AVList (unsigned int uiInitialSize)
+    : _pPair (uiInitialSize > 0U ? static_cast<Pair *>(calloc (uiInitialSize, sizeof (Pair))) : NULL),
+      _uiMaxSize (uiInitialSize),
+      _uiCurrSize (0U)
 {
-    if (uiInitialSize > 0) {
-        _uiMaxSize = uiInitialSize;
-        _pPair = (Pair *) calloc ( _uiMaxSize, sizeof (Pair));
-    }
-    else {
-        _pPair = NULL;
-    }
-    _uiCurrSize = 0;
 }
 
 AVList::~AVList (void)
@@ -91,7 +88,7 @@ int AVList::addPair (const char *pszAttrName, double dValue)
 
 int AVList::addPair (const char *pszAttrName, int iValue)
 {
-    if (sprintf(_pszNumber, "%d", iValue) == 0) {
+    if (sprintf (_pszNumber, "%d", iValue) == 0) {
         return 1;
     }
     return addPair(pszAttrName, _pszNumber);
@@ -99,7 +96,7 @@ int AVList::addPair (const char *pszAttrName, int iValue)
 
 int AVList::addPair (const char *pszAttrName, int64 i64Value)
 {
-    if (sprintf(_pszNumber, "%lld", i64Value) == 0) {
+    if (sprintf (_pszNumber, "%lld", i64Value) == 0) {
         return 1;
     }
     return addPair(pszAttrName, _pszNumber);

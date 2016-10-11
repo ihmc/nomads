@@ -2,7 +2,7 @@
  * Socket.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,8 +16,8 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/Socket.h,v 1.24 2014/11/06 21:30:33 gbenincasa Exp $
- * Revision: $Revision: 1.24 $
+ * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/Socket.h,v 1.26 2016/08/08 15:50:41 rfronteddu Exp $
+ * Revision: $Revision: 1.26 $
  */
 
 #ifndef INCL_SOCKET_H
@@ -38,6 +38,7 @@
 
 #if defined (WIN16)
     #pragma hdrstop
+#include <winsock2.h>
     #include <windows.h>
 #elif defined (WIN32)
 	#include <winsock2.h>

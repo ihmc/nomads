@@ -3,12 +3,12 @@
 <!--
 @author Marco Carvalho (mcarvalhor@ihmc.us)
 @author Chris Eagle (ceagle@ihmc.us) revisions
-$Revision: 1.127 $
-$Date: 2014/07/08 05:02:34 $
+$Revision: 1.195 $
+$Date: 2016/10/06 15:27:39 $
 -->
 
 <project name="aci" default="alljars" basedir="..">
-    <target name="alljars" depends="aci,grpMgr"/>
+    <target name="alljars" depends="aci,grpMgr,nodemon,netsupervisor"/>
     <!-- ================================================================ -->
     <!-- Initialization target                                            -->
     <!-- ================================================================ -->
@@ -18,8 +18,8 @@ $Date: 2014/07/08 05:02:34 $
             <format property="YEAR" pattern="yyyy"/>
         </tstamp>
 
-        <property name="ant.build.javac.source" value="1.5"/>
-        <property name="ant.build.javac.target" value="1.5"/>
+        <property name="ant.build.javac.source" value="1.8"/>
+        <property name="ant.build.javac.target" value="1.8"/>
 
         <property name="Name" value="aci"/>
         <property name="acijar-name" value="aci"/>
@@ -27,9 +27,14 @@ $Date: 2014/07/08 05:02:34 $
         <property name="avmjar-name" value="avm"/>
         <property name="disServiceProxyjar-name" value="disserviceproxy"/>
         <property name="disServiceProProxyjar-name" value="disServiceProProxy"/>
-        <property name="dspro2jar-name" value="dspro2Proxy"/>
-		<property name="netProxyjar-name" value="netProxy"/>
+        <property name="dspro2jar-name" value="dspro2proxy"/>
+        <property name="dspro2jarandroid-name" value="dspro2proxy-android"/>
+        <property name="netProxyjar-name" value="netProxy"/>
         <property name="grpmgrjar-name" value="grpMgr"/>
+        <property name="nodemonjar-name" value="nodemon"/>
+        <property name="acikerneljar-name" value="acikernel" />
+        <property name="aktestjar-name" value="acitest" />
+        <property name="netviewerjar-name" value="netviewer" />
         <property name="version" value="1.5"/>
         <echo message="${Name} ${version} ${YEAR_MONTH_DAY}"/>
 
@@ -39,6 +44,9 @@ $Date: 2014/07/08 05:02:34 $
         <property name="aciexternals.dir" location="../externals/java"/>
         <property name="acibuild.dir" location="./build/antcache_aci"/>
         <property name="avmbuild.dir" location="./build/antcache_avm"/>
+        <property name="kernelbuild.dir" location="./build/antcache_kernel" />
+        <property name="aktestbuild.dir" location="./build/antcache_aktest" />
+        <property name="netviewerbuild.dir" location="./build/antcache_netviewer" />
         <property name="lib.dir" location="./lib"/>
         <property name="dist.dir" location="./dist"/>
         <property name="javadoc" value="./docs/javadoc"/>
@@ -49,9 +57,12 @@ $Date: 2014/07/08 05:02:34 $
         <property name="deprecation" value="on"/>
         <property name="verbose" value="off"/>
         <property name="packages" value="us.ihmc.*"/>
-
+        <property name="netsupervisor-name" value="netsupervisor"/>
         <mkdir dir="${acibuild.dir}"/>
         <mkdir dir="${avmbuild.dir}"/>
+        <mkdir dir="${netviewerbuild.dir}" />
+        <mkdir dir="${nomads.home}/externals/java/netSupervisor" />
+				
     </target>
 
     <!-- ================================================================ -->
@@ -59,19 +70,26 @@ $Date: 2014/07/08 05:02:34 $
     <!-- ================================================================ -->
     <target name="compile-aci" depends="init, create.fileset" description="Compiles the source directory.">
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "${nomads.home}/aci/java"/>
             <src path = "${nomads.home}/misc/java/"/>
             <src path = "${nomads.home}/util/java/"/>
+            <src path = "${nomads.home}/util/resources/"/>
             <!--
             <src path = "${nomads.home}/jraf2/"/>
             -->
 
             <include name="us/ihmc/comm/CommHelper.java"/>
+            <include name="us/ihmc/comm/CommException.java"/>
+
+            <include name="us/ihmc/sync/ConcurrentProxy.java"/>
+            <include name="us/ihmc/sync/ConcurrentProxyCallbackHandler.java"/>
+            <include name="us/ihmc/sync/Mutex.java"/>
+            
             <include name="us/ihmc/net/NetUtils.java"/>
             <include name="us/ihmc/net/*Custom*Factory.java"/>
 
@@ -80,30 +98,23 @@ $Date: 2014/07/08 05:02:34 $
             <include name="us/ihmc/util/ByteConverter.java"/>
             <include name="us/ihmc/util/Config.java"/>
             <include name="us/ihmc/util/ConfigManager.java"/>
-	    <include name="us/ihmc/util/geo/CoordinateHelper.java"/>
-	    <include name="us/ihmc/util/geo/Position.java"/>
+            <include name="us/ihmc/util/geo/CoordinateHelper.java"/>
+            <include name="us/ihmc/util/geo/Position.java"/>
             <include name="us/ihmc/util/CheckUtil.java"/>	
             <include name="us/ihmc/util/Dime*.java"/>
             <include name="us/ihmc/util/HTTPHelper.java"/>
-	    <include name="us/ihmc/util/HTTPSUtils.java"/>
+            <include name="us/ihmc/util/HTTPSUtils.java"/>
             <include name="us/ihmc/util/LogHelper.java"/>
+            <include name="us/ihmc/util/MIMEUtils.java"/>
             <include name="us/ihmc/util/IDGenerator.java"/>
             <include name="us/ihmc/util/MD5Hash.java"/>
-	    <include name="us/ihmc/util/MIMEUtils.java"/>
             <include name="us/ihmc/util/NSLookup.java"/>
-	    <include name="us/ihmc/util/ParsingUtils.java"/>
-	    <include name="us/ihmc/util/ReaderInputStream.java"/>
-	    <include name="us/ihmc/util/SortedProperties.java"/>
-	    <include name="us/ihmc/util/StringUtil.java"/>
+            <include name="us/ihmc/util/ParsingUtils.java"/>
+            <include name="us/ihmc/util/ReaderInputStream.java"/>
+            <include name="us/ihmc/util/SortedProperties.java"/>
+            <include name="us/ihmc/util/StringUtil.java"/>
 		
-			<include name="us/ihmc/util/serialization/**/*.java"/>
-			<!--include name="us/ihmc/util/serialization/Serializer.java"/>
-			<include name="us/ihmc/util/serialization/ExternalizeSerializer.java"/>
-			<include name="us/ihmc/util/serialization/JavaSerializer.java"/>
-			<include name="us/ihmc/util/serialization/KryoSerializer.java"/>
-			<include name="us/ihmc/util/serialization/PersonalizedExternalizable.java"/>
-			<include name="us/ihmc/util/serialization/SerializerFactory.java"/>
-			<include name="us/ihmc/util/serialization/SerializerType.java"/-->
+            <include name="us/ihmc/util/serialization/**/*.java"/>
 			
             <include name="us/ihmc/util/crypto/CryptoUtils.java"/>
             <include name="us/ihmc/util/crypto/SecureInputStream.java"/>
@@ -115,16 +126,18 @@ $Date: 2014/07/08 05:02:34 $
             <include name="us/ihmc/ds/fgraph/FEdge.java"/>
             <include name="us/ihmc/ds/fgraph/FGraphException.java"/>
 
+            <include name="us/ihmc/**/MIMETypes.properties"/>
+
             <exclude name="us/ihmc/aci/kernel/**"/>
             <exclude name="us/ihmc/aci/kernel/ServiceManager.java"/>
             <exclude name="us/ihmc/aci/kernel/JavaServiceManager.java"/>
-	    <exclude name="us/ihmc/aci/kernel/AromaServiceManager.java"/>
-	    <exclude name="us/ihmc/aci/kernel/RVMEventHandlerThread.java"/>
-	    <exclude name="us/ihmc/aci/kernel/RVMServiceEventHandler.java"/>
-	    <exclude name="us/ihmc/aci/kernel/RVMServiceManager.java"/>
-	    <exclude name="us/ihmc/aci/kernel/GroupManagerProxyRVMImpl.java"/>
-	    <exclude name="us/ihmc/aci/kernel/GroupManagerProxyJSMImpl.java"/>
-	    <exclude name="us/ihmc/aci/kernel/EmbeddedRVMServiceManager.java"/>
+            <exclude name="us/ihmc/aci/kernel/AromaServiceManager.java"/>
+            <exclude name="us/ihmc/aci/kernel/RVMEventHandlerThread.java"/>
+            <exclude name="us/ihmc/aci/kernel/RVMServiceEventHandler.java"/>
+            <exclude name="us/ihmc/aci/kernel/RVMServiceManager.java"/>
+            <exclude name="us/ihmc/aci/kernel/GroupManagerProxyRVMImpl.java"/>
+            <exclude name="us/ihmc/aci/kernel/GroupManagerProxyJSMImpl.java"/>
+            <exclude name="us/ihmc/aci/kernel/EmbeddedRVMServiceManager.java"/>
             <exclude name="us/ihmc/aci/servicemanager/**"/>
             <exclude name="us/ihmc/aci/grpMgr/**"/>
             <exclude name="us/ihmc/aci/coord/**"/>
@@ -133,7 +146,7 @@ $Date: 2014/07/08 05:02:34 $
 
             <include name="us/ihmc/aci/util/**"/>
             <exclude name="us/ihmc/aci/util/proxy/BBNAdHocSNMPProxy.java"/>
-            <include name="us/ihmc/aci/disService/**"/>
+            <include name="us/ihmc/aci/disService/**"/>           
             <include name="us/ihmc/aci/disServiceProxy/**"/>
             <include name="us/ihmc/aci/disServiceProProxy/**"/>
             <include name="us/ihmc/aci/disServiceProProxy/util/**"/>
@@ -142,6 +155,7 @@ $Date: 2014/07/08 05:02:34 $
             <exclude name="us/ihmc/aci/vis/**"/>
             <include name="us/ihmc/xlayer/ds/Link.java"/>
             <include name="us/ihmc/aci/netProxy/**"/>
+            <include name="us/ihmc/aci/net/**" />
 
             <!--
             <include name="test/java/us/ihmc/jraf2/test/manager/CPUAccountManagerFactory.java"/>
@@ -158,13 +172,13 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Compiles the DisServiceProxy directory                             -->
     <!-- ================================================================== -->
     <target name="compile-disServiceProxy" depends="init, create.fileset" description="Compiles the source directory.">
-        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}" target="utiljar"/>
+        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}/util" target="utiljar"/>
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "./java"/>
             <src path = "${nomads.home}/util/java/"/>
 
@@ -181,18 +195,32 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Compiles the DSPro2 directory                                      -->
     <!-- ================================================================== -->
     <target name="compile-dspro2" depends="init, create.fileset" description="Compiles the source directory.">
-        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}" target="utiljar"/>
+        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}/util" target="utiljar"/>
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "./java"/>
             <src path = "${nomads.home}/util/java/"/>
 
-            <include name="us/ihmc/aci/dspro2/**"/>
 
+            <include name="us/ihmc/aci/dspro2/**"/>
+            <include name="us/ihmc/aci/disService/DisseminationService.java"/>
+            <include name="us/ihmc/aci/disService/DisseminationServiceListener.java"/>
+            <include name="us/ihmc/aci/disService/PeerStatusListener.java"/>
+            <include name="us/ihmc/aci/disService/SearchListener.java"/>
+            <include name="us/ihmc/aci/disServiceProxy/DisseminationServiceProxy.java"/>
+            <include name="us/ihmc/aci/disServiceProxy/DisseminationServiceProxyListener.java"/>
+            <include name="us/ihmc/aci/disServiceProxy/DisseminationServiceProxyCallbackHandler.java"/>
+            <include name="us/ihmc/aci/disServiceProxy/PeerStatusListener.java"/>
+            <include name="us/ihmc/aci/disServiceProxy/SearchListener.java"/>
+            
+            <include name="us/ihmc/comm/**"/>
+            <include name="us/ihmc/io/**"/>
+            <include name="us/ihmc/sync/**"/>
+			
             <classpath>
                 <fileset refid="externals.fileset"/>
                 <pathelement location="${nomads.home}/util/lib/util.jar"/>
@@ -204,13 +232,13 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Compiles the DisServiceProProxy directory                          -->
     <!-- ================================================================== -->
     <target name="compile-disServiceProProxy" depends="init, create.fileset" description="Compiles the source directory.">
-        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}" target="utiljar"/>
+        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}/util" target="utiljar"/>
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "./java"/>
             <src path = "${nomads.home}/util/java/"/>
 
@@ -228,13 +256,13 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Compiles the GroupManager directory                                -->
     <!-- ================================================================== -->
     <target name="compile-grpMgr" depends="init, create.fileset" description="Compiles the source directory.">
-        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}" target="utiljar"/>
+        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}/util" target="utiljar"/>
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "./java"/>
             <!-- <src path = "${nomads.home}/misc/java/"/> -->
             <!-- <src path = "${nomads.home}/util/java/"/> -->
@@ -242,11 +270,92 @@ $Date: 2014/07/08 05:02:34 $
             <include name="us/ihmc/aci/grpMgr/gui/**"/>
             <classpath>
                 <fileset refid="externals.fileset"/>
-            <!--    <pathelement location="${nomads.home}/util/lib/util.jar"/> -->
+                <!--    <pathelement location="${nomads.home}/util/lib/util.jar"/> -->
             </classpath>
         </javac>
     </target>
 
+    <!-- ================================================================== -->
+    <!-- Compiles the NodeMon directory                                -->
+    <!-- ================================================================== -->
+    <target name="compile-nodemon" depends="init, create.nodemon.fileset, grpMgr" description="Compiles the source directory.">
+        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}/util" target="utiljar"/>
+        <ant antfile="${nomads.home}/mockets/build/build.xml" dir="${nomads.home}/mockets" target="mocketsjar"/>
+        <javac destdir="${acibuild.dir}"
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.8"
+               deprecation="${deprecation}">
+            <src path = "./java"/>
+            <!-- <src path = "${nomads.home}/util/java/"/> -->
+            <include name="us/ihmc/aci/nodemon/**"/>
+            <include name="us/ihmc/aci/ddam/**"/>
+            <classpath>
+                <fileset refid="externals.nodemon.fileset"/>
+                <pathelement location="${lib.dir}/util.jar"/>
+                <pathelement location="${lib.dir}/mockets.jar"/>
+                <pathelement location="${externals.dir}/log4j-1.2.17.jar"/>
+                <pathelement location="${externals.dir}/commons-lang3-3.1.jar"/>
+                <pathelement location="${externals.dir}/msgpack-0.6.6.jar"/>
+                <pathelement location="${externals.dir}/nodemon/sigar-bin/lib/sigar.jar"/>
+                <pathelement location="${externals.dir}/nodemon/snmp/snmp4j-2.3.3.jar"/>
+                <pathelement location="${externals.dir}/nodemon/protobuf/protobuf-java-3.0.0-beta-2.jar"/>
+                <pathelement location="${externals.dir}/nodemon/protobuf/protobuf-java-util-3.0.0-beta-2.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <!-- ================================================================== -->
+    <!-- Compiles the netsupervisor directory                               -->
+    <!-- ================================================================== -->
+    <target name="compile-netsupervisor" depends="init, create.netsupervisor.fileset, nodemon" description="Compiles the source directory.">
+        <javac destdir="${acibuild.dir}"
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.8"
+               deprecation="${deprecation}">
+            <src path = "./java"/>
+            <!-- <src path = "${nomads.home}/util/java/"/> -->
+            <include name="us/ihmc/aci/netSupervisor/**"/>
+            <classpath>
+                <fileset dir="${lib.dir}">
+                    <include name="util.jar" />
+                    <include name="nodemon.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/netSupervisor">
+                    <include name="*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/nodemon">
+                    <include name="**/*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/jung2-2_0_1">
+                    <include name="**/*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/slf4j/">
+                    <include name="**/*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/jfreechart/">
+                    <include name="**/*.jar" />
+                </fileset>
+                <pathelement location="${externals.dir}/log4j-1.2.17.jar"/>
+                <pathelement location="${externals.dir}/commons-lang3-3.1.jar"/>
+            </classpath>
+            <include name="us/ihmc/aci/ddam/**"/>
+            <classpath>
+                <fileset refid="externals.nodemon.fileset"/>
+                <pathelement location="${externals.dir}/nodemon/protobuf/protobuf-java-3.0.0-beta-2.jar"/>
+                <pathelement location="${externals.dir}/nodemon/protobuf/protobuf-java-util-3.0.0-beta-2.jar"/>
+            </classpath>
+        </javac>
+    </target>
+	
+	
+	
+	
+	
+	
     <!-- ================================================================ -->
     <!-- Compiles the avm sources                                         -->
     <!-- ================================================================ -->
@@ -259,10 +368,10 @@ $Date: 2014/07/08 05:02:34 $
                target="1.5"
                deprecation="${deprecation}">
 
-               <src path = "${nomads.home}/avm/api"/>
-               <include name="java/**/*.java"/>
-               <include name="us/**/*.java"/>
-               <exclude name="us/ihmc/aroma/jit/**/*.java"/>
+            <src path = "${nomads.home}/avm/api"/>
+            <include name="java/**/*.java"/>
+            <include name="us/**/*.java"/>
+            <exclude name="us/ihmc/aroma/jit/**/*.java"/>
         </javac>
     </target>
 
@@ -286,13 +395,13 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Compiles the NetProxy directory                             -->
     <!-- ================================================================== -->
     <target name="compile-netProxy" depends="init, create.fileset" description="Compiles the source directory.">
-        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}" target="utiljar"/>
+        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}/util" target="utiljar"/>
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "./java"/>
             <src path = "${nomads.home}/util/java/"/>
             <src path = "${nomads.home}/externals/java/"/>
@@ -313,13 +422,13 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Compiles the DisServiceMonitor directory                             -->
     <!-- ================================================================== -->
     <target name="compile-DisServiceMonitor" depends="init, create.fileset" description="Compiles the source directory.">
-        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}" target="utiljar"/>
+        <ant antfile="${nomads.home}/util/build/build.xml" dir="${nomads.home}/util" target="utiljar"/>
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "./java"/>
             <src path = "${nomads.home}/util/java/"/>
             <src path = "${nomads.home}/externals/java/"/>
@@ -328,7 +437,7 @@ $Date: 2014/07/08 05:02:34 $
             <include name="${externals.dir}/msgpack-0.6.6.jar"/>
             <include name="${externals.dir}/msgpack-0.6.6-sources.jar"/>
             <include name="${externals.dir}/javassist.jar"/>
-	    <include name="${externals.dir}/gson-2.2.4.jar"/>
+            <include name="${externals.dir}/gson-2.2.4.jar"/>
             <classpath>
                 <fileset refid="externals.fileset"/>
                 <pathelement location="${nomads.home}/util/lib/util.jar"/>
@@ -337,10 +446,29 @@ $Date: 2014/07/08 05:02:34 $
     </target>
 
     <!-- ================================================================ -->
+    <!-- Creates netsupervisor.jar file                                         -->
+    <!-- ================================================================ -->
+    <target name="netsupervisor" depends="aci, compile-netsupervisor"
+            description="Creates jar file.">
+        <delete file="${lib.dir}/${netsupervisor-name}.jar"/>
+        <jar jarfile="${lib.dir}/${netsupervisor-name}.jar">
+            <fileset dir="${acibuild.dir}">
+                <include name="us/ihmc/aci/netSupervisor/**/*.class" />
+            </fileset>
+        </jar>
+    </target>
+	
+	
+	
+	
+	
+	
+	
+    <!-- ================================================================ -->
     <!-- Creates avm.jar                                                  -->
     <!-- ================================================================ -->
     <target name="avm" depends="compile-avm"
-        description="Creates jar file.">
+            description="Creates jar file.">
 
         <delete file="${lib.dir}/${avmjar-name}.jar"/>
         <jar jarfile="${lib.dir}/${avmjar-name}.jar">
@@ -355,7 +483,7 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Creates aci.jar file                                             -->
     <!-- ================================================================ -->
     <target name="aci" depends="compile-aci, copyImages"
-        description="Creates jar file.">
+            description="Creates jar file.">
 
         <delete file="${lib.dir}/${acijar-name}.jar"/>
         <jar jarfile="${lib.dir}/${acijar-name}.jar">
@@ -364,6 +492,7 @@ $Date: 2014/07/08 05:02:34 $
                 <include name="us/ihmc/**/*.class" />
                 <include name="us/ihmc/**/*.gif" />
                 <include name="us/ihmc/**/*.jpg" />
+                <include name="us/ihmc/**/*.properties" />
             </fileset>
         </jar>
     </target>
@@ -372,9 +501,9 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Creates aci-android.jar file                                     -->
     <!-- ================================================================ -->
     <target name="aci-android" depends="compile-aci, copyImages"
-        description="Creates jar file.">
+            description="Creates jar file.">
         <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask"
-        classpath="${lib.dir}/jarjar-1.2.jar"/>
+                 classpath="${lib.dir}/jarjar-1.2.jar"/>
         <delete file="${lib.dir}/${acijarandroid-name}.jar"/>
         <jarjar jarfile="${lib.dir}/${acijarandroid-name}.jar">
             <fileset dir="${acibuild.dir}">
@@ -389,6 +518,54 @@ $Date: 2014/07/08 05:02:34 $
             <rule pattern="javax.xml.**" result="us.ihmc.@1"/>
             <rule pattern="com.bea.xml.**" result="us.ihmc.xml.@1"/>
             <rule pattern="com.sun.xml.**" result="us.ihmc.com.sun.xml.@1"/>
+            <rule pattern="com.fasterxml.**" result="us.ihmc.com.fasterxml.@1"/>
+        </jarjar>
+    </target>
+
+    <!-- ================================================================ -->
+    <!-- Creates dspro2Proxy.jar file                              -->
+    <!-- ================================================================ -->
+    <target name="dspro2" depends="compile-dspro2"
+            description="Creates jar file.">
+
+        <delete file="${lib.dir}/${dspro2jar-name}.jar"/>
+        <jar jarfile="${lib.dir}/${dspro2jar-name}.jar">
+            <fileset dir="${acibuild.dir}">
+                <include name="edu/uwf/**/*.class" />
+                <include name="us/ihmc/**/*.class" />
+                <include name="us/ihmc/**/*.gif" />
+                <include name="us/ihmc/**/*.jpg" />
+            </fileset>
+        </jar>
+    </target>
+
+    <!-- ================================================================ -->
+    <!-- Creates dspro2Proxy-android.jar file                              -->
+    <!-- ================================================================ -->
+    <target name="dspro2-android" depends="compile-dspro2"
+            description="Creates jar file.">
+        <taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask"
+                         classpath="${lib.dir}/jarjar-1.2.jar"/>
+        <delete file="${lib.dir}/${dspro2jarandroid-name}.jar"/>
+        <jarjar jarfile="${lib.dir}/${dspro2jarandroid-name}.jar">
+            <fileset dir="${acibuild.dir}">
+                <include name="edu/uwf/**/*.class" />
+                <include name="us/ihmc/**/*.class" />
+                <include name="us/ihmc/**/*.gif" />
+                <include name="us/ihmc/**/*.jpg" />
+            </fileset>
+            <zipfileset src="${lib.dir}/javax.xml.stream-1.0.1.jar"/>
+            <zipfileset src="${lib.dir}/stax-1.2.0.jar"/>
+            <zipfileset src="${lib.dir}/sjsxp.jar"/>
+            <zipfileset src="${externals.dir}/jackson/jackson-annotations-2.4.0.jar"/>
+            <zipfileset src="${externals.dir}/jackson/jackson-core-2.4.4.jar"/>
+            <zipfileset src="${externals.dir}/jackson/jackson-databind-2.4.4.jar"/>
+            <zipfileset src="${externals.dir}/jackson/jackson-dataformat-msgpack-0.7.0-p7.jar"/>
+            <rule pattern="com.sun.xml.**" result="us.ihmc.com.sun.xml.@1"/>
+            <rule pattern="javax.xml.**" result="us.ihmc.@1"/>
+            <rule pattern="com.bea.xml.**" result="us.ihmc.xml.@1"/>
+            <rule pattern="com.sun.xml.**" result="us.ihmc.com.sun.xml.@1"/>
+            <rule pattern="com.fasterxml.**" result="us.ihmc.com.fasterxml.@1"/>
         </jarjar>
     </target>
 
@@ -396,7 +573,7 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Creates disServiceProxy.jar file                                 -->
     <!-- ================================================================ -->
     <target name="disServiceProxy" depends="compile-disServiceProxy"
-        description="Creates jar file.">
+            description="Creates jar file.">
 
         <delete file="${lib.dir}/${disServiceProxyjar-name}.jar"/>
         <jar jarfile="${lib.dir}/${disServiceProxyjar-name}.jar">
@@ -413,7 +590,7 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Creates disServiceProProxy.jar file                              -->
     <!-- ================================================================ -->
     <target name="disServiceProProxy" depends="compile-disServiceProProxy"
-        description="Creates jar file.">
+            description="Creates jar file.">
 
         <delete file="${lib.dir}/${disServiceProProxyjar-name}.jar"/>
         <jar jarfile="${lib.dir}/${disServiceProProxyjar-name}.jar">
@@ -427,27 +604,10 @@ $Date: 2014/07/08 05:02:34 $
     </target>
 
     <!-- ================================================================ -->
-    <!-- Creates disServiceProProxy.jar file                              -->
-    <!-- ================================================================ -->
-    <target name="dspro2" depends="compile-dspro2"
-        description="Creates jar file.">
-
-        <delete file="${lib.dir}/${dspro2jar-name}.jar"/>
-        <jar jarfile="${lib.dir}/${dspro2jar-name}.jar">
-            <fileset dir="${acibuild.dir}">
-                <include name="edu/uwf/**/*.class" />
-                <include name="us/ihmc/**/*.class" />
-                <include name="us/ihmc/**/*.gif" />
-                <include name="us/ihmc/**/*.jpg" />
-            </fileset>
-        </jar>
-    </target>
-
-    <!-- ================================================================ -->
     <!-- Creates netProxy.jar file                              -->
     <!-- ================================================================ -->
     <target name="netProxy" depends="compile-netProxy"
-        description="Creates jar file.">
+            description="Creates jar file.">
 
         <delete file="${lib.dir}/${netProxyjar-name}.jar"/>
         <jar jarfile="${lib.dir}/${netProxyjar-name}.jar">
@@ -461,7 +621,7 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Creates grpMgr.jar file                                          -->
     <!-- ================================================================ -->
     <target name="grpMgr" depends="compile-grpMgr"
-        description="Creates jar file.">
+            description="Creates jar file.">
         <delete file="${lib.dir}/${grpmgrjar-name}.jar"/>
         <jar jarfile="${lib.dir}/${grpmgrjar-name}.jar">
             <fileset dir="${acibuild.dir}">
@@ -471,15 +631,29 @@ $Date: 2014/07/08 05:02:34 $
     </target>
 
     <!-- ================================================================ -->
+    <!-- Creates nodemon.jar file                                         -->
+    <!-- ================================================================ -->
+    <target name="nodemon" depends="aci, compile-nodemon"
+            description="Creates jar file.">
+        <delete file="${lib.dir}/${nodemonjar-name}.jar"/>
+        <jar jarfile="${lib.dir}/${nodemonjar-name}.jar">
+            <fileset dir="${acibuild.dir}">
+                <include name="us/ihmc/aci/nodemon/**/*.class" />
+                <include name="us/ihmc/aci/ddam/**/*.class" />
+            </fileset>
+        </jar>
+    </target>
+
+    <!-- ================================================================ -->
     <!-- Creates aci.jar containing also the drivers                      -->
     <!-- ================================================================ -->
     <target name="test" depends="aci, copyImages" description="Creates jar file.">
         <javac destdir="${acibuild.dir}"
-            debug="${debug}"
-            verbose="${verbose}"
-            optimize="${optimize}"
-            source="1.5"
-            deprecation="${deprecation}">
+               debug="${debug}"
+               verbose="${verbose}"
+               optimize="${optimize}"
+               source="1.5"
+               deprecation="${deprecation}">
             <src path = "./test/java"/>
             <src path = "${nomads.home}/util/java/"/>
 
@@ -506,7 +680,7 @@ $Date: 2014/07/08 05:02:34 $
     <!-- Creates distribution direction                                   -->
     <!-- ================================================================ -->
     <target name="dist-bin" depends="aci, avm"
-        description="Creates distribution directory.">
+            description="Creates distribution directory.">
         <delete dir="${dist.dir}"/>
         <mkdir dir="${dist.dir}"/>
         <copy todir="${dist.dir}/bin">
@@ -516,9 +690,9 @@ $Date: 2014/07/08 05:02:34 $
             <fileset dir="./conf"/>
         </copy>
         <copy todir="${dist.dir}/lib">
-                <fileset dir="${lib.dir}"/>
+            <fileset dir="${lib.dir}"/>
         </copy>
-         <copy todir="${dist.dir}/externals">
+        <copy todir="${dist.dir}/externals">
             <fileset refid="externals.fileset"/>
         </copy>
     </target>
@@ -597,6 +771,16 @@ $Date: 2014/07/08 05:02:34 $
         </zip>
     </target>
 
+	
+    <target name="create.netsupervisor.fileset">
+        <fileset dir="${nomads.home}" id="externals.netsupervisor.fileset">
+            <include name="externals/java/slf4j/*.jar" />
+            <include name="externals/java/netSupervisor/*.jar/" />
+        </fileset>
+    </target>
+	
+	
+	
     <!-- ================================================================ -->
     <!-- List of Externals                                                -->
     <!-- ================================================================ -->
@@ -625,24 +809,31 @@ $Date: 2014/07/08 05:02:34 $
         </fileset>
     </target>
 
+    <target name="create.nodemon.fileset">
+        <fileset dir="${nomads.home}" id="externals.nodemon.fileset">
+            <include name="externals/java/slf4j/*.jar" />
+            <include name="externals/java/nodemon/*.jar/" />
+        </fileset>
+    </target>
+
     <!-- ================================================================ -->
     <!-- Makes the javadocs                                               -->
     <!-- ================================================================ -->
     <target name="javadoc" depends="init"
-        description="Creates javadocs.">
+            description="Creates javadocs.">
         <mkdir dir="${javadoc}"/>
         <javadoc packagenames="${packages}"
-            sourcepath="./java"
-            destdir="${javadoc}"
-            author="true"
-            version="true"
-            verbose="false"
-            use="true"
-            noindex="false"
-            source="1.5"
-            windowtitle="${Name} ${version} API"
-            doctitle="${Name} v. ${version}"
-            bottom="ACI, Copyright &#169; ${YEAR}, Institute for Human and Machine Cognition (IHMC). For information contact Niranjan Suri, nsuri@ihmc.us.">
+                 sourcepath="./java"
+                 destdir="${javadoc}"
+                 author="true"
+                 version="true"
+                 verbose="false"
+                 use="true"
+                 noindex="false"
+                 source="1.5"
+                 windowtitle="${Name} ${version} API"
+                 doctitle="${Name} v. ${version}"
+                 bottom="ACI, Copyright &#169; ${YEAR}, Institute for Human and Machine Cognition (IHMC). For information contact Niranjan Suri, nsuri@ihmc.us.">
         </javadoc>
     </target>
 
@@ -656,19 +847,192 @@ $Date: 2014/07/08 05:02:34 $
                 <include name="us/ihmc/aci/**/*.jpg"/>
             </fileset>
         </copy>
+        <copy todir="${acibuild.dir}">
+            <fileset dir="../util/resources">
+                <include name="us/ihmc/**/MIMETypes.properties" />
+            </fileset>
+        </copy>
     </target>
 
     <!-- ================================================================ -->
     <!-- Cleans build directories.                                        -->
     <!-- ================================================================ -->
     <target name="clean" depends="init"
-        description="Cleans build directories.">
+            description="Cleans build directories.">
         <delete dir="${acibuild.dir}"/>
         <delete dir="${avmbuild.dir}"/>
+        <delete dir="${kernelbuild.dir}"/>
+        <delete dir="${netviewerbuild.dir}"/>
         <delete dir="${dist.dir}"/>
         <delete file="${lib.dir}/${acijar-name}.jar"/>
+        <delete file="${lib.dir}/${dspro2jarandroid-name}.jar"/>
+        <delete file="${lib.dir}/agserve.jar" />
         <delete file="${lib.dir}/${avmjar-name}.jar"/>
-	<delete file="${lib.dir}/${grpmgrjar-name}.jar"/>
+        <delete file="${lib.dir}/${grpmgrjar-name}.jar"/>
+        <delete file="${lib.dir}/${nodemonjar-name}.jar"/>
+        <delete file="${lib.dir}/${acikerneljar-name}.jar"/>
+        <delete file="${lib.dir}/${netviewerjar-name}.jar"/>
+        <delete file="${lib.dir}/${netsupervisor-name}.jar"/>			
+    </target>
+		
+    <!-- ================================================================ -->
+    <!-- Compiles the aci source directory                                -->
+    <!-- ================================================================ -->
+    <target name="compile-agserve" depends="init, create.fileset" description="Compiles the source directory.">
+        <javac destdir="${acibuild.dir}"
+                               debug="${debug}"
+                               verbose="${verbose}"
+                               optimize="${optimize}"
+                               source="1.5"
+                               deprecation="${deprecation}">
+            <src path = "${nomads.home}/aci/java"/>
+            <src path = "${nomads.home}/misc/java/"/>
+            <src path = "${nomads.home}/util/java/"/>
+            <!--
+            <src path = "${nomads.home}/jraf2/"/>
+            -->
+
+            <include name="us/ihmc/comm/CommHelper.java"/>
+            <include name="us/ihmc/net/NetUtils.java"/>
+            <include name="us/ihmc/net/*Custom*Factory.java"/>
+
+            <include name="us/ihmc/util/Base64Transcoders.java"/>
+            <include name="us/ihmc/util/ByteArray.java"/>
+            <include name="us/ihmc/util/ByteConverter.java"/>
+            <include name="us/ihmc/util/Config.java"/>
+            <include name="us/ihmc/util/ConfigManager.java"/>
+            <include name="us/ihmc/util/geo/CoordinateHelper.java"/>
+            <include name="us/ihmc/util/geo/Position.java"/>
+            <include name="us/ihmc/util/CheckUtil.java"/>	
+            <include name="us/ihmc/util/Dime*.java"/>
+            <include name="us/ihmc/util/HTTPHelper.java"/>
+            <include name="us/ihmc/util/HTTPSUtils.java"/>
+            <include name="us/ihmc/util/LogHelper.java"/>
+            <include name="us/ihmc/util/IDGenerator.java"/>
+            <include name="us/ihmc/util/MD5Hash.java"/>
+            <include name="us/ihmc/util/MIMEUtils.java"/>
+            <include name="us/ihmc/util/NSLookup.java"/>
+            <include name="us/ihmc/util/ParsingUtils.java"/>
+            <include name="us/ihmc/util/ReaderInputStream.java"/>
+            <include name="us/ihmc/util/SortedProperties.java"/>
+            <include name="us/ihmc/util/StringUtil.java"/>
+			
+            <include name="us/ihmc/util/serialization/**/*.java"/>
+		
+            <include name="us/ihmc/util/crypto/CryptoUtils.java"/>
+            <include name="us/ihmc/util/crypto/SecureInputStream.java"/>
+            <include name="us/ihmc/util/crypto/SecureOutputStream.java"/>
+
+            <include name="us/ihmc/ds/fgraph/FGraphLocal.java"/>
+            <include name="us/ihmc/ds/fgraph/FGraphInfo.java"/>
+            <include name="us/ihmc/ds/fgraph/FVertex.java"/>
+            <include name="us/ihmc/ds/fgraph/FEdge.java"/>
+            <include name="us/ihmc/ds/fgraph/FGraphException.java"/>
+
+            <include name="us/ihmc/aci/kernel/**"/>
+            <include name="us/ihmc/aci/kernel/ServiceManager.java"/>
+            <include name="us/ihmc/aci/kernel/JavaServiceManager.java"/>
+            <include name="us/ihmc/aci/kernel/AromaServiceManager.java"/>
+            <include name="us/ihmc/aci/kernel/RVMEventHandlerThread.java"/>
+            <include name="us/ihmc/aci/kernel/RVMServiceEventHandler.java"/>
+            <include name="us/ihmc/aci/kernel/RVMServiceManager.java"/>
+            <include name="us/ihmc/aci/kernel/GroupManagerProxyRVMImpl.java"/>
+            <include name="us/ihmc/aci/kernel/GroupManagerProxyJSMImpl.java"/>
+            <include name="us/ihmc/aci/kernel/EmbeddedRVMServiceManager.java"/>
+            <include name="us/ihmc/aci/servicemanager/**"/>
+            <include name="us/ihmc/aci/grpMgrOld/**"/>
+            <include name="us/ihmc/aci/coord/**"/>
+            <include name="us/ihmc/aci/coord/resvis/**"/>
+            <include name="us/ihmc/aci/coord/c2/**"/>
+
+            <include name="us/ihmc/aci/util/**"/>
+            <include name="us/ihmc/aci/util/proxy/BBNAdHocSNMPProxy.java"/>
+            <include name="us/ihmc/aci/disService/**"/>
+            <include name="us/ihmc/aci/disServiceProxy/**"/>
+            <include name="us/ihmc/aci/disServiceProProxy/**"/>
+            <include name="us/ihmc/aci/disServiceProProxy/util/**"/>
+            <include name="us/ihmc/aci/dspro2/**"/>
+            <include name="us/ihmc/aci/agserve/**"/>
+            <include name="us/ihmc/aci/vis/**"/>
+            <include name="us/ihmc/xlayer/ds/Link.java"/>
+            <include name="us/ihmc/aci/netProxy/**"/>
+            <include name="us/ihmc/nodeMon/**"/>
+				
+            <include name="us/ihmc/aci/test/ACIAgServeClientTest.java" />
+
+            <!--
+            <include name="test/java/us/ihmc/jraf2/test/manager/CPUAccountManagerFactory.java"/>
+            <include name="test/java/us/ihmc/jraf2/test/manager/CPUAccountManager.java"/>
+            <include name="test/java/us/ihmc/jraf2/test/manager/datastructure/ThreadData.java"/>
+            -->
+            <classpath>
+                <fileset refid="externals.fileset"/>
+            </classpath>
+        </javac>
+    </target>
+		
+    <target name="compile-agserve-jar" depends="compile-agserve">
+        <jar jarfile="${lib.dir}/agserve.jar">
+            <fileset dir="${acibuild.dir}">
+                <include name="us/ihmc/**/*.class" />
+            </fileset>
+        </jar>
+    </target>
+		
+    <!-- ================================================================ -->
+    <!-- Compiles the netviewer                                           -->
+    <!-- ================================================================ -->
+		
+    <target name="compile-netviewer" depends="init, nodemon" description="Compiles the net viewer">
+        <ant antfile="${nomads.home}/util/build/build-fx.xml" dir="${nomads.home}/util" />
+        <javac destdir="${netviewerbuild.dir}"
+                               debug="${debug}"
+                               verbose="${verbose}"
+                               optimize="${optimize}"
+                               source="1.8"
+                               target="1.8" 
+                               deprecation="${deprecation}">
+            <src path = "${nomads.home}/aci/java/" />
+            <include name="us/ihmc/aci/netviewer/**" />
+            <exclude name="us/ihmc/aci/netviewer/scenarios/**" />
+            <classpath>
+                <fileset dir="${lib.dir}">
+                    <include name="util.jar" />
+                    <include name="nodemon.jar" />
+                    <include name="charts-fx.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/netviewer">
+                    <include name="*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/nodemon">
+                    <include name="**/*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/jung2-2_0_1">
+                    <include name="**/*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/slf4j/">
+                    <include name="**/*.jar" />
+                </fileset>
+                <fileset dir="${nomads.home}/externals/java/jfreechart/">
+                    <include name="**/*.jar" />
+                </fileset>
+                <pathelement location="${externals.dir}/log4j-1.2.17.jar"/>
+                <pathelement location="${externals.dir}/commons-lang3-3.1.jar"/>
+            </classpath>
+        </javac>
+    </target>
+		
+    <!-- ================================================================ -->
+    <!-- Creates netviewerar file                                         -->
+    <!-- ================================================================ -->
+		
+    <target name="netviewer" depends="compile-netviewer" 
+                        description="Creates the jar containing the net viewer">
+        <jar jarfile="${lib.dir}/${netviewerjar-name}.jar">
+            <fileset dir="${netviewerbuild.dir}">
+                <include name="us/ihmc/**/*.class" />
+            </fileset>
+        </jar>
     </target>
 
 </project>

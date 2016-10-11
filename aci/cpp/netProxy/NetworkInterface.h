@@ -5,7 +5,7 @@
  * NetworkInterface.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -83,6 +83,7 @@ namespace ACMNetProxy
 
             static const uint8 * const getMACAddrForDevice (const char * const pszUserFriendlyInterfaceName);
             static NOMADSUtil::IPv4Addr getDefaultGatewayForInterface (const char *const pszUserFriendlyInterfaceName);
+            static const uint32 retrieveMTUForInterface (const char *const pszUserFriendlyInterfaceName, int fd = -1);
 
         private:
             explicit NetworkInterface (const NetworkInterface& rCopy);

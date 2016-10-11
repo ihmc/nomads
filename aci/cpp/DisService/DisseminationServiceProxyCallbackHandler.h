@@ -2,7 +2,7 @@
  * DisseminationServiceProxyCallbackHandler.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,12 +22,8 @@
 
 #include "DisseminationServiceProxy.h"
 
-#include "FTypes.h"
 #include "CommHelper2.h"
 #include "ManageableThread.h"
-#include "Thread.h"
-
-#include <stddef.h>
 
 namespace IHMC_ACI
 {

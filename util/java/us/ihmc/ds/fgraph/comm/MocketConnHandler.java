@@ -2,7 +2,7 @@
  * MocketConnHandler.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,6 +24,9 @@ import us.ihmc.ds.fgraph.comm.msgQueue.MessageQueueHandler;
 import us.ihmc.mockets.Mocket;
 import us.ihmc.mockets.MocketStatusListener;
 import us.ihmc.util.ConfigLoader;
+import us.ihmc.util.serialization.SerializationException;
+import us.ihmc.util.serialization.SerializerFactory;
+import us.ihmc.util.serialization.SerializerType;
 
 import java.net.InetAddress;
 import java.io.ObjectOutputStream;
@@ -36,9 +39,9 @@ import java.util.zip.CRC32;
  * ConnHandler
  * 
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.11 $
+ * @version $Revision: 1.13 $
  *          Created on Apr 30, 2004 at 5:22:23 PM
- *          $Date: 2014/11/06 22:00:30 $
+ *          $Date: 2016/06/09 20:02:46 $
  *          Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class MocketConnHandler extends ConnHandler implements MocketStatusListener
@@ -52,7 +55,7 @@ public class MocketConnHandler extends ConnHandler implements MocketStatusListen
         _mocketTimeout = cl.getPropertyAsInt("fgraph.client.mocket.timeout", _mocketTimeout);
         System.out.println("FGraph Mocket Timeout is: " + _mocketTimeout);
         _mocket = mocket;
-        _mocket.addMocketStatusListener(this);
+        _mocket.setStatusListener(this);
         if (_mocket == null) {
             throw new Exception ("Invalid Mocket : " + _mocket);
         }
@@ -68,9 +71,16 @@ public class MocketConnHandler extends ConnHandler implements MocketStatusListen
         {
             try {
                 debugMsg ("Entering run method");
-                ObjectInputStream ois = new ObjectInputStream (_mocket.getInputStream());
-                debugMsg ("Have ObjectInputStream from mocket.");
-                FGraphMessage fgMessage = (FGraphMessage) ois.readObject();
+                byte[] data = _mocket.receive (-1);
+                FGraphMessage fgMessage = SerializerFactory.getSerializer (SerializerType.EXTERNALIZABLE).deserialize (
+                        data, FGraphMessage.class);
+                if (fgMessage == null) {
+                    throw new SerializationException ("The deserialized object is null");
+                }
+
+//                ObjectInputStream ois = new ObjectInputStream (_mocket.getInputStream());
+//                debugMsg ("Have ObjectInputStream from mocket.");
+//                FGraphMessage fgMessage = (FGraphMessage) ois.readObject();
                 fgMessage.setLocalConnHandlerID (_connHandlerID);
                 debugMsg ("Received " +  fgMessage.getMessageID());
                 if (fgMessage instanceof FGACKMessage) {
@@ -114,9 +124,28 @@ public class MocketConnHandler extends ConnHandler implements MocketStatusListen
     {
         try {
             if (_mocket != null) {
-                ObjectOutputStream oos = new ObjectOutputStream (_mocket.getOutputStream());
-                oos.writeObject (fgMessage);
-                oos.flush();
+                byte[] data;
+                try {
+                    data = SerializerFactory.getSerializer (SerializerType.EXTERNALIZABLE).serialize (fgMessage);
+                }
+                catch (SerializationException e) {
+                    debugMsg ("Got Exception: " + e.getMessage());
+                    return;
+                }
+                try {
+                    int rc = _mocket.send (true, true, data, 0, (short) 5, 0, 0);
+                    if (rc < 0) {
+                        throw new Exception ("The mockets return value for the send is " + rc);
+                    }
+                }
+                catch (Exception e) {
+                    debugMsg ("Got Exception: " + e.getMessage());
+                    return;
+                }
+
+//                ObjectOutputStream oos = new ObjectOutputStream (_mocket.getOutputStream());
+//                oos.writeObject (fgMessage);
+//                oos.flush();
             }
         }
         catch (Exception e) {
@@ -134,9 +163,27 @@ public class MocketConnHandler extends ConnHandler implements MocketStatusListen
     {
         debugMsg (">>>>>>>>  ENTERING sendBlockingMEssage (" + fgMessage.getMessageID() + ")");
         if (_mocket != null) {
-            ObjectOutputStream oos = new ObjectOutputStream (_mocket.getOutputStream());
-            oos.writeObject (fgMessage);
-            oos.flush();
+            byte[] data;
+            try {
+                data = SerializerFactory.getSerializer (SerializerType.EXTERNALIZABLE).serialize (fgMessage);
+            }
+            catch (SerializationException e) {
+                debugMsg ("Got Exception: " + e.getMessage());
+                return;
+            }
+            try {
+                int rc = _mocket.send (true, true, data, 0, (short) 5, 0, 0);
+                if (rc < 0) {
+                    throw new Exception ("The mockets return value for the send is " + rc);
+                }
+            }
+            catch (Exception e) {
+                debugMsg ("Got Exception: " + e.getMessage());
+                return;
+            }
+//            ObjectOutputStream oos = new ObjectOutputStream (_mocket.getOutputStream());
+//            oos.writeObject (fgMessage);
+//            oos.flush();
             debugMsg ("Finished Writing message (" + fgMessage.getMessageID() + ")");
         }
         long elapsed = System.currentTimeMillis();
@@ -217,6 +264,16 @@ public class MocketConnHandler extends ConnHandler implements MocketStatusListen
             //_running = false;
             return true;
         }
+        return false;
+    }
+
+    public boolean peerReachable (long unreachabilityIntervalLength)
+    {
+        return false;
+    }
+
+    public boolean suspendReceived (long timeSinceSuspension)
+    {
         return false;
     }
 

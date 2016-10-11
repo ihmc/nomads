@@ -5,7 +5,7 @@
  * Connection.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -146,12 +146,13 @@ namespace ACMNetProxy
 
             int openConnectionWithRemoteProxy (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, bool bLocalReachabilityFromRemote);
             int confirmOpenedConnectionWithRemoteProxy (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, bool bLocalReachabilityFromRemote);
-            int sendICMPProxyMessageToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalOriginationIP, uint32 ui32RemoteTargetIP,
-                                                  const uint8 * const pui8Buf, uint16 ui16BufLen, ProxyMessage::Protocol ui8PMProtocol, bool bLocalReachabilityFromRemote);
-            int sendUDPUnicastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP, const uint8 * const pPacket, uint16 ui16PacketLen,
-                                                  const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
-            int sendMultipleUDPDatagramsToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP, MutexUDPQueue * const pUDPDatagramsQueue,
-                                                      const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
+            int sendICMPProxyMessageToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalOriginationIP,
+                                                  uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL, const uint8 * const pui8Buf, uint16 ui16BufLen,
+                                                  ProxyMessage::Protocol ui8PMProtocol, bool bLocalReachabilityFromRemote);
+            int sendUDPUnicastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL,
+                                                  const uint8 * const pPacket, uint16 ui16PacketLen, const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
+            int sendMultipleUDPDatagramsToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP,
+                                                      MutexUDPQueue * const pUDPDatagramsQueue, const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
             int sendUDPBCastMCastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32RemoteDestinationIP, const uint8 * const pPacket, uint16 ui16PacketLen,
                                                      const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
             int sendOpenTCPConnectionRequest (Entry * const pEntry, bool bLocalReachabilityFromRemote);
@@ -177,7 +178,7 @@ namespace ACMNetProxy
             int lock (void) const;
             int tryLock (void) const;
             int unlock (void) const;
-
+	
 
         private:
             friend class IncomingMessageHandler;
@@ -210,7 +211,7 @@ namespace ACMNetProxy
             mutable NOMADSUtil::ConditionVariable _cvBCThread;
 
             bool _bDeleteRequested;
-
+			
             static ConnectionManager * const _pConnectionManager;
             static NetProxyConfigManager * const _pConfigurationManager;
             static GUIStatsManager * const _pGUIStatsManager;

@@ -5,7 +5,7 @@
  * CSRAdapter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -82,6 +82,7 @@ namespace ACMNetProxy
 
     inline int CSRAdapter::bufferingMode (int iMode)
     {
+        (void) iMode;
         return -1;
     }
 
@@ -107,6 +108,9 @@ namespace ACMNetProxy
 
     inline int CSRAdapter::shutdown (bool bReadMode, bool bWriteMode)
     {
+        (void) bReadMode;
+        (void) bWriteMode;
+        
         return _pMocket->close();
     }
 
@@ -123,6 +127,9 @@ namespace ACMNetProxy
     inline int CSRAdapter::send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
                                  bool bSequenced, const void *pBuf, uint32 ui32BufSize)
     {
+        (void) pInetAddr;
+        (void) ui32DestVirtualIPAddr;
+        
         return _pMocket->send (bReliable, bSequenced, pBuf, ui32BufSize, 0, 0, 0, 0);
     }
 
@@ -139,6 +146,9 @@ namespace ACMNetProxy
     inline int CSRAdapter::gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
                                   const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2)
     {
+        (void) pInetAddr;
+        (void) ui32DestVirtualIPAddr;
+        
         return _pMocket->gsend (bReliable, bSequenced, 0, 0, 0, 0, pBuf1, ui32BufSize1, valist1, valist2);
     }
 }

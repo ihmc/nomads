@@ -2,7 +2,7 @@
  * Listener.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,6 +24,7 @@
 #define	INCL_LISTENER_H
 
 #include "FTypes.h"
+#include "StrClass.h"
 
 namespace IHMC_ACI
 {
@@ -96,7 +97,7 @@ namespace IHMC_ACI
              */
             virtual void newIncomingMessage (const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
                                              DisServiceMsg *pDisServiceMsg, uint32 ui32SourceIPAddress,
-					     const char *pszIncomingInterface) = 0;
+					                         const char *pszIncomingInterface) = 0;
 
         protected:
             MessageListener (void);
@@ -246,9 +247,14 @@ namespace IHMC_ACI
 
             virtual void searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds,
                                              const char *pszMatchingNodeId) = 0;
+            virtual void volatileSearchReplyArrived (const char *pszQueryId, const void *pReply,
+                                                     uint16 ui162ReplyLen, const char *pszMatchingNodeId) = 0;
 
         protected:
-            SearchListener (void);
+            explicit SearchListener (const char *pszDescription);
+
+        public:
+            const NOMADSUtil::String _description;
     };
 
     template <typename T> PeerStateListener::PeerStateUpdate<T>::PeerStateUpdate (PeerStateListener::StateUpdate type,

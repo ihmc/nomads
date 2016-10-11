@@ -2,7 +2,7 @@
  * HTGraph.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -930,7 +930,7 @@ namespace NOMADSUtil
             // Get the Vertex with the minimum distance from the Candidate Queue
             const char *pszClosestVertex = getClosestVertex (&distances, &candidateQueue);
             // Search is terminate if the closest vertex is the destination
-            if (strcmp (pszClosestVertex, pszDestVertexKey) == 0) {
+            if ((pszClosestVertex == NULL) || strcmp (pszClosestVertex, pszDestVertexKey) == 0) {
                 break;
             }
             // Remove the closest vertex from the candidate queue
@@ -1393,7 +1393,7 @@ namespace NOMADSUtil
             pReader->read16 (&ui16EdgeNum);
             (*pui32BytesRead) = (*pui32BytesRead) + 2;
 
-            for (int j=0; j<ui16EdgeNum; j++) {
+            for (int j = 0; j < ui16EdgeNum; j++) {
                 // Read Destination Vertex Key
                 pReader->read8 (&ui8Length);
                 char *pszDestKey = new char [ui8Length+1];
@@ -1415,7 +1415,8 @@ namespace NOMADSUtil
                 delete[] pszEdgeLabel;
             }
             delete[] pszKey;
-        }    
+        }
+        return 0;
     }
 
     template <class T, class C> const char * HTGraph<T,C>::updatePrivateNeighborhood (Reader *pReader, uint32 *pui32BytesRead)
@@ -1841,7 +1842,11 @@ namespace NOMADSUtil
             // Get the Vertex with the minimum distance from the Candidate Queue
             const char *pszClosestVertex = getClosestVertex (&distances, &candidateQueue);
             // If the candidate is not reachable then terminate
-            if ((*distances.get (pszClosestVertex)) == fInfinity) {
+            if (pszClosestVertex == NULL) {
+                break;
+            }
+            float *fDistance = distances.get (pszClosestVertex);
+            if ((fDistance == NULL) || (*fDistance) == fInfinity) {
                 break;
             }
             // Add the closest vertex to the MST
@@ -1901,8 +1906,8 @@ namespace NOMADSUtil
 
     template <class T, class C> const char * HTGraph<T,C>::getClosestVertex (StringHashtable<float> *pDistances, PtrQueue<String> *pQueue)
     {
-        float fMin = 0xFFFFFFFF;
-        String *pszRet;
+        float fMin = 0xFFFFFFFFf;
+        String *pszRet = NULL;
         for (String *pszCandidate = pQueue->getFirst(); pszCandidate != NULL;
              pszCandidate = pQueue->getNext()) {
             
@@ -1910,6 +1915,9 @@ namespace NOMADSUtil
                 fMin = ((*pDistances->get (pszCandidate->c_str())));
                 pszRet = pszCandidate;
             }
+        }
+        if (pszRet == NULL) {
+            return NULL;
         }
         return pszRet->c_str();
     }        

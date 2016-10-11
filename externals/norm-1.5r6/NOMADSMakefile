@@ -1,0 +1,10 @@
+all: libnorm.a
+
+libnorm.a:
+	./waf configure
+	./waf
+	make -f Makefile.linux -C makefiles/
+
+clean:
+	./waf distclean
+	make -f Makefile.linux -C makefiles/ clean

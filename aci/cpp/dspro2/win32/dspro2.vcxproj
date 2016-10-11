@@ -1,0 +1,429 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Static Release|Win32">
+      <Configuration>Static Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Static Release|x64">
+      <Configuration>Static Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D02DBF6C-7EC1-49A2-BDBE-75AD42AB3113}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>dspro2</RootNamespace>
+    <ProjectName>DSPro2Lib</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\comm;..\comm\disservice;..\comm\mockets;..\comm\tcp;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\comm;..\comm\mockets;..\comm\disservice;..\comm\tcp;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\comm;..\comm\disservice;..\comm\mockets;..\comm\tcp;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\comm;..\comm\disservice;..\comm\mockets;..\comm\tcp;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\comm;..\comm\disservice;..\comm\mockets;..\comm\tcp;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\media;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\comm;..\comm\mockets;..\comm\disservice;..\controllers;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\misc\cpp\chunking;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\awareness\C45LocalNodeContext.h" />
+    <ClInclude Include="..\awareness\LocalNodeContext.h" />
+    <ClInclude Include="..\awareness\NodeContextManager.h" />
+    <ClInclude Include="..\awareness\NonClassifyingLocalNodeContext.h" />
+    <ClInclude Include="..\awareness\PeerNodeContext.h" />
+    <ClInclude Include="..\awareness\PositionUpdater.h" />
+    <ClInclude Include="..\awareness\Targets.h" />
+    <ClInclude Include="..\awareness\Topology.h" />
+    <ClInclude Include="..\CallbackHandler.h" />
+    <ClInclude Include="..\Classification.h" />
+    <ClInclude Include="..\CommAdaptorManager.h" />
+    <ClInclude Include="..\comm\AdaptorProperties.h" />
+    <ClInclude Include="..\comm\CommAdaptor.h" />
+    <ClInclude Include="..\comm\CommAdaptorListener.h" />
+    <ClInclude Include="..\comm\CommAdaptorListenerNotifier.h" />
+    <ClInclude Include="..\comm\ConnCommAdaptor.h" />
+    <ClInclude Include="..\comm\ConnEndPoint.h" />
+    <ClInclude Include="..\comm\ConnHandler.h" />
+    <ClInclude Include="..\comm\ConnListener.h" />
+    <ClInclude Include="..\comm\disservice\DisServiceAdaptor.h" />
+    <ClInclude Include="..\comm\disservice\DSProMessage.h" />
+    <ClInclude Include="..\comm\MessageProperties.h" />
+    <ClInclude Include="..\comm\mockets\MocketConnHandler.h" />
+    <ClInclude Include="..\comm\mockets\MocketConnListener.h" />
+    <ClInclude Include="..\comm\mockets\MocketsAdaptor.h" />
+    <ClInclude Include="..\comm\mockets\MocketsEndPoint.h" />
+    <ClInclude Include="..\comm\mockets\TagGenerator.h" />
+    <ClInclude Include="..\comm\SearchProperties.h" />
+    <ClInclude Include="..\comm\SessionIdChecker.h" />
+    <ClInclude Include="..\comm\tcp\TCPAdaptor.h" />
+    <ClInclude Include="..\comm\tcp\TCPConnHandler.h" />
+    <ClInclude Include="..\comm\tcp\TCPConnListener.h" />
+    <ClInclude Include="..\comm\tcp\TCPEndPoint.h" />
+    <ClInclude Include="..\Controller.h" />
+    <ClInclude Include="..\controllers\forwarding\MessageForwardingController.h" />
+    <ClInclude Include="..\controllers\query\ApplicationQueryController.h" />
+    <ClInclude Include="..\controllers\query\ChunkQuery.h" />
+    <ClInclude Include="..\controllers\query\ChunkQueryController.h" />
+    <ClInclude Include="..\controllers\query\DisServiceQueryController.h" />
+    <ClInclude Include="..\controllers\query\DSProQueryController.h" />
+    <ClInclude Include="..\controllers\query\QueryController.h" />
+    <ClInclude Include="..\controllers\query\QueryQualifierBuilder.h" />
+    <ClInclude Include="..\ControlMessageListener.h" />
+    <ClInclude Include="..\ControlMessageNotifier.h" />
+    <ClInclude Include="..\DSPro.h" />
+    <ClInclude Include="..\DSProCmdProcessor.h" />
+    <ClInclude Include="..\DSProUtils.h" />
+    <ClInclude Include="..\DSProImpl.h" />
+    <ClInclude Include="..\DSProListener.h" />
+    <ClInclude Include="..\DSProServices.h" />
+    <ClInclude Include="..\InformationPull.h" />
+    <ClInclude Include="..\InformationPush.h" />
+    <ClInclude Include="..\InformationPushPolicy.h" />
+    <ClInclude Include="..\Instrumentator.h" />
+    <ClInclude Include="..\MatchmakingHelper.h" />
+    <ClInclude Include="..\MatchmakingLogListener.h" />
+    <ClInclude Include="..\MessageForwardingPolicy.h" />
+    <ClInclude Include="..\MessageHeaders.h" />
+    <ClInclude Include="..\MessageIdGenerator.h" />
+    <ClInclude Include="..\MetadataGenerator.h" />
+    <ClInclude Include="..\proxy\DSProProxy.h" />
+    <ClInclude Include="..\proxy\DSProProxyAdaptor.h" />
+    <ClInclude Include="..\proxy\DSProProxyServer.h" />
+    <ClInclude Include="..\ranking\BoundingBox.h" />
+    <ClInclude Include="..\ranking\CustumPolicy.h" />
+    <ClInclude Include="..\ranking\Defs.h" />
+    <ClInclude Include="..\ranking\DSLib.h" />
+    <ClInclude Include="..\ranking\Match.h" />
+    <ClInclude Include="..\ranking\MatchmakingIntrumentation.h" />
+    <ClInclude Include="..\ranking\MatchMakingPolicies.h" />
+    <ClInclude Include="..\ranking\MatchmakingQualifier.h" />
+    <ClInclude Include="..\ranking\MetaData.h" />
+    <ClInclude Include="..\ranking\MetadataConfiguration.h" />
+    <ClInclude Include="..\ranking\MetadataInterface.h" />
+    <ClInclude Include="..\ranking\MetaDataRanker.h" />
+    <ClInclude Include="..\ranking\MetadataRankerConfiguration.h" />
+    <ClInclude Include="..\ranking\NodeContext.h" />
+    <ClInclude Include="..\ranking\NodeIdSet.h" />
+    <ClInclude Include="..\ranking\NodePath.h" />
+    <ClInclude Include="..\ranking\Path.h" />
+    <ClInclude Include="..\ranking\Pedigree.h" />
+    <ClInclude Include="..\ranking\PreviousMessageIds.h" />
+    <ClInclude Include="..\ranking\Rank.h" />
+    <ClInclude Include="..\ranking\RankByTargetMap.h" />
+    <ClInclude Include="..\ranking\RankFactory.h" />
+    <ClInclude Include="..\ranking\SQLAVList.h" />
+    <ClInclude Include="..\scheduler\IterableStringHashtable.h" />
+    <ClInclude Include="..\scheduler\MessageRequestServer.h" />
+    <ClInclude Include="..\scheduler\Scheduler.h" />
+    <ClInclude Include="..\scheduler\SchedulerCache.h" />
+    <ClInclude Include="..\scheduler\SchedulerGeneratedMetadata.h" />
+    <ClInclude Include="..\scheduler\SchedulerPolicies.h" />
+    <ClInclude Include="..\storage\DataStore.h" />
+    <ClInclude Include="..\storage\InformationStore.h" />
+    <ClInclude Include="..\storage\Publisher.h" />
+    <ClInclude Include="..\storage\StorageController.h" />
+    <ClInclude Include="..\UserRequests.h" />
+    <ClInclude Include="..\WaypointMessageHelper.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\awareness\C45LocalNodeContext.cpp" />
+    <ClCompile Include="..\awareness\LocalNodeContext.cpp" />
+    <ClCompile Include="..\awareness\NodeContextManager.cpp" />
+    <ClCompile Include="..\awareness\NonClassifyingLocalNodeContext.cpp" />
+    <ClCompile Include="..\awareness\PeerNodeContext.cpp" />
+    <ClCompile Include="..\awareness\PositionUpdater.cpp" />
+    <ClCompile Include="..\awareness\Targets.cpp" />
+    <ClCompile Include="..\awareness\Topology.cpp" />
+    <ClCompile Include="..\CallbackHandler.cpp" />
+    <ClCompile Include="..\CommAdaptorManager.cpp" />
+    <ClCompile Include="..\comm\AdaptorProperties.cpp" />
+    <ClCompile Include="..\comm\CommAdaptor.cpp" />
+    <ClCompile Include="..\comm\CommAdaptorListenerNotifier.cpp" />
+    <ClCompile Include="..\comm\ConnCommAdaptor.cpp" />
+    <ClCompile Include="..\comm\ConnHandler.cpp" />
+    <ClCompile Include="..\comm\ConnListener.cpp" />
+    <ClCompile Include="..\comm\disservice\DisServiceAdaptor.cpp" />
+    <ClCompile Include="..\comm\disservice\DSProMessage.cpp" />
+    <ClCompile Include="..\comm\mockets\MocketConnHandler.cpp" />
+    <ClCompile Include="..\comm\mockets\MocketConnListener.cpp" />
+    <ClCompile Include="..\comm\mockets\MocketsAdaptor.cpp" />
+    <ClCompile Include="..\comm\mockets\MocketsEndPoint.cpp" />
+    <ClCompile Include="..\comm\mockets\TagGenerator.cpp" />
+    <ClCompile Include="..\comm\SearchProperties.cpp" />
+    <ClCompile Include="..\comm\SessionIdChecker.cpp" />
+    <ClCompile Include="..\comm\tcp\TCPAdaptor.cpp" />
+    <ClCompile Include="..\comm\tcp\TCPConnHandler.cpp" />
+    <ClCompile Include="..\comm\tcp\TCPConnListener.cpp" />
+    <ClCompile Include="..\comm\tcp\TCPEndPoint.cpp" />
+    <ClCompile Include="..\Controller.cpp" />
+    <ClCompile Include="..\controllers\forwarding\MessageForwardingController.cpp" />
+    <ClCompile Include="..\controllers\query\ApplicationQueryController.cpp" />
+    <ClCompile Include="..\controllers\query\ChunkQuery.cpp" />
+    <ClCompile Include="..\controllers\query\ChunkQueryController.cpp" />
+    <ClCompile Include="..\controllers\query\DisServiceQueryController.cpp" />
+    <ClCompile Include="..\controllers\query\DSProQueryController.cpp" />
+    <ClCompile Include="..\controllers\query\QueryController.cpp" />
+    <ClCompile Include="..\controllers\query\QueryQualifierBuilder.cpp" />
+    <ClCompile Include="..\ControlMessageNotifier.cpp" />
+    <ClCompile Include="..\DSPro.cpp" />
+    <ClCompile Include="..\DSProCmdProcessor.cpp" />
+    <ClCompile Include="..\DSProUtils.cpp" />
+    <ClCompile Include="..\DSProImpl.cpp" />
+    <ClCompile Include="..\DSProServices.cpp" />
+    <ClCompile Include="..\DSProListener.cpp" />
+    <ClCompile Include="..\InformationPull.cpp" />
+    <ClCompile Include="..\InformationPush.cpp" />
+    <ClCompile Include="..\InformationPushPolicy.cpp" />
+    <ClCompile Include="..\Instrumentator.cpp" />
+    <ClCompile Include="..\MatchmakingHelper.cpp" />
+    <ClCompile Include="..\MessageForwardingPolicy.cpp" />
+    <ClCompile Include="..\MessageHeaders.cpp" />
+    <ClCompile Include="..\MessageIdGenerator.cpp" />
+    <ClCompile Include="..\MetadataGenerator.cpp" />
+    <ClCompile Include="..\proxy\DSProProxy.cpp" />
+    <ClCompile Include="..\proxy\DSProProxyAdaptor.cpp" />
+    <ClCompile Include="..\proxy\DSProProxyServer.cpp" />
+    <ClCompile Include="..\ranking\BoundingBox.cpp" />
+    <ClCompile Include="..\ranking\CustomPolicies.cpp" />
+    <ClCompile Include="..\ranking\DSLib.cpp" />
+    <ClCompile Include="..\ranking\Match.cpp" />
+    <ClCompile Include="..\ranking\MatchmakingIntrumentation.cpp" />
+    <ClCompile Include="..\ranking\MatchMakingPolicies.cpp" />
+    <ClCompile Include="..\ranking\MatchmakingQualifier.cpp" />
+    <ClCompile Include="..\ranking\MetaData.cpp" />
+    <ClCompile Include="..\ranking\MetadataConfiguration.cpp" />
+    <ClCompile Include="..\ranking\MetadataInterface.cpp" />
+    <ClCompile Include="..\ranking\MetaDataRanker.cpp" />
+    <ClCompile Include="..\ranking\MetadataRankerConfiguration.cpp" />
+    <ClCompile Include="..\ranking\NodeContext.cpp" />
+    <ClCompile Include="..\ranking\NodeIdSet.cpp" />
+    <ClCompile Include="..\ranking\NodePath.cpp" />
+    <ClCompile Include="..\ranking\Path.cpp" />
+    <ClCompile Include="..\ranking\Pedigree.cpp" />
+    <ClCompile Include="..\ranking\Rank.cpp" />
+    <ClCompile Include="..\ranking\RankByTargetMap.cpp" />
+    <ClCompile Include="..\ranking\RankFactory.cpp" />
+    <ClCompile Include="..\ranking\SQLAVList.cpp" />
+    <ClCompile Include="..\scheduler\MessageRequestServer.cpp" />
+    <ClCompile Include="..\scheduler\Scheduler.cpp" />
+    <ClCompile Include="..\scheduler\SchedulerCache.cpp" />
+    <ClCompile Include="..\scheduler\SchedulerGeneratedMetadata.cpp" />
+    <ClCompile Include="..\scheduler\SchedulerPolicies.cpp" />
+    <ClCompile Include="..\storage\DataStore.cpp" />
+    <ClCompile Include="..\storage\InformationStore.cpp" />
+    <ClCompile Include="..\storage\Publisher.cpp" />
+    <ClCompile Include="..\storage\StorageController.cpp" />
+    <ClCompile Include="..\UserRequests.cpp" />
+    <ClCompile Include="..\WaypointMessageHelper.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\misc\cpp\c45\win32\C45Lib.vcxproj">
+      <Project>{7578c341-1d9f-403b-a61e-72dd45e1312d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\misc\cpp\chunking\win32\chunking.vcxproj">
+      <Project>{1ccb61a3-5949-48ed-81da-f5be1da5fdfd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\misc\cpp\milstd2525\win32\milstd2525lib.vcxproj">
+      <Project>{f06d3152-6735-4fb3-8ae8-351de439833a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\util\cpp\win32\utillib.vcxproj">
+      <Project>{8b739421-e28c-4fc1-b6ed-26d635617f7b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\DisService\win32\DisService.vcxproj">
+      <Project>{acc3c564-d054-4c44-8798-1a60114bd3cf}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

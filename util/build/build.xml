@@ -13,6 +13,7 @@
   <property name="lib.dir" location="lib"/>
   <property name="src.dir" location="java"/>
   <property name="dist.dir" location="dist"/>
+  <property name="resources.dir" location="./resources"/>
   <property name="comp.debug" value="on"/>
   <property name="comp.optimize" value="on"/>
   <property name="comp.deprecation" value="on"/>
@@ -56,6 +57,8 @@
       <include name="us/ihmc/**/*.java"/>
       <exclude name="us/ihmc/util/MocketCommHelper.java"/>
       <exclude name="us/ihmc/ds/fgraph/**"/>
+
+      <include name="${resource.dir}/**/MIMETypes.properties" />
     </javac>
 
   </target>
@@ -74,21 +77,32 @@
           <include name="**/dom4j-1.6.1.jar"/>
           <include name="**/jcommon-1.0.6.jar"/>
           <include name="**/jfreechart-1.0.3.jar"/>
-          <include name="**/kryo-2.20-all.jar"/>
+          <include name="**/nodemon/kryo/kryo-shaded-3.0.3-SNAPSHOT.jar"/>
       </fileset>
+  </target>
+
+  <!-- ================================================================ -->
+  <!-- Copies jpg images into cache directory.                          -->
+  <!-- ================================================================ -->
+  <target name="copyResources" depends="init" >
+    <copy todir="${build.dir}">
+        <fileset dir="./resources">
+            <include name="us/ihmc/**/MIMETypes.properties" />
+        </fileset>
+    </copy>
   </target>
 
   <!-- ================================================================ -->
   <!-- Creates jar file                                                 -->
   <!-- ================================================================ -->
-  <target name="utiljar" depends="util"
-      description="Creates jar file.">
+  <target name="utiljar" depends="util, copyResources" description="Creates jar file.">
 
     <delete file="${lib.dir}/${name}.jar"/>
     <jar jarfile="${lib.dir}/${name}.jar"
         excludes="META-INF/MANIFEST.MF">
       <fileset dir="${build.dir}">
         <include name="us/ihmc/**/*.class" />
+	<include name="us/ihmc/**/MIMETypes.properties" />
       </fileset>
     </jar>
   </target>

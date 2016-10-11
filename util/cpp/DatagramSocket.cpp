@@ -2,7 +2,7 @@
  * DatagramSocket.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,7 +44,7 @@ using namespace NOMADSUtil;
 
 uint32 DatagramSocket::getTransmitRateLimit (void)
 {
-    return _transmitLimit.ui32RateLimit;
+    return _transmitLimit.ui32RateLimitInBps;
 }
 
 bool DatagramSocket::pktInfoEnabled (void)
@@ -55,12 +55,12 @@ bool DatagramSocket::pktInfoEnabled (void)
 int DatagramSocket::setTransmitRateLimit (uint32 ui32RateLimit)
 {
     if (ui32RateLimit > 0) {
-        _transmitLimit.ui32RateLimit = ui32RateLimit;
+        _transmitLimit.ui32RateLimitInBps = ui32RateLimit;
         _transmitLimit.ui32RateLimitInterval = 100;     // In Milliseconds
-        _transmitLimit.ui32BytesPerInterval = (_transmitLimit.ui32RateLimit * _transmitLimit.ui32RateLimitInterval) / 1000;
+        _transmitLimit.ui32BytesPerInterval = (_transmitLimit.ui32RateLimitInBps * _transmitLimit.ui32RateLimitInterval) / 1000;
         checkAndLogMsg ("DatagramSocket::setTransmitRateLimit1", Logger::L_Info,
                         "set transmit rate limit to %lu bytes/sec\n",
-                        _transmitLimit.ui32RateLimit);
+                        _transmitLimit.ui32RateLimitInBps);
     }
     else {
         _transmitLimit.reset();
@@ -71,7 +71,7 @@ int DatagramSocket::setTransmitRateLimit (uint32 ui32RateLimit)
 uint32 DatagramSocket::getTransmitRateLimit (const char *pszDestinationAddr)
 {
     if (pszDestinationAddr == NULL) {
-        return _transmitLimit.ui32RateLimit;
+        return _transmitLimit.ui32RateLimitInBps;
     }
     TransmitLimit *pLimit = NULL;
     if (InetAddr::isIPv4Addr (pszDestinationAddr)) {
@@ -81,7 +81,7 @@ uint32 DatagramSocket::getTransmitRateLimit (const char *pszDestinationAddr)
         pLimit = _perStrAddrTransmitLimits.get (pszDestinationAddr);
     }
     if (pLimit) {
-        return pLimit->ui32RateLimit;
+        return pLimit->ui32RateLimitInBps;
     }
     return 0;
 }
@@ -94,7 +94,6 @@ int DatagramSocket::setTransmitRateLimit (const char *pszDestinationAddr, uint32
             pLimit = &_transmitLimit;
         }
         else {
-            TransmitLimit *pLimit = NULL;
             if (InetAddr::isIPv4Addr (pszDestinationAddr)) {
                 uint32 ui32DestinationAddr = inet_addr (pszDestinationAddr);
                 pLimit = _perIPv4AddrTransmitLimits.get (ui32DestinationAddr);
@@ -111,12 +110,12 @@ int DatagramSocket::setTransmitRateLimit (const char *pszDestinationAddr, uint32
                 }
             }
         }
-        pLimit->ui32RateLimit = ui32RateLimit;
+        pLimit->ui32RateLimitInBps = ui32RateLimit;
         pLimit->ui32RateLimitInterval = 100;     // In Milliseconds
-        pLimit->ui32BytesPerInterval = (pLimit->ui32RateLimit * pLimit->ui32RateLimitInterval) / 1000;
+        pLimit->ui32BytesPerInterval = (pLimit->ui32RateLimitInBps * pLimit->ui32RateLimitInterval) / 1000;
         checkAndLogMsg ("DatagramSocket::setTransmitRateLimit2", Logger::L_Info,
                         "set transmit rate limit for destination address <%s> set to %lu bytes/sec\n",
-                        pszDestinationAddr, pLimit->ui32RateLimit);
+                        pszDestinationAddr, pLimit->ui32RateLimitInBps);
     }
     else {
         if (pszDestinationAddr == NULL) {
@@ -147,7 +146,7 @@ inline DatagramSocket::TransmitLimit::TransmitLimit (void)
 
 inline void DatagramSocket::TransmitLimit::reset (void)
 {
-    ui32RateLimit = 0;
+    ui32RateLimitInBps = 0;
     ui32RateLimitInterval = 0;
     ui32BytesPerInterval = 0;
     i64IntervalStartTime = 0;
@@ -163,11 +162,11 @@ void DatagramSocket::enforceTransmitRateLimit (const char *pszAddress, uint32 ui
         TransmitLimit *pLimit = NULL;
         if (_perStrAddrTransmitLimits.getCount() > 0) {
             pLimit = _perStrAddrTransmitLimits.get (pszAddress);
-            if ((pLimit != NULL) && (pLimit->ui32RateLimit == 0)) {
+            if ((pLimit != NULL) && (pLimit->ui32RateLimitInBps == 0)) {
                 pLimit = NULL;
             }
         }
-        else if (_transmitLimit.ui32RateLimit > 0) {
+        else if (_transmitLimit.ui32RateLimitInBps > 0) {
             pLimit = &_transmitLimit;
         }
         if (pLimit != NULL) {
@@ -181,7 +180,7 @@ void DatagramSocket::enforceTransmitRateLimit (const char *pszAddress, uint32 ui
             if (pLimit->ui32BytesWrittenInInterval > pLimit->ui32BytesPerInterval) {
                 // Just exceeded the limit by writing the packet
                 // Figure out how long we need to sleep to remain within the limit
-                int64 i64TimeToSleep = ((pLimit->ui32BytesWrittenInInterval * 1000) / pLimit->ui32RateLimit) - (i64CurrTime - pLimit->i64IntervalStartTime);
+                int64 i64TimeToSleep = ((pLimit->ui32BytesWrittenInInterval * 1000) / pLimit->ui32RateLimitInBps) - (i64CurrTime - pLimit->i64IntervalStartTime);
                 sleepForMilliseconds (i64TimeToSleep);
             }
         }
@@ -193,11 +192,11 @@ void DatagramSocket::enforceTransmitRateLimit (uint32 ui32IPv4Addr, uint32 ui32P
     TransmitLimit *pLimit = NULL;
     if (_perIPv4AddrTransmitLimits.getCount() > 0) {
         pLimit = _perIPv4AddrTransmitLimits.get (ui32IPv4Addr);
-        if ((pLimit != NULL) && (pLimit->ui32RateLimit == 0)) {
+        if ((pLimit != NULL) && (pLimit->ui32RateLimitInBps == 0)) {
             pLimit = NULL;
         }
     }
-    else if (_transmitLimit.ui32RateLimit > 0) {
+    else if (_transmitLimit.ui32RateLimitInBps > 0) {
         pLimit = &_transmitLimit;
     }
     if (pLimit != NULL) {
@@ -211,7 +210,7 @@ void DatagramSocket::enforceTransmitRateLimit (uint32 ui32IPv4Addr, uint32 ui32P
         if (pLimit->ui32BytesWrittenInInterval > pLimit->ui32BytesPerInterval) {
             // Just exceeded the limit by writing the packet
             // Figure out how long we need to sleep to remain within the limit
-            int64 i64TimeToSleep = ((pLimit->ui32BytesWrittenInInterval * 1000) / pLimit->ui32RateLimit) - (i64CurrTime - pLimit->i64IntervalStartTime);
+            int64 i64TimeToSleep = ((pLimit->ui32BytesWrittenInInterval * 1000) / pLimit->ui32RateLimitInBps) - (i64CurrTime - pLimit->i64IntervalStartTime);
             sleepForMilliseconds (i64TimeToSleep);
         }
     }

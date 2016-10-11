@@ -2,7 +2,7 @@
  * MessageReassembler.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -94,6 +94,16 @@ MessageReassembler::~MessageReassembler (void)
     _pSubState = NULL;
 }
 
+void MessageReassembler::lock (void)
+{
+    _m.lock (265);
+}
+
+void MessageReassembler::unlock (void)
+{
+    _m.unlock (265);
+}
+
 bool MessageReassembler::usingExponentialBackOff()
 {
     return _bExpBackoff;
@@ -145,11 +155,14 @@ int MessageReassembler::addRequest (RequestInfo &reqInfo, UInt32RangeDLList *pMs
     rc = pMsgSeqIDs->getFirst (ui32BeginEl, ui32EndEl, RESET_GET);
     while (rc == 0) {
         for (uint32 ui32MsgSeqId = ui32BeginEl; ui32MsgSeqId <= ui32EndEl; ui32MsgSeqId++) {
-            FragmentedMessage searchTemplate (ui32MsgSeqId, MessageInfo::UNDEFINED_CHUNK_ID);
-            FragmentedMessage *pFragMsg = pMS->messages.search (&searchTemplate);
-            if (pFragMsg != NULL) {
-                if (pFragMsg->pRequestDetails == NULL) {
-                    pFragMsg->pRequestDetails = new RequestDetails (reqInfo._pszQueryId, reqInfo._ui16ClientId, reqInfo._ui64ExpirationTime);
+            ChunkList *pChunkList = pMS->messages.get (ui32MsgSeqId);
+            if (pChunkList != NULL) {
+                FragmentedMessage searchTemplate (ui32MsgSeqId, MessageInfo::UNDEFINED_CHUNK_ID);
+                FragmentedMessage *pFragMsg = pChunkList->search (&searchTemplate);
+                if (pFragMsg != NULL) {
+                    if (pFragMsg->pRequestDetails == NULL) {
+                        pFragMsg->pRequestDetails = new RequestDetails (reqInfo._pszQueryId, reqInfo._ui16ClientId, reqInfo._ui64ExpirationTime);
+                    }
                 }
             }
         }
@@ -178,13 +191,19 @@ int MessageReassembler::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
         return false;
     }
 
+    ChunkList *pChunkList = pMS->messages.get (ui32MsgSeqId);
+    if (pChunkList == NULL) {
+        _m.unlock (176);
+        return false;
+    }
+
     static const bool RESET_GET = true;
     uint8 ui8BeginEl, ui8EndEl;
     rc = pChunkIDs->getFirst (ui8BeginEl, ui8EndEl, RESET_GET);
     while (rc == 0) {
         for (uint8 ui8ChunkId = ui8BeginEl; ui8ChunkId <= ui8EndEl; ui8ChunkId++) {
-            FragmentedMessage searchTemplate (ui8ChunkId, MessageInfo::UNDEFINED_CHUNK_ID);
-            FragmentedMessage *pFragMsg = pMS->messages.search (&searchTemplate);
+            FragmentedMessage searchTemplate (ui32MsgSeqId, ui8ChunkId);
+            FragmentedMessage *pFragMsg = pChunkList->search (&searchTemplate);
             if (pFragMsg != NULL) {
                 if (pFragMsg->pRequestDetails == NULL) {
                     pFragMsg->pRequestDetails = new RequestDetails (reqInfo._pszQueryId, reqInfo._ui16ClientId, reqInfo._ui64ExpirationTime);
@@ -221,8 +240,14 @@ bool MessageReassembler::containsMessage (const char *pszGroupName, const char *
         return false;
     }
 
+    ChunkList *pChunkList = pMS->messages.get (ui32MsgSeqId);
+    if (pChunkList == NULL) {
+        _m.unlock (177);
+        return false;
+    }
+
     FragmentedMessage searchTemplate (ui32MsgSeqId, ui8ChunkId);
-    FragmentedMessage *pFragMsg = pMS->messages.search (&searchTemplate);
+    FragmentedMessage *pFragMsg = pChunkList->search (&searchTemplate);
     if (pFragMsg == NULL) {
         _m.unlock (177);
         return false;
@@ -239,47 +264,6 @@ bool MessageReassembler::containsMessage (MessageId *pMsgId)
     }
     return containsMessage (pMsgId->getGroupName(), pMsgId->getOriginatorNodeId(),
                             pMsgId->getSeqId(), pMsgId->getChunkId());
-}
-
-bool MessageReassembler::containsMessage (MessageHeader *pMI, bool bSpecificFragment)
-{
-    _m.lock (178);
-    MessagesByGroup *pMG = _receivedMessages.get (pMI->getGroupName());
-    if (pMG == NULL) {
-        _m.unlock (178);
-        return false;
-    }
-
-    MessagesByPublisher *pMS = pMG->messagesInGroup.get (pMI->getPublisherNodeId());
-    if (pMS == NULL) {
-         _m.unlock (178);
-        return false;
-    }
-
-    FragmentedMessage searchTemplate (pMI->getMsgSeqId(), pMI->getChunkId());
-    FragmentedMessage *pFragMsg = pMS->messages.search (&searchTemplate);
-    if (pFragMsg == NULL) {
-         _m.unlock (178);
-        return false;
-    }
-
-    if (!bSpecificFragment) {
-         _m.unlock (178);
-        return true;
-    }
-
-    FragmentWrapper *pFragWrapper = new FragmentWrapper (pMI->getFragmentOffset(), pMI->getFragmentLength(), pMI->isChunk());
-    if ((pFragMsg == NULL) || (pFragMsg->searchFragment (*pFragWrapper) == NULL)) {
-        delete pFragWrapper;
-        pFragWrapper = NULL;
-         _m.unlock (178);
-        return false;
-    }
-
-    delete pFragWrapper;
-    pFragWrapper = NULL;
-    _m.unlock (178);
-    return true;
 }
 
 bool MessageReassembler::hasFragment (const char *pszGroupName, const char *pszSenderNodeId,
@@ -304,8 +288,14 @@ bool MessageReassembler::hasFragment (const char *pszGroupName, const char *pszS
         return false;
     }
 
+    ChunkList *pChunkList = pMS->messages.get (ui32MsgSeqId);
+    if (pChunkList == NULL) {
+        _m.unlock (0);
+        return false;
+    }
+
     FragmentedMessage searchTemplate (ui32MsgSeqId, ui8ChunkId);
-    FragmentedMessage *pFragMsg = pMS->messages.search (&searchTemplate);
+    FragmentedMessage *pFragMsg = pChunkList->search (&searchTemplate);
     if (pFragMsg == NULL) {
          _m.unlock (0);
         return false;
@@ -363,8 +353,13 @@ bool MessageReassembler::isBeingReassembledInternal (const char *pszGroupName, c
         return false;
     }
 
+    ChunkList *pChunkList = pMS->messages.get (ui32MsgSeqId);
+    if (pChunkList == NULL) {
+        return false;
+    }
+
     FragmentedMessage searchTemplate (ui32MsgSeqId, ui8ChunkId);
-    FragmentedMessage *pFragMsg = pMS->messages.search (&searchTemplate);
+    FragmentedMessage *pFragMsg = pChunkList->search (&searchTemplate);
     if (pFragMsg == NULL) {
         if (bCheckRequestState) {
             return _requestState.wasRequested (pszGroupName, pszSenderNodeId,
@@ -454,7 +449,7 @@ int MessageReassembler::fragmentArrived (Message *pMessage, bool bIsNotTarget)
 
     // Create the FragmentWrapper
     FragmentWrapper *pFragWrapper = new FragmentWrapper (pMessage->getMessageHeader()->getFragmentOffset(),
-            pMessage->getMessageHeader()->getFragmentLength(), pMessage->getMessageHeader()->isChunk());
+                                                         pMessage->getMessageHeader()->getFragmentLength());
     pFragWrapper->pFragment = (void*) pFragment;
 
     // Check if this is the first message received in this group
@@ -489,10 +484,25 @@ int MessageReassembler::fragmentArrived (Message *pMessage, bool bIsNotTarget)
         pMG->messagesInGroup.put (pszSenderNodeId, pMS);
     }
 
+    ChunkList *pChunkList = pMS->messages.get (ui32NewMsgSeqId);
+    if (pChunkList == NULL) {
+        pChunkList = new ChunkList (false);
+        if (pChunkList == NULL) {
+            // Do not delete pFragWrapper->pFragment as it the same as pMessage->getData() - caller will free
+            pFragWrapper->pFragment = NULL;
+            delete pFragWrapper;
+            pFragWrapper = NULL;
+            checkAndLogMsg (pszMethodName, memoryExhausted);
+            _m.unlock (179);
+            return -4;
+        }
+        pMS->messages.put (ui32NewMsgSeqId, pChunkList);
+    }
+
     // Check if there is already a FragmentedMessage object for
     // this message (using the sequence id and chunk id of the message)
     FragmentedMessage searchTemplate (ui32NewMsgSeqId, ui8NewMsgChunkId);
-    FragmentedMessage *pFragMsg = pMS->messages.search (&searchTemplate);
+    FragmentedMessage *pFragMsg = pChunkList->search (&searchTemplate);
     if (pFragMsg == NULL) {
         // This is the first fragment for this message.
         // Create a new instance of FragmentedMessage
@@ -508,20 +518,20 @@ int MessageReassembler::fragmentArrived (Message *pMessage, bool bIsNotTarget)
             return -6;
         }
 
-        pMS->messages.insert (pFragMsg);
+        pChunkList->insert (pFragMsg);
         pFragMsg->addFragment (pFragWrapper);
         updateMissingFragmentsList (pFragMsg);
         pFragMsg->updateNextExpectedValue();
     }
     else {
-        FragmentWrapper *pFoundFragWrapper = pFragMsg->searchFragment (*pFragWrapper);
-        if (NULL != pFoundFragWrapper) {
+        //FragmentWrapper *pFoundFragWrapper = pFragMsg->searchFragment (*pFragWrapper);
+        if (!pFragMsg->addFragment (pFragWrapper)) {
             // This fragment already exists - discard
-            checkAndLogMsg ("MessageReassembler::fragmentArrived", Logger::L_Warning,
+            checkAndLogMsg ("MessageReassembler::fragmentArrived", Logger::L_HighDetailDebug,
                             "trying to add duplicate fragment - offset: %lu length %lu of message %s."
                             " (Found fragment of offset %lu length %lu)\n", pFragWrapper->ui32FragmentOffset,
                             pFragWrapper->ui16FragmentLength, pFragMsg->pMH->getMsgId(),
-                            pFoundFragWrapper->ui32FragmentOffset, pFoundFragWrapper->ui16FragmentLength);
+                            pFragWrapper->ui32FragmentOffset, pFragWrapper->ui16FragmentLength);
             // Do not delete pFragWrapper->pFragment as it the same as pMessage->getData() - caller will free
             pFragWrapper->pFragment = NULL;
             delete pFragWrapper;
@@ -529,8 +539,6 @@ int MessageReassembler::fragmentArrived (Message *pMessage, bool bIsNotTarget)
             _m.unlock (179);
             return -7;
         }
-        // Otherwise, insert fragment
-        pFragMsg->addFragment (pFragWrapper);
         uint8 ui8MsgComplete = messageComplete (pFragMsg);
         if (ui8MsgComplete == MSG_COMPLETE) {
             // Reassemble the message, deliver and cache it
@@ -667,15 +675,12 @@ int MessageReassembler::sendRequestInternal (RequestInfo &reqInfo, uint32 ui32Be
 
 int MessageReassembler::sendRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId, NOMADSUtil::UInt8RangeDLList *pChunkIDs)
 {
-    _m.lock (265);
     if (reqInfo._pszGroupName == NULL || reqInfo._pszSenderNodeId == NULL || pChunkIDs == NULL) {
-        _m.unlock (265);
         return -1;
     }
     PtrLList<FragmentRequest> *pMessageRequests = new PtrLList<FragmentRequest>();
     if (pMessageRequests == NULL) {
         checkAndLogMsg ("MessageReassembler::sendRequest", memoryExhausted);
-        _m.unlock (265);
         return -2;
     }
 
@@ -693,8 +698,6 @@ int MessageReassembler::sendRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId, 
     _pDisService->getStats()->missingFragmentRequestSent (pDDRM->getSize());
 
     delete pMessageRequests;
-
-    _m.unlock (265);
     return rc;
 }
 
@@ -778,6 +781,7 @@ void MessageReassembler::run (void)
                 _m.lock (183);
 
                 // Determine the maximum size of the Missing Fragment Request message
+                int64 i64SendingMissingFragReqStart = getTimeInMilliseconds();
                 uint16 ui16MaxMsgSize = minimum (_pTrSvc->getMTU(), _pDisService->getMaxFragmentSize());
 
                 // Add missing fragment requests
@@ -788,23 +792,23 @@ void MessageReassembler::run (void)
                 _requestState.getMissingMessageRequests (&_requestSched, this);
                 loadOpportunisticallyCachedFragments();
 
-                while (!_requestSched.isEmpty() && (ui16MaxMsgSize > 0)) {
+                while (!_requestSched.isEmpty() && (ui16MaxMsgSize > 0) && (_pTrSvc->getIncomingQueueSize() < _ui32IncomingQueueSizeRequestThreshold)) {
                     DisServiceIncrementalDataReqMsg dataReq (_pDisService->getNodeId(),
                                                              NULL, // pszQueryTargetNodeId
                                                              _pPeerState->getNumberOfActiveNeighbors(),
                                                              &_requestSched, ui16MaxMsgSize);
-
                     checkAndLogMsg (pszMethodName, Logger::L_Info, "++++++++++++++++Sending Fragment "
                                     "Request (ui16MaxMsgSize <%u>) - \n", ui16MaxMsgSize);
-                    _pDisService->broadcastDisServiceCntrlMsg (&dataReq, (const char**) ppszInterfaces, "Sending DisServiceDataReqMsg");
-                    _pDisService->getStats()->missingFragmentRequestSent (dataReq.getSize());
-
-                    // Reset the scheduler _before_ deleting the lists
-                    //_requestSched.reset();
+                    _pDisService->broadcastDisServiceCntrlMsg (&dataReq, const_cast<const char**>(ppszInterfaces), "Sending DisServiceDataReqMsg");
+                    _pDisService->getStats()->missingFragmentRequestSent (dataReq.getSize());    
                 }
 
                 _m.unlock (183);
+                checkAndLogMsg (pszMethodName, Logger::L_Info, "computing and sending missing fragment requests "
+                                "took %lld milliseconds.\n", (getTimeInMilliseconds() - i64SendingMissingFragReqStart));
 
+                // Reset the scheduler _before_ deleting the lists
+                _requestSched.reset();
                 if (ppszInterfaces) {
                     for (int i = 0; ppszInterfaces[i] != NULL; i++) {
                         free (ppszInterfaces[i]);
@@ -916,12 +920,18 @@ int MessageReassembler::deliverCompleteMessage (MessageHeader *pMH, void *pData,
     // Delete the Fragmented Message and all the Fragments
     if (bFreeUpMemory) {
         // remove the fragmented message
-        pMS->messages.remove (pFragMsg);
-        if (pFragMsg != NULL) {
-            delete pFragMsg->pMH;
-            pFragMsg->pMH = NULL;
-            delete pFragMsg;
-            pFragMsg = NULL;
+        ChunkList *pChunk = pMS->messages.get (pMH->getMsgSeqId());
+        if (pChunk != NULL) {
+            pChunk->remove (pFragMsg);
+            if (pFragMsg != NULL) {
+                delete pFragMsg->pMH;
+                pFragMsg->pMH = NULL;
+                delete pFragMsg;
+                pFragMsg = NULL;
+            }
+            if (pChunk->getFirst() == NULL) {
+                delete pMS->messages.remove (pMH->getMsgSeqId());
+            }
         }
     }
 
@@ -940,43 +950,49 @@ void MessageReassembler::fillMessageRequestScheduler()
         MessagesByGroup *pMG = i.getValue();
         for (StringHashtable<MessagesByPublisher>::Iterator iGroup = pMG->messagesInGroup.getAllElements(); !iGroup.end(); iGroup.nextElement()) {
             MessagesByPublisher *pMP = iGroup.getValue();
-            for (FragmentedMessage *pFragMsg = pMP->messages.getFirst(); pFragMsg != NULL; pFragMsg = pMP->messages.getNext()) {
-                if (!_pSubState->isRelevant (pFragMsg->pMH->getGroupName(), pFragMsg->pMH->getPublisherNodeId(),
-                                             pFragMsg->pMH->getMsgSeqId(), pFragMsg->pMH->getChunkId())) {
-                    if (pNoLongerRelevantMessages == NULL) {
-                        pNoLongerRelevantMessages = new PtrLList<FragmentedMessage>();
+            for (UInt32Hashtable<ChunkList>::Iterator iMsg = pMP->messages.getAllElements(); !iMsg.end(); iMsg.nextElement()) {
+                ChunkList *pChunkList = iMsg.getValue();
+                for (FragmentedMessage *pFragMsg = pChunkList->getFirst(); pFragMsg != NULL; pFragMsg = pChunkList->getNext()) {
+                    if (!_pSubState->isRelevant (pFragMsg->pMH->getGroupName(), pFragMsg->pMH->getPublisherNodeId(),
+                        pFragMsg->pMH->getMsgSeqId(), pFragMsg->pMH->getChunkId())) {
+                        if (pNoLongerRelevantMessages == NULL) {
+                            pNoLongerRelevantMessages = new PtrLList<FragmentedMessage> ();
+                        }
+                        if (pNoLongerRelevantMessages != NULL) {
+                            pNoLongerRelevantMessages->prepend (pFragMsg);
+                        }
+                        continue;
                     }
-                    if (pNoLongerRelevantMessages != NULL) {
-                        pNoLongerRelevantMessages->prepend (pFragMsg);
+                    if (!pFragMsg->bReliabilityRequired) {
+                        // The missing fragment's list of this FragmentedMessage
+                        // should not be considered since no one client subscribing
+                        // this FragmentedMessage's group used the flag bReliable
+                        continue;
                     }
-                    continue;
-                }
-                if (!pFragMsg->bReliabilityRequired) {
-                    // The missing fragment's list of this FragmentedMessage
-                    // should not be considered since no one client subscribing
-                    // this FragmentedMessage's group used the flag bReliable
-                    continue;
-                }
 
-                if (_iMaxNumberOfReqs != UNLIMITED_MAX_NUMBER_OF_REQUESTS &&
-                    pFragMsg->iRequested > _iMaxNumberOfReqs) {
-                    // This message has been requested too many times. Stop
-                    // requesting it
-                    continue;
-                }
+                    if (_iMaxNumberOfReqs != UNLIMITED_MAX_NUMBER_OF_REQUESTS &&
+                        pFragMsg->iRequested > _iMaxNumberOfReqs) {
+                        // This message has been requested too many times. Stop
+                        // requesting it
+                        continue;
+                    }
 
-                int64 i64TimeOut = getMissingFragmentRequestTimeOut (i64CurrentTime, pFragMsg->i64LastNewDataArrivalTime);
-                if (_bExpBackoff && !bNewPeerArrived &&
-                    (pFragMsg->i64LastMissingFragmentsRequestTime > 0) && // if i64LastMissingFragmentsRequestTime is
-                                                                          // 0, fragments have not been requested yet
-                                                                          // thus the request must be performed
-                    i64CurrentTime < (pFragMsg->i64LastMissingFragmentsRequestTime + i64TimeOut)) {
-                    // Too soon to request missing fragments for this message - skip it for now
-                    continue;
-                }
+                    int64 i64TimeOut = getMissingFragmentRequestTimeOut (i64CurrentTime, pFragMsg->i64LastNewDataArrivalTime);
+                    if (_bExpBackoff && !bNewPeerArrived &&
+                        (pFragMsg->i64LastMissingFragmentsRequestTime > 0) && // if i64LastMissingFragmentsRequestTime is
+                        // 0, fragments have not been requested yet
+                        // thus the request must be performed
+                        i64CurrentTime < (pFragMsg->i64LastMissingFragmentsRequestTime + i64TimeOut)) {
+                        // Too soon to request missing fragments for this message - skip it for now
+                        continue;
+                    }
 
-                addToRequestScheduler (pFragMsg, i64CurrentTime);
+                    addToRequestScheduler (pFragMsg, i64CurrentTime);
+                }
             }
+
+
+            
         }
     }
 
@@ -998,17 +1014,24 @@ void MessageReassembler::fillMessageRequestScheduler()
                                     pFragMsg->pMH->getPublisherNodeId(), pFragMsg->pMH->getMsgId());
                 }
                 else {
-                    if (NULL == pMP->messages.remove (pFragMsg)) {
-                        checkAndLogMsg ("MessageReassembler::fillMessageRequestScheduler", Logger::L_Warning,
-                                        "failed to delete message <%s> that is no longer relevant\n", pFragMsg->pMH->getMsgId());
-                    }
-                    else {
-                        checkAndLogMsg ("MessageReassembler::fillMessageRequestScheduler", Logger::L_LowDetailDebug,
-                                        "deleted message <%s> that is no longer relevant\n", pFragMsg->pMH->getMsgId());
-                        delete pFragMsg->pMH;
-                        pFragMsg->pMH = NULL;
-                        delete pFragMsg;
-                        pFragMsg = NULL;
+                    const uint32 ui32SeqId = pFragMsg->ui32MsgSeqId;
+                    ChunkList *pChunkList = pMP->messages.get (ui32SeqId);
+                    if (pChunkList != NULL) {
+                        if (NULL == pChunkList->remove (pFragMsg)) {
+                            checkAndLogMsg ("MessageReassembler::fillMessageRequestScheduler", Logger::L_Warning,
+                                "failed to delete message <%s> that is no longer relevant\n", pFragMsg->pMH->getMsgId ());
+                        }
+                        else {
+                            checkAndLogMsg ("MessageReassembler::fillMessageRequestScheduler", Logger::L_LowDetailDebug,
+                                "deleted message <%s> that is no longer relevant\n", pFragMsg->pMH->getMsgId ());
+                            delete pFragMsg->pMH;
+                            pFragMsg->pMH = NULL;
+                            delete pFragMsg;
+                            pFragMsg = NULL;
+                        }
+                        if (pChunkList->getFirst() == NULL) {
+                            delete pMP->messages.remove (ui32SeqId);
+                        }
                     }
                 }
             }
@@ -1308,11 +1331,28 @@ void MessageReassembler::FragmentedMessage::resetMissingFragmentsList (void)
     }
 }
 
-void MessageReassembler::FragmentedMessage::addFragment (FragmentWrapper *pFragmentWrap)
+bool MessageReassembler::FragmentedMessage::addFragment (FragmentWrapper *pFragmentWrap)
 {
-    i64LastNewDataArrivalTime = getTimeInMilliseconds();
-    ui64CachedBytes += pFragmentWrap->ui16FragmentLength;
-    fragments.insert (pFragmentWrap);
+    bool bAdded = false;
+    FragmentWrapper *pTail = fragments.getTail();
+    if (pTail != NULL) {
+        // optimization for large files: fragments are often sent in "trains", so
+        // in many cases the current fragment has a greater offset then the ones
+        // previously received, in which case it can be avoided to iterate through
+        // the whole list
+        if (*pFragmentWrap > *pTail) {
+            fragments.append (pFragmentWrap);
+            bAdded = true;
+        }
+    }
+    if (!bAdded) {
+        bAdded = (fragments.insertUnique (pFragmentWrap) == NULL);
+    }
+    if (bAdded) {
+        i64LastNewDataArrivalTime = getTimeInMilliseconds();
+        ui64CachedBytes += pFragmentWrap->ui16FragmentLength;
+    }
+    return bAdded;
 }
 
 uint64 MessageReassembler::FragmentedMessage::getCachedBytes (void) const
@@ -1375,14 +1415,19 @@ MessageReassembler::FragmentedMessage::FragmentedMessage (uint32 ui32MsgSeqId, u
 
 MessageReassembler::MessagesByPublisher::~MessagesByPublisher()
 {
-    FragmentedMessage *pFragMsg, *pFragMsgTmp;
-    pFragMsgTmp = messages.getFirst();
-    while ((pFragMsg = pFragMsgTmp) != NULL) {
-        pFragMsgTmp = messages.getNext();
-        messages.remove (pFragMsg);
-        delete pFragMsg;
+    UInt32Hashtable<ChunkList>::Iterator iter = messages.getAllElements();
+    for (; !iter.end(); iter.nextElement()) {
+        ChunkList *pChunkList = iter.getValue();
+        FragmentedMessage *pFragMsg, *pFragMsgTmp;
+        pFragMsgTmp = pChunkList->getFirst();
+        while ((pFragMsg = pFragMsgTmp) != NULL) {
+            pFragMsgTmp = pChunkList ->getNext();
+            pChunkList->remove (pFragMsg);
+            delete pFragMsg;
+        }
+        pFragMsg = NULL;
     }
-    pFragMsg = NULL;
+    messages.removeAll();
 }
 
 //==============================================================================

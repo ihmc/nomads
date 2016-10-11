@@ -1,6 +1,7 @@
 #include "Win32Service.h"
 
 #include "Logger.h"
+#include "NLFLib.h"
 
 using namespace NOMADSUtil;
 

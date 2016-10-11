@@ -2,7 +2,7 @@
  * InetAddr.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,7 +19,6 @@
 
 #ifndef INCL_INET_ADDR_H
 #define INCL_INET_ADDR_H
-
 #if defined (WIN32)
     #include <winsock2.h>
 #elif defined (UNIX)
@@ -119,7 +118,8 @@ namespace NOMADSUtil
     inline InetAddr::InetAddr (const char *pszIPAddress)
     {
         clear();
-        _sa.sin_addr.s_addr = inet_addr (pszIPAddress);
+        //_sa.sin_addr.s_addr = inet_addr (pszIPAddress);
+        _sa.sin_addr.s_addr = inet_addr(pszIPAddress);
         updateIPAddrString();
     }
 

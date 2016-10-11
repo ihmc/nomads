@@ -2,7 +2,7 @@
  * DisServicePacketTool.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,8 +26,8 @@
 
 #include "BufferReader.h"
 #include "FTypes.h"
-#include "net/MessageFactory.h"
-#include "net/NetworkMessage.h"
+#include "MessageFactory.h"
+#include "NetworkMessage.h"
 #include "NLFLib.h"
 
 int extractDataFromPacket (int argc, char *argv[]);

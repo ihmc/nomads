@@ -2,7 +2,7 @@
  * ChunkingAdaptor.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,12 +23,15 @@
 
 #include "MessageInfo.h"
 
+#include "ChunkingUtils.h"
+
 #include "BufferReader.h"
 #include "Logger.h"
 #include "Chunker.h"
 #include "ChunkReassembler.h"
 
 #include "ConfigManager.h"
+#include "Writer.h"
 
 using namespace IHMC_ACI;
 using namespace IHMC_MISC;
@@ -106,7 +109,7 @@ int ChunkingConfiguration::init (ConfigManager *pCfgMgr)
 
 uint8 ChunkingConfiguration::getNumberofChunks (uint64 ui64Bytes)
 {
-    ChunkingConfiguration::Range *pRange = _sizeToNchunks.getFirst();
+    Range *pRange = _sizeToNchunks.getFirst();
     while ((pRange != NULL) && (ui64Bytes > pRange->_ui64Bytes)) {
         pRange = _sizeToNchunks.getNext();
     }
@@ -120,8 +123,9 @@ uint8 ChunkingConfiguration::getNumberofChunks (uint64 ui64Bytes)
 // ChunkingAdaptor
 //------------------------------------------------------------------------------
 
-Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, uint32 &ui32LargeObjLen)
+Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, PtrLList<Message> *pAnnotations, uint32 &ui32LargeObjLen)
 {
+    const char *pszMethodName = "ChunkingAdaptor::reassemble";
     int rc;
     ui32LargeObjLen = 0;
     if (pChunks == NULL) {
@@ -136,15 +140,14 @@ Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, uint32 &ui32La
         // It is not a chunk - just a complete message
         void *pData = malloc (pMsg->getMessageHeader()->getFragmentLength());
         if (pData == NULL) {
-            checkAndLogMsg ("ChunkingAdaptor::reassemble", Logger::L_MildError,
+            checkAndLogMsg (pszMethodName, Logger::L_MildError,
                             "failed to allocate memory to copy retrieved object of size %lu\n",
                             pMsg->getMessageHeader()->getFragmentLength());
             return NULL;
         }
         memcpy (pData, pMsg->getData(), pMsg->getMessageHeader()->getFragmentLength());
 
-        BufferReader *pReader = new BufferReader (pData,
-                                                  pMsg->getMessageHeader()->getFragmentLength());
+        BufferReader *pReader = new BufferReader (pData, pMsg->getMessageHeader()->getFragmentLength());
         ui32LargeObjLen = pMsg->getMessageHeader()->getFragmentLength();
         return pReader;
     }
@@ -153,12 +156,11 @@ Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, uint32 &ui32La
     ChunkReassembler cr;
     ChunkMsgInfo *pCMI = pMsg->getChunkMsgInfo();
     if (pCMI == NULL) {
-        checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
-                        "ChunkMsgInfo is NULL\n");
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "ChunkMsgInfo is NULL\n");
         return NULL;
     }
     if (0 != (rc = cr.init (ChunkReassembler::Image, pCMI->getTotalNumberOfChunks()))) {
-        checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
+        checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "could not initialize ChunkReassembler; rc = %d\n", rc);
         return NULL;
     }
@@ -167,27 +169,61 @@ Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, uint32 &ui32La
         pCMI = pMsg->getChunkMsgInfo();
         const void *pData = pMsg->getData();
         if (pCMI == NULL) {
-            checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
-                            "ChunkMsgInfo is NULL\n");
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "ChunkMsgInfo is NULL\n");
             return NULL;
         }
         if (pData == NULL) {
-            checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
-                            "data is NULL\n");
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "data is NULL\n");
             return NULL;
         }
         if (0 != (rc = cr.incorporateChunk (pData, pCMI->getTotalMessageLength(), Chunker::JPEG, pCMI->getChunkId()))) {
-            checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
-                            "failed to incorporate chunk %d; rc = %d\n", (int) pCMI->getChunkId(), rc);
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to incorporate chunk %d; "
+                            "rc = %d\n", (int) pCMI->getChunkId(), rc);
             return NULL;
         }
     } while ((pMsg = pChunks->getNext()) != NULL);
-    BufferReader *pBR = cr.getReassembedObject (Chunker::JPEG, 90);
+
+    BufferReader *pBR = cr.getReassembledObject (Chunker::JPEG, 90);
     if (pBR == NULL) {
         checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
                         "failed to get reassembled object\n");
         return NULL;
     }
+
+    if (pAnnotations != NULL) {
+        for (Message *pCustumChunk = pAnnotations->getFirst(); pCustumChunk != NULL;
+            pCustumChunk = pAnnotations->getNext()) {
+            uint32 ui32AnnotationMetadataLen = 0U;
+            const void *pAnnotationBuf = pCustumChunk->getMessageHeader()->getAnnotationMetadata (ui32AnnotationMetadataLen);
+            BufferReader br (pAnnotationBuf, ui32AnnotationMetadataLen);
+            CustomChunkDescription chunkDescr;
+            chunkDescr.read (&br);
+            MessageHeader *pMH = pCustumChunk->getMessageHeader();
+            uint32 ui32TotalMsgLen = pMH->getTotalMessageLength();
+            const char *pCustumChunkData = static_cast<const char *>(pCustumChunk->getData());
+            if (ui32TotalMsgLen > 0) {
+                const String grpName (pMH->getGroupName());
+                if ((!pMH->isChunk()) && grpName.startsWith ("DSPro")) {
+                    // This is an HACK to remove DSPro metadata
+                    ui32TotalMsgLen -= 1;
+                    pCustumChunkData++;
+                }
+                if ((rc = cr.incorporateAnnotation (chunkDescr.getIntervals(),
+                    pCustumChunkData, ui32TotalMsgLen, Chunker::JPEG)) < 0) {
+                    checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to "
+                                    "incorporate annotation: rc = %d\n", rc);
+                }
+            }
+        }
+
+        pBR = cr.getAnnotatedObject (Chunker::JPEG, 90);
+        if (pBR == NULL) {
+            checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
+                            "failed to get annotated object\n");
+            return NULL;
+        }
+    }
+
     ui32LargeObjLen = pBR->getBufferLength();
     return pBR;
 }
@@ -221,3 +257,113 @@ Chunker::Fragment * ChunkingAdaptor::getChunkerFragment (const void *pData, uint
     pFrag->pReader = new BufferReader (pData, ui32DataLenght);
     return pFrag;
 }
+
+CustomChunkDescription::CustomChunkDescription (IHMC_MISC::Chunker::Type inputType,
+                                                IHMC_MISC::Chunker::Type outputType)
+    : _inputType (inputType), _outputType (outputType)
+{
+}
+
+CustomChunkDescription::~CustomChunkDescription (void)
+{   
+}
+
+void CustomChunkDescription::deleteIntervals (IHMC_MISC::Chunker::Interval **ppIntervals)
+{
+    for (unsigned int i = 0; ppIntervals[i] != NULL; i++) {
+        free (ppIntervals[i]);
+    }
+    free (ppIntervals);
+}
+
+IHMC_MISC::Chunker::Interval** CustomChunkDescription::getIntervals (void)
+{
+    if (_dimensions.size () <= 0) {
+        return NULL;
+    }
+    Chunker::Interval **ppIntervals = static_cast<Chunker::Interval **>(calloc (_dimensions.size () + 1, sizeof (Chunker::Interval*)));
+    if (ppIntervals != NULL) {
+        for (unsigned int i = 0; i < _dimensions.size (); i++) {
+            ppIntervals[i] = new Chunker::Interval (_dimensions[i]);
+            if (ppIntervals[i] == NULL) {
+                deleteIntervals (ppIntervals);
+                return NULL;
+            }
+        }
+    }
+    return ppIntervals;
+}
+
+int CustomChunkDescription::read (NOMADSUtil::Reader *pReader)
+{
+    if (pReader == NULL) {
+        return -1;
+    }
+    if (pReader->readUI8 (&_inputType) < 0) {
+        return -3;
+    }
+    if (pReader->readUI8 (&_outputType) < 0) {
+        return -4;
+    }
+    uint8 ui8NDimensions = 0;
+    if (pReader->readUI8 (&ui8NDimensions) < 0) {
+        return -7;
+    }
+    for (uint8 i = 0; i < ui8NDimensions; i++) {
+        uint8 ui8Dimension;
+        Chunker::Dimension dimension;
+        if ((pReader->readUI8 (&ui8Dimension) < 0) || (ChunkingUtils::toDimension (ui8Dimension, dimension) < 0)) {
+            return -8;
+        }
+        uint32 ui32Start, uint32End;
+        if ((pReader->readUI32 (&ui32Start) < 0) || (pReader->readUI32 (&uint32End) < 0)) {
+            return -9;
+        }
+        Chunker::Interval interval;
+        interval.dimension = dimension;
+        interval.uiStart = ui32Start;
+        interval.uiEnd = uint32End;
+        _dimensions.add (interval);
+    }
+    return 0;
+}
+
+int CustomChunkDescription::write (NOMADSUtil::Writer *pWriter)
+{
+    if (pWriter == NULL) {
+        return -1;
+    }
+    if (pWriter->writeUI8 (&_inputType)) {
+        return -3;
+    }
+    if (pWriter->writeUI8 (&_outputType)) {
+        return -4;
+    }
+    const unsigned int uiNDimension = _dimensions.size();
+    if (uiNDimension > 0xFF) {
+        return -7;
+    }
+    uint8 ui8NDimensions = static_cast<uint8>(uiNDimension);
+    if (pWriter->writeUI8 (&ui8NDimensions) < 0) {
+        return -7;
+    }
+    for (uint8 i = 0; i < ui8NDimensions; i++) {
+        if (_dimensions[i].dimension > 0xFF) {
+            return -8;
+        }
+        uint8 ui8Dimension = static_cast<uint8>(_dimensions[i].dimension);
+        if (pWriter->writeUI8 (&ui8Dimension) < 0) {
+            return -9;
+        }
+        uint32 ui32Start = _dimensions[i].uiStart;
+        if (pWriter->writeUI32 (&ui32Start) < 0) {
+            return -10;
+        }
+        uint32 ui32End = _dimensions[i].uiEnd;
+        if (pWriter->writeUI32 (&ui32End) < 0) {
+            return -11;
+        }
+    }
+    return 0;
+}
+

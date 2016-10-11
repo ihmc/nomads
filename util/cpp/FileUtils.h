@@ -2,7 +2,7 @@
  * FileUtils.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -68,6 +68,12 @@ namespace NOMADSUtil
             // Create the directory structure
             // /*!!*/ Document this method better
             static void createDirStructure (const char *pszPath);
+
+            // Removes a file from the file system. It returns 0 if the file exists and was delated, a positive number if
+            // the file does not exists, a negative number if it exists but it was not deleted
+            static int deleteFile (const char *pszPath);
+
+            static int dumpBufferToFile (const void *pBuf, uint64 ui32BufLen, const char *pszPath);
     };
 }
 

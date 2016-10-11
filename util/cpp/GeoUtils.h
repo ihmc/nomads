@@ -2,7 +2,7 @@
  * GeoUtils.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -138,6 +138,15 @@ namespace NOMADSUtil
      * Latitudes and longitudes are expressed in decimal degree.
      */
     float greatCircleDistance (float latitude1, float longitude1, float latitude2, float longitude2);
+
+    /**
+     * Returns the displacement in decimal degrees given the displacement
+     * in meters and the latitude of the origin of the displacement.
+     * The approximation can be significant for large distances (above
+     * a few kilometers).
+     */
+    int metersToLatitudeDegrees (double dLat, double dDisplacementInMeters,
+                                 double &dLatDegrees, double &dLonDegrees);
 
     /**
      * Compute a bounding-box of fPadding meters for the (fLat, fLong)

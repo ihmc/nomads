@@ -27,11 +27,11 @@ libmockets.a : $(objects) libutil.a libsecurity.a
 	make -C ../../linux -f Makefile.64bit
 
 libsecurity.a :
-	make -C ../../../../util/cpp/linux -f Makefile.64bit libsecurity.a
+	make -C ../../../../util/cpp/linux -f Makefile libsecurity.a
 
 
 libutil.a : 
-	make -C ../../../../util/cpp/linux -f Makefile.64bit
+	make -C ../../../../util/cpp/linux -f Makefile
 
 libmocketsjavawrapper.so: $(wrappers_objs) libutil.a libsecurity.a libmockets.a 
 	$(CXX) $(CXXFLAGS) -shared -o ../../../bin/libmocketsjavawrapper.so \

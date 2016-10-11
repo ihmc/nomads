@@ -1,9 +1,19 @@
 include Makefile.inc
 
-all: libsqlite.a libtinyxpath.a liblcppdc.a libchunking.a libmsgpack.a libdisservice.a libDisServiceJNIWrapper.so DisServiceLauncher DisServiceMessageInjector
+SOURCES =$(filter-out $(NOWANTS),$(wildcard ../*.cpp))
+OBJECTS = $(SOURCES:../%.cpp=%.o)
+OBJECTSPROXY = $(SOURCESPROXY:../%.cpp=%.o)
+
+all: libsqlite.a libtinyxpath.a liblcppdc.a libnms.a libchunking.a libmsgpack.a libdisservice.a libDisServiceJNIWrapper.so DisServiceLauncher DisServiceMessageInjector
 
 CPPFLAGS += -I$(MOCKETS_HOME)/cpp -I$(NOMADS_HOME)/externals/JDK \
 	-I$(NOMADS_HOME)/externals/JDK/$(LIB_FOLDER) -fPIC
+
+listsources:
+	@echo "Sources: $(SOURCES)"
+
+listlibs:
+	@echo "Libs: $(LIB_LIST)"
 
 %.o : ../%.cpp
 	$(CPP) -c $(CPPFLAGS) $<
@@ -22,6 +32,9 @@ libtinyxpath.a :
 
 liblcppdc.a :
 	make -C	$(LCPPDC_HOME)/$(MAKEFILE_FOLDER)/ liblcppdc.a
+
+libnms.a :
+	make -C	$(NMS_HOME)/$(MAKEFILE_FOLDER)/ libnms.a
 
 libchunking.a :
 	make -C	$(CHUNKING_HOME)/$(MAKEFILE_FOLDER)/ libchunking.a
@@ -44,16 +57,17 @@ libDisServiceJNIWrapper.so : libdisservice.a ../DisServiceJNIWrapper.cpp \
 	$(LIB_LIST) $(LD_FLAGS) \
 	-o libDisServiceJNIWrapper.so
 
-DisServiceLauncher : libdisservice.a libutil.a libsecurity.a libsqlite.a libtinyxpath.a libchunking.a liblcppdc.a libmsgpack.a ../DisServiceLauncher.cpp
+DisServiceLauncher : libdisservice.a libdisserviceproxy.a libutil.a libsecurity.a libnms.a libsqlite.a libtinyxpath.a libchunking.a liblcppdc.a libmsgpack.a ../DisServiceLauncher.cpp
 	@echo "Compiling with $(MakefileArch) for $(ARCH) architecture"
 	@echo "MAKEFILE_FOLDER: $(MAKEFILE_FOLDER) ARCH_FLAGS: $(BUILD_FLAGS) EXTERNALS_LIB: $(EXTERNALS_LIB)"
 	$(CPP) $(CPPFLAGS) \
 	../DisServiceLauncher.cpp \
 	libdisservice.a \
+	libdisserviceproxy.a \
 	$(LIB_LIST) $(LD_FLAGS) \
 	-o DisServiceLauncher
 
-DisServiceMessageInjector : libdisservice.a libutil.a libchunking.a liblcppdc.a ../DisServiceMessageInjector.cpp
+DisServiceMessageInjector : libdisservice.a libutil.a libnms.a libchunking.a liblcppdc.a ../DisServiceMessageInjector.cpp
 	$(CPP) $(CPPFLAGS) \
 	../DisServiceMessageInjector.cpp \
 	libdisservice.a \
@@ -70,5 +84,9 @@ cleanall: clean
 	(make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER) clean)
 	(make -C $(SQLITE_HOME)/$(MAKEFILE_FOLDER) clean)
 	(make -C $(TINYXPATH_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(LCPPDC_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(NMS_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(CHUNKING_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(MSGPACK_HOME)/$(MAKEFILE_FOLDER) clean)
 
 # vim:ts=4:sw=4

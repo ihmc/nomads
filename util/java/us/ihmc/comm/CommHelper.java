@@ -2,7 +2,7 @@
  * Commhelper.java
  * 
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@ import us.ihmc.util.ByteConverter;
  * <p/>
  * modified by author: Maggie Breedy 01/21/04
  *
- * @version $Revision: 1.48 $
+ * @version $Revision: 1.54 $
  */
 public class CommHelper implements CommHelperInterface
 {
@@ -207,6 +207,7 @@ public class CommHelper implements CommHelperInterface
             if (string == null || string.length() == 0) {
                 byte[] len = ByteArray.intToByteArray (0);
                 _bufferedOutputStream.write (len);
+                _bufferedOutputStream.flush();
             }
             else {
                 sendBlock (string.getBytes());
@@ -725,6 +726,17 @@ public class CommHelper implements CommHelperInterface
         }
     }
 
+    public void writeBool (boolean val)
+            throws CommException
+    {
+        if (val) {
+            write8 ((byte)1);
+        }
+        else {
+            write8 ((byte)0);
+        }
+    }
+
     /**
      * Writes a byte
      * @param val byte to write
@@ -774,7 +786,6 @@ public class CommHelper implements CommHelperInterface
      * Writes a int
      * @param i32Val int to write
      * @throws CommException if an error occurs while writing the object
-     * @throws ProtocolException if an error occurs while writing the object
      */
     public void write32 (int i32Val)
             throws CommException
@@ -783,16 +794,6 @@ public class CommHelper implements CommHelperInterface
             byte[] buf = new byte[4];
             ByteConverter.fromUnsignedIntTo4Bytes(i32Val, buf, 0);
             _bufferedOutputStream.write(buf, 0, 4);
-
-            /*try {
-                FileOutputStream fileOutputStream = new FileOutputStream (new File ("CommHelperOutput.txt"), true);
-                fileOutputStream.write (buf);
-                fileOutputStream.close();
-            }
-            catch (FileNotFoundException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            } */
-
             _bufferedOutputStream.flush();
         }
         catch (IOException ioe) {
@@ -827,6 +828,32 @@ public class CommHelper implements CommHelperInterface
     {
         long i64Val = Double.doubleToLongBits(fVal);
         write64 (i64Val);
+    }
+
+    /**
+     * Writes a int
+     * @param ui32Val unsigned int to write
+     * @throws CommException if an error occurs while writing the object
+     */
+    public void writeUI32 (long ui32Val)
+            throws CommException
+    {
+        try {
+            final long MAX_UINT32 = 0xFFFFFFFFl;
+            if ((ui32Val < 0) || (ui32Val > MAX_UINT32)) {
+                throw new IllegalArgumentException("The pixel value must be in the [0, " + MAX_UINT32 + "] interval");
+            }
+            byte[] buf = new byte[4];
+            ByteConverter.fromUnsignedIntTo4Bytes(ui32Val, buf, 0);
+            _bufferedOutputStream.write(buf, 0, 4);
+            _bufferedOutputStream.flush();
+        }
+        catch (IOException ioe) {
+            ioe.printStackTrace();
+            if (ioe instanceof SocketException) {
+                throw new CommException();
+            }
+        }
     }
 
     /**

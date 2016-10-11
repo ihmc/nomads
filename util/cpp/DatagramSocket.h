@@ -2,7 +2,7 @@
  * DatagramSocket.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -38,6 +38,16 @@ namespace NOMADSUtil
                 DatagramSocket (void);
             #endif
             virtual ~DatagramSocket (void);
+
+            enum SocketType {
+                ST_Unknown = 0x00,
+                ST_UDP = 0x01,
+                ST_MulticastUDP = 0x02,
+                ST_RawUDP = 0x03,
+                ST_Proxy = 0x04
+            };
+
+            virtual SocketType getType (void) = 0;
 
             // Close the socket
             virtual int close (void) = 0;
@@ -78,10 +88,11 @@ namespace NOMADSUtil
             // Returns the limit in bytes per second or 0 if there is no limit set
             virtual uint32 getTransmitRateLimit (void);
 
-            // Set the transmit rate limit for this socket
+            // Set the transmit rate limit for this socket expressed in Bytes per
+            // second.
             // A value of 0 turns off the transmit rate limit
             // Returns 0 if successful or a negative value in case of error
-            virtual int setTransmitRateLimit (uint32 ui32RateLimit);
+            virtual int setTransmitRateLimit (uint32 ui32RateLimitInBps);
 
             // Get the transmit rate limit for this socket for the specified destination address
             // If the destination address is 0, it returns the global rate limit
@@ -131,7 +142,7 @@ namespace NOMADSUtil
             {
                 TransmitLimit (void);
                 void reset (void);
-                uint32 ui32RateLimit;                // Specified in bytes/sec
+                uint32 ui32RateLimitInBps;           // Specified in bytes/sec
                 uint32 ui32RateLimitInterval;        // The enforcement interval in milliseconds
                 uint32 ui32BytesPerInterval;         // Number of bytes that are allowed to be written in one interval;
                                                      // computed based on the _rateLimit and the _rateLimitInterval

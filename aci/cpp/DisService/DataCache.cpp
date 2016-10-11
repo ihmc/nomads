@@ -2,7 +2,7 @@
  * DataCache.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,6 @@
 #include "DisseminationService.h"
 #include "DisServiceDataCacheQuery.h"
 #include "DisServiceDefs.h"
-#include "DataCacheExpirationController.h"
 #include "Message.h"
 
 #if defined (USE_SQLITE)
@@ -34,7 +33,6 @@
 
 #include "DSSFLib.h"
 
-#include "BufferWriter.h"
 #include "FileReader.h"
 #include "Logger.h"
 
@@ -101,10 +99,13 @@ void DataCache::getDataInternal (const char *pszId, Result &result)
             release (pChunks);
         }
 
+        PtrLList<MessageHeader> *pTmp = _pDB->getAnnotationsOnMsgMessageInfos (pszId);
+        PtrLList<Message> *pAnnotations = getMessages (pTmp);
+        delete pTmp;
         if (pChunks->getFirst()->getMessageHeader()->isChunk()) {
             // Return the reassembled large object
             uint32 ui32LargeObjLen = 0;
-            Reader *pReader = ChunkingAdaptor::reassemble (pChunks, ui32LargeObjLen);
+            Reader *pReader = ChunkingAdaptor::reassemble (pChunks, pAnnotations, ui32LargeObjLen);
             release (pChunks);
             if (pReader == NULL) {
                 checkAndLogMsg ("DataCache::getDataInternal", Logger::L_SevereError,

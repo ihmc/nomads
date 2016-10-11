@@ -2,7 +2,7 @@
  * InstrumentedReader.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,8 +30,15 @@ namespace NOMADSUtil
     class InstrumentedReader : public Reader
     {
         public:
-            InstrumentedReader (Reader *pr, bool bDeleteWhenDone = false);
+            InstrumentedReader (Reader *pr = NULL, bool bDeleteWhenDone = false);
             virtual ~InstrumentedReader (void);
+
+            // Instruments the reader pointed by pr.
+            // If a reader had been previously set, and bDeleteWhenDone
+            // was set on true, the old reader will be deleted.
+            // It does NOT re-set the counter, use resetBytesReadCounter()
+            // if needed.
+            int init (Reader *pr, bool bDeleteWhenDone = false);
 
             void resetBytesReadCounter (void);
             uint32 getBytesRead (void);
@@ -47,10 +54,10 @@ namespace NOMADSUtil
     };
 
     inline InstrumentedReader::InstrumentedReader (Reader *pr, bool bDeleteWhenDone)
+        : _pReader (pr),
+          _bDeleteWhenDone (bDeleteWhenDone),
+          _ui32BytesRead (0U)
     {
-        _pReader = pr;
-        _bDeleteWhenDone = bDeleteWhenDone;
-        _ui32BytesRead = 0U;
     }
 
     inline InstrumentedReader::~InstrumentedReader (void)
@@ -59,6 +66,19 @@ namespace NOMADSUtil
             delete _pReader;
         }
         _pReader = NULL;
+    }
+
+    inline int InstrumentedReader::init (Reader *pr, bool bDeleteWhenDone)
+    {
+        if (pr == NULL) {
+            return -1;
+        }
+        if (_bDeleteWhenDone && (_pReader != NULL)) {
+            delete _pReader;
+        }
+        _pReader = pr;
+        _bDeleteWhenDone = bDeleteWhenDone;
+        return 0;
     }
 
     inline void InstrumentedReader::resetBytesReadCounter (void)
@@ -76,11 +96,11 @@ namespace NOMADSUtil
         if (iCount < 0) {
             return -1;
         }
-        int rc = _pReader->readBytes (pBuf, iCount);
-        if (rc == 0) {
+        int rc = _pReader->read (pBuf, iCount);
+        if (rc > 0) {
             _ui32BytesRead += iCount;
         }
-        return iCount;
+        return rc;
     }
 }
 

@@ -2,7 +2,7 @@
  * FGraphClient.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@ import us.ihmc.ds.fgraph.comm.MessageHandler;
 import us.ihmc.util.ConfigLoader;
 import us.ihmc.mockets.Mocket;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.Socket;
 import java.net.InetAddress;
@@ -39,9 +40,9 @@ import java.util.zip.CRC32;
  * FGraphClient
  *
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.54 $
+ * @version $Revision: 1.56 $
  * Created on Apr 21, 2004 at 6:17:12 PM
- * $Date: 2014/11/07 17:58:06 $
+ * $Date: 2016/06/09 20:02:46 $
  * Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class FGraphClient extends FGraph implements MessageListener
@@ -1275,10 +1276,9 @@ public class FGraphClient extends FGraph implements MessageListener
                 if (usingMockets) {
                     debugMsg ("Creating a Mocket");
                     Mocket mocket = new Mocket ();
-                    InetAddress inteAddress = InetAddress.getByName(_serverURI.getHost());
                     debugMsg ("Connecting Mocket to (rupd://" + _serverURI.getHost() + ":"
                               + _serverURI.getPort() + ")");
-                    mocket.connect(inteAddress, _serverURI.getPort());
+                    mocket.connect (new InetSocketAddress (_serverURI.getHost(), _serverURI.getPort()));
                     _msgHandler.createConnHandler (mocket);
                 }
                 else {

@@ -2,7 +2,7 @@
  * DataCacheInterface.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -291,6 +291,7 @@ namespace IHMC_ACI
              */
             virtual NOMADSUtil::DArray2<NOMADSUtil::String> * getRecentPublishers (uint16 ui16HistoryLength, const char *pszGroupName,
                                                                                    uint16 ui16Tag)=0;
+            void * getAnnotationMetadata (const char *pszGroupName, const char *pszSenderNodeId, uint32 ui32MsgSeqId, uint32 &ui32Len);
 
         protected:
             static const bool DEFAULT_IS_NOT_TARGET;

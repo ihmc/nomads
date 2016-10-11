@@ -1,0 +1,17 @@
+all: checkMakefile libdali
+
+checkMakefile: 
+	if test -e ./Makefile; \
+                then echo Makefile exists; \
+                else (chmod +x configure; CXXFLAGS="-fPIC" ./configure); \
+        fi
+
+libdali: checkMakefile
+	make -C ./ clibs
+
+clean:
+	if test -e ../Makefile; \
+                then make -C ../ -f Makefile distclean; \
+        fi
+	make -C ../ -f Makefile.configure clean
+

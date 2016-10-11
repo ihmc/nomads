@@ -2,7 +2,7 @@
  * InetUtil.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,15 +21,15 @@ package us.ihmc.util;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.util.Hashtable;
 import java.util.Enumeration;
+import java.util.HashMap;
 
 /**
  * InetUtil
  *
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.4 $
- * @ $Date: 2014/11/07 17:58:06 $
+ * @version $Revision: 1.6 $
+ * @ $Date: 2016/06/09 20:02:46 $
  * @ Created on 12:40:08 AM Feb 18, 2006
  */
 
@@ -75,17 +75,17 @@ public class InetUtil
      * Initializing local addresses.
      */
     @SuppressWarnings({ "unchecked" })
-    private static Hashtable loadLocalInterfaceAddresses()
+    private static HashMap<InetAddress, String> loadLocalInterfaceAddresses()
     {
-        Hashtable ipMap = new Hashtable();
+        HashMap ipMap = new HashMap();
 
         try {
-            Enumeration interfaces = NetworkInterface.getNetworkInterfaces();
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while (interfaces.hasMoreElements()) {
-                NetworkInterface netIF = (NetworkInterface) interfaces.nextElement();
-                Enumeration ips = netIF.getInetAddresses();
+                NetworkInterface netIF = interfaces.nextElement();
+                Enumeration<InetAddress> ips = netIF.getInetAddresses();
                 while (ips.hasMoreElements()) {
-                    InetAddress inetAdd = (InetAddress) ips.nextElement();
+                    InetAddress inetAdd = ips.nextElement();
                     ipMap.put(inetAdd, "");
                 }
             }
@@ -101,7 +101,7 @@ public class InetUtil
     }
 
     // /////////////////////////////////////////////////////////////////////////
-    private static Hashtable _localAdds;
+    private static HashMap<InetAddress, String> _localAdds;
     private static InetAddress _preferredLocalAddress = null;
 
     // /////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ public class InetUtil
         // load the local addresses...
         _localAdds = loadLocalInterfaceAddresses();
         if (_localAdds == null) {
-            _localAdds = new Hashtable();
+            _localAdds = new HashMap<InetAddress, String>();
         }
 
         String prefix = null;
@@ -129,9 +129,7 @@ public class InetUtil
         // now, determine the preferred local address.
         try {
            if (_localAdds != null && prefix != null) {
-                Enumeration en = _localAdds.keys();
-                while (en.hasMoreElements()) {
-                    InetAddress inetAdd = (InetAddress) en.nextElement();
+                for (InetAddress inetAdd : _localAdds.keySet()) {
                     if (inetAdd.getHostAddress().startsWith(prefix)) {
                         _preferredLocalAddress = inetAdd;
                         break;
@@ -159,4 +157,3 @@ public class InetUtil
     public static final String INETUTIL_PREFERRED_IP_PREFIX =  "inetutil.preferred.ip.prefix";
 }
 
- 

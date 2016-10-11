@@ -2,7 +2,7 @@
  * NetworkInterface.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,6 +22,9 @@
     #include <winsock2.h>
     #include <iphlpapi.h>
     #define stricmp _stricmp
+
+    #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
+    #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 #elif defined (UNIX)
     #include <unistd.h>
     #include <errno.h>
@@ -109,7 +112,7 @@ const uint8 * const NetworkInterface::getMACAddrForDevice (const char * const ps
         IP_ADAPTER_ADDRESSES *pAddresses = (IP_ADAPTER_ADDRESSES *) NULL;
         ULONG ulFlags = 0;
         ULONG ulFamily = 0;
-        ULONG ulOutBufLen = 16384;     // Windows API Documentation recommends a 15KB buffer
+        ULONG ulOutBufLen = 1024U * 15U;     // Windows API Documentation recommends a 15KB buffer
 
         pAddresses = (IP_ADAPTER_ADDRESSES *) malloc (ulOutBufLen);
         memset (pAddresses, 0, ulOutBufLen);
@@ -153,6 +156,7 @@ const uint8 * const NetworkInterface::getMACAddrForDevice (const char * const ps
 
         free (pAddresses);
         return pui8MACAddr;
+
     #elif defined (UNIX)
         struct if_nameindex *pIfList, *pIfListItem;
         pIfList = pIfListItem = NULL;
@@ -252,15 +256,15 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
         }
 
     #elif defined (UNIX)
-        int received_bytes = 0, msg_len = 0, route_attribute_len = 0;
-        int sock = -1, msgseq = 0;
-        struct nlmsghdr *nlh, *nlmsg;
-        struct rtmsg *route_entry;
-        struct rtattr *route_attribute;         // This struct contain route attributes (route type)
+        int rc = 0, route_attribute_len = 0, sock = -1;
+        unsigned int received_bytes = 0, msg_len = 0, msgseq = 0;
         char gateway_address[INET_ADDRSTRLEN], interface[IF_NAMESIZE];
         char msgbuf[BUFFER_SIZE], buffer[BUFFER_SIZE];
         char *ptr = buffer;
         struct timeval tv;
+        struct nlmsghdr *nlh, *nlmsg;
+        struct rtmsg *route_entry;
+        struct rtattr *route_attribute;         // This struct contain route attributes (route type)
 
         if ((sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) < 0) {
             checkAndLogMsg ("NetworkInterface::getDefaultGatewayForInterface", Logger::L_SevereError,
@@ -279,7 +283,7 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
 
         // Fill in the nlmsg header
         nlmsg->nlmsg_len = NLMSG_LENGTH (sizeof (struct rtmsg));
-        nlmsg->nlmsg_type = RTM_GETROUTE;                   // Get the routes from kernel routing table .
+        nlmsg->nlmsg_type = RTM_GETROUTE;                   // Get the routes from kernel routing table.
         nlmsg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;    // The message is a request for dump.
         nlmsg->nlmsg_seq = msgseq++;                        // Sequence of the message packet.
         nlmsg->nlmsg_pid = getpid();                        // PID of process sending the request.
@@ -297,13 +301,14 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
         do
         {
             // receive response
-            received_bytes = recv(sock, ptr, sizeof(buffer) - msg_len, 0);
-            if (received_bytes < 0) {
+            rc = recv (sock, ptr, sizeof(buffer) - msg_len, 0);
+            if (rc < 0) {
                 checkAndLogMsg ("NetworkInterface::getDefaultGatewayForInterface", Logger::L_SevereError,
                                 "recv() from socket failed with error: %d\n", errno);
                 return res;
             }
 
+            received_bytes = static_cast<unsigned int> (rc);
             nlh = (struct nlmsghdr *) ptr;
             // Check if the header is valid
             if ((NLMSG_OK (nlmsg, received_bytes) == 0) || (nlmsg->nlmsg_type == NLMSG_ERROR))
@@ -365,4 +370,69 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
     #endif
 
     return res;
+}
+
+const uint32 NetworkInterface::retrieveMTUForInterface (const char *const pszAdapterName, int fd) {
+    uint32 ui32MTU = 0;
+
+    #if defined (WIN32)
+        uint8 *pui8MACAddr = NULL;
+        DWORD dwRetVal;
+        IP_ADAPTER_ADDRESSES *pAddresses = (IP_ADAPTER_ADDRESSES *) NULL;
+        ULONG ulFlags = 0;
+        ULONG ulFamily = 0;
+        ULONG ulOutBufLen = 1024U * 15U;     // Windows API Documentation recommends a 15KB buffer
+
+        pAddresses = (IP_ADAPTER_ADDRESSES *) MALLOC (ulOutBufLen);
+        memset(pAddresses, 0, ulOutBufLen);
+        dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+        if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
+            FREE (pAddresses);
+            // Try once again, increasing the buffer size - the needed buffer size is returned back in ulOutBufLen
+            ulOutBufLen += 2048;       // Just for good measure
+            pAddresses = (IP_ADAPTER_ADDRESSES *) MALLOC (ulOutBufLen);
+            memset (pAddresses, 0, ulOutBufLen);
+            dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+        }
+        if (dwRetVal == NO_ERROR) {
+            const IP_ADAPTER_ADDRESSES *pCurrAddress = pAddresses;
+            while (pCurrAddress != NULL) {
+                // GetAdaptersAddresses uses wchar's for the FriendlyName - need to convert it first
+                size_t len = strlen (pCurrAddress->AdapterName) + 1;
+                String sIFAdapterName (len);
+                sIFAdapterName = pCurrAddress->AdapterName;
+                if (sIFAdapterName ^= pszAdapterName) {
+                    // Found the device
+                    if (pCurrAddress->Mtu > 0) {
+                        checkAndLogMsg ("NetworkInterface::retrieveMTUForInterface", Logger::L_Info,
+                                        "found MTU for interface %wS: %d\n", pCurrAddress->FriendlyName, pCurrAddress->Mtu);
+                        ui32MTU = pCurrAddress->Mtu;
+                    }
+                    else {
+                        checkAndLogMsg ("NetworkInterface::retrieveMTUForInterface", Logger::L_Warning,
+                                        "found MTU of 0 bytes for interface %wS\n", pCurrAddress->FriendlyName);
+                    }
+                    break;
+                }
+                pCurrAddress = pCurrAddress->Next;
+            }
+        }
+
+        FREE (pAddresses);
+
+    #elif defined (UNIX)
+        struct ifreq ifr;
+
+        memset (&ifr, 0, sizeof (ifr));
+        strncpy (ifr.ifr_name, pszAdapterName, sizeof (ifr.ifr_name));
+
+        if (ioctl (fd, SIOCGIFMTU, &ifr) == -1) {
+            checkAndLogMsg ("NetworkInterface::retrieveMTUForInterface", Logger::L_SevereError,
+                            "ioctl() on file descriptor %d returned with error code %d\n", fd, errno);
+        }
+
+        ui32MTU = ifr.ifr_mtu;
+    #endif
+
+    return ui32MTU;
 }

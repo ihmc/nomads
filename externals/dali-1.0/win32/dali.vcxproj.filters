@@ -1,0 +1,270 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\basic">
+      <UniqueIdentifier>{d84f09b8-babd-455c-ae7f-4c66804bf97b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\basic">
+      <UniqueIdentifier>{cad04d3d-879b-44fa-9462-1a88d2ec00f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mpeg">
+      <UniqueIdentifier>{638008a3-10f1-402d-90f1-584d024a786e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\mpeg">
+      <UniqueIdentifier>{6aa33c34-1269-4968-8c5f-6ce6f48715a7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\packages\basic\basicInt.h">
+      <Filter>Header Files\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\basic\jrevdct.h">
+      <Filter>Header Files\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\basic\mfwddct.h">
+      <Filter>Header Files\basic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\bitparser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmamap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmavi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmbasic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmbytegeom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmcolor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmgif.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmimap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmjpeg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmkernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmmpeg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmpnm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmvision.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dvmwave.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\macro.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\alloctables.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\audiotables.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\cossintable.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\decodetable.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\filtertable.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\huffmantable.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\mpegInt.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\mpegvector.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\powertable.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\tables.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\tangentable.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\packages\mpeg\videotable.h">
+      <Filter>Header Files\mpeg</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\packages\basic\audio.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bit.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bitmake.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bitparser.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bitscan.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bitsetop.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bitstream.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bitstreamfio.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bitutil.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\byte.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\byte16.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\byte32.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bytearith.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\bytetosc.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\crop.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\filter.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\float.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\jrevdct.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\mfwddct.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\qtables.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\sc.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\scarith.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\packages\basic\sctobyte.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\vector.c">
+      <Filter>Source Files\basic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\block.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\bsearch.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\huffencode.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\motionsearch.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegaudiohdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegaudiol1.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegaudiol2.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegaudiol3.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegaudiosyndata.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegencode.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpeggophdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegmacroblockhdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegpckhdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegpic.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegpichdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegpkthdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegseqhdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegslicehdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegsyshdr.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegsystoc.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\mpegvideoindex.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\psearch.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\startcode.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\synthesis.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\mpeg\tables.c">
+      <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

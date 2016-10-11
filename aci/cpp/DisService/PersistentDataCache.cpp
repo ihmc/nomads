@@ -2,7 +2,7 @@
  * PersistentDataCache.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,13 +19,10 @@
 
 #include "PersistentDataCache.h"
 
-#include "DataCacheExpirationController.h"
 #include "DisseminationService.h"
 #include "DisServiceDataCacheQuery.h"
 #include "Message.h"
 #include "MessageInfo.h"
-#include "NodeInfo.h"
-#include "StorageInterface.h"
 
 #if defined (USE_SQLITE)
     #include "SQLMessageStorage.h"
@@ -33,11 +30,9 @@
     #include "Storage.h"
 #endif
 
-#include "BufferWriter.h"
 #include "FileReader.h"
 #include "DSSFLib.h"
 #include "Logger.h"
-#include "SequentialArithmetic.h"
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
@@ -229,10 +224,11 @@ void PersistentDataCache::getDataInternal (const char *pszId, Result &result)
             release (pChunks);
         }
 
+        PtrLList<Message> *pAnnotations = _pPersistentDB->getCompleteAnnotations (pszId);
         if (pChunks->getFirst()->getMessageHeader()->isChunk()) {
             // Return the reassembled large object
             uint32 ui32LargeObjLen = 0;
-            Reader *pReader = ChunkingAdaptor::reassemble (pChunks, ui32LargeObjLen);
+            Reader *pReader = ChunkingAdaptor::reassemble (pChunks, pAnnotations, ui32LargeObjLen);
             release (pChunks);
             if (pReader == NULL) {
                 checkAndLogMsg ("DataCache::getDataInternal", Logger::L_SevereError,

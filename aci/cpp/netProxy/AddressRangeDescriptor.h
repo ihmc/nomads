@@ -5,7 +5,7 @@
  * AddressRangeDescriptor.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -99,13 +99,14 @@ namespace ACMNetProxy
 
 
     inline AddressRangeDescriptor::AddressRangeDescriptor (void) :
-        ui8IPAddrOctet1Low (0), ui8IPAddrOctet2Low (0), ui8IPAddrOctet3Low (0), ui8IPAddrOctet4Low (0), ui8IPAddrOctet1High (0),
-        ui8IPAddrOctet2High (0), ui8IPAddrOctet3High (0), ui8IPAddrOctet4High (0), ui16PortLow (0), ui16PortHigh (0) { }
+        ui8IPAddrOctet1Low (0), ui8IPAddrOctet1High (0),ui8IPAddrOctet2Low (0), ui8IPAddrOctet2High (0),
+        ui8IPAddrOctet3Low (0), ui8IPAddrOctet3High (0), ui8IPAddrOctet4Low (0), ui8IPAddrOctet4High (0),
+        ui16PortLow (0), ui16PortHigh (0) { }
 
     inline AddressRangeDescriptor::AddressRangeDescriptor (char const * const pszDescriptor) :
-        ui8IPAddrOctet1Low (0), ui8IPAddrOctet2Low (0), ui8IPAddrOctet3Low (0), ui8IPAddrOctet4Low (0), ui8IPAddrOctet1High (0),
-        ui8IPAddrOctet2High (0), ui8IPAddrOctet3High (0), ui8IPAddrOctet4High (0), ui16PortLow (0), ui16PortHigh (0)
-    {
+        ui8IPAddrOctet1Low (0), ui8IPAddrOctet1High (0), ui8IPAddrOctet2Low (0), ui8IPAddrOctet2High (0),
+        ui8IPAddrOctet3Low (0), ui8IPAddrOctet3High (0), ui8IPAddrOctet4Low (0), ui8IPAddrOctet4High (0),
+        ui16PortLow (0), ui16PortHigh (0) {
         if (parse (pszDescriptor) < 0) {
             reset();
         }

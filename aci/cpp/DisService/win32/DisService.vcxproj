@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -35,27 +35,33 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -97,7 +103,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\cpp\grpMgr;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nms\cpp\proxy\client;..\..\..\..\nms\cpp\proxy\server;..\..\..\..\nms\cpp\proxy;..\..\..\..\nms\cpp;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\cpp\grpMgr;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -114,7 +120,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nms\cpp;..\..\..\..\nms\cpp\proxy\server;..\..\..\..\nms\cpp\proxy\client;..\..\..\..\nms\cpp\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -126,7 +132,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nms\cpp\proxy\client;..\..\..\..\nms\cpp\proxy\server;..\..\..\..\nms\cpp\proxy;..\..\..\..\nms\cpp;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\cpp\grpMgr;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NO_CHUNK;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
@@ -136,7 +142,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nms\cpp\proxy\client;..\..\..\..\nms\cpp\proxy\server;..\..\..\..\nms\cpp\proxy;..\..\..\..\nms\cpp;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\cpp\grpMgr;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NO_CHUNK;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
@@ -149,7 +155,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nms\cpp\proxy\client;..\..\..\..\nms\cpp\proxy\server;..\..\..\..\nms\cpp\proxy;..\..\..\..\nms\cpp;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\DisService;..\..\..\cpp\grpMgr;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\util\cpp\graph;..\..\..\..\externals\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NO_CHUNK;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;USE_SQLITE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)DisService.pdb</ProgramDataBaseFileName>
@@ -207,6 +213,7 @@
     <ClCompile Include="..\DataCacheInterface.cpp" />
     <ClCompile Include="..\DataCacheReplicationController.cpp" />
     <ClCompile Include="..\DataRequestHandler.cpp" />
+    <ClCompile Include="..\DataRequestServer.cpp" />
     <ClCompile Include="..\DefaultDataCacheExpirationController.cpp" />
     <ClCompile Include="..\DefaultDataCacheReplicationController.cpp" />
     <ClCompile Include="..\DefaultForwardingController.cpp" />
@@ -234,6 +241,7 @@
     <ClCompile Include="..\MessageInfo.cpp" />
     <ClCompile Include="..\MessageReassembler.cpp" />
     <ClCompile Include="..\MessageRequestScheduler.cpp" />
+    <ClCompile Include="..\NMSHelper.cpp" />
     <ClCompile Include="..\NodeId.cpp" />
     <ClCompile Include="..\PropertyStoreInterface.cpp" />
     <ClCompile Include="..\ReceivedMessages.cpp" />
@@ -241,6 +249,7 @@
     <ClCompile Include="..\SearchController.cpp" />
     <ClCompile Include="..\Searches.cpp" />
     <ClCompile Include="..\Services.cpp" />
+    <ClCompile Include="..\ServingRequestProbability.cpp" />
     <ClCompile Include="..\SQLPropertyStore.cpp" />
     <ClCompile Include="..\SubscriptionAdvTable.cpp" />
     <ClCompile Include="..\SubscriptionForwardingController.cpp" />
@@ -290,6 +299,7 @@
     <ClInclude Include="..\DataCacheInterface.h" />
     <ClInclude Include="..\DataCacheReplicationController.h" />
     <ClInclude Include="..\DataRequestHandler.h" />
+    <ClInclude Include="..\DataRequestServer.h" />
     <ClInclude Include="..\DefaultDataCacheExpirationController.h" />
     <ClInclude Include="..\DefaultDataCacheReplicationController.h" />
     <ClInclude Include="..\DefaultForwardingController.h" />
@@ -315,16 +325,14 @@
     <ClInclude Include="..\GroupSenderSeqIDHashtable.h" />
     <ClInclude Include="..\History.h" />
     <ClInclude Include="..\HistoryFactory.h" />
-    <ClInclude Include="..\LargeObjReassembler.h" />
     <ClInclude Include="..\Listener.h" />
     <ClInclude Include="..\ListenerNotifier.h" />
     <ClInclude Include="..\Message.h" />
     <ClInclude Include="..\MessageId.h" />
     <ClInclude Include="..\MessageInfo.h" />
-    <ClInclude Include="..\MessagePropagationServiceInterface.h" />
-    <ClInclude Include="..\MessagePropagationServiceListener.h" />
     <ClInclude Include="..\MessageReassembler.h" />
     <ClInclude Include="..\MessageRequestScheduler.h" />
+    <ClInclude Include="..\NMSHelper.h" />
     <ClInclude Include="..\NodeId.h" />
     <ClInclude Include="..\PropertyStoreInterface.h" />
     <ClInclude Include="..\ReceivedMessages.h" />
@@ -332,6 +340,7 @@
     <ClInclude Include="..\SearchController.h" />
     <ClInclude Include="..\Searches.h" />
     <ClInclude Include="..\Services.h" />
+    <ClInclude Include="..\ServingRequestProbability.h" />
     <ClInclude Include="..\SQLPropertyStore.h" />
     <ClInclude Include="..\SubscriptionAdvTable.h" />
     <ClInclude Include="..\SubscriptionForwardingController.h" />

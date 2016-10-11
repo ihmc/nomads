@@ -2,7 +2,7 @@
  * TransmissionService.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,17 +24,15 @@
 #include "DisServiceMsg.h"
 #include "Message.h"
 
-#include "NetworkMessageService.h"    
+#include "NetworkMessageService.h"
+#include "NetworkMessageServiceProxy.h"
 
 #include "TransmissionServiceListener.h"
-#include "Utils.h"
 
 #include "BufferWriter.h"
 #include "ConfigManager.h"
 #include "InstrumentedWriter.h"
 #include "NLFLib.h"
-#include "NICInfo.h"
-#include "NetUtils.h"
 #include "NullWriter.h"
 #include "StrClass.h"
 #include "DisServiceMsgHelper.h"
@@ -46,7 +44,7 @@ using namespace NOMADSUtil;
 
 const char * TransmissionService::DEFAULT_DISSERVICE_MCAST_GROUP  = "239.0.0.239";
 const uint16  TransmissionService::DEFAULT_DISSERVICE_MCAST_PORT = 6666;
-const uint8 TransmissionService::DEFAULT_DISSERVICE_TTL = 3;
+const uint8 TransmissionService::DEFAULT_DISSERVICE_TTL = 32;
 const char * TransmissionService::DEFAULT_DISSERVICE_BCAST_ADDR = "255.255.255.255";
 const uint16 TransmissionService::DEFAULT_DISSERVICE_BCAST_PORT = 6666;
 const bool TransmissionService::DEFAULT_ASYNCHRONOUS_DELIVERY = true;
@@ -72,7 +70,6 @@ TransmissionService::TransmissionService (TRANSMISSION_SVC_MODE mode, uint16 ui1
       _bAsyncDelivery (bAsyncDelivery),
       _bAsyncTransmission (bAsyncTransmission),
       _ui8McastTTL (ui8McastTTL),
-      _ui8NInterfaces (0),
       _ui8MessageVersion (ui8MessageVersion),
       _ui16Port (ui16NetworkMessageServicePort),
       _ui16MaxFragmentSize (1400), // in bytes
@@ -84,8 +81,9 @@ TransmissionService::TransmissionService (TRANSMISSION_SVC_MODE mode, uint16 ui1
 {
 }
 
-TransmissionService::~TransmissionService()
+TransmissionService::~TransmissionService (void)
 {
+    _nmsHelper.requestTerminationAndWait();
     delete _pMPS;
     _pMPS = NULL;
 }
@@ -172,39 +170,42 @@ int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingI
     checkAndLogMsg (pszMethodName, Logger::L_Info, "Using NetworkMessage V%u\n",
                     _ui8MessageVersion);
 
-    bool bReplyViaUnicast = pCfgMgr->getValueAsBool ("aci.disService.networkMessageService.replyViaUnicast", false);
+    const bool bReplyViaUnicast = pCfgMgr->getValueAsBool ("aci.disService.networkMessageService.replyViaUnicast", false);
 
     // Instantiate NetworkMessageService in the proper mode
-    bool bRestart = false;
-    if (_pMPS == NULL) {
-        NetworkMessageService::PROPAGATION_MODE nmsMode;
+    const bool bRestart = (_pMPS != NULL);
+    if (bRestart) {
+        _nmsHelper.start();
+    }
+    else {
+        // initialize
+        NOMADSUtil::PROPAGATION_MODE nmsMode;
         switch (_mode) {
             case MULTICAST:
-                nmsMode = NetworkMessageService::MULTICAST;
+                nmsMode = NOMADSUtil::MULTICAST;
                 break;
 
             case BROADCAST:
-                nmsMode = NetworkMessageService::BROADCAST;
+                nmsMode = NOMADSUtil::BROADCAST;
                 break;
 
             default:
-                nmsMode = NetworkMessageService::MULTICAST;
+                nmsMode = NOMADSUtil::MULTICAST;
         }
-
-        _pMPS = new NetworkMessageService (nmsMode, _bAsyncDelivery, _bAsyncTransmission,
-                                           _ui8MessageVersion, bReplyViaUnicast);
-    }
-    else {
-        _pMPS->stop();
-        bRestart = true;
+        _pMPS = _nmsHelper.getNetworkMessageService (nmsMode, _ui16Port, _bAsyncDelivery, _bAsyncTransmission, _ui8MessageVersion, bReplyViaUnicast,
+                                                     ppszBindingInterfaces, ppszIgnoredInterfaces, ppszAddedInterfaces, _dstAddr, _ui8McastTTL,
+                                                     pCfgMgr);
+        if (_pMPS == NULL) {
+            _m.lock();
+            return -1;
+        }
     }
 
     // Initialize NetworkMessageService
     if ((ppszBindingInterfaces != NULL) && (ppszBindingInterfaces[0] != NULL)) {
         _primaryIface = ppszBindingInterfaces[0];
     }
-    _pMPS->init (_ui16Port, ppszBindingInterfaces, ppszIgnoredInterfaces, ppszAddedInterfaces, _dstAddr, _ui8McastTTL);
-
+    
     // Set the retransmission timeout if specified
     if (pCfgMgr->hasValue ("aci.disService.networkMessageService.retransmissionTimeout")) {
         uint32 ui32Timeout = pCfgMgr->getValueAsUInt32 ("aci.disService.networkMessageService.retransmissionTimeout");
@@ -229,21 +230,18 @@ int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingI
     }
 
     if (bRestart) {
-        _pMPS->start();
+        _nmsHelper.stop();
     }
 
     // Count the active interfaces and store the count
     char **ppszNICs = _pMPS->getActiveNICsInfoAsString();
-    if (ppszNICs == NULL) {
-        _ui8NInterfaces = 0;
-    }
-    else {
-        for (_ui8NInterfaces = 0; ppszNICs[_ui8NInterfaces] != NULL; _ui8NInterfaces++) {
+    if (ppszNICs != NULL) {
+        for (uint8 ui8NInterfaces = 0; ppszNICs[ui8NInterfaces] != NULL; ui8NInterfaces++) {
             int64 *pI64Time = new int64;
             *pI64Time = 0;
-            _latestBcastTimeByIface.put (ppszNICs[_ui8NInterfaces], pI64Time);
-            free (ppszNICs[_ui8NInterfaces]);
-            ppszNICs[_ui8NInterfaces] = NULL;
+            _latestBcastTimeByIface.put (ppszNICs[ui8NInterfaces], pI64Time);
+            free (ppszNICs[ui8NInterfaces]);
+            ppszNICs[ui8NInterfaces] = NULL;
         }
         free (ppszNICs);
     }
@@ -254,26 +252,46 @@ int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingI
     }
 
     _m.unlock();
+
     return 0;
+}
+
+bool TransmissionService::isInitialized (void)
+{
+    _m.lock();
+    bool bIsInitialized = _nmsHelper.isConnected();
+    _m.unlock();
+    return bIsInitialized;
 }
 
 int TransmissionService::start()
 {
-    return _pMPS->start();
+    return _nmsHelper.startAdaptors();
 }
 
 void TransmissionService::stop (void)
 {
-    _pMPS->stop();
+    _nmsHelper.stopAdaptors();
+}
+
+void TransmissionService::requestTermination (void)
+{
+    _nmsHelper.requestTerminationAndWait();
 }
 
 uint32 TransmissionService::getIncomingQueueSize()
 {
+    if (_pMPS == NULL) {
+        return 0U;
+    }
     return _pMPS->getDeliveryQueueSize();
 }
 
 char ** TransmissionService::getActiveInterfacesAddress()
 {
+    if (_pMPS == NULL) {
+        return NULL;
+    }
     return _pMPS->getActiveNICsInfoAsString();
 }
 
@@ -336,23 +354,34 @@ char ** TransmissionService::getSilentInterfaces (uint32 ui32TimeThreshold)
         return NULL;
     }
     _m.lock();
-    char **ppszInterfaces = (char **) calloc (_latestBcastTimeByIface.getCount() + 1, sizeof (char *));
+    char **ppszAllInterfaces = _pMPS->getActiveNICsInfoAsString();
+    if (ppszAllInterfaces == NULL) {
+        _m.unlock();
+        return NULL;
+    }
+    unsigned int uiCount = 0;
+    for (; ppszAllInterfaces[uiCount] != NULL; uiCount++);
+    if (uiCount == 0) {
+        _m.unlock();
+        return NULL;
+    }
+
+    char **ppszInterfaces = (char **) calloc (uiCount + 1, sizeof (char *));
     if (ppszInterfaces == NULL) {
         _m.unlock();
         return NULL;
     }
-    StringHashtable<int64>::Iterator iter = _latestBcastTimeByIface.getAllElements();
-    unsigned int i = 0;
-    for (; !iter.end(); iter.nextElement()) {
-        int64 *pUI64Time = iter.getValue();
-        if (pUI64Time != NULL && ((i64CurrTime - (*pUI64Time)) >= ui32TimeThreshold)) {
-            ppszInterfaces[i] = strDup (iter.getKey());
-            if (ppszInterfaces[i] != NULL) {
-                i++;
+    uiCount = 0;
+    for (unsigned int i = 0; ppszAllInterfaces[i] != NULL; i++) {
+        int64 *pUI64Time = _latestBcastTimeByIface.get (ppszAllInterfaces[i]);
+        if ((pUI64Time == NULL) || ((i64CurrTime - (*pUI64Time)) >= ui32TimeThreshold)) {
+            ppszInterfaces[i] = strDup (ppszAllInterfaces[i]);
+            if (ppszInterfaces[uiCount] != NULL) {
+                uiCount++;
             }
         }
     }
-    ppszInterfaces[i] = NULL;
+    ppszInterfaces[uiCount] = NULL;
     _m.unlock();
     if (ppszInterfaces[0] == NULL) {
         free (ppszInterfaces);
@@ -420,24 +449,25 @@ char ** TransmissionService::getInterfacesByReceiveRate (float fPercRateThreshol
         return NULL;
     }
 
-    char **ppszInterfaces = (char **) calloc (sizeof (char *), _ui8NInterfaces+1);
+    uint8 ui8InputInterfaces = 0;
+    for (; ppszInputInterfaces[ui8InputInterfaces] != NULL; ui8InputInterfaces++);
+
+    char **ppszInterfaces = (char **) calloc (sizeof (char *), ui8InputInterfaces+1);
     if (ppszInterfaces == NULL) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
         return NULL;
-    }
-    char *pszIPAddr;
-    int64 i64EstimatedRate;
-    uint32 ui32RateLimit;
+    }    
     uint8 ui8AddedInterfaces = 0;
-    for (unsigned int uiIndex = 0; ppszInputInterfaces[uiIndex] != NULL && ui8AddedInterfaces < _ui8NInterfaces; ++uiIndex) {
-        pszIPAddr = ppszInputInterfaces[uiIndex];
-        i64EstimatedRate = _pMPS->getReceiveRate (pszIPAddr);
+    for (unsigned int uiIndex = 0; (ppszInputInterfaces[uiIndex] != NULL) && (ui8AddedInterfaces < ui8InputInterfaces); ++uiIndex) {
+        char *pszIPAddr = ppszInputInterfaces[uiIndex];
+        int64 i64EstimatedRate = _pMPS->getReceiveRate (pszIPAddr);
         if (i64EstimatedRate < 0) {
             checkAndLogMsg (pszMethodName, Logger::L_Warning, "error when trying to "
                             "retrieve the estimated receive rate. rc = %lld\n", i64EstimatedRate);
             i64EstimatedRate = 0;
         }
         uint32 ui32LinkCapacity = _pMPS->getLinkCapacity (pszIPAddr);
+        uint32 ui32RateLimit;
         if (ui32LinkCapacity > 0) {
             ui32RateLimit = ui32LinkCapacity;
         }
@@ -687,7 +717,9 @@ bool TransmissionService::clearToSendOnAllInterfaces (void)
 int TransmissionService::registerHandlerCallback (uint8 ui8MsgType, TransmissionServiceListener *pListener)
 {
     if (_pMPS != NULL) {
-        _pMPS->registerHandlerCallback (ui8MsgType, pListener);
+        if (_pMPS->registerHandlerCallback (ui8MsgType, pListener) < 0) {
+            return -2;
+        }
         return 0;
     }
 
@@ -758,23 +790,27 @@ TransmissionService::TransmissionResults TransmissionService::broadcast (DisServ
         return bcastRes;
     }
 
-    const uint8 ui8Type = (uint8) pDSMsg->getType();
+    const uint16 ui16Type = static_cast<uint16>(pDSMsg->getType());
+    if (ui16Type > 0xFF) {
+        bcastRes.rc = -5;
+        return bcastRes;
+    }
+    const uint8 ui8Type = static_cast<uint8>(ui16Type);
     bcastRes.rc = 0;
 
     _m.lock();
     for (unsigned int i = 0; bcastRes.ppszOutgoingInterfaces[i] != NULL; i++) {
-        char *interfaces[2];
+        const char *interfaces[2];
         interfaces[0] = bcastRes.ppszOutgoingInterfaces[i];
         interfaces[1] = NULL;
         int rc = _pMPS->broadcastMessage (DisseminationService::MPSMT_DisService,
-                                          (const char **) interfaces,
-                                          ui32TargetAddr,
-                                          (uint16) 0, // ui16MsgId
-                                          (uint8) 0,  // ui8HopCount
-                                          (uint8) 1,  // TTL
-                                          (uint16) 0, // delay tolerance
-                                          &ui8Type, sizeof (ui8Type),
-                                          bw.getBuffer(), (uint16) bw.getBufferLength(),
+                                          interfaces, ui32TargetAddr,
+                                          static_cast<uint16>(0), // ui16MsgId
+                                          static_cast<uint8>(0),  // ui8HopCount
+                                          static_cast<uint8>(1),  // TTL
+                                          static_cast<uint16>(0), // delay tolerance
+                                          &ui8Type, sizeof (ui8Type), bw.getBuffer(),
+                                          static_cast<uint16>(bw.getBufferLength()),
                                           bExpedited, pszHints);
         if (rc != 0) {
             bcastRes.rc = rc;
@@ -870,27 +906,28 @@ TransmissionService::TransmissionResults TransmissionService::unicast (DisServic
     ucastRes.rc = 0;
 
     _m.lock();
+
     if (bReliable) {
         ucastRes.rc = _pMPS->transmitReliableMessage (DisseminationService::MPSMT_DisService,
                                                        (const char **) ucastRes.ppszOutgoingInterfaces,
                                                        ui32TargetAddr,
-                                                       (uint16) 0, // ui16MsgId
-                                                       (uint8) 0,  // ui8HopCount
-                                                       (uint8) 1,  // TTL
-                                                       (uint16) 0, // delay tolerance
+                                                       static_cast<uint16>(0), // ui16MsgId
+                                                       static_cast<uint8>(0),  // ui8HopCount
+                                                       static_cast<uint8>(1),  // TTL
+                                                       static_cast<uint16>(0), // delay tolerance
                                                        &ui8Type, sizeof (ui8Type), bw.getBuffer(),
-                                                       (uint16) bw.getBufferLength(), pszHints);
+                                                       static_cast<uint16>(bw.getBufferLength()), pszHints);
     }
     else {
         ucastRes.rc = _pMPS->transmitMessage (DisseminationService::MPSMT_DisService,
                                                (const char **) ucastRes.ppszOutgoingInterfaces,
                                                ui32TargetAddr,
-                                               (uint16) 0, // ui16MsgId
-                                               (uint8) 0,  // ui8HopCount
-                                               (uint8) 1,  // TTL
-                                               (uint16) 0, // delay tolerance
+                                               static_cast<uint16>(0), // ui16MsgId
+                                               static_cast<uint8>(0),  // ui8HopCount
+                                               static_cast<uint8>(1),  // TTL
+                                               static_cast<uint16>(0), // delay tolerance
                                                &ui8Type, sizeof (ui8Type), bw.getBuffer(),
-                                               (uint16) bw.getBufferLength(), pszHints);
+                                               static_cast<uint16>(bw.getBufferLength()), pszHints);
     }
 
     if (ucastRes.rc == 0) {
@@ -904,6 +941,46 @@ TransmissionService::TransmissionResults TransmissionService::unicast (DisServic
     _m.unlock();
 
     return ucastRes;
+}
+
+void logTransmission (DisServiceMsg *p, const char *pszOutgoingInterface, uint64 ui64LatestTransmission)
+{
+    if (p->getType () == DisServiceMsg::DSMT_Data) {
+        DisServiceDataMsg *pDataMsg = static_cast<DisServiceDataMsg *>(p);
+        static StringHashtable<uint32> _count;
+        uint32 *pCount = _count.get (pDataMsg->getMessageHeader()->getMsgId());
+        if (pCount == NULL) {
+            pCount = new uint32;
+            *pCount = 1;
+            _count.put (pDataMsg->getMessageHeader()->getMsgId(), pCount);
+        }
+        else {
+            *pCount = (*pCount + 1);
+        }
+        String repair;
+        if (pDataMsg->isRepair()) {
+            repair = ("[Repair] for");
+            repair += pDataMsg->getTargetNodeId();
+            repair += "]";
+        }
+
+        if (pDataMsg->isRepair ()) {
+            printf ("Sent Message DSMT_Data at time %lld on interface %s. Id: %s. Served: %u times. [Repair for %s].\n",
+                    ui64LatestTransmission, pszOutgoingInterface, pDataMsg->getMessageHeader()->getMsgId(),
+                    *pCount, pDataMsg->getTargetNodeId());
+        }
+        else {
+            printf ("Sent Message DSMT_Data at time %lld on interface %s. Id: %s. Served: %u times.\n",
+                    ui64LatestTransmission, pszOutgoingInterface, pDataMsg->getMessageHeader()->getMsgId(),
+                    *pCount);
+        }
+    }
+    else {
+        printf ("Sent Message %s at time %lld on interface %s\n",
+                DisServiceMsgHelper::getMessageTypeAsString (p->getType()),
+                ui64LatestTransmission, pszOutgoingInterface);
+    }
+    fflush (stdout);
 }
 
 void TransmissionService::updateLatestBcastTimeByIface (DisServiceMsg *p, const char *pszOutgoingInterface)
@@ -920,8 +997,7 @@ void TransmissionService::updateLatestBcastTimeByIface (DisServiceMsg *p, const 
         }
 
         *pUI64LatestTransmission = i64CurrTime;
-        printf ("Sent Message %s at time %lld on interface %s\n", DisServiceMsgHelper::getMessageTypeAsString(p->getType()), *pUI64LatestTransmission, pszOutgoingInterface);
-		fflush (stdout);
+        logTransmission (p, pszOutgoingInterface, i64CurrTime);
     }
 }
 
@@ -1163,18 +1239,22 @@ TransmissionService::TRANSMISSION_SVC_MODE TransmissionServiceConfReader::getMod
 {
     const char *pszPropertyName = "aci.disService.propagationMode";
     if (_pCfgMgr->hasValue(pszPropertyName)) {
-        const char *pszMode = _pCfgMgr->getValue (pszPropertyName);
-        if (pszMode && wildcardStringCompare (pszMode, "*BROADCAST")) {
-            return TransmissionService::BROADCAST;
+        String mode (_pCfgMgr->getValue (pszPropertyName));
+        mode.convertToUpperCase();
+        if (mode.length() > 0) {
+            if (wildcardStringCompare (mode, "*BROADCAST")) {
+                return TransmissionService::BROADCAST;
+            }
+            if (wildcardStringCompare (mode, "*MULTICAST")) {
+                return TransmissionService::MULTICAST;
+            }
+            if (1 == (mode == "NORM")) {
+                return TransmissionService::NORM;
+            }
         }
-        else if (pszMode && wildcardStringCompare (pszMode, "*MULTICAST")) {
-            return TransmissionService::MULTICAST;
-        }
-        else {
-            checkAndLogMsg ("TransmissionServiceConfReader::getMode", Logger::L_SevereError,
-                            "Mode %s is not supported! Quitting\n", pszMode);
-            exit (-1);
-        }
+        checkAndLogMsg ("TransmissionServiceConfReader::getMode", Logger::L_SevereError,
+                        "Mode %s is not supported! Quitting\n", mode.c_str());
+        assert (false);
     }
     return TransmissionService::MULTICAST;
 }

@@ -2,7 +2,7 @@
  * Reader.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -65,6 +65,15 @@ namespace NOMADSUtil
             // Returns 0 if successful or a negative number in case of error
             virtual int readBytes (void *pBuf, uint32 ui32Count);
 
+            // Read a float value
+            // NOTE: The data is converted to big-endian format if this is a little-endian machine
+            int readFloat (void *pBuf);
+            virtual int readUI8 (void *pBuf);
+            virtual int readUI16 (void *pBuf);
+            virtual int readUI32 (void *pBuf);
+            virtual int readUI64 (void *pBuf);
+            virtual int readString (char **pBuf);
+
             // Returns the number of bytes available
             virtual uint32 getBytesAvailable (void);
 
@@ -75,7 +84,7 @@ namespace NOMADSUtil
             virtual Reader * getNestedReader (void);
 
             // Close the underlying 'stream'
-            virtual int close();
+            virtual int close (void);
 
             static void byteSwap16 (void *pBuf);
             static void byteSwap32 (void *pBuf);
@@ -92,6 +101,12 @@ namespace NOMADSUtil
 
     inline Reader::~Reader (void)
     {
+    }
+
+    inline int Reader::readFloat (void *pBuf)
+    {
+        // Assume a float is 4 bytes. It may be architecture-dependent
+        return read32 (pBuf);
     }
 
     inline uint32 Reader::getBytesAvailable (void)

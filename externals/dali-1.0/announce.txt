@@ -1,0 +1,58 @@
+                              Dali
+	           Release 1.0, February 1, 1999
+	          http://www.cs.cornell.edu/dali/
+
+This note is to announce the release of Dali 1.0.  Our goals in building
+Dali were (1) to make it easy to write high-performance code that
+processes multimedia data, (2) create a library of routines that allows
+me to teach students about multimedia data types, and (3) provide a
+platform for sharing programs that encode, decode, and process
+multimedia data.  (In other words, We got tired of hacking up mpeg_play).
+Hence, over the past two years, we have been designing and building a 
+toolkit that addresses (and solves) these problems.
+
+OVERVIEW
+
+The Dali library allows programmers to easily write very high
+performance code that encodes, decodes, or processes multimedia data.
+For example, an MPEG decoder can be written in about 150 lines of C code
+using Dali, but is very easy to customize and use in new applications.
+Dali currently has bindings to C and Tcl.
+
+Dali is an excellent tool for teaching students about multimedia
+processing and encoding.  Dali exposes the structure of underlying
+bitstreams, since many optimizations exploit this structure.  For
+instance, Dali exposes MPEG frame types, making it easy to write
+programs that process only I frames.
+
+FORMATS AND EXTENSIONS
+
+Dali currently supports a variety of image, video, and audio formats,
+including MPEG audio, video, and systems stream decoding,
+MPEG video encoding, JPEG encoding and decoding, GIF encoding and
+encoding, PNM encoding and decoding, AVI encoding and decoding
+(Windows systems only), and WAVE audio files (PCM, mu-law, and
+A-law). 
+
+Dali is designed to be easy to extend.  Dali is organized as a series of
+packages.  A new package can be easily written and distributed.
+Furthermore, we have articulated the design principles clearly in a
+paper that appeared at MMCN 99 (the paper is available on the Dali
+website).
+
+PLATFORMS, AVAILABILITY, AND RESOURCES
+
+The package is intended to be portable to many platforms. It has been
+tested under UNIX (BSD and SYSV, e.g. Linux, Solaris, and SunOS)
+and Windows NT/95.
+
+The Dali web site (http://www.cs.cornell.edu/dali/) is chock full of
+documentation, examples, tutorials, and other supporting
+material.  The Dali web site also contains precompiled binaries
+for Windows 95/NT, SunOS, and Solaris.
+
+A mailing list (dali-l@cornell.edu) has been set up for communication
+among Dali users, developers, and advocates.  In keeping with the
+Open Source philosophy, we want to take a very egalitarian view
+towards contributions, debugging, and help.  Bugs, questions, answers,
+and announcements will all be distributed by this list.

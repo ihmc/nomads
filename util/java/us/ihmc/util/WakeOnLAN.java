@@ -2,7 +2,7 @@
  * WakeOnLAN.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@ import java.net.DatagramSocket;
  * Date: Oct 2, 2009
  * Time: 9:36:33 AM
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 
 public class WakeOnLAN

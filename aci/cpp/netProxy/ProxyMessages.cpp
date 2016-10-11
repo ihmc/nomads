@@ -2,7 +2,7 @@
  * ProxyMessages.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -61,31 +61,31 @@ namespace ACMNetProxy
 
     bool ProxyMessage::belongsToVirtualConnection (const ProxyMessage * const pProxyMessage, uint16 ui16LocalID, uint16 ui16RemoteID)
     {
-        switch (pProxyMessage->ui8MsgTypeAndReachability) {
+        switch (pProxyMessage->_ui8MsgTypeAndReachability) {
             case (ProxyMessage::PMT_TCPOpenConnection):
             {
                 const OpenConnectionProxyMessage * const pOpenConnectionProxyMessage = (const OpenConnectionProxyMessage * const) (pProxyMessage);
-                return (pOpenConnectionProxyMessage->ui16LocalID == ui16LocalID);
+                return (pOpenConnectionProxyMessage->_ui16LocalID == ui16LocalID);
             }
             case (ProxyMessage::PMT_TCPConnectionOpened):
             {
                 const ConnectionOpenedProxyMessage * const pConnectionOpenedProxyMessage = (const ConnectionOpenedProxyMessage * const) (pProxyMessage);
-                return (pConnectionOpenedProxyMessage->ui16LocalID == ui16LocalID) && (pConnectionOpenedProxyMessage->ui16RemoteID == ui16RemoteID);
+                return (pConnectionOpenedProxyMessage->_ui16LocalID == ui16LocalID) && (pConnectionOpenedProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
             case (ProxyMessage::PMT_TCPData):
             {
                 const TCPDataProxyMessage * const pTCPDataProxyMessage = (const TCPDataProxyMessage * const) (pProxyMessage);
-                return (pTCPDataProxyMessage->ui16LocalID == ui16LocalID) && (pTCPDataProxyMessage->ui16RemoteID == ui16RemoteID);
+                return (pTCPDataProxyMessage->_ui16LocalID == ui16LocalID) && (pTCPDataProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
             case (ProxyMessage::PMT_TCPCloseConnection):
             {
                 const CloseConnectionProxyMessage * const pCloseConnectionProxyMessage = (const CloseConnectionProxyMessage * const) (pProxyMessage);
-                return (pCloseConnectionProxyMessage->ui16LocalID == ui16LocalID) && (pCloseConnectionProxyMessage->ui16RemoteID == ui16RemoteID);
+                return (pCloseConnectionProxyMessage->_ui16LocalID == ui16LocalID) && (pCloseConnectionProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
             case (ProxyMessage::PMT_TCPResetConnection):
             {
                 const ResetConnectionProxyMessage * const pResetConnectionProxyMessage = (const ResetConnectionProxyMessage * const) (pProxyMessage);
-                return (pResetConnectionProxyMessage->ui16LocalID == ui16LocalID) && (pResetConnectionProxyMessage->ui16RemoteID == ui16RemoteID);
+                return (pResetConnectionProxyMessage->_ui16LocalID == ui16LocalID) && (pResetConnectionProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
         }
 
@@ -93,125 +93,57 @@ namespace ACMNetProxy
     }
 
     InitializeConnectionProxyMessage::InitializeConnectionProxyMessage (uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
-                                                                        uint16 ui16LocalUDPServerPort, bool bReachability)
-    {
-        this->ui8MsgTypeAndReachability = PMT_InitializeConnection | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost);
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui16LocalMocketsServerPort = ui16LocalMocketsServerPort;
-        this->ui16LocalTCPServerPort = ui16LocalTCPServerPort;
-        this->ui16LocalUDPServerPort = ui16LocalUDPServerPort;
-    }
+                                                                        uint16 ui16LocalUDPServerPort, bool bReachability) :
+        ProxyMessage (PMT_InitializeConnection | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui32ProxyUniqueID (ui32ProxyUniqueID),
+        _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort) {}
 
     ConnectionInitializedProxyMessage::ConnectionInitializedProxyMessage (uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
-                                                                          uint16 ui16LocalUDPServerPort, bool bReachability)
-    {
-        this->ui8MsgTypeAndReachability = PMT_ConnectionInitialized | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost);
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui16LocalMocketsServerPort = ui16LocalMocketsServerPort;
-        this->ui16LocalTCPServerPort = ui16LocalTCPServerPort;
-        this->ui16LocalUDPServerPort = ui16LocalUDPServerPort;
-    }
+                                                                          uint16 ui16LocalUDPServerPort, bool bReachability) :
+        ProxyMessage (PMT_ConnectionInitialized | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui32ProxyUniqueID (ui32ProxyUniqueID),
+        _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort) {}
 
-    ICMPProxyMessage::ICMPProxyMessage (uint8 iType, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalIP, uint32 ui32RemoteIP, uint32 ui32ProxyUniqueID,
-                                        uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort, uint16 ui16LocalUDPServerPort,
-                                        uint16 ui16PayloadLen, bool bReachability)
-    {
-        this->ui8MsgTypeAndReachability = PMT_ICMPMessage | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost);
-        this->ui8Type = iType;
-        this->ui8Code = ui8Code;
-        this->ui32RoH = ui32RoH;
-        this->ui32LocalIP = ui32LocalIP;
-        this->ui32RemoteIP = ui32RemoteIP;
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui16LocalMocketsServerPort = ui16LocalMocketsServerPort;
-        this->ui16LocalTCPServerPort = ui16LocalTCPServerPort;
-        this->ui16LocalUDPServerPort = ui16LocalUDPServerPort;
-        this->ui16PayloadLen = ui16PayloadLen;
-    }
+    ICMPProxyMessage::ICMPProxyMessage (uint16 ui16PayloadLen, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalIP, uint32 ui32RemoteIP,
+                                        uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
+                                        uint16 ui16LocalUDPServerPort, uint8 ui8PacketTTL, bool bReachability) :
+        ProxyDataMessage (PMT_ICMPMessage | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost), ui16PayloadLen), _ui8Type (ui8Type), _ui8Code (ui8Code), _ui32RoH (ui32RoH),
+        _ui32LocalIP (ui32LocalIP), _ui32RemoteIP (ui32RemoteIP), _ui32ProxyUniqueID (ui32ProxyUniqueID), _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort),
+        _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort), _ui8PacketTTL(ui8PacketTTL) {}
 
-    UDPUnicastDataProxyMessage::UDPUnicastDataProxyMessage (uint32 ui32LocalIP, uint32 ui32RemoteIP, uint32 ui32ProxyUniqueID, uint16 ui16PayloadLen,
-                                                            const CompressionSetting * const pCompressionSetting)
-    {
-        this->ui8MsgTypeAndReachability = PMT_UDPUnicastData;
-        this->ui32LocalIP = ui32LocalIP;
-        this->ui32RemoteIP = ui32RemoteIP;
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui16PayloadLen = ui16PayloadLen;
-        this->ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType();
-    }
+    UDPUnicastDataProxyMessage::UDPUnicastDataProxyMessage (uint16 ui16PayloadLen, uint32 ui32LocalIP, uint32 ui32RemoteIP, uint32 ui32ProxyUniqueID, uint8 ui8PacketTTL,
+                                                            const CompressionSetting * const pCompressionSetting) :
+        ProxyDataMessage (PMT_UDPUnicastData, ui16PayloadLen), _ui32LocalIP (ui32LocalIP), _ui32RemoteIP (ui32RemoteIP), _ui32ProxyUniqueID (ui32ProxyUniqueID),
+        _ui8PacketTTL(ui8PacketTTL), _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
 
-    MultipleUDPDatagramsProxyMessage::MultipleUDPDatagramsProxyMessage (uint32 ui32LocalIP, uint32 ui32RemoteIP, uint32 ui32ProxyUniqueID, int iWrappedUDPDatagramsNum,
-                                                                        uint16 ui16PayloadLen, const CompressionSetting * const pCompressionSetting)
-    {
-        this->ui8MsgTypeAndReachability = PMT_MultipleUDPDatagrams;
-        this->ui32LocalIP = ui32LocalIP;
-        this->ui32RemoteIP = ui32RemoteIP;
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui8WrappedUDPDatagramsNum = (uint8) iWrappedUDPDatagramsNum;
-        this->ui16PayloadLen = ui16PayloadLen;
-        this->ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType();
-    }
+    MultipleUDPDatagramsProxyMessage::MultipleUDPDatagramsProxyMessage (uint16 ui16PayloadLen, uint32 ui32LocalIP, uint32 ui32RemoteIP, uint32 ui32ProxyUniqueID,
+                                                                        uint8 ui8WrappedUDPDatagramsNum, const CompressionSetting * const pCompressionSetting) :
+        ProxyDataMessage (PMT_MultipleUDPDatagrams, ui16PayloadLen), _ui32LocalIP (ui32LocalIP), _ui32RemoteIP (ui32RemoteIP), _ui32ProxyUniqueID (ui32ProxyUniqueID),
+        _ui8WrappedUDPDatagramsNum (ui8WrappedUDPDatagramsNum), _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
 
-    UDPBCastMCastDataProxyMessage::UDPBCastMCastDataProxyMessage (uint32 ui32ProxyUniqueID, uint16 ui16PayloadLen, const CompressionSetting * const pCompressionSetting)
-    {
-        this->ui8MsgTypeAndReachability = PMT_UDPBCastMCastData;
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui16PayloadLen = ui16PayloadLen;
-        this->ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType();
-    }
+    UDPBCastMCastDataProxyMessage::UDPBCastMCastDataProxyMessage (uint16 ui16PayloadLen, uint32 ui32ProxyUniqueID, const CompressionSetting * const pCompressionSetting) :
+        ProxyDataMessage (PMT_UDPBCastMCastData, ui16PayloadLen), _ui32ProxyUniqueID(ui32ProxyUniqueID),
+        _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
 
     OpenConnectionProxyMessage::OpenConnectionProxyMessage (uint16 ui16LocalID, uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort,
                                                             uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
-                                                            uint16 ui16LocalUDPServerPort, const CompressionSetting * const pCompressionSetting, bool bReachability)
-    {
-        this->ui8MsgTypeAndReachability  = PMT_TCPOpenConnection | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost);
-        this->ui16LocalID = ui16LocalID;
-        this->ui32LocalIP = ui32LocalIP;
-        this->ui16LocalPort = ui16LocalPort;
-        this->ui32RemoteIP = ui32RemoteIP;
-        this->ui16RemotePort = ui16RemotePort;
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui16LocalMocketsServerPort = ui16LocalMocketsServerPort;
-        this->ui16LocalTCPServerPort = ui16LocalTCPServerPort;
-        this->ui16LocalUDPServerPort = ui16LocalUDPServerPort;
-        this->ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType();
-    }
+                                                            uint16 ui16LocalUDPServerPort, const CompressionSetting * const pCompressionSetting, bool bReachability) :
+        ProxyMessage (PMT_TCPOpenConnection | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui16LocalID (ui16LocalID), _ui32LocalIP (ui32LocalIP),
+        _ui16LocalPort (ui16LocalPort), _ui32RemoteIP (ui32RemoteIP), _ui16RemotePort (ui16RemotePort), _ui32ProxyUniqueID (ui32ProxyUniqueID),
+        _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort),
+        _ui8CompressionTypeAndLevel(pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
 
     ConnectionOpenedProxyMessage::ConnectionOpenedProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID, uint32 ui32LocalIP, uint32 ui32ProxyUniqueID,
                                                                 uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort, uint16 ui16LocalUDPServerPort,
-                                                                const CompressionSetting * const pCompressionSetting, bool bReachability)
-    {
-        this->ui8MsgTypeAndReachability = PMT_TCPConnectionOpened | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost);
-        this->ui16LocalID = ui16LocalID;
-        this->ui16RemoteID = ui16RemoteID;
-        this->ui32LocalIP = ui32LocalIP;
-        this->ui32ProxyUniqueID = ui32ProxyUniqueID;
-        this->ui16LocalMocketsServerPort = ui16LocalMocketsServerPort;
-        this->ui16LocalTCPServerPort = ui16LocalTCPServerPort;
-        this->ui16LocalUDPServerPort = ui16LocalUDPServerPort;
-        this->ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType();
-    }
+                                                                const CompressionSetting * const pCompressionSetting, bool bReachability) :
+        ProxyMessage (PMT_TCPConnectionOpened | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID),
+        _ui32LocalIP (ui32LocalIP), _ui32ProxyUniqueID (ui32ProxyUniqueID), _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort),
+        _ui16LocalUDPServerPort (ui16LocalUDPServerPort), _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
 
-    TCPDataProxyMessage::TCPDataProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID, uint16 ui16PayloadLen, uint8 ui8TCPFlags)
-    {
-        this->ui8MsgTypeAndReachability = PMT_TCPData;
-        this->ui16LocalID = ui16LocalID;
-        this->ui16RemoteID = ui16RemoteID;
-        this->ui16PayloadLen = ui16PayloadLen;
-        this->ui8TCPFlags = ui8TCPFlags;
-    }
+    TCPDataProxyMessage::TCPDataProxyMessage (uint16 ui16PayloadLen, uint16 ui16LocalID, uint16 ui16RemoteID, uint8 ui8TCPFlags) :
+        ProxyDataMessage (PMT_TCPData, ui16PayloadLen), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID), _ui8TCPFlags (ui8TCPFlags) {}
 
-    CloseConnectionProxyMessage::CloseConnectionProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID)
-    {
-        this->ui8MsgTypeAndReachability = PMT_TCPCloseConnection;
-        this->ui16LocalID = ui16LocalID;
-        this->ui16RemoteID = ui16RemoteID;
-    }
+    CloseConnectionProxyMessage::CloseConnectionProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID) :
+        ProxyMessage(PMT_TCPCloseConnection), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID) {}
 
-    ResetConnectionProxyMessage::ResetConnectionProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID)
-    {
-        this->ui8MsgTypeAndReachability = PMT_TCPResetConnection;
-        this->ui16LocalID = ui16LocalID;
-        this->ui16RemoteID = ui16RemoteID;
-    }
+    ResetConnectionProxyMessage::ResetConnectionProxyMessage(uint16 ui16LocalID, uint16 ui16RemoteID) :
+    ProxyMessage (PMT_TCPResetConnection), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID) {}
 }

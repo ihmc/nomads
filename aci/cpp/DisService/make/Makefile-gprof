@@ -1,0 +1,93 @@
+include Makefile.inc
+
+CPPFLAGS += -Wall -pg -fno-inline -O0
+SOURCES =$(filter-out $(NOWANTS),$(wildcard ../*.cpp))
+OBJECTS = $(SOURCES:../%.cpp=%.o)
+OBJECTSPROXY = $(SOURCESPROXY:../%.cpp=%.o)
+
+all: libsqlite.a libtinyxpath.a liblcppdc.a libnms.a libchunking.a libmsgpack.a libdisservice.a libDisServiceJNIWrapper.so DisServiceLauncher DisServiceMessageInjector
+
+CPPFLAGS += -I$(MOCKETS_HOME)/cpp -I$(NOMADS_HOME)/externals/JDK \
+	-I$(NOMADS_HOME)/externals/JDK/$(LIB_FOLDER) -fPIC
+
+listsources:
+	@echo "Sources: $(SOURCES)"
+
+listlibs:
+	@echo "Libs: $(LIB_LIST)"
+
+%.o : ../%.cpp
+	$(CPP) -c $(CPPFLAGS) $<
+
+libutil.a :
+	make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER)/ libutil.a
+
+libsecurity.a :
+	make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER)/ libsecurity.a
+
+libsqlite.a :
+	make -C $(SQLITE_HOME)/$(MAKEFILE_FOLDER)/ libsqlite3.a
+
+libtinyxpath.a :
+	make -C	$(TINYXPATH_HOME)/$(MAKEFILE_FOLDER)/ libtinyxpath.a
+
+liblcppdc.a :
+	make -C	$(LCPPDC_HOME)/$(MAKEFILE_FOLDER)/ liblcppdc.a
+
+libnms.a :
+	make -C	$(NMS_HOME)/$(MAKEFILE_FOLDER)/ libnms.a
+
+libchunking.a :
+	make -C	$(CHUNKING_HOME)/$(MAKEFILE_FOLDER)/ libchunking.a
+
+libmsgpack.a:
+	make -C $(MSGPACK_HOME)/$(MAKEFILE_FOLDER)/ libmsgpack.a
+
+libdisservice.a : $(OBJECTS)
+	ar -rcv libdisservice.a $(OBJECTS)
+
+libdisserviceproxy.a : $(OBJECTSPROXY)
+	ar -rcv libdisserviceproxy.a $(OBJECTSPROXY)
+
+libDisServiceJNIWrapper.so : libdisservice.a ../DisServiceJNIWrapper.cpp \
+    ../DisServiceJNIWrapper.h ../JNIUtils.cpp ../JNIUtils.h
+	$(CPP) $(CPPFLAGS) -shared \
+	../DisServiceJNIWrapper.cpp \
+	../JNIUtils.cpp \
+	libdisservice.a \
+	$(LIB_LIST) $(LD_FLAGS) \
+	-o libDisServiceJNIWrapper.so
+
+DisServiceLauncher : libdisservice.a libdisserviceproxy.a libutil.a libsecurity.a libnms.a libsqlite.a libtinyxpath.a libchunking.a liblcppdc.a libmsgpack.a ../DisServiceLauncher.cpp
+	@echo "Compiling with $(MakefileArch) for $(ARCH) architecture"
+	@echo "MAKEFILE_FOLDER: $(MAKEFILE_FOLDER) ARCH_FLAGS: $(BUILD_FLAGS) EXTERNALS_LIB: $(EXTERNALS_LIB)"
+	$(CPP) $(CPPFLAGS) \
+	../DisServiceLauncher.cpp \
+	libdisservice.a \
+	libdisserviceproxy.a \
+	$(LIB_LIST) $(LD_FLAGS) \
+	-o DisServiceLauncher
+
+DisServiceMessageInjector : libdisservice.a libutil.a libnms.a libchunking.a liblcppdc.a ../DisServiceMessageInjector.cpp
+	$(CPP) $(CPPFLAGS) \
+	../DisServiceMessageInjector.cpp \
+	libdisservice.a \
+	$(LIB_LIST) $(LD_FLAGS) \
+	-o DisServiceMessageInjector
+
+clean :
+	rm -rf *.o *.a *.gch ../*.gch *.dSYM
+	rm -rf libDisServiceJNIWrapper.so
+	rm -rf DisServiceLauncher
+	rm -rf DisServiceMessageInjector
+
+cleanall: clean
+	(make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER) clean)
+	(make -C $(SQLITE_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(TINYXPATH_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(LCPPDC_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(NMS_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(CHUNKING_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(MSGPACK_HOME)/$(MAKEFILE_FOLDER) clean)
+
+# vim:ts=4:sw=4

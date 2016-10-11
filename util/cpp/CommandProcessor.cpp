@@ -2,7 +2,7 @@
  * CommandProcessor.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -80,7 +80,7 @@ int CommandProcessor::print (const void *pToken, const char *pszFmt, ...)
         printf ("%s", szBuf);
     }
     else {
-        ConnHandler *pCH = (ConnHandler*) pToken;
+        CmdProcConnHandler *pCH = (CmdProcConnHandler*) pToken;
         pCH->print (szBuf);
     }
     return 0;
@@ -91,7 +91,7 @@ void CommandProcessor::run (void)
     started();
     char szCmd[1024];
     while (true) {
-        fprintf (stdout, "%s> ", (const char*) _prompt);
+        fprintf (stdout, "%s> ", _prompt.c_str());
         fflush (stdout);
         fgets (szCmd, sizeof (szCmd)-1, stdin);
         szCmd [sizeof (szCmd) - 1] = '\0';
@@ -146,9 +146,6 @@ NetworkServer::NetworkServer (CommandProcessor *pCP)
 
 NetworkServer::~NetworkServer (void)
 {
-    if (_pServerSocket) {
-        _pServerSocket->disableReceive();
-    }
     requestTerminationAndWait();
     if (_pServerSocket) {
         delete _pServerSocket;
@@ -187,13 +184,29 @@ void NetworkServer::run (void)
     }
     Socket *pSocket;
     while ((!terminationRequested()) && (NULL != (pSocket = _pServerSocket->accept()))) {
-        ConnHandler *pConnHandler = new ConnHandler (pSocket, _pCP);
+        CmdProcConnHandler *pConnHandler = new CmdProcConnHandler (pSocket, _pCP);
         pConnHandler->start();
     }
     terminating();
 }
 
-ConnHandler::ConnHandler (Socket *pSocket, CommandProcessor *pCP)
+void NetworkServer::requestTermination (void)
+{
+    if (_pServerSocket != NULL) {
+        _pServerSocket->disableReceive();
+    }
+    ManageableThread::requestTermination();
+}
+
+void NetworkServer::requestTerminationAndWait (void)
+{
+    if (_pServerSocket != NULL) {
+        _pServerSocket->disableReceive();
+    }
+    ManageableThread::requestTerminationAndWait();
+}
+
+CmdProcConnHandler::CmdProcConnHandler (Socket *pSocket, CommandProcessor *pCP)
 {
     _pSocket = pSocket;
     _pCP = pCP;
@@ -202,7 +215,7 @@ ConnHandler::ConnHandler (Socket *pSocket, CommandProcessor *pCP)
     //_pSocket->bufferingMode (0);
 }
 
-ConnHandler::~ConnHandler (void)
+CmdProcConnHandler::~CmdProcConnHandler (void)
 {
     if (_pSocket) {
         _pSocket->disconnect();
@@ -218,7 +231,7 @@ ConnHandler::~ConnHandler (void)
     }
 }
 
-void ConnHandler::run (void)
+void CmdProcConnHandler::run (void)
 {
     while (!terminationRequested()) {
         try {
@@ -248,7 +261,7 @@ void ConnHandler::run (void)
     delete this;
 }
 
-void ConnHandler::print (const char *pszBuf)
+void CmdProcConnHandler::print (const char *pszBuf)
 {
     bool bCRSent = false;
     bool bLFSent = false;

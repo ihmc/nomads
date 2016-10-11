@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B75A6882-0C1A-4B6B-841A-B98D0421FE5E}</ProjectGuid>
+    <RootNamespace>dali</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\packages\basic;..\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\include;..\packages\basic;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\packages\basic\basicInt.h" />
+    <ClInclude Include="..\packages\basic\jrevdct.h" />
+    <ClInclude Include="..\packages\basic\mfwddct.h" />
+    <ClInclude Include="..\include\bitparser.h" />
+    <ClInclude Include="..\include\dvmamap.h" />
+    <ClInclude Include="..\include\dvmavi.h" />
+    <ClInclude Include="..\include\dvmbasic.h" />
+    <ClInclude Include="..\include\dvmbytegeom.h" />
+    <ClInclude Include="..\include\dvmcolor.h" />
+    <ClInclude Include="..\include\dvmgif.h" />
+    <ClInclude Include="..\include\dvmimap.h" />
+    <ClInclude Include="..\include\dvmjpeg.h" />
+    <ClInclude Include="..\include\dvmkernel.h" />
+    <ClInclude Include="..\include\dvmmpeg.h" />
+    <ClInclude Include="..\include\dvmpnm.h" />
+    <ClInclude Include="..\include\dvmvision.h" />
+    <ClInclude Include="..\include\dvmwave.h" />
+    <ClInclude Include="..\include\macro.h" />
+    <ClInclude Include="..\packages\mpeg\alloctables.h" />
+    <ClInclude Include="..\packages\mpeg\audiotables.h" />
+    <ClInclude Include="..\packages\mpeg\cossintable.h" />
+    <ClInclude Include="..\packages\mpeg\decodetable.h" />
+    <ClInclude Include="..\packages\mpeg\filtertable.h" />
+    <ClInclude Include="..\packages\mpeg\huffmantable.h" />
+    <ClInclude Include="..\packages\mpeg\mpegInt.h" />
+    <ClInclude Include="..\packages\mpeg\mpegvector.h" />
+    <ClInclude Include="..\packages\mpeg\powertable.h" />
+    <ClInclude Include="..\packages\mpeg\tables.h" />
+    <ClInclude Include="..\packages\mpeg\tangentable.h" />
+    <ClInclude Include="..\packages\mpeg\videotable.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\packages\basic\audio.c" />
+    <ClCompile Include="..\packages\basic\bit.c" />
+    <ClCompile Include="..\packages\basic\bitmake.c" />
+    <ClCompile Include="..\packages\basic\bitparser.c" />
+    <ClCompile Include="..\packages\basic\bitscan.c" />
+    <ClCompile Include="..\packages\basic\bitsetop.c" />
+    <ClCompile Include="..\packages\basic\bitstream.c" />
+    <ClCompile Include="..\packages\basic\bitstreamfio.c" />
+    <ClCompile Include="..\packages\basic\bitutil.c" />
+    <ClCompile Include="..\packages\basic\byte.c" />
+    <ClCompile Include="..\packages\basic\byte16.c" />
+    <ClCompile Include="..\packages\basic\byte32.c" />
+    <ClCompile Include="..\packages\basic\bytearith.c" />
+    <ClCompile Include="..\packages\basic\bytetosc.c" />
+    <ClCompile Include="..\packages\basic\crop.c" />
+    <ClCompile Include="..\packages\basic\filter.c" />
+    <ClCompile Include="..\packages\basic\float.c" />
+    <ClCompile Include="..\packages\basic\jrevdct.c" />
+    <ClCompile Include="..\packages\basic\mfwddct.c" />
+    <ClCompile Include="..\packages\basic\qtables.c" />
+    <ClCompile Include="..\packages\basic\sc.c" />
+    <ClCompile Include="..\packages\basic\scarith.c" />
+    <ClCompile Include="..\packages\basic\sctobyte.c" />
+    <ClCompile Include="..\packages\basic\vector.c" />
+    <ClCompile Include="..\packages\mpeg\block.c" />
+    <ClCompile Include="..\packages\mpeg\bsearch.c" />
+    <ClCompile Include="..\packages\mpeg\huffencode.c" />
+    <ClCompile Include="..\packages\mpeg\motionsearch.c" />
+    <ClCompile Include="..\packages\mpeg\mpegaudiohdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegaudiol1.c" />
+    <ClCompile Include="..\packages\mpeg\mpegaudiol2.c" />
+    <ClCompile Include="..\packages\mpeg\mpegaudiol3.c" />
+    <ClCompile Include="..\packages\mpeg\mpegaudiosyndata.c" />
+    <ClCompile Include="..\packages\mpeg\mpegencode.c" />
+    <ClCompile Include="..\packages\mpeg\mpeggophdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegmacroblockhdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegpckhdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegpic.c" />
+    <ClCompile Include="..\packages\mpeg\mpegpichdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegpkthdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegseqhdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegslicehdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegsyshdr.c" />
+    <ClCompile Include="..\packages\mpeg\mpegsystoc.c" />
+    <ClCompile Include="..\packages\mpeg\mpegvideoindex.c" />
+    <ClCompile Include="..\packages\mpeg\psearch.c" />
+    <ClCompile Include="..\packages\mpeg\startcode.c" />
+    <ClCompile Include="..\packages\mpeg\synthesis.c" />
+    <ClCompile Include="..\packages\mpeg\tables.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

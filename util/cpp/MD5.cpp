@@ -2,7 +2,7 @@
  * MD5.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 #include "BufferWriter.h"
 #include "Reader.h"
@@ -47,9 +48,13 @@ int MD5::init (void)
     return 0;
 }
 
-int MD5::update (void *pBuf, unsigned long ulBufSize)
+int MD5::update (const void *pBuf, unsigned long ulBufSize)
 {
-    MD5Update (&ctx, (unsigned char*) pBuf, (unsigned int) ulBufSize);
+    if (ulBufSize > UINT_MAX) {
+        return -1;
+    }
+    MD5Update (&ctx, static_cast<const unsigned char*>(pBuf),
+               static_cast<unsigned int>(ulBufSize));
     return 0;
 }
 
@@ -61,7 +66,7 @@ const unsigned char * MD5::getChecksum (void)
 
 char * MD5::getChecksumAsString (void)
 {
-    char *pszMD5 = (char*) calloc (2*length()+1, sizeof (char));
+    char *pszMD5 = static_cast<char*>(calloc (2*length()+1, sizeof (char)));
     if (pszMD5 == NULL) {
         return NULL;
     }
@@ -183,18 +188,18 @@ void MD5::MD5Init (MD5_CTX *context)
   operation, processing another message block, and updating the
   context.
  */
-void MD5::MD5Update (MD5_CTX *context, unsigned char *input, unsigned int inputLen)
+void MD5::MD5Update (MD5_CTX *context, const unsigned char *input, unsigned int inputLen)
 {
   unsigned int i, index, partLen;
 
   /* Compute number of bytes mod 64 */
-  index = (unsigned int)((context->count[0] >> 3) & 0x3F);
+  index = static_cast<unsigned int>((context->count[0] >> 3) & 0x3F);
 
   /* Update number of bits */
-  if ((context->count[0] += ((uint32)inputLen << 3))
-   < ((uint32)inputLen << 3))
+  if ((context->count[0] += (static_cast<uint32>(inputLen) << 3))
+   < (static_cast<uint32>(inputLen) << 3))
  context->count[1]++;
-  context->count[1] += ((uint32)inputLen >> 29);
+  context->count[1] += (static_cast<uint32>(inputLen) >> 29);
 
   partLen = 64 - index;
 
@@ -215,7 +220,7 @@ void MD5::MD5Update (MD5_CTX *context, unsigned char *input, unsigned int inputL
 
   /* Buffer remaining input */
   MD5_memcpy
- ((unsigned char *)&context->buffer[index], (unsigned char *)&input[i],
+ (static_cast<unsigned char *>(&context->buffer[index]), (unsigned char *)&input[i],
   inputLen-i);
 }
 
@@ -249,7 +254,7 @@ void MD5::MD5Final (unsigned char digest[16], MD5_CTX *context)
 
 /* MD5 basic transformation. Transforms state based on block.
  */
-void MD5::MD5Transform (uint32 state[4], unsigned char block[64])
+void MD5::MD5Transform (uint32 state[4], const unsigned char block[64])
 {
   uint32 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
 
@@ -340,50 +345,44 @@ void MD5::MD5Transform (uint32 state[4], unsigned char block[64])
 /* Encodes input (uint32) into output (unsigned char). Assumes len is
   a multiple of 4.
  */
-void MD5::Encode (unsigned char *output, uint32 *input, unsigned int len)
+void MD5::Encode (unsigned char *output, const uint32 *input, unsigned int len)
 {
-  unsigned int i, j;
-
-  for (i = 0, j = 0; j < len; i++, j += 4) {
- output[j] = (unsigned char)(input[i] & 0xff);
- output[j+1] = (unsigned char)((input[i] >> 8) & 0xff);
- output[j+2] = (unsigned char)((input[i] >> 16) & 0xff);
- output[j+3] = (unsigned char)((input[i] >> 24) & 0xff);
-  }
+    for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {
+        output[j] = (unsigned char) (input[i] & 0xff);
+        output[j + 1] = (unsigned char) ((input[i] >> 8) & 0xff);
+        output[j + 2] = (unsigned char) ((input[i] >> 16) & 0xff);
+        output[j + 3] = (unsigned char) ((input[i] >> 24) & 0xff);
+    }
 }
 
 /* Decodes input (unsigned char) into output (uint32). Assumes len is
   a multiple of 4.
  */
-void MD5::Decode (uint32 *output, unsigned char *input, unsigned int len)
+void MD5::Decode (uint32 *output, const unsigned char *input, unsigned int len)
 {
-  unsigned int i, j;
-
-  for (i = 0, j = 0; j < len; i++, j += 4)
- output[i] = ((uint32)input[j]) | (((uint32)input[j+1]) << 8) |
-   (((uint32)input[j+2]) << 16) | (((uint32)input[j+3]) << 24);
+  for (unsigned int i = 0, j = 0; j < len; i++, j += 4) {
+      output[i] = ((uint32) input[j]) | (((uint32) input[j + 1]) << 8) |
+          (((uint32) input[j + 2]) << 16) | (((uint32) input[j + 3]) << 24);
+  }
 }
 
 /* Note: Replace "for loop" with standard memcpy if possible.
  */
 
-void MD5::MD5_memcpy (unsigned char *output, unsigned char *input, unsigned int len)
+void MD5::MD5_memcpy (unsigned char *output, const unsigned char *input, unsigned int len)
 {
-  unsigned int i;
-
-  for (i = 0; i < len; i++)
-
- output[i] = input[i];
+  for (unsigned int i = 0; i < len; i++) {
+      output[i] = input[i];
+  }
 }
 
 /* Note: Replace "for loop" with standard memset if possible.
  */
 void MD5::MD5_memset (unsigned char *output, int value, unsigned int len)
 {
-  unsigned int i;
-
-  for (i = 0; i < len; i++)
- ((char *)output)[i] = (char)value;
+  for (unsigned int i = 0; i < len; i++) {
+      ((char *) output)[i] = (char) value;
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -404,15 +403,6 @@ char * MD5Utils::getMD5Checksum (BufferWriter *pWriter)
 }
 
 char * MD5Utils::getMD5Checksum (const void *pBuf, uint32 ui32Len)
-{
-    void *pBufCpy = malloc (ui32Len);
-    memcpy (pBufCpy, pBuf, ui32Len);
-    char *pszChecksum = getMD5Checksum (pBufCpy, ui32Len);
-    free (pBufCpy);
-    return pszChecksum;
-}
-
-char * MD5Utils::getMD5Checksum (void *pBuf, uint32 ui32Len)
 {
     MD5 md5;
     md5.init();

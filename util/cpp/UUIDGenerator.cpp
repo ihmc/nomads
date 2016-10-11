@@ -2,7 +2,7 @@
  * UUIDGenerator.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
 #include <stdlib.h>
 
 #if defined (WIN32)
+#include <winsock2.h>
     #include <windows.h>
 #elif defined (LINUX)
     #include <sys/sysinfo.h>
@@ -402,9 +403,11 @@ void UUIDGenerator::get_random_info(char seed[16])
 	
     #if defined (LINUX)
         #if defined (ANDROID)
-	        sysinfo (r.s);
+          //COMMENTED OUT BECAUSE NOT WORKING ON ANDROID X86
+          //SHOULD NOT CAUSE ISSUES
+	        //sysinfo (r.s);
         #else  
-            sysinfo (&r.s);
+          sysinfo (&r.s);
         #endif
     #elif defined (SOLARIS)
         sysinfo (SI_HW_SERIAL, r.szHWSerial, sizeof (r.szHWSerial));

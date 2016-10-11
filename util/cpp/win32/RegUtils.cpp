@@ -3,7 +3,7 @@
 #include "Logger.h"
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
-
+#include <winsock2.h>
 #include <windows.h>
 
 namespace NOMADSUtil

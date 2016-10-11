@@ -2,7 +2,7 @@
  * RequestsState.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -86,21 +86,6 @@ int MessageRequestState::addRequest (RequestInfo &reqInfo,
     }
 
     return 0;
-}
-
-int MessageRequestState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
-                                     MessageReassembler *pMsgReassembler)
-{
-    int rc = addRequestInternal (reqInfo, ui32MsgSeqId, ui32MsgSeqId, pMsgReassembler);
-    return rc;
-}
-
-int MessageRequestState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqIdStart,
-                                     uint32 ui32MsgSeqIdEnd, MessageReassembler *pMsgReassembler)
-{
-    int rc = addRequestInternal (reqInfo, ui32MsgSeqIdStart, ui32MsgSeqIdEnd,
-                                 pMsgReassembler);
-    return rc;
 }
 
 int MessageRequestState::addRequestInternal (RequestInfo &reqInfo, uint32 ui32MsgSeqIdStart,
@@ -254,22 +239,6 @@ int ChunkRequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
     }
 
     return 0;
-}
-
-int ChunkRequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
-                                    uint8 ui8ChunkId, MessageReassembler *pMsgReassembler)
-{
-    int rc = addRequestInternal (reqInfo, ui32MsgSeqId, ui8ChunkId, ui8ChunkId,
-                                 pMsgReassembler);
-    return rc;
-}
-
-int ChunkRequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId, uint8 ui8ChunkIdStart,
-                                    uint8 ui8ChunkIdEnd, MessageReassembler *pMsgReassembler)
-{
-    int rc = addRequestInternal (reqInfo, ui32MsgSeqId, ui8ChunkIdStart,
-                                 ui8ChunkIdEnd, pMsgReassembler);
-    return rc;
 }
 
 RequestDetails * ChunkRequestsState::messageArrived (ChunkMsgInfo *pCMI)
@@ -557,7 +526,6 @@ void ChunkRequestsState::ChunkState::fillUpMissingMessages (MessageRequestSchedu
 //--------------------------------------------------------------------------
 
 RequestsState::RequestsState()
-    : _m (25)
 {
 }
 
@@ -569,59 +537,14 @@ int RequestsState::addRequest (RequestInfo &reqInfo,
                                NOMADSUtil::UInt32RangeDLList *pMsgSeqIDs,
                                MessageReassembler *pMsgReassembler)
 {
-    _m.lock (190);
-    int rc = _msgReqState.addRequest (reqInfo, pMsgSeqIDs, pMsgReassembler);
-    _m.unlock (190);
-    return rc;
-}
-
-int RequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
-                               MessageReassembler *pMsgReassembler)
-{
-    _m.lock (191);
-    int rc = _msgReqState.addRequest (reqInfo, ui32MsgSeqId, pMsgReassembler);
-    _m.unlock (191);
-    return rc;
-}
-
-int RequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqIdStart,
-                               uint32 ui32MsgSeqIdEnd, MessageReassembler *pMsgReassembler)
-{
-    _m.lock (192);
-    int rc = _msgReqState.addRequest (reqInfo, ui32MsgSeqIdStart, ui32MsgSeqIdEnd,
-                                      pMsgReassembler);
-    _m.unlock (192);
-    return rc;
+    return _msgReqState.addRequest (reqInfo, pMsgSeqIDs, pMsgReassembler);
 }
 
 int RequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
                                NOMADSUtil::UInt8RangeDLList *pChunkIDs,
                                MessageReassembler *pMsgReassembler)
 {
-    _m.lock (193);
-    int rc = _chunkReqState.addRequest (reqInfo, ui32MsgSeqId, pChunkIDs, pMsgReassembler);
-    _m.unlock (193);
-    return rc;
-}
-
-int RequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
-                               uint8 ui8ChunkId, MessageReassembler *pMsgReassembler)
-{
-    _m.lock (194);
-    int rc = _chunkReqState.addRequest (reqInfo, ui32MsgSeqId, ui8ChunkId, pMsgReassembler);
-    _m.unlock (194);
-    return rc;
-}
-
-int RequestsState::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
-                               uint8 ui8ChunkIdStart, uint8 ui8ChunkIdEnd,
-                               MessageReassembler *pMsgReassembler)
-{
-    _m.lock (195);
-    int rc = _chunkReqState.addRequest (reqInfo, ui32MsgSeqId, ui8ChunkIdStart,
-                                        ui8ChunkIdEnd, pMsgReassembler);
-    _m.unlock (195);
-    return rc;
+    return _chunkReqState.addRequest (reqInfo, ui32MsgSeqId, pChunkIDs, pMsgReassembler);
 }
 
 RequestDetails * RequestsState::messageArrived (Message *pMsg)
@@ -634,50 +557,17 @@ RequestDetails * RequestsState::messageArrived (Message *pMsg)
         return NULL;
     }
     if (pMH->isChunk()) {
-        _m.lock (196);
-        RequestDetails *pDetails = _chunkReqState.messageArrived ((ChunkMsgInfo*) pMH);
-        _m.unlock (196);
-        return pDetails;
+        return _chunkReqState.messageArrived ((ChunkMsgInfo*) pMH);
     }
 
-    _m.lock (197);
-    RequestDetails *pDetails = _msgReqState.messageArrived ((MessageInfo*) pMH);
-    _m.unlock (197);
-    return pDetails;
-}
-
-RequestDetails * RequestsState::messageArrived (Message *pMsg, bool)
-{
-    return messageArrived (pMsg);
+    return _msgReqState.messageArrived ((MessageInfo*) pMH);
 }
 
 void RequestsState::getMissingMessageRequests (MessageRequestScheduler *pReqScheduler,
                                                MessageReassembler *pMessageReassembler)
 {
-    _m.lock (198);
     _msgReqState.getMissingMessageRequests (pReqScheduler, pMessageReassembler);
     _chunkReqState.getMissingMessageRequests (pReqScheduler, pMessageReassembler);
-    _m.unlock (198);
-}
-
-bool RequestsState::wasRequested (Message *pMsg)
-{
-    if (pMsg == NULL) {
-        return false;
-    }
-    return wasRequested (pMsg->getMessageHeader());
-}
-
-bool RequestsState::wasRequested (MessageHeader *pMH)
-{
-    if (pMH == NULL) {
-        return false;
-    }
-    _m.lock (197);
-    bool bWasRequested = _chunkReqState.wasRequested (pMH->getGroupName(), pMH->getPublisherNodeId(),
-                                                      pMH->getMsgSeqId(), pMH->getChunkId());
-    _m.unlock (197);
-    return bWasRequested;
 }
 
 bool RequestsState::wasRequested (const char *pszGroupName, const char *pszPublisherNodeId,

@@ -4,7 +4,7 @@ EXTERNALS_LIB = ../../../../externals/lib/linux-x86
 CPP = g++
 
 CPPFLAGS = -O2 -fPIC -DUNIX -DLINUX -DLITTLE_ENDIAN_SYSTEM -I$(MOCKETSDIR) -I$(UTILDIR) 
-LD_FLAGS = ${UTILDIR}/linux/libutil.a -ldl -lpthread
+LD_FLAGS = ${UTILDIR}/linux/libutil.a -ldl -ludt -lcrypto -lssl -lpthread
 
 sources = ../ARLTestCase.cpp ../BasicTest.cpp \
           ../BioEnvMonitoringStation.cpp \
@@ -56,8 +56,7 @@ ARLTestCase : ARLTestCase.o libmockets.a libutil.a libsecurity.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
+	
 	$(LD_FLAGS)
 
 BandwidthControl : BandwidthControl.o libmockets.a
@@ -65,8 +64,6 @@ BandwidthControl : BandwidthControl.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
         $(UTILDIR)/linux/libsecurity.a \
         $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
         $(LD_FLAGS)
 
 BasicTest : BasicTest.o libmockets.a
@@ -74,8 +71,6 @@ BasicTest : BasicTest.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 BioEnvMonitoringStation : BioEnvMonitoringStation.o libmockets.a
@@ -83,8 +78,6 @@ BioEnvMonitoringStation : BioEnvMonitoringStation.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
         $(UTILDIR)/linux/libsecurity.a \
         $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
         $(LD_FLAGS)
 
 BlockedWriterTest : BlockedWriterTest.o libmockets.a
@@ -92,8 +85,6 @@ BlockedWriterTest : BlockedWriterTest.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 	
 BufferEndlessRecv: BufferEndlessRecv.o libmockets.a
@@ -101,8 +92,6 @@ BufferEndlessRecv: BufferEndlessRecv.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 BufferEndlessSend: BufferEndlessSend.o libmockets.a
@@ -110,18 +99,13 @@ BufferEndlessSend: BufferEndlessSend.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
-
 
 ClientServerShell : ClientServerShell.o libmockets.a
 	$(CPP) -o ClientServerShell ClientServerShell.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 DataSendReceive : DataSendReceive.o libmockets.a
@@ -129,8 +113,6 @@ DataSendReceive : DataSendReceive.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
         $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
         $(LD_FLAGS)
 
 DeleteMessageTest : DeleteMessageTest.o libmockets.a
@@ -138,8 +120,6 @@ DeleteMessageTest : DeleteMessageTest.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 FileRecv : FileRecv.o libmockets.a
@@ -147,8 +127,6 @@ FileRecv : FileRecv.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 FileSend : FileSend.o libmockets.a
@@ -156,8 +134,6 @@ FileSend : FileSend.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 FreezeDefrost : FreezeDefrost.o libmockets.a libutil.a libsecurity.a
@@ -166,28 +142,21 @@ FreezeDefrost : FreezeDefrost.o libmockets.a libutil.a libsecurity.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 FreezeDefrostServerSide : FreezeDefrostServerSide.o libmockets.a libutil.a libsecurity.a
 	$(CPP) -o FreezeDefrostServerSide FreezeDefrostServerSide.o \
-     $(MOCKETSDIR)/linux/libmockets.a \
-     $(UTILDIR)/StrClass.cpp \
-     $(UTILDIR)/linux/libsecurity.a \
-     $(UTILDIR)/linux/libutil.a \
-     $(EXTERNALS_LIB)/libcrypto.a \
-     $(EXTERNALS_LIB)/libssl.a \
-     $(LD_FLAGS)
-
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 GatherSendTest : GatherSendTest.o libmockets.a
 	$(CPP) -o GatherSendTest GatherSendTest.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 IntDataTest : IntDataTest.o libmockets.a
@@ -198,8 +167,16 @@ IntDataTest : IntDataTest.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
+	$(LD_FLAGS)
+
+IntDataTest2 : IntDataTest2.o libmockets.a
+	$(CPP) $(CPPFLAGS) -o IntDataTest2 IntDataTest2.o \
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/Socket.cpp \
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
 	$(LD_FLAGS)
 
 IntDataTestUnrelUnseq : IntDataTestUnrelUnseq.o libmockets.a
@@ -210,8 +187,6 @@ IntDataTestUnrelUnseq : IntDataTestUnrelUnseq.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 MessageReplaceTest : MessageReplaceTest.o libmockets.a
@@ -222,8 +197,6 @@ MessageReplaceTest : MessageReplaceTest.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 MigrationFileRec : MigrationFileRec.o libmockets.a
@@ -234,8 +207,6 @@ MigrationFileRec : MigrationFileRec.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 MigrationFileSend : MigrationFileSend.o libmockets.a
@@ -248,8 +219,6 @@ MigrationFileSend : MigrationFileSend.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 MocketStatusMonitorTest : MocketStatusMonitorTest.o libmockets.a
@@ -259,31 +228,26 @@ MocketStatusMonitorTest : MocketStatusMonitorTest.o libmockets.a
 
 MultipleFreezeDefrost : MultipleFreezeDefrost.o libmockets.a libutil.a libsecurity.a
 	$(CPP) -o MultipleFreezeDefrost MultipleFreezeDefrost.o \
-    $(MOCKETSDIR)/linux/libmockets.a \
-    $(UTILDIR)/StrClass.cpp \
-    $(UTILDIR)/linux/libsecurity.a \
-    $(UTILDIR)/linux/libutil.a \
-    $(EXTERNALS_LIB)/libcrypto.a \
-    $(EXTERNALS_LIB)/libssl.a \
-    $(LD_FLAGS)
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 MultipleFreezeDefrostServerSide : MultipleFreezeDefrostServerSide.o libmockets.a libutil.a libsecurity.a
 	$(CPP) -o MultipleFreezeDefrostServerSide MultipleFreezeDefrostServerSide.o \
-    $(MOCKETSDIR)/linux/libmockets.a \
-    $(UTILDIR)/StrClass.cpp \
-    $(UTILDIR)/linux/libsecurity.a \
-    $(UTILDIR)/linux/libutil.a \
-    $(EXTERNALS_LIB)/libcrypto.a \
-    $(EXTERNALS_LIB)/libssl.a \
-    $(LD_FLAGS)
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 OneProcessTest : OneProcessTest.o libmockets.a
 	$(CPP) -o OneProcessTest OneProcessTest.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
+	
 	$(LD_FLAGS)
 
 Qed : Qed.o libmockets.a
@@ -294,20 +258,16 @@ Qed : Qed.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 QedClient : QedClient.o libmockets.a
 	$(CPP) -o QedClient QedClient.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
-        $(UTILDIR)/Socket.cpp \
-        $(UTILDIR)/TCPSocket.cpp \
-        $(UTILDIR)/StrClass.cpp \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
+	$(UTILDIR)/Socket.cpp \
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
 	$(LD_FLAGS)
 
 QedClientTest2 : QedClientTest2.o libmockets.a
@@ -318,69 +278,57 @@ QedClientTest2 : QedClientTest2.o libmockets.a
         $(UTILDIR)/StrClass.cpp \
         $(UTILDIR)/linux/libsecurity.a \
         $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 QedClientTest3 : QedClientTest3.o libmockets.a
 	$(CPP) -o QedClientTest3 QedClientTest3.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/Socket.cpp \
-        $(UTILDIR)/TCPSocket.cpp \
-        $(UTILDIR)/StrClass.cpp \
-        $(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
         $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(LD_FLAGS)
 
 QedServer : QedServer.o libmockets.a
 	$(CPP) -o QedServer QedServer.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/Socket.cpp \
-        $(UTILDIR)/TCPSocket.cpp \
-        $(UTILDIR)/StrClass.cpp \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 QedServerTest2 : QedServerTest2.o libmockets.a
 	$(CPP) -o QedServerTest2 QedServerTest2.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/Socket.cpp \
-        $(UTILDIR)/TCPSocket.cpp \
-        $(UTILDIR)/StrClass.cpp \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 QedServerTest3 : QedServerTest3.o libmockets.a
 	$(CPP) -o QedServerTest3 QedServerTest3.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/Socket.cpp \
-        $(UTILDIR)/TCPSocket.cpp \
-        $(UTILDIR)/StrClass.cpp \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 QedTest2 : QedTest2.o libmockets.a
 	$(CPP) -o QedTest2 QedTest2.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/Socket.cpp \
-        $(UTILDIR)/TCPSocket.cpp \
-        $(UTILDIR)/StrClass.cpp \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 QedTest3 : QedTest3.o libmockets.a
 	$(CPP) -o QedTest3 QedTest3.o \
@@ -389,19 +337,15 @@ QedTest3 : QedTest3.o libmockets.a
 	$(UTILDIR)/TCPSocket.cpp \
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
-	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
+	$(UTILDIR)/linux/libutil.a \	
 	$(LD_FLAGS)
 
 RecvCongestion : RecvCongestion.o libmockets.a
 	$(CPP) -o RecvCongestion RecvCongestion.o \
-        $(MOCKETSDIR)/linux/libmockets.a \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 ReEstablishConnection : ReEstablishConnection.o libmockets.a
 	$(CPP) -o ReEstablishConnection ReEstablishConnection.o \
@@ -409,8 +353,6 @@ ReEstablishConnection : ReEstablishConnection.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 RemoteStatsTest : RemoteStatsTest.o libmockets.a
@@ -424,8 +366,6 @@ RetryTimeoutTest: RetryTimeoutTest.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 RTTClientServerTest : RTTClientServerTest.o libmockets.a
@@ -434,56 +374,43 @@ RTTClientServerTest : RTTClientServerTest.o libmockets.a
 	$(UTILDIR)/StrClass.cpp \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 RTTEstimator : RTTEstimator.o
 	$(CPP) -o RTTEstimator RTTEstimator.o \
-        $(MOCKETSDIR)/linux/libmockets.a \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 SendCongestion : SendCongestion.o libmockets.a
 	$(CPP) -o SendCongestion SendCongestion.o \
-        $(MOCKETSDIR)/linux/libmockets.a \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 SimultaneousFreezeDefrost : SimultaneousFreezeDefrost.o libmockets.a libutil.a libsecurity.a
 	$(CPP) -o SimultaneousFreezeDefrost SimultaneousFreezeDefrost.o \
-    $(MOCKETSDIR)/linux/libmockets.a \
-    $(UTILDIR)/StrClass.cpp \
-    $(UTILDIR)/linux/libsecurity.a \
-    $(UTILDIR)/linux/libutil.a \
-    $(EXTERNALS_LIB)/libcrypto.a \
-    $(EXTERNALS_LIB)/libssl.a \
-    $(LD_FLAGS)
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 SimultaneousFreezeDefrostServerSide : SimultaneousFreezeDefrostServerSide.o libmockets.a libutil.a libsecurity.a
 	$(CPP) -o SimultaneousFreezeDefrostServerSide SimultaneousFreezeDefrostServerSide.o \
-    $(MOCKETSDIR)/linux/libmockets.a \
-    $(UTILDIR)/StrClass.cpp \
-    $(UTILDIR)/linux/libsecurity.a \
-    $(UTILDIR)/linux/libutil.a \
-    $(EXTERNALS_LIB)/libcrypto.a \
-    $(EXTERNALS_LIB)/libssl.a \
-    $(LD_FLAGS)
-
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 TestClient : TestClient.o libmockets.a
 	$(CPP) -o TestClient TestClient.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 TestServer : TestServer.o libmockets.a
@@ -491,29 +418,23 @@ TestServer : TestServer.o libmockets.a
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
 
 UnreliableIntDataTest : UnreliableIntDataTest.o libmockets.a
 	$(CPP) -o UnreliableIntDataTest UnreliableIntDataTest.o \
-        $(MOCKETSDIR)/linux/libmockets.a \
-        $(UTILDIR)/Socket.cpp \
-        $(UTILDIR)/TCPSocket.cpp \
-        $(UTILDIR)/StrClass.cpp \
-        $(UTILDIR)/linux/libsecurity.a \
-        $(UTILDIR)/linux/libutil.a \
-        $(EXTERNALS_LIB)/libcrypto.a \
-        $(EXTERNALS_LIB)/libssl.a \
-        $(LD_FLAGS)
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/Socket.cpp \
+	$(UTILDIR)/TCPSocket.cpp \
+	$(UTILDIR)/StrClass.cpp \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(LD_FLAGS)
 
 UnreliableSequencedTest : UnreliableSequencedTest.o libmockets.a
 	$(CPP) -o UnreliableSequencedTest UnreliableSequencedTest.o \
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
-	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
+	$(UTILDIR)/linux/libutil.a \	
 	$(LD_FLAGS)
 
 UnreliableSequencedReassemblyTest : UnreliableSequencedReassemblyTest.o libmockets.a
@@ -521,12 +442,7 @@ UnreliableSequencedReassemblyTest : UnreliableSequencedReassemblyTest.o libmocke
 	$(MOCKETSDIR)/linux/libmockets.a \
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
-	$(EXTERNALS_LIB)/libcrypto.a \
-	$(EXTERNALS_LIB)/libssl.a \
 	$(LD_FLAGS)
-
-
-
 
 libmockets.a :
 	make -C $(MOCKETSDIR)/linux -f Makefile-opt libmockets.a

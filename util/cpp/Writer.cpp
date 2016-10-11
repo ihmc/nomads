@@ -2,7 +2,7 @@
  * Writer.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,6 +18,8 @@
  */
 
 #include "Writer.h"
+
+#include <string.h>
 
 using namespace NOMADSUtil;
 
@@ -122,7 +124,39 @@ int Writer::writeLE64 (void *pBuf)
     return 0;
 }
 
-int Writer::close()
+int Writer::writeUI8 (void *pBuf)
+{
+    return write8 (pBuf);
+}
+
+int Writer::writeUI16 (void *pBuf)
+{
+    return write16 (pBuf);
+}
+
+int Writer::writeUI32 (void *pBuf)
+{
+    return write32 (pBuf);
+}
+
+int Writer::writeUI64 (void *pBuf)
+{
+    return write64 (pBuf);
+}
+
+int Writer::writeString (const char *pBuf)
+{
+    uint32 ui32Len = (pBuf == NULL ? 0U : strlen (pBuf));
+    if (writeUI32 (&ui32Len) < 0) {
+        return -1;
+    }
+    if ((ui32Len > 0) && (writeBytes (pBuf, ui32Len) < 0)) {
+        return -2;
+    }
+    return 0;
+}
+
+int Writer::close (void)
 {
     return -1;
 }

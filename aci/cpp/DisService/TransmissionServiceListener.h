@@ -2,7 +2,7 @@
  * TransmissionServiceListener.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
 #include "ListenerNotifier.h"
 
 #include "LoggingMutex.h"
+#include "StrClass.h"
 
 namespace IHMC_ACI
 {
@@ -46,12 +47,8 @@ namespace IHMC_ACI
         public:
             TransmissionServiceListener (DisseminationService *pDisService, DataRequestHandler *pDataReqHandler,
                                          LocalNodeInfo *pLocalNodeInfo, MessageReassembler *pMsgReassembler,
-                                         SubscriptionState *pSubState, bool bTargetFilteringEnabled);
-
-            TransmissionServiceListener (DisseminationService *pDisService, DataRequestHandler *pDataReqHandler,
-                                         LocalNodeInfo *pLocalNodeInfo, MessageReassembler *pMsgReassembler,
                                          SubscriptionState *pSubState, NetworkTrafficMemory *pTrafficMemory,
-                                         bool bTargetFilteringEnabled);
+                                         bool bOppListeningEnabled, bool bTargetFilteringEnabled);
 
             virtual ~TransmissionServiceListener (void);
 
@@ -62,14 +59,9 @@ namespace IHMC_ACI
             virtual int messageArrived (const char *pszIncomingInterface, uint32 ui32SourceIPAddress, uint8 ui8MsgType,
                                         uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL,
                                         const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                        const void *pMsg, uint16 ui16MsgLen);
+                                        const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp);
 
         private:
-            void construct (DisseminationService *pDisService, DataRequestHandler *pDataReqHandler,
-                            LocalNodeInfo *pLocalNodeInfo, MessageReassembler *pMsgReassembler,
-                            SubscriptionState *pSubState, NetworkTrafficMemory *pTrafficMemory,
-                            bool bTargetFilteringEnabled);
-
             void deliverCompleteMessage (Message *pMessage, bool bIsNotTarget);
 
             void evaluateAcknowledgment (MessageHeader *pMH);
@@ -77,11 +69,12 @@ namespace IHMC_ACI
             int messageArrivedInternal (const char *pszIncomingInterface, uint32 ui32SourceIPAddress,
                                         uint8 ui8MsgType, uint16 ui16MsgId, uint8 ui8HopCount,
                                         uint8 ui8TTL, const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                        const void *pMsg, uint16 ui16MsgLen);
+                                        const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp);
             
         private:
-            bool _bTargetFilteringEnabled;
-            char *_pszLocalNodeId;
+            const bool _bOppListeningEnabled;
+            const bool _bTargetFilteringEnabled;
+            const NOMADSUtil::String _nodeId;
 
             DataCacheInterface *_pDCI;
             DataRequestHandler *_pDataReqHandler;

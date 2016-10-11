@@ -2,7 +2,7 @@
  * DisseminationService.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 #include "ControllerFactory.h"
 #include "DataCache.h"
 #include "DataRequestHandler.h"
+#include "DataRequestServer.h"
 #include "DefaultDataCacheExpirationController.h"
 #include "DefaultDataCacheReplicationController.h"
 #include "DefaultSearchController.h"
@@ -64,6 +65,7 @@
 #include "RateEstimator.h"
 #include "BandwidthSharing.h"
 
+#include "ChunkingAdaptor.h"
 #include "Chunker.h"
 #include "MimeUtils.h"
 
@@ -80,6 +82,7 @@
 #include "SubscriptionForwardingController.h"
 #include "Searches.h"
 #include "DisServiceMsgHelper.h"
+#include "DataRequestServer.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -137,6 +140,7 @@ DisseminationService::DisseminationService (uint16 ui16Port, const char *pszSend
 
 DisseminationService::~DisseminationService (void)
 {
+    delete _pChunkingConf;              _pChunkingConf          = NULL;
     delete _pNetworkStateNotifier;      _pNetworkStateNotifier  = NULL;
     delete _pDCRepCtlr;                 _pDCRepCtlr             = NULL;
     delete _pDefaultDCRepCtlr;          _pDefaultDCRepCtlr      = NULL;
@@ -145,6 +149,7 @@ DisseminationService::~DisseminationService (void)
     delete _pFwdCtlr;                   _pFwdCtlr               = NULL;
     delete _pDefaultFwdCtlr;            _pDefaultFwdCtlr        = NULL;
     delete _pSubFwdCtlr;                 _pSubFwdCtlr           = NULL;
+    delete _pDataReqSvr;            _pDataReqSvr        = NULL;
     delete _pNetTrafficMemory;          _pNetTrafficMemory      = NULL;
     delete _pTrSvc;                     _pTrSvc                 = NULL;
     delete _pTrSvcListener;             _pTrSvcListener         = NULL;
@@ -182,12 +187,11 @@ int DisseminationService::init (void)
     char **ppszAddedInterfaces = cfgReader.getAddedNetIFs();
     _ui8TransmissionMode = cfgReader.getTransmissionMode();
     _bKeepAliveMsgEnabled = cfgReader.getKeepAliveMsgEnabled();
-    _ui8MissingFragReqReplyMode = cfgReader.getMissingFragReqReplyMode();
-    _ui8MissingFragReqReplyFixedProb = cfgReader.getMissingFragReqReplyProb();
     _bQueryDataCacheEnabled = cfgReader.getQueryDataCacheEnabled();
     _ui8QueryDataCacheReplyType = cfgReader.getQueryDataCacheReply();
     _bSubscriptionStateExchangeEnabled = cfgReader.getSubscriptionStateExchangeEnabled();
     _bTargetFilteringEnabled = cfgReader.isTargetIDFilteringEnabled();
+    _bOppListeningEnabled = _pCfgMgr->getValueAsBool("aci.disService.propagation.oppListening", true);
     _ignoreMissingFragReqTime = cfgReader.getIgnoreRequestInterval();
     _ui16SubscriptionStatePeriod = cfgReader.getSubscriptionStatePeriod();
     _ui16KeepAliveInterval = (_bKeepAliveMsgEnabled ? cfgReader.getKeepAliveInterval() : DEFAULT_KEEP_ALIVE_INTERVAL);
@@ -200,6 +204,8 @@ int DisseminationService::init (void)
                         "adjusted the Connectivity History Window Size\n");
     }
 
+    _pDataReqSvr = new DataRequestServer (this, _bTargetFilteringEnabled, _bOppListeningEnabled);
+    _pDataReqSvr->init (_pCfgMgr);
     _ui16SubscriptionsExchangePeriod = cfgReader.getSubscriptionsExchangePeriod();
     _ui16TopologyExchangePeriod = cfgReader.getTopologyExchangePeriod();
 
@@ -214,6 +220,9 @@ int DisseminationService::init (void)
 
     // Instantiate the MessagePropagationService
     _pTrSvc = TransmissionService::getInstance (_pCfgMgr, getNodeId(), getSessionId());
+    if (_pTrSvc == NULL) {
+        return -1;
+    }
     setMaxFragmentSize (DEFAULT_MAX_FRAGMENT_SIZE);
     checkAndLogMsg (pszMethodName, Logger::L_Info, "MTU set to %u\n", getMaxFragmentSize());
 
@@ -321,36 +330,28 @@ int DisseminationService::init (void)
     }
 
     //Data Request Handler
-    bool bUseDataRequestHandlerForRequests = _pCfgMgr->getValueAsBool ("aci.disService.dataRequestHandler.enable", false);
+    bool bUseDataRequestHandlerForRequests = _pCfgMgr->getValueAsBool ("aci.disService.dataRequestHandler.enable", true);
     int64 i64DRHSleepTime = _pCfgMgr->getValueAsInt64 ("aci.disService.dataRequestHandler.sleepTime",
                                                               DataRequestHandler::DEFAULT_SLEEP_TIME);
     int64 i64DRHBaseTime = _pCfgMgr->getValueAsInt64 ("aci.disService.dataRequestHandler.baseTime",
                                                              DataRequestHandler::DEFAULT_BASE_TIME);
     uint16 ui16DRHOffsetRange = _pCfgMgr->getValueAsInt ("aci.disService.dataRequestHandler.offsetRange",
                                                                 DataRequestHandler::DEFAULT_OFFSET_RANGE);
-    _pDataRequestHandler = DataRequestHandler::getInstance (this, _pTrSvc, i64DRHSleepTime, i64DRHBaseTime, ui16DRHOffsetRange,
+    _pDataRequestHandler = DataRequestHandler::getInstance (this, _pTrSvc, i64DRHSleepTime, i64DRHBaseTime,
+                                                            getMissingFragmentTimeout(), ui16DRHOffsetRange,
                                                             DataRequestHandler::DEFAULT_RECEIVE_RATE_THRESHOLD,
                                                             bUseDataRequestHandlerForRequests);
 
     if (_pTrSvc != NULL) {
         // Init Transmission Service
-        if (ppszOutgoingInterfaces || ppszIgnoredInterfaces || ppszAddedInterfaces) {
-            ret = _pTrSvc->init (_pCfgMgr, (const char **) ppszOutgoingInterfaces,
-                                 (const char **) ppszIgnoredInterfaces, (const char **) ppszAddedInterfaces);
-        }
-        else {
-            ret = _pTrSvc->init (_pCfgMgr);
-        }
+        ret = _pTrSvc->init (_pCfgMgr, (const char **) ppszOutgoingInterfaces,
+                             (const char **) ppszIgnoredInterfaces, (const char **) ppszAddedInterfaces);
 
         // Instantiate the MessagePropagationServiceListener and register it
-        if (_pCfgMgr->getValueAsBool ("aci.disService.transmissionService.listener.trafficHistory.enable", false)) {
-            _pTrSvcListener = new TransmissionServiceListener (this, _pDataRequestHandler, _pLocalNodeInfo, _pMessageReassembler,
-                                                               _pSubscriptionState, _pNetTrafficMemory, _bTargetFilteringEnabled);
-        }
-        else {
-            _pTrSvcListener = new TransmissionServiceListener (this, _pDataRequestHandler, _pLocalNodeInfo, _pMessageReassembler,
-                                                               _pSubscriptionState, _bTargetFilteringEnabled);
-        }
+        const bool bUseTrafficMem = _pCfgMgr->getValueAsBool ("aci.disService.transmissionService.listener.trafficHistory.enable", false);
+        _pTrSvcListener = new TransmissionServiceListener (this, _pDataRequestHandler, _pLocalNodeInfo, _pMessageReassembler,
+                                                           _pSubscriptionState, (bUseTrafficMem ? _pNetTrafficMemory : NULL),
+                                                           _bOppListeningEnabled, _bTargetFilteringEnabled);
         _pTrSvc->registerHandlerCallback (MPSMT_DisService, _pTrSvcListener);
 
         // Set Default Transmission Rate if any
@@ -440,7 +441,9 @@ int DisseminationService::init (void)
         return -4;
     }
 
-    if (_chunkingConf.init (_pCfgMgr) < 0) {
+    // Instantiate the Chunking Configuration
+    _pChunkingConf = new ChunkingConfiguration ();
+    if (_pChunkingConf->init (_pCfgMgr) < 0) {
         _m.unlock (32);
         return -5;
     }
@@ -519,12 +522,13 @@ int DisseminationService::start (void)
 void DisseminationService::requestTermination (void)
 {
     if (_pTrSvc != NULL) {
-        _pTrSvc->stop();
+        _pTrSvc->requestTermination();
     }
     if (_pMessageReassembler != NULL) {
-        _pMessageReassembler->requestTermination();
+        _pMessageReassembler->requestTerminationAndWait();
     }
-    ManageableThread::requestTermination();
+    DataRequestHandler::halt (_pDataRequestHandler);
+    ManageableThread::requestTerminationAndWait();
 }
 
 void DisseminationService::requestTerminationAndWait (void)
@@ -640,7 +644,7 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
             pChunks = new PtrLList<Chunker::Fragment> (ChunkingAdaptor::getChunkerFragment (pDataAndMeta, ui32DataLength));
         }
         else {
-            const uint8 ui8NChunks = _chunkingConf.getNumberofChunks (ui32DataAndMetaDataSize);
+            const uint8 ui8NChunks = _pChunkingConf->getNumberofChunks (ui32DataAndMetaDataSize);
             pChunks = Chunker::fragmentBuffer (pDataAndMeta, ui32DataAndMetaDataSize,
                                                MimeUtils::mimeTypeToFragmentType (pszDataMimeType), ui8NChunks, Chunker::JPEG, 90);
         }
@@ -1883,7 +1887,10 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                 if (pMsgToNotif != NULL) {
                     pMsgToNotif->msgId = pMH->getMsgId();
                     pMsgToNotif->ui16ClientId = ui16ClientId;
+
+                    _mAsynchronousNotify.lock (271);
                     _pMessagesToNotify->prepend (pMsgToNotif);
+                    _mAsynchronousNotify.unlock (271);
                 }
                 ranges.removeTSN (ui8ChunkIdTmp);
             }
@@ -1891,6 +1898,11 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
         _pDataCacheInterface->release (pMessages);
     }
 
+    _pDataCacheInterface->unlock();
+
+    _pMessageReassembler->lock();
+    _pDataCacheInterface->lock();
+    
     RequestInfo reqInfo (ui16ClientId);
     reqInfo._pszGroupName = pszGroupName;
     reqInfo._pszSenderNodeId = pszSenderNodeId;
@@ -1925,6 +1937,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
     _pMessageReassembler->addRequest (reqInfo, ui32MsgSeqId, &ranges);
 
     _pDataCacheInterface->unlock();
+    _pMessageReassembler->unlock();
 
     return 0;
 }
@@ -2151,8 +2164,15 @@ void DisseminationService::run (void)
             char **ppszSilentInterfaces = _pTrSvc->getSilentInterfaces (_ui16KeepAliveInterval);
             if (ppszSilentInterfaces != NULL && ppszSilentInterfaces[0] != NULL) {
                 DisServiceCtrlMsg *pWSSIMsg = _pPeerState->getKeepAliveMsg (pRepCtrl->getType(), pFwdCtrl->getType(), _ui8NodeImportance);
-                _pTrSvc->broadcast (pWSSIMsg, (const char **) ppszSilentInterfaces, "Sending Keep Alive Msg", NULL, NULL);
-                delete pWSSIMsg; pWSSIMsg = NULL;
+                if (pWSSIMsg != NULL) {
+                    const String sessionId (getSessionId());
+                    if (sessionId.length() > 0) {
+                        pWSSIMsg->setSessionId (getSessionId());
+                    }
+                    _pTrSvc->broadcast (pWSSIMsg, (const char **) ppszSilentInterfaces, "Sending Keep Alive Msg", NULL, NULL);
+                    delete pWSSIMsg;
+                    pWSSIMsg = NULL;
+                }
                 for (unsigned int i = 0; ppszSilentInterfaces[i] != NULL; i++) {
                     free (ppszSilentInterfaces[i]);
                 }
@@ -2333,24 +2353,24 @@ int DisseminationService::searchReply (const char *pszQueryId, const char **ppsz
         return -1;
     }
     uint16 ui16ClientId = 0;
-    char *pszQueryType = NULL;
-    char *pszQuerier = NULL;
-    if (Searches::getSearches()->getSearchInfo (pszQueryId, pszQueryType, pszQuerier, ui16ClientId) < 0) {
+    String queryType;
+    String querier;
+    if (Searches::getSearches()->getSearchInfo (pszQueryId, queryType, querier, ui16ClientId) < 0) {
         return -2;
     }
 
-    if ((pszQuerier != NULL) && strcmp (pszQuerier, getNodeId()) == 0) {
+    if ((querier == getNodeId()) == 1) {
         // The node itself is the querier, it does not need to send the reply
         return -3;
     }
 
     // _pSearchNotifier->searchReplyArrived (pszQueryId, ppszMatchingMsgIds);
 
-    SearchReplyMsg searchMsg (getNodeId(), pszQuerier);
-    searchMsg.setQuerier (pszQuerier);
+    SearchReplyMsg searchMsg (getNodeId(), querier);
+    searchMsg.setQuerier (querier);
     searchMsg.setQueryId (pszQueryId);
     searchMsg.setMatchingMsgIds (ppszMatchingMsgIds);
-    searchMsg.setQueryType (pszQueryType);
+    searchMsg.setQueryType (queryType);
     searchMsg.setMatchingNode (getNodeId());
 
     int rc = transmitDisServiceControllerMsg (&searchMsg, true, "sending search reply message");
@@ -2431,7 +2451,8 @@ void DisseminationService::construct (ConfigManager *pCfgMgr)
     // Create world state or topology world state
     if (_bSubscriptionsExchangeEnabled || _bTopologyExchangeEnabled) {   
         _pPeerState = PeerState::getInstance (this, PeerState::IMPROVED_TOPOLOGY_STATE);
-    } else {
+    }
+    else {
         _pPeerState = PeerState::getInstance (this, PeerState::TOPOLOGY_STATE);
     }
     _m.unlock (9);
@@ -2503,79 +2524,7 @@ void DisseminationService::addDataToCache (MessageHeader *pMsgHeader, const void
 
 int DisseminationService::handleDataRequestMessage (DisServiceDataReqMsg *pDSDRMsg, const char *pszIncomingInterface, int64 i64Timeout)
 {
-    int64 i64RequestArrivalTime = getTimeInMilliseconds();
-
-    PtrLList<DisServiceDataReqMsg::FragmentRequest> *pRequests = pDSDRMsg->relinquishRequests();
-    if (pRequests == NULL) {
-        return 0;
-    }
-
-    char **ppszOutgoingInterfaces = NULL;
-    bool bDeleteInterfaces = true;    
-    if (pszIncomingInterface != NULL) {
-        ppszOutgoingInterfaces = (char **)calloc (2, sizeof (char *));
-        if (ppszOutgoingInterfaces != NULL) {
-            ppszOutgoingInterfaces[0] = strDup (pszIncomingInterface);
-        }
-    }
-    else {
-        // if pszIncomingInterface, use all the available interfaces
-        ppszOutgoingInterfaces = _pTrSvc->getActiveInterfacesAddress();
-        if (ppszOutgoingInterfaces == NULL) {
-            bDeleteInterfaces = false;
-        }
-    }
-
-    // NOTE: since DisServiceDataReqMsg does NOT deallocate pRequests, it is deleted
-    // here (since I have to iterate throughout the whole list anyway).  Inner
-    // objects, instances of DisServiceMsg::Range are deallocated too.
-    DisServiceDataReqMsg::FragmentRequest *pRequest = pRequests->getFirst();
-    DisServiceDataReqMsg::FragmentRequest *pRequestTmp;
-    while (pRequest != NULL) {
-        pRequestTmp = pRequests->getNext();
-        DisServiceMsg::Range *pRange = pRequest->pRequestedRanges->getFirst();
-        DisServiceMsg::Range *pRangeTmp;
-        while (pRange != NULL) {
-            handleDataRequestMessage (pRequest->pMsgHeader->getMsgId(), pRange,
-                                      (!pRequest->pMsgHeader->isChunk() ||
-                                       (pRequest->pMsgHeader->getChunkId() != MessageHeader::UNDEFINED_CHUNK_ID)),
-                                      pDSDRMsg->getSenderNodeId(),
-                                      pDSDRMsg->getNumberOfActiveNeighbors(),
-                                      i64RequestArrivalTime, (const char **) ppszOutgoingInterfaces, i64Timeout);
-
-            // Delete current element and process the next one
-            pRangeTmp = pRequest->pRequestedRanges->getNext();
-            pRequest->pRequestedRanges->remove(pRange);
-            delete pRange;
-            pRange = pRangeTmp;
-        }
-
-        // Delete current element's inner objects and the element itself.
-        pRequests->remove (pRequest);
-
-        delete pRequest->pRequestedRanges;
-        pRequest->pRequestedRanges = NULL;
-        delete pRequest->pMsgHeader;
-        pRequest->pMsgHeader = NULL;
-        
-        delete pRequest;
-
-        // Process the next element
-        pRequest = pRequestTmp;
-    }
-    delete pRequests;
-    pRequests = NULL;
-
-    if (bDeleteInterfaces) {
-        for (uint8 ui8 = 0; ppszOutgoingInterfaces[ui8] != NULL; ui8++) {
-            free (ppszOutgoingInterfaces[ui8]);
-            ppszOutgoingInterfaces[ui8] = NULL;
-        }
-        free (ppszOutgoingInterfaces);
-        ppszOutgoingInterfaces = NULL;
-    }
-
-    return 0;
+    return _pDataReqSvr->handleDataRequestMessage (pDSDRMsg, pszIncomingInterface, i64Timeout);
 }
 
 int DisseminationService::handleDataRequestMessage (const char *pszMsgId, DisServiceMsg::Range *pRange,
@@ -2584,170 +2533,8 @@ int DisseminationService::handleDataRequestMessage (const char *pszMsgId, DisSer
                                                     int64 i64RequestArrivalTime,
                                                     const char **ppszOutgoingInterfaces, int64 i64Timeout)
 {
-    const char *pszMethodName = "DisseminationService::handleDataRequestMessage";
-
-    float fProbability;
-
-    _m.lock (59);
-    if (_ui8MissingFragReqReplyMode == FIXED_REPLY_PROB) {
-        fProbability = _ui8MissingFragReqReplyFixedProb;
-    }
-    else if (_ui8MissingFragReqReplyMode == NEIGHBOR_DEPENDENT_PROB) {
-        // Decide whether to reply to this request, based on the number of neighbors that the
-        // sender has that might respond
-        uint16 ui16RequestorsNeighbors = uiNumberOfActiveNeighbors;
-        if (ui16RequestorsNeighbors < 1) {
-            ui16RequestorsNeighbors = 1;
-        }
-        fProbability = 100.0f / ui16RequestorsNeighbors;
-        if (fProbability < 10.0f) {
-            fProbability = 10.0f;
-        }
-    }
-    else {
-        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                        "Undefined value of Missing Fragment Request Probability Mode.");
-        fProbability = DisseminationService::DEFAULT_MISSING_FRAG_REQUEST_REPLY_PROB;
-    }
-
-    MessageId msgId (pszMsgId);
-
-    if ((strcmp (getNodeId(), msgId.getOriginatorNodeId()) == 0) || ((((rand() % 100) + 1.0f) < fProbability))) {
-        const uint32 ui32RequestedFragmentStart = pRange->getFrom();
-        const uint32 ui32RequestedFragmentEnd = pRange->getTo();
-        bool bRequestTheWholeMessage = (ui32RequestedFragmentStart == 0) && (ui32RequestedFragmentEnd == 0);
-
-        PtrLList<Message> *pPLL;
-        if ((i64Timeout == 0) || (getTimeInMilliseconds() < i64Timeout)) {
-            if (ui32RequestedFragmentStart < ui32RequestedFragmentEnd) {
-                // Get all the fragments that match with a specific fragment
-                pPLL = _pDataCacheInterface->getMatchingFragments (msgId.getGroupName(), msgId.getOriginatorNodeId(),
-                                                                   msgId.getSeqId(), msgId.getChunkId(),
-                                                                   ui32RequestedFragmentStart, ui32RequestedFragmentEnd);
-            }
-            else if (bIsChunk) {
-                // Get all the fragments that match are part of the message/chunk
-                pPLL = _pDataCacheInterface->getMatchingFragments (msgId.getGroupName(), msgId.getOriginatorNodeId(),
-                                                                   msgId.getSeqId(), msgId.getChunkId());
-            }
-            else {
-                // Get all the fragments that match are part of the message/large object
-                pPLL = _pDataCacheInterface->getMatchingFragments (msgId.getGroupName(), msgId.getOriginatorNodeId(),
-                                                                   msgId.getSeqId());
-            }
-        }
-        else {
-            pPLL = NULL;
-        }
-
-        if (pPLL != NULL) {
-            for (Message *pMsg = pPLL->getFirst(); pMsg != NULL;) {
-                PtrLList<Message> *pFilteredMessages = _pNetTrafficMemory->filterRecentlySent (pMsg, i64RequestArrivalTime);
-                if (pFilteredMessages != NULL) {
-                    for (Message *pM = pFilteredMessages->getFirst(); pM != NULL;) {
-                        uint32 ui32CachedFragmentStart = pM->getMessageHeader()->getFragmentOffset();    // This is the starting index of the fragment that has been found in the cache
-                        uint32 ui32CachedFragmentLength = pM->getMessageHeader()->getFragmentLength();   // This is the length of the fragment in the cache
-                        uint32 ui32CachedFragmentEnd = ui32CachedFragmentStart + ui32CachedFragmentLength;
-
-                        uint32 ui32TmpRequestedFragmentEnd = bRequestTheWholeMessage ? pM->getMessageHeader()->getTotalMessageLength() :
-                                                                                       ui32RequestedFragmentEnd;
-
-                        if ((ui32CachedFragmentStart >= ui32TmpRequestedFragmentEnd) || (ui32CachedFragmentEnd <= ui32RequestedFragmentStart)) {
-                            // NO OVERLAP BETWEEN THE WANTED FRAGMENT AND THE CACHED FRAGMENT
-                            checkAndLogMsg (pszMethodName, Logger::L_Warning,
-                                            "No overlap between the wanted fragment (%u, %u) and the cached fragment that was retrieved by the database query (%u, %u)\n",
-                                            ui32RequestedFragmentStart, ui32TmpRequestedFragmentEnd,
-                                            ui32CachedFragmentStart, ui32CachedFragmentEnd);
-                        }
-                        else {
-                            uint32 ui32ToBeSentFragmentStart = maximum (ui32CachedFragmentStart, ui32RequestedFragmentStart);
-                            uint32 ui32ToBeSentFragmentEnd = minimum (ui32CachedFragmentEnd, ui32TmpRequestedFragmentEnd);
-                            uint32 ui32StartingOffsetInCachedFragment = ui32ToBeSentFragmentStart - ui32CachedFragmentStart;
-                            uint32 ui32ToBeSentFragmentLength = ui32ToBeSentFragmentEnd - ui32ToBeSentFragmentStart;
-                            //uint16 ui16MaxFragmentSize = getMaxFragmentSize();      // TODO: Check if this is needed
-                            MessageInfo *pNewMI = pM->getMessageInfo()->clone();
-                            uint32 ui32CurrentFragmentLength = ui32ToBeSentFragmentLength;
-                            pNewMI->setFragmentOffset (ui32ToBeSentFragmentStart);
-                            pNewMI->setFragmentLength (ui32CurrentFragmentLength);
-                            checkAndLogMsg (pszMethodName, Logger::L_Info,
-                                            "Sending %lu-%lu starting at %lu in cached fragment\n",
-                                            ui32ToBeSentFragmentStart,
-                                            ui32CurrentFragmentLength,
-                                            ui32StartingOffsetInCachedFragment);
-                            Message newMsg (pNewMI, ((char*)pM->getData())+ui32StartingOffsetInCachedFragment);
-                            DisServiceDataMsg dsdm (getNodeId(), &newMsg, _bTargetFilteringEnabled ? pszTarget : NULL);
-                            dsdm.setRepair (true);
-                            int rc;
-                            String logMsg = (String) "Handling Data Request";
-                            if (_pTrSvc->loggingEnabled()) {
-                                logMsg += " of ";
-                                logMsg += msgId.getGroupName();
-                                logMsg += ":";
-                                logMsg += msgId.getOriginatorNodeId();
-                                logMsg += ":";
-                                char *pszValue = (char *) calloc (13, sizeof(char));
-                                itoa (pszValue, msgId.getSeqId());
-                                logMsg += pszValue;
-                                free (pszValue);
-                                logMsg += " from peer ";
-                                logMsg += pszTarget;
-                                logMsg += ". Sending ";
-                                logMsg += dsdm.getMessageHeader()->getMsgId();
-                            }
-                            if (0 != (rc = broadcastDisServiceDataMsg (&dsdm, (const char *) logMsg, (const char **) ppszOutgoingInterfaces/*,
-                                                                       pRequest->pMsgHeader->getGroupName(),
-                                                                       pRequest->pMsgHeader->getSenderNodeId(),
-                                                                       pRequest->pMsgHeader->getTag(),
-                                                                       pRequest->pMsgHeader->getMsgSeqId(),
-                                                                       ui32RequestedFragmentStart,
-                                                                       ui32RequestedFragmentEnd*/
-                                                                       ))) {
-                                checkAndLogMsg (pszMethodName, Logger::L_Warning,
-                                                "broadcastDisServiceMsg failed with rc = %d\n",
-                                                rc);
-                            }
-                            else if (_pNetTrafficMemory != NULL) {
-                                int rc2 = _pNetTrafficMemory->add (newMsg.getMessageHeader(), getTimeInMilliseconds());
-                                if (rc2 < 0) {
-                                    checkAndLogMsg (pszMethodName, Logger::L_Warning,
-                                                    "message %s could not be added to network traffic memory. Error code: %d\n",
-                                                    dsdm.getMessageHeader()->getMsgId(), rc2);
-                                }
-                                else {
-                                    checkAndLogMsg (pszMethodName, Logger::L_Info,
-                                                    "message %s added to history\n",
-                                                    dsdm.getMessageHeader()->getMsgId());
-                                }
-                            }
-                            _pStats->onDemandFragmentPushed (pNewMI->getClientId(), pNewMI->getGroupName(),
-                                                             pNewMI->getTag(), pNewMI->getFragmentLength());
-                            delete pNewMI;
-                        }
-                        Message *pMTmp = pFilteredMessages->getNext();
-                        pFilteredMessages->remove (pM);
-                        delete (pM->getMessageInfo());
-                        delete pM;
-                        pM = pMTmp;
-                    }
-                    delete pFilteredMessages;
-                    pFilteredMessages = NULL;
-                }
-                Message *pMTmp = pPLL->getNext();
-                pPLL->remove (pMsg);
-                _pDataCacheInterface->release (pMsg); 
-                pMsg = pMTmp;
-            }
-            delete pPLL;
-        }
-        else {
-            checkAndLogMsg (pszMethodName, Logger::L_Info, "There is no fragment %lu %lu for the message %s:%s:%lu\n",
-                            pRange->getFrom(), pRange->getTo(), msgId.getGroupName(),
-                            msgId.getOriginatorNodeId(), msgId.getSeqId());
-        }
-    }
-
-    _m.unlock (59);
-    return 0;
+    return _pDataReqSvr->handleDataRequestMessage (pszMsgId,pRange, bIsChunk, pszTarget, uiNumberOfActiveNeighbors,
+                                                   i64RequestArrivalTime, ppszOutgoingInterfaces, i64Timeout);
 }
 
 int DisseminationService::handleWorldStateSequenceIdMessage (DisServiceWorldStateSeqIdMsg *, uint32)
@@ -3093,6 +2880,7 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
     pDDMsg->flush();
 
     const MessageHeader *pMH = pDDMsg->getMessage()->getMessageHeader();  // !! // DO NOT MODIFY the MessageInfo in pDDMsg
+    const MessageId msgId (pMH->getGroupName(), pMH->getPublisherNodeId(), pMH->getMsgSeqId(), pMH->getChunkId());
 
     uint16 ui16FragSize = minimum (_pTrSvc->getMTU(), _pTrSvc->getMaxFragmentSize());
     if (ui16FragSize == 0) {
@@ -3120,7 +2908,9 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
             pDDMsg->setSendingCompleteMsg (true);
         }
 
+        _pDataReqSvr->startedPublishingMessage (msgId.getId());
         TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pDDMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, pszHints);
+        _pDataReqSvr->endedPublishingMessage (msgId.getId());
         rc = res.rc;
         res.reset();
     }
@@ -3132,6 +2922,7 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
         DisServiceDataMsgFragmenter fragmenter (getNodeId());
         fragmenter.init (pDDMsg, ui16FragSize, ui32HeaderSize);
         
+        _pDataReqSvr->startedPublishingMessage (msgId.getId ());
         for (DisServiceDataMsg *pFragDDMsg = NULL; (pFragDDMsg = fragmenter.getNextFragment()) != NULL;) {
             TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pFragDDMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, pszHints);
             delete pFragDDMsg;
@@ -3140,6 +2931,7 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
             }
             res.reset();
         }
+        _pDataReqSvr->endedPublishingMessage (msgId.getId());
     }
 
     _mBrcast.unlock (60);
@@ -3409,7 +3201,7 @@ void DisseminationService::notifyDisseminationServiceListener (uint16 ui16Client
         }
         else {
             _clients[ui16ClientId].pListener->dataArrived (pMI->getClientId(), pMI->getPublisherNodeId(), pMI->getGroupName(), pMI->getMsgSeqId(),
-                                                           pMI->getObjectId(), pMI->getInstanceId(), pMI->getMimeType(), pMsg->getData(),
+                                                           pMI->getObjectId(), pMI->getInstanceId(), pMI->getAnnotates(), pMI->getMimeType(), pMsg->getData(),
                                                            pMI->getTotalMessageLength(), pMI->getMetaDataLength(), pMI->getTag(), pMI->getPriority(),
                                                            pszQueryId);
         }

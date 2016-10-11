@@ -5,7 +5,7 @@
  * TCPConnTable.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,10 +39,11 @@ namespace ACMNetProxy
 
         static TCPConnTable * const getTCPConnTable (void);
 
+			
         // Methods to iterate over the entries
         Entry * const getEntry (uint16 ui16LocalID) const;
         Entry * const getEntry (uint16 ui16LocalID, uint16 ui16RemoteID) const;
-        Entry * const getEntry (uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort);
+		Entry * const getEntry(uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort, uint32 uint32AssignedPriority = 0);
         Entry * const getNextEntry (void);
         Entry * const getNextActiveLocalEntry (void);
         Entry * const getNextActiveRemoteEntry (void);
@@ -54,12 +55,11 @@ namespace ACMNetProxy
         unsigned int getEntriesNum (void) const;
 
         void clearTable (void);
-        void cleanMemory (bool bCleanBuffer = false);
+        void cleanMemory (void);
 
         void lock (void);
         void unlock (void);
 
-        static const uint32 MSL;                                // Maximum Segment Lifetime
         static const uint32 STANDARD_MSL;                       // Standard Maximum Segment Lifetime of 2 minutes (RFC 793)
         static const uint16 LB_RTO;                             // Retransmission TimeOut Lower Bound of 100 milliseconds (in RFC 793 is 1 second)
         static const uint16 UB_RTO;                             // Retransmission TimeOut Upper Bound of 60 seconds (RFC 793)
@@ -67,7 +67,8 @@ namespace ACMNetProxy
         static const double ALPHA_RTO;                          // Alpha constant for RTO calculation (RFC 793)
         static const double BETA_RTO;                           // Beta constant for RTO calculation (RFC 793)
 
-
+		uint32 highestKnownPriority;
+		uint32 newHighestPriority;
     private:
         TCPConnTable (void);
         explicit TCPConnTable (const TCPConnTable &rTCPConnTable);
@@ -98,7 +99,7 @@ namespace ACMNetProxy
     {
         return _entries.size();
     }
-
+	
     inline void TCPConnTable::clearTable (void)
     {
         _m.lock();
@@ -121,8 +122,7 @@ namespace ACMNetProxy
     }
 
     inline TCPConnTable::TCPConnTable (void) :
-        _ui32FirstIndex (0), _ui32NextIndex (0), _bIsCounterReset (true) { }
-
+		_ui32FirstIndex(0), _ui32NextIndex(0), _bIsCounterReset(true), highestKnownPriority(0), newHighestPriority(0) {}
 }
 
 #endif   // #ifndef INCL_TCP_CONN_TABLE_H

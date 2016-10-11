@@ -2,7 +2,7 @@
  * SubscriptionList.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,14 +41,11 @@
 #ifndef INCL_SUBSCRIPTION_LIST_H
 #define INCL_SUBSCRIPTION_LIST_H
 
-#include "DisServiceMsg.h"
 #include "History.h"
 #include "Subscription.h"
 
-#include "LList.h"
 #include "PtrLList.h"
 #include "StringHashtable.h"
-#include "UInt32Hashtable.h"
 
 namespace NOMADSUtil
 {

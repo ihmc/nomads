@@ -2,7 +2,7 @@
  * FileUtils.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,8 +21,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include  <limits.h>
 
 #if defined (WIN32)
+#include <winsock2.h>
     #include <windows.h>
     #include <io.h>
     #include <direct.h>
@@ -42,11 +44,13 @@
     #error Must Define WIN32 or UNIX!
 #endif
 
+#include "DArray2.h"
+#include "FileWriter.h"
+#include "Logger.h"
 #include "NLFLib.h"
 
-#include "Logger.h"
-#include "DArray2.h"
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
+
 
 using namespace NOMADSUtil;
 
@@ -453,8 +457,47 @@ void FileUtils::createDirStructure (const char *pszPath)
     }
 }
 
+int FileUtils::deleteFile (const char *pszPath)
+{
+    if (pszPath == NULL) {
+        return -1;
+    }
+    if (!fileExists (pszPath)) {
+        return 1;
+    }
+    if (remove (pszPath) < 0) {
+        return -2;
+    }
+    return 0;
+}
+
+int FileUtils::dumpBufferToFile (const void *pBuf, uint64 ui64BufLen, const char *pszPath)
+{
+    if (pszPath == NULL) {
+        return -1;
+    }
+    FILE *pFile = fopen (pszPath, "wb");
+    if (pFile == NULL) {
+        return -2;
+    }
+    const unsigned char *ptmpbuf = static_cast<const unsigned char *>(pBuf);
+    FileWriter fw (pFile, true);
+    for (uint64 ui64Written = 0U; ui64Written < ui64BufLen;) {
+        unsigned int uiBytesToWrite = static_cast<unsigned int>(NOMADSUtil::minimum ((uint64) UINT_MAX, ui64BufLen));
+        if (fw.writeBytes (ptmpbuf, uiBytesToWrite) < 0) {
+            return -3;
+        }
+        ptmpbuf += uiBytesToWrite;
+        ui64BufLen -= uiBytesToWrite;
+    }
+    return 0;
+}
+
 bool FileUtils::fileExists (const char *pszPath)
 {
+    if (pszPath == NULL) {
+        return false;
+    }
     struct stat statinfo;
     if ((stat (pszPath, &statinfo) == -1) || ((statinfo.st_mode & S_IFMT) != S_IFREG)) {
         return false;

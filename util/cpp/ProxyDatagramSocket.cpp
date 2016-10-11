@@ -2,7 +2,7 @@
  * ProxyDatagramSocket.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,6 +33,8 @@ using namespace NOMADSUtil;
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
+const char * ProxyDatagramSocket::ADDRESS_PREFIX = "pds://";
+    
 ProxyDatagramSocket::ProxyDatagramSocket (void)
 {
     _ui32LocalAddr = 0;

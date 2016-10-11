@@ -2,7 +2,7 @@
  * ServerMocketHandler.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,9 +31,9 @@ import java.net.InetAddress;
  * ServerMocketHandler
  * 
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.11 $
  *          Created on Apr 30, 2004 at 7:18:53 PM
- *          $Date: 2014/11/06 22:00:30 $
+ *          $Date: 2016/06/09 20:02:46 $
  *          Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class ServerMocketHandler extends Thread implements MocketStatusListener
@@ -66,7 +66,7 @@ public class ServerMocketHandler extends Thread implements MocketStatusListener
             try {
                 Mocket mocket = _servMocket.accept();
                 System.out.println ("Received Connection: " + mocket.toString());
-                mocket.addMocketStatusListener (this);
+                mocket.setStatusListener (this);
                 _msgHandler.createConnHandler (mocket);
             }
             catch (Exception e) {
@@ -81,6 +81,16 @@ public class ServerMocketHandler extends Thread implements MocketStatusListener
             System.out.println ("Client inactive for " + timeSinceLastContact + " ms; dropping connection");
             return true;
         }
+        return false;
+    }
+
+    public boolean peerReachable (long unreachabilityIntervalLength)
+    {
+        return false;
+    }
+
+    public boolean suspendReceived (long timeSinceSuspension)
+    {
         return false;
     }
 

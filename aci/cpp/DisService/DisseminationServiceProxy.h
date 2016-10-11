@@ -2,7 +2,7 @@
  * DisseminationServiceProxy.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -165,7 +165,7 @@ namespace IHMC_ACI
              */
             int cancel (uint16 ui16Tag);
 
-			/**
+            /**
              * Filter (i.e., prevent delivery) of any incoming messages that match the specified tag.
              * Returns 0 if successful or a negative value in case of error.
              *

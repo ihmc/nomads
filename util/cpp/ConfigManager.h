@@ -2,7 +2,7 @@
  * ConfigManager.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,6 +51,12 @@ namespace NOMADSUtil
             StringStringHashtable * getProperties (void);
 
             void display (void);
+
+            /**
+             * Added all the property in cfgMgr. If two properties have the same
+             * key and different values an error is returned.
+             */
+            int addProperties (ConfigManager &cfgMgr);
 
             /**
              * - ui32Len is the length of the stream to be read 

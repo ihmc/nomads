@@ -2,7 +2,7 @@
  * Searches.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,8 +21,6 @@
 
 #include "DisServiceDefs.h"
 #include "Logger.h"
-
-#include <stdlib.h>
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
@@ -79,7 +77,7 @@ int Searches::receivedSearchInfo (const char *pszQueryId, const char *pszQueryTy
     return addSearchInfo (pszQueryId, pszQueryType, pszQuerier, FORWARDED_SEARCH_CLIENT_ID);
 }
 
-int Searches::getSearchInfo (const char *pszQueryId, char *&pszQueryType, char *&pszQuerier,uint16 &ui16ClientId)
+int Searches::getSearchInfo (const char *pszQueryId, String &queryType, String &querier,uint16 &ui16ClientId)
 {
     if (pszQueryId == NULL) {
         return -1;
@@ -93,25 +91,18 @@ int Searches::getSearchInfo (const char *pszQueryId, char *&pszQueryType, char *
     }
 
     ui16ClientId = pSI->_ui16ClientId;
-    pszQueryType = (pSI->_queryType.length() > 0 ? strDup (pSI->_queryType.c_str()) : NULL);
-    pszQuerier = (pSI->_querier.length() > 0 ? strDup (pSI->_querier.c_str()) : NULL);
+    queryType = pSI->_queryType;
+    querier = pSI->_querier;
 
     _m.unlock();
     return 0;
 }
 
-int Searches::getSearchQueryId (const char *pszQueryId, uint16 &ui16QueryId)
+int Searches::getSearchQueryId (const char *pszQueryId, uint16 &ui16ClientId)
 {
-    char *pszQueryType = NULL;
-    char *pszQuerier = NULL;
-    int rc = Searches::getSearchInfo (pszQueryId, pszQueryType, pszQuerier, ui16QueryId);
-    if (pszQueryType != NULL) {
-        free (pszQueryType);
-    }
-    if (pszQuerier != NULL) {
-        free (pszQuerier);
-    }
-    return rc;
+    String queryType;
+    String querier;
+    return Searches::getSearchInfo (pszQueryId, queryType, querier, ui16ClientId);
 }
 
 bool Searches::hasSearchInfo (const char *pszQueryId)
@@ -129,21 +120,11 @@ bool Searches::hasSearchInfo (const char *pszQueryId)
 
 bool Searches::isSearchFromPeer (const char *pszQueryId, const char *pszQuerierNodeId)
 {
-    char *pszQueryType = NULL;
-    char *pszQuerier = NULL;
+    String queryType;
+    String querier;
     uint16 ui16QueryId;
-    int rc = Searches::getSearchInfo (pszQueryId, pszQueryType, pszQuerier, ui16QueryId);
-    bool bIsSearchFromPeer = false;
-    if ((rc == 0) && (pszQuerier != NULL) && (strcmp (pszQuerierNodeId, pszQuerier) == 0)) {
-        bIsSearchFromPeer = true;
-    }
-    if (pszQueryType != NULL) {
-        free (pszQueryType);
-    }
-    if (pszQuerier != NULL) {
-        free (pszQuerier);
-    }
-    return bIsSearchFromPeer;
+    int rc = Searches::getSearchInfo (pszQueryId, queryType, querier, ui16QueryId);
+    return ((rc == 0) && ((querier == pszQuerierNodeId) == 1));
 }
 
 int Searches::addQueryReply (const char *pszQueryId, const char *pszMatchingNodeId)

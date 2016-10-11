@@ -2,7 +2,7 @@
  * TCPManager.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -90,15 +90,16 @@ namespace ACMNetProxy
             if (pTCPHeader->ui8Flags == TCPHeader::TCPF_SYN) {       // NOTE - this is an equality test on purpose - should only be true for the SYN and not for the SYN+ACK packet
                 // Since this is a SYN, lookup the proxy address for the destination address
                 // This is the only time we should need to look up the proxy address
-                const ProtocolSetting * const pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (pIPHeader->srcAddr.ui32Addr, pTCPHeader->ui16SPort,
-                                                                                                            pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort, IP_PROTO_TCP);
-                ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL;
-                ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
+                const ProtocolSetting *pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (pIPHeader->srcAddr.ui32Addr, pTCPHeader->ui16SPort,
+                                                                                                     pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort, IP_PROTO_TCP);
                 if (!pProtocolSetting) {
+                    pProtocolSetting = ProtocolSetting::getDefaultTCPProtocolSetting();
                     checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
-                                    "the protocol specification for this address was not found; using default protocol (id = %d)\n",
-                                    ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL);
+                                    "the protocol specification for this address was not found; using the default protocol %s\n",
+                                    pProtocolSetting->getProxyMessageProtocolAsString());
                 }
+                
+                ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
                 QueryResult query (_pConnectionManager->queryConnectionToRemoteHostForConnectorType (connectorType, pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort));
                 const InetAddr * const pProxyAddr = query.getBestConnectionSolution();
                 if (!pProxyAddr) {
@@ -127,13 +128,13 @@ namespace ACMNetProxy
                 // Received a SYN --> moving to SYN_RCVD
                 pEntry->localStatus = TCTLS_SYN_RCVD;
                 pEntry->ui32StartingInSeqNum = pTCPHeader->ui32SeqNum;                      // Starting SEQ Number of the communication used by the local host
-                pEntry->setNextExpectedInSeqNum (pTCPHeader->ui32SeqNum + 1);               // Next expected sequence number sent by the host, ie the next ACK the host will send to local host
+                pEntry->setNextExpectedInSeqNum (pTCPHeader->ui32SeqNum + 1);               // Next expected sequence number sent by the host, i.e. the next ACK the host will send to local host
                 pEntry->ui32ReceivedDataSeqNum = pTCPHeader->ui32SeqNum;
                 pEntry->ui16ReceiverWindowSize = pTCPHeader->ui16Window;
                 pEntry->i64LocalActionTime = packetTime;
                 pEntry->i64LastAckTime = packetTime;
 
-                pEntry->setProtocol (currentProtocol);
+                pEntry->setProtocol (pProtocolSetting->getProxyMessageProtocol());
                 pEntry->setMocketConfFile (_pConnectionManager->getMocketsConfigFileForConnectionsToRemoteHost (pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort));
 
                 const CompressionSetting * const pCompressionSetting = &pProtocolSetting->getCompressionSetting();
@@ -191,9 +192,9 @@ namespace ACMNetProxy
                                                 pEntry->ui16ID, rc);
                             }
                             checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
-                                            "L%hu-R0: received a SYN, but it was impossible to send an OpenTCPConnection request to the remote NetProxy: "
-                                            "sendOpenTCPConnectionRequest() failed with rc = %d; sent back an RST to local application\n",
-                                            pEntry->ui16ID, rc);
+                                            "L%hu-R0: received a SYN, but it was impossible to send an OpenTCPConnection request to the remote NetProxy "
+                                            "at address %s:%hu: sendOpenTCPConnectionRequest() failed with rc = %d; sent back an RST to local application\n",
+                                            pEntry->ui16ID, pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort(), rc);
                             pEntry->reset();
                             pEntry->unlock();
                             return -3;
@@ -224,7 +225,7 @@ namespace ACMNetProxy
                         }
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
                                         "L%hu-R0: received a SYN, but it was impossible to open a new Connection to the remote NetProxy "
-                                        "with address %s:%hu; sent back an RST to local application\n", pEntry->ui16ID,
+                                        "with address %s:%hu; an RST was sent back to the local application\n", pEntry->ui16ID,
                                         pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort());
                         pEntry->reset();
                         pEntry->unlock();
@@ -317,7 +318,7 @@ namespace ACMNetProxy
             if (pTCPHeader->ui8Flags & TCPHeader::TCPF_SYN) {
                 // Move to established state and send an ACK
                 pEntry->ui32StartingInSeqNum = pTCPHeader->ui32SeqNum;                  // Starting Sequence Number of the communication used by the local host.
-                pEntry->setNextExpectedInSeqNum (pTCPHeader->ui32SeqNum + 1);           // Next expected sequence number sent by the host, ie the next ACK the host will send to local host
+                pEntry->setNextExpectedInSeqNum (pTCPHeader->ui32SeqNum + 1);           // Next expected sequence number sent by the host, i.e. the next ACK the host will send to local host
                 pEntry->ui16ReceiverWindowSize = pTCPHeader->ui16Window;
                 pEntry->i64LocalActionTime = packetTime;
                 delete pEntry->outBuf.dequeue();                                        // Deleting SYN packet in output buffer (both if we are moving to ESTABLISHED or to SYN_RCVD)
@@ -486,6 +487,11 @@ namespace ACMNetProxy
                                 "to a duplicate SYN\n", pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32NextExpectedInSeqNum,
                                 SequentialArithmetic::delta (pEntry->ui32NextExpectedInSeqNum, pEntry->ui32StartingInSeqNum),
                                 pEntry->ui32OutSeqNum - 1, SequentialArithmetic::delta (pEntry->ui32OutSeqNum - 1, pEntry->ui32StartingOutSeqNum));
+            }
+            else {
+                checkAndLogMsg("TCPManager::tcpConnectionToHostOpened", Logger::L_MediumDetailDebug,
+                    "L%hu-R%hu: received a duplicate SYN packet while remote connection status is %d; ignoring\n",
+                    pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteStatus);
             }
 
             // If the previous equality does not hold true, then we are still trying to connect to the remote NetProxy --> we simply ignore the SYN
@@ -1220,14 +1226,14 @@ namespace ACMNetProxy
         int rc;
         // First check if we can find the proxy address for the remote IP
         const ProtocolSetting *pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (ui32LocalHostIP, ui16LocalPort, ui32RemoteHostIP, ui16RemotePort, IP_PROTO_TCP);
-        ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL;
-        ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
         if (!pProtocolSetting) {
+            pProtocolSetting = ProtocolSetting::getDefaultTCPProtocolSetting();
             checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
-                            "the protocol specification for this address was not found; using default protocol (id = %d)\n",
-                            ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL);
+                            "the protocol specification for this address was not found; using the default protocol %s\n",
+                            pProtocolSetting->getProxyMessageProtocolAsString());
         }
 
+        ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
         QueryResult query (_pConnectionManager->queryConnectionToRemoteHostForConnectorType (connectorType, ui32RemoteHostIP, ui16RemotePort));
         const InetAddr * const pRemoteProxyAddr = query.getBestConnectionSolution();
         if (!pRemoteProxyAddr) {
@@ -1244,9 +1250,18 @@ namespace ACMNetProxy
         pEntry->remoteStatus = TCTRS_ConnRequested;
         pEntry->ui16RemoteID = ui16RemoteID;
         pEntry->i64RemoteActionTime = getTimeInMilliseconds();
-        pEntry->setProtocol (currentProtocol);
+        pEntry->setProtocol (pProtocolSetting->getProxyMessageProtocol());
         pEntry->setMocketConfFile (_pConnectionManager->getMocketsConfigFileForConnectionsToRemoteHost (ui32RemoteHostIP, ui16RemotePort));
         pEntry->prepareNewConnection();
+		if (pProtocolSetting) {
+			pEntry->assignedPriority = pProtocolSetting->getPrioritySetting();
+		}
+		else {
+			checkAndLogMsg("TCPManager::handleTCPPacketFromHost", Logger::L_MildError,
+				"pProtocolSetting entry not found setting entry priority to 0");
+			pEntry->assignedPriority = 0;
+		}
+
 
         pEntry->setConnector (_pConnectionManager->getConnectorForType (connectorType));
         if (!pEntry->getConnector()) {
@@ -1431,8 +1446,8 @@ namespace ACMNetProxy
         pEntry->lock();
         if (pEntry->remoteStatus != TCTRS_ConnRequested) {
             checkAndLogMsg ("TCPManager::tcpConnectionToHostOpened", Logger::L_MildError,
-                            "L%hu-R%hu: state of remote connection is not ConnRequested, but %d; resetting connection\n",
-                            pEntry->ui16ID, pEntry->ui16RemoteID,pEntry->remoteStatus);
+                            "L%hu-R%hu: the status of remote connection is not TCTRS_ConnRequested, but %d; resetting connection\n",
+                            pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteStatus);
             pEntry->ui16ID = ui16LocalID;
             pEntry->ui16RemoteID = ui16RemoteID;
             const CompressionSetting * pCompressionSetting = new CompressionSetting (ProxyMessage::PMC_UncompressedData, CompressionSetting::NO_COMPRESSION_LEVEL);
@@ -1491,9 +1506,7 @@ namespace ACMNetProxy
 
     int TCPManager::sendTCPDataToHost (uint16 ui16LocalID, uint16 ui16RemoteID, const uint8 * const pui8CompData, uint16 ui16CompDataLen, uint8 ui8Flags)
     {
-        static const uint16 MAX_SEGMENT_LENGTH = NetProxyApplicationParameters::GATEWAY_MODE ?
-            NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF - static_cast<uint16> (sizeof (EtherFrameHeader) + sizeof (IPHeader) + sizeof (TCPHeader)) :
-            NetProxyApplicationParameters::TAP_INTERFACE_MTU - static_cast<uint16> (sizeof (IPHeader) + sizeof (TCPHeader));
+        static const uint16 MAX_SEGMENT_LENGTH = NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF - static_cast<uint16> (sizeof (IPHeader) + sizeof (TCPHeader));
 
         int rc;
         Entry *pEntry = _pTCPConnTable->getEntry (ui16LocalID, ui16RemoteID);

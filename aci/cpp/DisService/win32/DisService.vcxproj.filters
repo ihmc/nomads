@@ -254,6 +254,15 @@
     <ClCompile Include="..\SearchController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ServingRequestProbability.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DataRequestServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\NMSHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\AckController.h">
@@ -346,19 +355,10 @@
     <ClInclude Include="..\History.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\LargeObjReassembler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Message.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\MessageInfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MessagePropagationServiceInterface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\MessagePropagationServiceListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\MessageReassembler.h">
@@ -521,6 +521,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\SearchController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ServingRequestProbability.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DataRequestServer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\NMSHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

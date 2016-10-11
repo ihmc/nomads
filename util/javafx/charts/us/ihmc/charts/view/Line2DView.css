@@ -1,0 +1,15 @@
+.chart-title {
+    -fx-wrap-text : true;
+    -fx-alignment : center;
+}
+
+.chart-series-line {
+    -fx-stroke: black;
+    -fx-stroke-width: 0.5px;
+    -fx-effect: null;
+}
+
+.series1.chart-series-line {
+    -fx-stroke: red;
+    -fx-stroke-width: 2px;
+}

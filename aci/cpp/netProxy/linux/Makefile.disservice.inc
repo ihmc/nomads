@@ -12,6 +12,7 @@ CHUNKING_HOME= $(NOMADS_HOME)/misc/cpp/chunking
 JPEG_HOME=$(NOMADS_HOME)/externals/libjpeg
 DISSERVICE_HOME = $(NOMADS_HOME)/aci/cpp/DisService
 UTIL_HOME = $(NOMADS_HOME)/util
+NETSENSOR_HOME = $(NOMADS_HOME)/misc/cpp/netsensor
 MSGPACK_HOME = $(EXTERNALS)/msgpack
 LIBZ_HOME = $(EXTERNALS)/zlib
 LZMA_HOME = $(EXTERNALS)/xz
@@ -30,10 +31,12 @@ CPPFLAGS = -g -DUNIX -DLINUX -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYS
 			-I$(UTIL_HOME)/cpp \
 			-I$(LCPPDC_HOME)/ \
 			-I$(GROUP_MANAGER_HOME)/ \
-			-I$(MOCKETS_HOME)/cpp \
+			-I$(MOCKETS_HOME)/cpp \ 
+			-I$(NETSENSOR_HOME) \
 			-I$(DISSERVICE_HOME)/
 
 LIB_LIST = $(DISSERVICE_HOME)/$(LIB_FOLDER)/libdisservice.a \
+			$(NETSENSOR_HOME)/linux/libnetsensor.a \
 			$(MOCKETS_HOME)/cpp/$(LIB_FOLDER)/libmockets.a \
 			$(GRP_MANAGER_HOME)/$(LIB_FOLDER)/libgrpmgr.a \
 			$(LCPPDC_HOME)/$(LIB_FOLDER)/liblcppdc.a \

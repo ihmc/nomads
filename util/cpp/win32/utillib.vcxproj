@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -56,50 +56,60 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Installer|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 64|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Installer|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profiling|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release 64|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -109,6 +119,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -181,7 +192,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\;..\..\..\externals\include;..\net;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_MBCS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -193,7 +204,8 @@
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <TargetMachine>MachineX86</TargetMachine>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -202,11 +214,11 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\;..\..\..\externals\include;..\net;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;..\..\..\externals\include\ffmpeg;..\..\..\externals\include;..\net;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_ITERATOR_DEBUG_LEVEL=0;_MBCS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <ProgramDataBaseFileName>$(IntDir)utillib.pdb</ProgramDataBaseFileName>
@@ -216,12 +228,13 @@
     </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <TargetMachine />
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\;..\security;..\..\..\externals\include;..\..\..\externals\include\openssl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\..\externals\include;..\net;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -231,7 +244,8 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <TargetMachine>MachineX86</TargetMachine>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Installer|Win32'">
@@ -288,7 +302,7 @@
     </Midl>
     <ClCompile>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\;..\security;..\..\..\externals\include;..\..\..\externals\include\openssl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\net;..\;..\..\..\externals\include\ffmpeg;..\..\..\externals\include;..\..\..\externals\include\openssl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -361,7 +375,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">
     <ClCompile>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\;..\security;..\..\..\externals\include;..\..\..\externals\include\openssl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\..\externals\include\ffmpeg;..\..\..\externals\include;..\net;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -396,6 +410,8 @@
     <ClCompile Include="..\AVList.cpp" />
     <ClCompile Include="..\Base64.cpp" />
     <ClCompile Include="..\Base64Transcoders.cpp" />
+    <ClCompile Include="..\BoyerMooreHorspool.cpp" />
+    <ClCompile Include="..\BloomFilter.cpp" />
     <ClCompile Include="..\BufferedReader.cpp" />
     <ClCompile Include="..\BufferedWriter.cpp" />
     <ClCompile Include="..\BufferReader.cpp" />
@@ -431,23 +447,14 @@
     <ClCompile Include="..\Logger.cpp" />
     <ClCompile Include="..\LoggingConditionVariable.cpp" />
     <ClCompile Include="..\LoggingMutex.cpp" />
+    <ClCompile Include="..\ManageableDatagramSocket.cpp" />
     <ClCompile Include="..\ManageableThread.cpp" />
     <ClCompile Include="..\MD5.cpp" />
-    <ClCompile Include="..\media\BMPImage.cpp" />
-    <ClCompile Include="..\net\ManycastForwardingNetworkInterface.cpp" />
-    <ClCompile Include="..\net\ManycastNetworkMessageReceiver.cpp" />
-    <ClCompile Include="..\net\MessageFactory.cpp" />
     <ClCompile Include="..\graph\MSPAlgorithm.cpp" />
     <ClCompile Include="..\MulticastUDPDatagramSocket.cpp" />
     <ClCompile Include="..\Mutex.cpp" />
     <ClCompile Include="..\net\NetUtils.cpp" />
     <ClCompile Include="..\net\NetworkHeaders.cpp" />
-    <ClCompile Include="..\net\NetworkInterface.cpp" />
-    <ClCompile Include="..\net\NetworkMessage.cpp" />
-    <ClCompile Include="..\net\NetworkMessageReceiver.cpp" />
-    <ClCompile Include="..\net\NetworkMessageService.cpp" />
-    <ClCompile Include="..\net\NetworkMessageV1.cpp" />
-    <ClCompile Include="..\net\NetworkMessageV2.cpp" />
     <ClCompile Include="..\NLFLib.cpp" />
     <ClCompile Include="..\NullWriter.cpp" />
     <ClCompile Include="..\ObjectDefroster.cpp" />
@@ -456,16 +463,21 @@
     <ClCompile Include="..\Pipe.cpp" />
     <ClCompile Include="..\ProcessExecutor.cpp" />
     <ClCompile Include="..\ProxyDatagramSocket.cpp" />
+    <ClCompile Include="..\proxy\Protocol.cpp" />
+    <ClCompile Include="..\proxy\Stub.cpp" />
+    <ClCompile Include="..\proxy\StubCallbackHandler.cpp" />
     <ClCompile Include="..\PushbackLineOrientedReader.cpp" />
     <ClCompile Include="..\RangeDLList.cpp" />
     <ClCompile Include="..\Reader.cpp" />
-    <ClCompile Include="..\net\Reassembler.cpp" />
     <ClCompile Include="..\RollingBoundedBitmap.cpp" />
     <ClCompile Include="..\SimpleCommHelper2.cpp" />
+    <ClCompile Include="..\SocketHelper.cpp" />
     <ClCompile Include="..\StringHashset.cpp" />
     <ClCompile Include="..\StringStringHashtable.cpp" />
     <ClCompile Include="..\StringStringWildMultimap.cpp" />
     <ClCompile Include="..\TimeBoundedStringHashset.cpp" />
+    <ClCompile Include="..\Timestamp.cpp" />
+    <ClCompile Include="..\TreeUtils.cpp" />
     <ClCompile Include="..\UDPRawDatagramSocket.cpp" />
     <ClCompile Include="..\ZipFileUtils.cpp" />
     <ClCompile Include="RegUtils.cpp" />
@@ -491,7 +503,6 @@
     <ClCompile Include="..\graph\Thing.cpp" />
     <ClCompile Include="..\Thread.cpp" />
     <ClCompile Include="..\ThreadPool.cpp" />
-    <ClCompile Include="..\net\TSNRangeHandler.cpp" />
     <ClCompile Include="..\UDPDatagramSocket.cpp" />
     <ClCompile Include="..\URLParser.cpp" />
     <ClCompile Include="..\UUID.cpp" />
@@ -504,11 +515,14 @@
     <ClInclude Include="..\AVList.h" />
     <ClInclude Include="..\Base64.h" />
     <ClInclude Include="..\Base64Transcoders.h" />
+    <ClInclude Include="..\BoyerMooreHorspool.h" />
+    <ClInclude Include="..\BloomFilter.h" />
     <ClInclude Include="..\BufferedReader.h" />
     <ClInclude Include="..\BufferedWriter.h" />
     <ClInclude Include="..\BufferReader.h" />
     <ClInclude Include="..\BufferWriter.h" />
     <ClInclude Include="..\CircularBuffer.h" />
+    <ClInclude Include="..\CircularPtrLList.h" />
     <ClInclude Include="..\CircularQueue.h" />
     <ClInclude Include="..\CommandProcessor.h" />
     <ClInclude Include="..\CommHelper.h" />
@@ -544,17 +558,18 @@
     <ClInclude Include="..\HTTPClient.h" />
     <ClInclude Include="..\HTTPHelper.h" />
     <ClInclude Include="..\InetAddr.h" />
+    <ClInclude Include="..\InstrumentedReader.h" />
+    <ClInclude Include="..\InstrumentedWriter.h" />
+    <ClInclude Include="..\IntervalTree.h" />
     <ClInclude Include="..\ISAACRand.h" />
     <ClInclude Include="..\LineOrientedReader.h" />
     <ClInclude Include="..\LList.h" />
     <ClInclude Include="..\Logger.h" />
     <ClInclude Include="..\LoggingConditionVariable.h" />
     <ClInclude Include="..\LoggingMutex.h" />
+    <ClInclude Include="..\ManageableDatagramSocket.h" />
     <ClInclude Include="..\ManageableThread.h" />
     <ClInclude Include="..\MD5.h" />
-    <ClInclude Include="..\media\BMPImage.h" />
-    <ClInclude Include="..\net\ManycastForwardingNetworkInterface.h" />
-    <ClInclude Include="..\net\ManycastNetworkMessageReceiver.h" />
     <ClInclude Include="..\net\MessageFactory.h" />
     <ClInclude Include="..\MovingAverage.h" />
     <ClInclude Include="..\graph\MSPAlgorithm.h" />
@@ -562,13 +577,6 @@
     <ClInclude Include="..\Mutex.h" />
     <ClInclude Include="..\net\NetUtils.h" />
     <ClInclude Include="..\net\NetworkHeaders.h" />
-    <ClInclude Include="..\net\NetworkInterface.h" />
-    <ClInclude Include="..\net\NetworkMessage.h" />
-    <ClInclude Include="..\net\NetworkMessageReceiver.h" />
-    <ClInclude Include="..\net\NetworkMessageService.h" />
-    <ClInclude Include="..\net\NetworkMessageServiceListener.h" />
-    <ClInclude Include="..\net\NetworkMessageV1.h" />
-    <ClInclude Include="..\net\NetworkMessageV2.h" />
     <ClInclude Include="..\net\NICInfo.h" />
     <ClInclude Include="..\NLFLib.h" />
     <ClInclude Include="..\NullWriter.h" />
@@ -578,19 +586,30 @@
     <ClInclude Include="..\Pipe.h" />
     <ClInclude Include="..\ProcessExecutor.h" />
     <ClInclude Include="..\ProxyDatagramSocket.h" />
+    <ClInclude Include="..\proxy\ConnHandler.h" />
+    <ClInclude Include="..\proxy\Protocol.h" />
+    <ClInclude Include="..\proxy\Registry.h" />
+    <ClInclude Include="..\proxy\RegistryInterface.h" />
+    <ClInclude Include="..\proxy\Skeleton.h" />
+    <ClInclude Include="..\proxy\Stub.h" />
+    <ClInclude Include="..\proxy\StubCallbackHandler.h" />
+    <ClInclude Include="..\proxy\Unmarshaller.h" />
     <ClInclude Include="..\PtrLList.h" />
+    <ClInclude Include="..\PtrLTree.h" />
     <ClInclude Include="..\PtrQueue.h" />
+    <ClInclude Include="..\PtrStack.h" />
     <ClInclude Include="..\PushbackLineOrientedReader.h" />
     <ClInclude Include="..\Queue.h" />
     <ClInclude Include="..\RangeDLList.h" />
     <ClInclude Include="..\Reader.h" />
-    <ClInclude Include="..\net\Reassembler.h" />
     <ClInclude Include="..\RollingBoundedBitmap.h" />
     <ClInclude Include="..\SimpleCommHelper2.h" />
     <ClInclude Include="..\StringFloatHashtable.h" />
     <ClInclude Include="..\StringHashset.h" />
     <ClInclude Include="..\StringStringWildMultimap.h" />
     <ClInclude Include="..\TimeBoundedStringHashset.h" />
+    <ClInclude Include="..\Timestamp.h" />
+    <ClInclude Include="..\TreeUtils.h" />
     <ClInclude Include="..\UDPRawDatagramSocket.h" />
     <ClInclude Include="..\UInt32Hashset.h" />
     <ClInclude Include="..\UInt64Hashtable.h" />
@@ -628,7 +647,6 @@
     <ClInclude Include="..\Thread.h" />
     <ClInclude Include="..\ThreadPool.h" />
     <ClInclude Include="..\ThreeStringHashtable.h" />
-    <ClInclude Include="..\net\TSNRangeHandler.h" />
     <ClInclude Include="..\UDPDatagramSocket.h" />
     <ClInclude Include="..\UInt32Hashtable.h" />
     <ClInclude Include="..\URLParser.h" />

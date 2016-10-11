@@ -2,7 +2,7 @@
  * main.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -62,6 +62,7 @@ namespace ACMNetProxy
     #if defined (WIN32)
         void abortExecution (int param)
         {
+            (void) param;
             checkAndLogMsg ("abortExecution", Logger::L_MildError,
                             "execution aborted!\n");
             exit (-1);
@@ -70,6 +71,9 @@ namespace ACMNetProxy
     #elif defined (UNIX)
         void abortExecution (int sig, siginfo_t *siginfo, void *context)
         {
+            (void) sig;
+            (void) siginfo;
+            (void) context;
             checkAndLogMsg ("abortExecution", Logger::L_MildError,
                             "execution aborted!\n");
             exit (-1);
@@ -78,6 +82,7 @@ namespace ACMNetProxy
 
     void terminateExecution (int param)
     {
+        (void) param;
         #if defined (WIN32)
             // installing abortExecution handler
             if (signal (SIGINT, abortExecution) == SIG_ERR) {
@@ -97,28 +102,28 @@ namespace ACMNetProxy
             }
         #elif defined (UNIX)
             struct sigaction actInt, actTerm;
-	        memset (&actInt, '\0', sizeof (actInt));
-	        memset (&actTerm, '\0', sizeof (actTerm));
+            memset (&actInt, '\0', sizeof (actInt));
+            memset (&actTerm, '\0', sizeof (actTerm));
 
-	        /* Use the sa_sigaction field because the handles has two additional parameters */
-	        actInt.sa_sigaction = &abortExecution;
-	        actTerm.sa_sigaction = &abortExecution;
+            /* Use the sa_sigaction field because the handles has two additional parameters */
+            actInt.sa_sigaction = &abortExecution;
+            actTerm.sa_sigaction = &abortExecution;
 
-	        /* The SA_SIGINFO flag tells sigaction() to use the sa_sigaction field, not sa_handler. */
-	        actInt.sa_flags = SA_SIGINFO;
-	        actTerm.sa_flags = SA_SIGINFO;
+            /* The SA_SIGINFO flag tells sigaction() to use the sa_sigaction field, not sa_handler. */
+            actInt.sa_flags = SA_SIGINFO;
+            actTerm.sa_flags = SA_SIGINFO;
 
-	        if (sigaction (SIGINT, &actInt, NULL) < 0) {
+            if (sigaction (SIGINT, &actInt, NULL) < 0) {
                 checkAndLogMsg ("terminateExecution", Logger::L_SevereError,
                                 "impossible to install abort handler for SIGINT! Exiting now...\n");
                 exit (-2);
-	        }
+            }
 
-	        if (sigaction (SIGTERM, &actTerm, NULL) < 0) {
+            if (sigaction (SIGTERM, &actTerm, NULL) < 0) {
                 checkAndLogMsg ("terminateExecution", Logger::L_SevereError,
                                 "impossible to install abort handler for SIGTERM! Exiting now...\n");
                 exit (-3);
-	        }
+            }
         #endif
 
         checkAndLogMsg ("terminateExecution", Logger::L_Info,
@@ -281,11 +286,12 @@ int main (int argc, char *argv[])
                         "could not open external network interface <%s>\n", pszExternalInterfaceName);
         return -6;
     }
-    if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR == 0) {
+
+    if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR == 0U) {
         // Try and retrieve the IP address of the external network interface by querying the device itself
         ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR = pExternalNetworkInterface->getIPv4Addr() ?
-                                                                                pExternalNetworkInterface->getIPv4Addr()->ui32Addr : 0;
-        if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR == 0) {
+                                                                                pExternalNetworkInterface->getIPv4Addr()->ui32Addr : 0U;
+        if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR == 0U) {
             checkAndLogMsg ("main", Logger::L_SevereError,
                             "could not determine IP address of external network interface <%s>\n", pszExternalInterfaceName);
             delete pExternalNetworkInterface;
@@ -297,6 +303,38 @@ int main (int argc, char *argv[])
                             InetAddr(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR).getIPAsString(),
                             pszExternalInterfaceName);
         }
+    }
+    else if (pExternalNetworkInterface->getIPv4Addr() &&
+        (pExternalNetworkInterface->getIPv4Addr()->ui32Addr != ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR)) {
+        // Check if the IP address retrieved from the external network interface does not match the IP provided in the configuration
+        checkAndLogMsg ("main", Logger::L_Warning,
+                        "the IP address retrieved from the external network interface <%s> differs from the one specified in the configuration file: retrieved "
+                        "IP address is %s - configured IP address is %s; NetProxy will use the IP address retrieved from the external network interface\n",
+                        pszExternalInterfaceName, InetAddr(pExternalNetworkInterface->getIPv4Addr()->ui32Addr).getIPAsString(),
+                        InetAddr(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR).getIPAsString());
+        ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR = pExternalNetworkInterface->getIPv4Addr()->ui32Addr;
+    }
+
+    // Retrieve the MTU size for the external network interface
+    if ((pExternalNetworkInterface->getMTUSize() > 0) &&
+        (pExternalNetworkInterface->getMTUSize() <= ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MAXIMUM_MTU)) {
+        checkAndLogMsg ("main", Logger::L_Info,
+                        "retrieved an MTU size of %hu bytes for the external network interface <%s>\n",
+                        pExternalNetworkInterface->getMTUSize(), pszExternalInterfaceName);
+        ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF = pExternalNetworkInterface->getMTUSize();
+    }
+    else if (pExternalNetworkInterface->getMTUSize() == 0) {
+        checkAndLogMsg ("main", Logger::L_Warning,
+                        "impossible to retrieve the MTU size from the external network interface <%s>; using default value of %hu bytes\n",
+                        pszExternalInterfaceName, ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF);
+    }
+    else {
+        // Retrieved MTU value larger than ETHERNET_MAXIMUM_MTU --> using default value
+        checkAndLogMsg ("main", Logger::L_Warning,
+                        "retrieved a value of %hu bytes for the MTU size from the external network interface <%s>, "
+                        "but the maximum MTU size allowed is %hu bytes; using default value of %hu bytes\n",
+                        pExternalNetworkInterface->getMTUSize(), pszExternalInterfaceName,
+                        ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF);
     }
 
     if (ACMNetProxy::NetProxyApplicationParameters::GATEWAY_MODE) {
@@ -332,17 +370,34 @@ int main (int argc, char *argv[])
             return -11;
         }
         ACMNetProxy::buildEthernetMACAddressFromString (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR, pszInternalMACAddr);
+        checkAndLogMsg("PacketRouter::handlePacketFromInternalInterface", Logger::L_Info,
+                       "Internal Interface MAC address: %2x:%2x:%2x:%2x:%2x:%2x\n",
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR.ui8Byte1),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR.ui8Byte2),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR.ui8Byte3),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR.ui8Byte4),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR.ui8Byte5),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR.ui8Byte6));
+
         ACMNetProxy::buildEthernetMACAddressFromString (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR, pszExternalMACAddr);
+        checkAndLogMsg("PacketRouter::handlePacketFromInternalInterface", Logger::L_Info,
+                       "External Interface MAC address: %2x:%2x:%2x:%2x:%2x:%2x\n",
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR.ui8Byte1),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR.ui8Byte2),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR.ui8Byte3),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR.ui8Byte4),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR.ui8Byte5),
+                       static_cast<int>(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR.ui8Byte6));
 
         // When running in GM, the IP address that identifies NetProxy is the one of the external network interface
         ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR = ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR;
 
         // Retrieve IPv4 Netmask
-        if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK == 0) {
+        if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK == 0U) {
             // Try and retrieve netmask from the device itself
             ACMNetProxy::NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK = pExternalNetworkInterface->getNetmask() ?
-                                                                                   pExternalNetworkInterface->getNetmask()->ui32Addr : 0;
-            if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK == 0) {
+                                                                                   pExternalNetworkInterface->getNetmask()->ui32Addr : 0U;
+            if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK == 0U) {
                 checkAndLogMsg ("main", Logger::L_SevereError,
                                 "could not determine Netmask of the external interface\n");
                 delete pInternalNetworkInterface;
@@ -358,11 +413,11 @@ int main (int argc, char *argv[])
         }
 
         // Retrieve IPv4 address of the Default Gateway
-        if (ACMNetProxy::NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR == 0) {
+        if (ACMNetProxy::NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR == 0U) {
             // Try and retrieve Default Gateway from the device itself
             ACMNetProxy::NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR = pExternalNetworkInterface->getDefaultGateway() ?
-                                                                                       pExternalNetworkInterface->getDefaultGateway()->ui32Addr : 0;
-            if (ACMNetProxy::NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR == 0) {
+                                                                                       pExternalNetworkInterface->getDefaultGateway()->ui32Addr : 0U;
+            if (ACMNetProxy::NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR == 0U) {
                 checkAndLogMsg ("main", Logger::L_SevereError,
                                 "could not determine the IP address of the default gateway node for the external network interface\n");
                 delete pInternalNetworkInterface;
@@ -376,6 +431,28 @@ int main (int argc, char *argv[])
                                 pszExternalInterfaceName);
             }
         }
+
+        // Retrieve the MTU size for the internal network interface
+        if ((pInternalNetworkInterface->getMTUSize() > 0) &&
+            (pInternalNetworkInterface->getMTUSize() <= ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MAXIMUM_MTU)) {
+            checkAndLogMsg ("main", Logger::L_Info,
+                            "retrieved an MTU size of %hu bytes for the internal network interface <%s>\n",
+							pInternalNetworkInterface->getMTUSize(), pszInternalInterfaceName);
+            ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF = pExternalNetworkInterface->getMTUSize();
+        }
+        else if (pExternalNetworkInterface->getMTUSize() == 0) {
+            checkAndLogMsg ("main", Logger::L_Warning,
+                            "impossible to retrieve the MTU size from the internal network interface <%s>; using default value of %hu bytes\n",
+                            pInternalNetworkInterface, ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF);
+        }
+        else {
+            // Retrieved MTU value larger than ETHERNET_MAXIMUM_MTU --> using default value
+            checkAndLogMsg ("main", Logger::L_Warning,
+                            "retrieved a value of %hu bytes for the MTU size from the internal network interface <%s>, "
+                            "but the maximum MTU size allowed is %hu bytes; using default value of %hu bytes\n",
+                            pExternalNetworkInterface->getMTUSize(), pInternalNetworkInterface,
+                            ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF);
+        }
     }
     else {
         // Running in host mode: use TAP interface
@@ -383,8 +460,8 @@ int main (int argc, char *argv[])
         // Retrieve IPv4 address of the TAP interface
         if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR == 0U) {
             ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR = pInternalNetworkInterface->getIPv4Addr() ?
-                                                                           pInternalNetworkInterface->getIPv4Addr()->ui32Addr : 0;
-            if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR == 0) {
+                                                                           pInternalNetworkInterface->getIPv4Addr()->ui32Addr : 0U;
+            if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR == 0U) {
                 checkAndLogMsg ("main", Logger::L_SevereError,
                                 "could not determine IP address of TUN/TAP interface and "
                                 "no IP address was specified in the config file\n");
@@ -399,17 +476,18 @@ int main (int argc, char *argv[])
         }
         else if (pInternalNetworkInterface->getIPv4Addr() &&
                 (pInternalNetworkInterface->getIPv4Addr()->ui32Addr != ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR)) {
-            ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR = pInternalNetworkInterface->getIPv4Addr()->ui32Addr;
             checkAndLogMsg ("main", Logger::L_Warning,
-                            "configured IP address does not match the TAP interface address <%s>; NetProxy "
-                            "will use the address retrieved directly from the virtual TAP interface\n",
-                            InetAddr(pInternalNetworkInterface->getIPv4Addr()->ui32Addr).getIPAsString());
+                            "the IP address retrieved from the TAP interface differs from the one specified in the configuration file: retrieved IP address "
+                            "is %s - configured IP address is %s; NetProxy will use the IP address retrieved from the external network interface\n",
+                            InetAddr(pInternalNetworkInterface->getIPv4Addr()->ui32Addr).getIPAsString(),
+                            InetAddr(ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR).getIPAsString());
+            ACMNetProxy::NetProxyApplicationParameters::NETPROXY_IP_ADDR = pInternalNetworkInterface->getIPv4Addr()->ui32Addr;
         }
 
         // Retrieve MTU
         if (ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU == 0U) {
             ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU = pInternalNetworkInterface->getMTUSize();
-            if (ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU == 0) {
+            if (ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU == 0U) {
                 checkAndLogMsg ("main", Logger::L_SevereError,
                                 "could not determine the MTU of the TUN/TAP interface and "
                                 "no MTU size was specified in the config file\n");
@@ -430,14 +508,20 @@ int main (int argc, char *argv[])
                             ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU, pInternalNetworkInterface->getMTUSize());
             ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU = pInternalNetworkInterface->getMTUSize();
         }
+
+        // Copy value of TAP_INTERFACE_MTU into ETHERNET_MTU_INTERNAL_IF, which will be used in the code
+        ACMNetProxy::NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF = ACMNetProxy::NetProxyApplicationParameters::TAP_INTERFACE_MTU;
     }
 
     // Check if the NPUID was set and, if not, set it to the 32-bits value of the IP address of the (external) network interface
-    if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_UNIQUE_ID == 0) {
+    if (ACMNetProxy::NetProxyApplicationParameters::NETPROXY_UNIQUE_ID == 0U) {
         ACMNetProxy::NetProxyApplicationParameters::NETPROXY_UNIQUE_ID = ACMNetProxy::NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR;
+        checkAndLogMsg ("main", Logger::L_Info,
+                        "no UniqueID was specified in the config file for this NetProxy; using the IP address of the external network "
+                        "interface as the UniqueID (%u)\n", ACMNetProxy::NetProxyApplicationParameters::NETPROXY_UNIQUE_ID);
     }
 
-    // If running in Gateway Mode, delete the reference to the external network interface
+    // If running in Host Mode, delete the reference to the external network interface
     if (!ACMNetProxy::NetProxyApplicationParameters::GATEWAY_MODE) {
         delete pExternalNetworkInterface;
         pExternalNetworkInterface = NULL;

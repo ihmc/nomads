@@ -2,21 +2,23 @@ all: onNMS
 
 libdisservice.a: onNMS
 
-onNMS:
-	make -C ../make/
+copyExecutables:
 	cp ../make/*.a ./
 	cp ../make/DisServiceLauncher ./
 	cp ../make/libDisServiceJNIWrapper.so ./
+	cp ../make/DisServiceMessageInjector ./
 
+onNMS:
+	make -C ../make/
+	$(MAKE) copyExecutables
+	
 onNMSValgrind:
 	make -C ../make/ -f Makefile-valgrind
-	cp ../make/*.a ./
-	cp ../make/DisServiceLauncher ./
+	$(MAKE) copyExecutables
 
-onXLayer:
-	make -f ../make/Makefile-xlayer -C ../make/
-	cp ../make/*.a ./
-	cp ../make/DisServiceLauncher ./
+onNMSGprof:
+	make -C ../make/ -f Makefile-gprof
+	$(MAKE) copyExecutables
 
 clean:
 	if test -e DisServiceLauncher; \
@@ -32,9 +34,7 @@ clean:
 		then rm libDisServiceJNIWrapper.so; \
 	fi 
 	make -C ../make clean
+	rm -f *.log *.out
 
 cleanall: clean
 	make -C ../make/ cleanall
-
-cleanall-xlayer: clean
-	make -f ../make/Makefile-xlayer -C ../make/ cleanall

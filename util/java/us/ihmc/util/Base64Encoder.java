@@ -2,7 +2,7 @@
  * Base64Encoder.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@ import java.io.* ;
  * option of not outputting newlines in the encoded string.
  * <p>
  * Base64Encoder.java
- * $Id: Base64Encoder.java,v 1.7 2014/11/07 17:58:06 gbenincasa Exp $
+ * $Id: Base64Encoder.java,v 1.8 2016/06/09 20:02:46 gbenincasa Exp $
  * (c) COPYRIGHT MIT and INRIA, 1996.
  * Please first read the full copyright statement in file COPYRIGHT.html
  *

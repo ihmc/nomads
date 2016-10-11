@@ -2,7 +2,7 @@
  * DataCacheInterface.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -365,6 +365,11 @@ PtrLList<MessageHeader> * DataCacheInterface::getMessageInfos (const char *pszGr
 char ** DataCacheInterface::getDisseminationServiceIds (const char *pszObjectId, const char *pszInstanceId)
 {
     return _pDB->getDisseminationServiceIds (pszObjectId, pszInstanceId);
+}
+
+void * DataCacheInterface::getAnnotationMetadata (const char *pszGroupName, const char *pszSenderNodeId, uint32 ui32MsgSeqId, uint32 &ui32Len)
+{
+    return _pDB->getAnnotationMetadata (pszGroupName, pszSenderNodeId, ui32MsgSeqId, ui32Len);
 }
 
 bool DataCacheInterface::cleanCache (uint32 ui32Length, MessageHeader *pMH, void *pData)

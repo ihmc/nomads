@@ -2,7 +2,7 @@
  * SortedProperties.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,7 +51,7 @@ public class SortedProperties extends Properties
      * @param value the value to assign to the property
      * @return the value just added if it's not null, or null otherwise
      */
-    public synchronized Object setPropertySafely(String key, String value)
+    public synchronized Object setPropertySafely (String key, String value)
     {
         if (value != null) {
             return put(key, value);
@@ -64,8 +64,8 @@ public class SortedProperties extends Properties
     @Override
     public Object put (Object key, Object value)
     {
-        _keys.add(key);
-        return super.put(key, value);
+        _keys.add (key);
+        return super.put (key, value);
     }
 
     /**
@@ -75,7 +75,24 @@ public class SortedProperties extends Properties
      */
     public void load (String propertiesString) throws IOException
     {
-        super.load (new StringReader(propertiesString));
+        super.load (new StringReader (propertiesString));
+    }
+
+    /**
+     * Copies the <code>String</code> properties of the <code>SortedProperties</code> passed as parameter into a new
+     * <code>SortedProperties</code> instance
+     * @param sp <code>SortedProperties</code> to copy
+     * @return the new <code>SortedProperties</code> instance containing the copy of the not null <code>String</code>
+     * properties
+     */
+    public static SortedProperties copyStringProperties (SortedProperties sp)
+    {
+        SortedProperties copy = new SortedProperties();
+        for (String key : sp.stringPropertyNames()) {
+            copy.setPropertySafely (key, sp.getProperty (key));
+        }
+
+        return copy;
     }
 
     private final LinkedHashSet<Object> _keys = new LinkedHashSet<Object>();

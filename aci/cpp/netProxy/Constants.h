@@ -5,7 +5,7 @@
  * Constants.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -73,9 +73,15 @@ namespace ACMNetProxy
     #endif
     const uint16 NetProxyApplicationParameters::CSR_PROXY_SERVER_PORT = 7878;
     const char * const NetProxyApplicationParameters::CSR_PROXY_SERVER_ADDR = "127.0.0.1";
+    bool NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE = NetProxyApplicationParameters::DEFAULT_TRANSPARENT_GATEWAY_MODE;
+    bool NetProxyApplicationParameters::MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE =
+        NetProxyApplicationParameters::DEFAULT_MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE;
+    bool NetProxyApplicationParameters::BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE =
+        NetProxyApplicationParameters::DEFAULT_BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE;
     const int64 NetProxyApplicationParameters::SYN_SENT_RETRANSMISSION_TIMEOUTS[] = {1000LL, 3000LL, 7000LL, 15000LL, 31000LL, 0x7FFFFFFFFFFFFFFFLL};
-    bool NetProxyApplicationParameters::UPDATE_GUI_THREAD_ENABLED = NetProxyApplicationParameters::DEFAULT_UPDATE_GUI_THREAD_ENABLED;
+	uint32 NetProxyApplicationParameters::VIRTUAL_CONN_ESTABLISHMENT_TIMEOUT = NetProxyApplicationParameters::DEFAULT_VIRTUAL_CONN_ESTABLISHMENT_TIMEOUT;
     const double NetProxyApplicationParameters::UPDATE_TCP_WINDOW_ACK_THRESHOLD = 30.0;
+    bool NetProxyApplicationParameters::UPDATE_GUI_THREAD_ENABLED = NetProxyApplicationParameters::DEFAULT_UPDATE_GUI_THREAD_ENABLED;
     const char * const NetProxyApplicationParameters::DEFAULT_GUI_UPDATE_MESSAGE_HEADER = "ACMNP";
     #if defined (WIN32)
         NOMADSUtil::String NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE ("c:\\temp\\mockets.conf");
@@ -83,17 +89,24 @@ namespace ACMNetProxy
         NOMADSUtil::String NetProxyApplicationParameters::DEFAULT_MOCKETS_CONFIG_FILE ("/tmp/mockets.conf");
     #endif
     const char * const NetProxyApplicationParameters::LOGS_DIR = "log";
+	char NetProxyApplicationParameters::NETSENSOR_CONFIG_FILE[1000] = "../../misc/conf/netSensor.cfg";
+	bool NetProxyApplicationParameters::ACTIVATE_NETSENSOR = true;
+	const NOMADSUtil::String NetProxyConfigManager::UniqueIDsConfigFileReader::ACTIVE_CONNECTIVITY_CONFIG_PARAMETER("active");
+	const NOMADSUtil::String NetProxyConfigManager::UniqueIDsConfigFileReader::PASSIVE_CONNECTIVITY_CONFIG_PARAMETER("passive");
+	const NOMADSUtil::String NetProxyConfigManager::UniqueIDsConfigFileReader::BIDIRECTIONAL_CONNECTIVITY_CONFIG_PARAMETER("bidirectional");
 
     const CompressionSetting CompressionSetting::DefaultNOCompressionSetting;
 
     const ProtocolSetting ProtocolSetting::INVALID_PROTOCOL_SETTING (ProxyMessage::PMP_UNDEF_PROTOCOL);
+    const ProtocolSetting ProtocolSetting::DEFAULT_ICMP_PROTOCOL_SETTING (ProxyMessage::PMP_UDP);
+    const ProtocolSetting ProtocolSetting::DEFAULT_TCP_PROTOCOL_SETTING (ProxyMessage::PMP_MocketsRS);
+    const ProtocolSetting ProtocolSetting::DEFAULT_UDP_PROTOCOL_SETTING (ProxyMessage::PMP_MocketsUU);
 
     TCPConnTable * const TCPManager::_pTCPConnTable = TCPConnTable::getTCPConnTable();
     ConnectionManager * const TCPManager::_pConnectionManager = ConnectionManager::getConnectionManagerInstance();
     NetProxyConfigManager * const TCPManager::_pConfigurationManager = NetProxyConfigManager::getNetProxyConfigManager();
     PacketRouter * const TCPManager::_pPacketRouter = PacketRouter::getPacketRouter();
-
-    const uint32 TCPConnTable::MSL = 2*15*1000;                         // Maximum Segment Lifetime (2 minutes in RFC 793)
+	
     const uint32 TCPConnTable::STANDARD_MSL = 2*60*1000;                // Maximum Segment Lifetime (2 minutes in RFC 793)
     const uint16 TCPConnTable::LB_RTO = 1*100;                          // Retransmission TimeOut Lower Bound of 100 milliseconds (in RFC 793 is 1 second)
     const uint16 TCPConnTable::UB_RTO = 3*1000;                         // Retransmission TimeOut Upper Bound of 60 seconds (RFC 793)

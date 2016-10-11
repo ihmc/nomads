@@ -2,7 +2,7 @@
  * GeoUtils.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,10 +23,8 @@
     #define _USE_MATH_DEFINES    // For M_PI - see math.h
 #endif
 
-#include <math.h>
-#include <stdlib.h>
-
 #include "Logger.h"
+#include "NLFLib.h"
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 #define invalidCoordinates Logger::L_Warning, "Invalid coordinates. %f %f %f %f %f %f %f %f\n"
@@ -480,6 +478,15 @@ float NOMADSUtil::greatCircleDistance (float latitude1, float longitude1,
     double sad = atan2 (num, den);
     num = sad * EARTH_MEAN_RADIUS;
     return (float) num;
+}
+
+int NOMADSUtil::metersToLatitudeDegrees (double dLat, double dDisplacementInMeters,
+                                         double &dLatDegrees, double &dLonDegrees)
+{
+    static const double R = 111111;
+    dLatDegrees = dDisplacementInMeters / R;
+    dLonDegrees = fabs (dDisplacementInMeters * cos (dLat) / R);
+    return 0;
 }
 
 void NOMADSUtil::getBoundingBox (float fLat, float fLong, float fDistance,

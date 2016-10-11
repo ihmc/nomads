@@ -2,7 +2,7 @@
  * ZlibConnectorWriter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -272,11 +272,15 @@ namespace ACMNetProxy
 
     void *ZLibConnectorWriter::alloc_mem (void *userdata, uInt items, uInt size)
     {
+        (void) userdata;
+        
         return calloc (items, size);
     }
 
     void ZLibConnectorWriter::free_mem (void *userdata, void *data)
     {
+        (void) userdata;
+        
         free (data);
     }
 

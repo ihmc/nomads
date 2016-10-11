@@ -2,7 +2,7 @@
  * DimeRecord.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,8 +22,8 @@
  *
  * @author      Marco Arguedas    <marguedas@ihmc.us>
  *
- * @version     $Revision: 1.7 $
- *              $Date: 2014/11/07 17:58:06 $
+ * @version     $Revision: 1.16 $
+ *              $Date: 2016/06/09 20:02:46 $
  */
 
 package us.ihmc.util;
@@ -32,40 +32,66 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- *
+ * Manages a dime record
  */
 public class DimeRecord
 {
-    DimeRecord()
-    {
-    }
-
     /**
-     *
+     * Constructor
+     * @param type payload type
+     * @param payload byte array representing the dime record payload
+     * @param id payload identifier
      */
-    public void setPayload (byte[] payload)
+    public DimeRecord (String type, byte[] payload, String id)
     {
         _payload = payload;
-    }
-
-    /**
-     *
-     */
-    public void setType (String type)
-    {
         _type = type;
-    }
-
-    /**
-     *
-     */
-    public void setID (String id)
-    {
         _id = id;
     }
 
     /**
-     *
+     * Constructor
+     * @param type payload type
+     * @param payload byte array representing the dime record payload
+     * @param id payload identifier
+     */
+    public DimeRecord (PayloadType type, byte[] payload, String id)
+    {
+        _payload = payload;
+        _type = type.name();
+        _id = id;
+    }
+
+    /**
+     * Sets the message begin flag value
+     * @param b message begin flag value
+     */
+    void setMessageBeginFlag (boolean b)
+    {
+        _messageBeginFlag = b;
+    }
+
+    /**
+     * Sets the message end flag value
+     * @param b message end flag value
+     */
+    void setMessageEndFlag (boolean b)
+    {
+        _messageEndFlag = b;
+    }
+
+    /**
+     * Sets the chunk flag value
+     * @param b chunk flag value
+     */
+    void setChunkFlag (boolean b)
+    {
+        _chunkFlag = b;
+    }
+
+    /**
+     * Gets the dime record payload
+     * @return the dime record payload
      */
     public byte[] getPayload()
     {
@@ -73,7 +99,8 @@ public class DimeRecord
     }
 
     /**
-     *
+     * Gets the dime record payload type
+     * @return the dime record payload type
      */
     public String getType()
     {
@@ -81,7 +108,8 @@ public class DimeRecord
     }
 
     /**
-     *
+     * Gets the dime record payload identifier
+     * @return the dime record payload identifier
      */
     public String getID()
     {
@@ -89,16 +117,17 @@ public class DimeRecord
     }
 
     /**
-     *
+     * Gets the length of the dime record payload
+     * @return the length of the dime record payload
      */
-    public int getPayloadLenght()
+    public int getPayloadLength()
     {
-        int length = (_payload != null) ? _payload.length : 0;
-        return length;
+        return (_payload != null) ? _payload.length : 0;
     }
 
     /**
-     *
+     * Gets the length of the whole dime record object
+     * @return the length of the whole dime record object
      */
     public int getRecordLength()
     {
@@ -120,7 +149,7 @@ public class DimeRecord
         }
 
         // now, add the size of the payload (with padding)
-        aux = this.getPayloadLenght();
+        aux = this.getPayloadLength();
         recLength += (aux % 4 == 0) ? aux
                                     : ( aux + 4 - (aux % 4) ); //align to 32 bits.
 
@@ -128,19 +157,22 @@ public class DimeRecord
     }
 
     /**
-     *
+     * Gets the whole dime record object as byte array
+     * @return a byte array containing the whole dime record object
      */
     public byte[] getRecord()
     {
         int length = this.getRecordLength();
         byte[] buff = new byte[length];
-        this.getRecord(buff, 0);
+        getRecord (buff, 0);
 
         return buff;
     }
 
     /**
-     *
+     * Gets the dime record object as byte array starting from a given offset
+     * @param buff byte array where the dime object will be written into
+     * @param offset offset value
      */
     public void getRecord (byte[] buff, int offset)
     {
@@ -154,8 +186,8 @@ public class DimeRecord
 
         // set the ID length field.
         if (_id != null) {
-            aux = ByteArray.shortToByteArray((short)_id.length());
-            System.arraycopy(aux, 0, buff, index + 0, 2);
+            aux = ByteArray.shortToByteArray ((short)_id.length());
+            System.arraycopy (aux, 0, buff, index + 0, 2);
         }
 
         // now set the flags
@@ -213,10 +245,11 @@ public class DimeRecord
     }
 
     /**
-    *
+     * Writes the whole dime record object in the output stream
+     * @param os output stream where the dime record object will be written into
+     * @throws IOException if problems occur in writing the dime record object
      */
-    public void getRecord (OutputStream os)
-        throws IOException
+    public void getRecord (OutputStream os) throws IOException
     {
         byte[] header = new byte[8];
         byte[] paddingAux = new byte[] {0, 0, 0};
@@ -296,7 +329,7 @@ public class DimeRecord
     }
 
     /**
-     *
+     * Prints the dime record object on standard output
      */
     public void print()
     {
@@ -306,39 +339,16 @@ public class DimeRecord
         System.out.println ("\tCF = " + _chunkFlag);
         System.out.println ("\tID = " + _id);
         System.out.println ("\tType = " + _type);
-        System.out.println ("\tPayloadLength = " + getPayloadLenght());
+        System.out.println ("\tPayloadLength = " + getPayloadLength());
         if (_payload != null) {
-            String str = new String(_payload, 0, Math.min(70, getPayloadLenght()));
+            String str = new String (_payload, 0, Math.min(70, getPayloadLength()));
             System.out.println ("\tPayload = [" + str + "]");
         }
     }
 
     /**
-     *
-     */
-    void setMessageBeginFlag (boolean value)
-    {
-        _messageBeginFlag = value;
-    }
-
-    /**
-     *
-     */
-    void setMessageEndFlag (boolean value)
-    {
-        _messageEndFlag = value;
-    }
-
-    /**
-     *
-     */
-    void setChunkFlag (boolean value)
-    {
-        _chunkFlag = value;
-    }
-
-    /**
-     *
+     * Gets the value of the message begin flag
+     * @return the value of the message begin flag
      */
     boolean getMessageBeginFlag()
     {
@@ -346,7 +356,8 @@ public class DimeRecord
     }
 
     /**
-     *
+     * Gets the value of the message end flag
+     * @return the value of the message end flag
      */
     boolean getMessageEndFlag()
     {
@@ -354,19 +365,30 @@ public class DimeRecord
     }
 
     /**
-     *
+     * Gets the value of the chunk flag
+     * @return the value of the chunk flag
      */
     boolean getChunkFlag()
     {
         return _chunkFlag;
     }
 
-    // /////////////////////////////////////////////////////////////////////////
-    private boolean _messageBeginFlag   = false;
-    private boolean _messageEndFlag     = false;
-    private boolean _chunkFlag          = false;
 
-    private byte[] _payload = new byte[0];
-    private String _type    = "";
-    private String _id      = "";
+
+    private boolean _messageBeginFlag = false;
+    private boolean _messageEndFlag = false;
+    private boolean _chunkFlag = false;
+
+    private final byte[] _payload;
+    private final String _type;
+    private final String _id;
+
+    public enum PayloadType
+    {
+        response,
+        java_lang_object,
+        service_state,
+        acr_file,
+        binary_invoke_request
+    }
 }

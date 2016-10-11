@@ -2,7 +2,7 @@
  * DisServiceJNIWrapper.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@
 #endif
 
 JNIEXPORT jint JNICALL JNI_OnLoad (JavaVM *pJVM, void *pReserved);
-JNIEXPORT void JNICALL Java_us_ihmc_aci_disService_DisseminationService_init (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile);
+JNIEXPORT void JNICALL Java_us_ihmc_aci_disService_DisseminationService_init(JNIEnv *pEnv, jobject joThis, jstring jsConfigFile, jobjectArray joaOverrideAttrs, jobjectArray joaOverrideValues);
 JNIEXPORT jstring JNICALL Java_us_ihmc_aci_disService_DisseminationService_getNodeId (JNIEnv *pEnv, jobject joThis);
 JNIEXPORT jobject JNICALL Java_us_ihmc_aci_disService_DisseminationService_getPeerList (JNIEnv *pEnv, jobject joThis);
 JNIEXPORT jstring JNICALL Java_us_ihmc_aci_disService_DisseminationService_push (JNIEnv *pEnv, jobject joThis, jstring jsGroupName, jstring jsObjectId, jstring jsInstanceId, jstring jsMIMEType, jbyteArray jbaMetaData, jbyteArray jbaData, jlong jlExpiration, jshort jsHistoryWindow, jshort jsTag, jbyte jbPriority);

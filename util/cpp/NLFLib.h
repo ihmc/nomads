@@ -2,7 +2,7 @@
  * NLFLib.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -220,6 +220,7 @@ namespace NOMADSUtil
     int minimum (int iFirstVal, int iSecondVal);
     uint16 minimum (uint16 ui16FirstVal, uint16 ui16SecondVal);
     uint32 minimum (uint32 ui32FirstVal, uint32 ui32SecondVal);
+    uint64 minimum (uint64 ui64FirstVal, uint64 ui64SecondVal);
     float minimum (float fFirstVal, float fSecondVal);
 
     // STL <algorithm> replacement functions

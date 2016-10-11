@@ -5,7 +5,7 @@
  * ProtocolSetting.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -32,8 +32,8 @@ namespace ACMNetProxy
     class ProtocolSetting
     {
     public:
-        ProtocolSetting (const char * const pProtocol);
-        ProtocolSetting (const ProxyMessage::Protocol protocolFlag);
+        explicit ProtocolSetting (const char * const pProtocol);
+        explicit ProtocolSetting (const ProxyMessage::Protocol protocolFlag);
         ProtocolSetting (const char * const pProtocol, const CompressionSetting &compressionSetting);
         ProtocolSetting (const ProxyMessage::Protocol protocolFlag, const CompressionSetting &compressionSetting);
         ProtocolSetting (const ProtocolSetting &protocolSetting);
@@ -43,9 +43,12 @@ namespace ACMNetProxy
         const char * const getProxyMessageProtocolAsString (void) const;
         static const char * const getProxyMessageProtocolAsString (ProxyMessage::Protocol protocol);
         const CompressionSetting & getCompressionSetting (void) const;
+
+        const uint32 getPrioritySetting (void) const;
+
         void setProxyMessageProtocol (const ProxyMessage::Protocol protocolFlag);
         void setCompressionSetting (const CompressionSetting compressionSetting);
-
+		void setPrioritySetting(const int prioritySetting);
         const bool isDefinedProtocol (void) const;
         const bool isMocketsProtocol (void) const;
         const bool isTCPProtocol (void) const;
@@ -64,38 +67,40 @@ namespace ACMNetProxy
         static bool isProtocolNameCorrect (const char * const pProtocolToCheck);
 
         static const ProtocolSetting & getInvalidProtocolSetting (void);
+        static const ProtocolSetting * const getDefaultICMPProtocolSetting (void);
+        static const ProtocolSetting * const getDefaultTCPProtocolSetting (void);
+        static const ProtocolSetting * const getDefaultUDPProtocolSetting (void);
+
         static ProxyMessage::Protocol getProtocolFlagFromProtocolString (const char * const pProtocolName);
         static ConnectorType protocolToConnectorType (const ProxyMessage::Protocol protocol);
         static ProxyMessage::Protocol connectorTypeToProtocol (const ConnectorType connectorType);
 
-        static const ProxyMessage::Protocol DEFAULT_ICMP_MAPPING_PROTOCOL = ProxyMessage::PMP_UDP;
-        static const ProxyMessage::Protocol DEFAULT_TCP_MAPPING_PROTOCOL = ProxyMessage::PMP_MocketsRS;
-        static const ProxyMessage::Protocol DEFAULT_UDP_MAPPING_PROTOCOL = ProxyMessage::PMP_MocketsUU;
-        static const ProxyMessage::Protocol DEFAULT_AUTO_CONNECTION_PROTOCOL = ProxyMessage::PMP_MocketsRS;
-
 
     private:
         static const ProtocolSetting INVALID_PROTOCOL_SETTING;
+        static const ProtocolSetting DEFAULT_TCP_PROTOCOL_SETTING;
+        static const ProtocolSetting DEFAULT_UDP_PROTOCOL_SETTING;
+        static const ProtocolSetting DEFAULT_ICMP_PROTOCOL_SETTING;
 
+		uint32 _priority;
         ProxyMessage::Protocol _protocol;
         CompressionSetting _compressionSetting;
     };
 
-
     inline ProtocolSetting::ProtocolSetting (const char * const pProtocol) :
-        _protocol (getProtocolFlagFromProtocolString (pProtocol)), _compressionSetting() { }
+		_protocol(getProtocolFlagFromProtocolString(pProtocol)), _compressionSetting(), _priority(0) {}
 
     inline ProtocolSetting::ProtocolSetting (const ProxyMessage::Protocol protocolFlag) :
-        _protocol (protocolFlag), _compressionSetting() { }
+		_protocol(protocolFlag), _compressionSetting(), _priority(0) { }
 
     inline ProtocolSetting::ProtocolSetting (const char * const pProtocol, const CompressionSetting &compressionSetting) :
-        _protocol (getProtocolFlagFromProtocolString (pProtocol)), _compressionSetting (compressionSetting) { }
+		_protocol(getProtocolFlagFromProtocolString(pProtocol)), _compressionSetting(compressionSetting), _priority(0) { }
 
     inline ProtocolSetting::ProtocolSetting (const ProxyMessage::Protocol protocolFlag, const CompressionSetting &compressionSetting) :
-        _protocol (protocolFlag), _compressionSetting (compressionSetting) { }
+		_protocol(protocolFlag), _compressionSetting(compressionSetting), _priority(0) { }
 
     inline ProtocolSetting::ProtocolSetting (const ProtocolSetting &protocolSetting) :
-        _protocol (protocolSetting._protocol), _compressionSetting (protocolSetting._compressionSetting) { }
+		_protocol(protocolSetting._protocol), _compressionSetting(protocolSetting._compressionSetting), _priority(0) { }
 
     inline ProtocolSetting::~ProtocolSetting (void) {}
 
@@ -114,6 +119,12 @@ namespace ACMNetProxy
         return _compressionSetting;
     }
 
+	inline const uint32 ProtocolSetting::getPrioritySetting(void) const
+	{
+		return  _priority;
+	}
+
+
     inline void ProtocolSetting::setProxyMessageProtocol (const ProxyMessage::Protocol protocolFlag)
     {
         _protocol = protocolFlag;
@@ -123,6 +134,12 @@ namespace ACMNetProxy
     {
         _compressionSetting = compressionSetting;
     }
+
+	inline void ProtocolSetting::setPrioritySetting(const int prioritySetting)
+	{
+		_priority = prioritySetting;
+	}
+
 
     inline const bool ProtocolSetting::isDefinedProtocol (void) const
     {
@@ -200,8 +217,24 @@ namespace ACMNetProxy
 
     inline const ProtocolSetting & ProtocolSetting::getInvalidProtocolSetting (void)
     {
-        return ProtocolSetting::INVALID_PROTOCOL_SETTING;
+        return INVALID_PROTOCOL_SETTING;
     }
+
+    inline const ProtocolSetting * const ProtocolSetting::getDefaultTCPProtocolSetting (void)
+    {
+        return &DEFAULT_TCP_PROTOCOL_SETTING;
+    }
+
+    inline const ProtocolSetting * const ProtocolSetting::getDefaultUDPProtocolSetting (void)
+    {
+        return &DEFAULT_UDP_PROTOCOL_SETTING;
+    }
+
+    inline const ProtocolSetting * const ProtocolSetting::getDefaultICMPProtocolSetting (void)
+    {
+        return &DEFAULT_ICMP_PROTOCOL_SETTING;
+    }
+
 }
 
 #endif  // INCL_PROTOCOL_SETTING_H

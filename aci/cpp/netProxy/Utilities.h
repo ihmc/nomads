@@ -5,7 +5,7 @@
  * Utilities.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -57,6 +57,7 @@ namespace ACMNetProxy
     ConnectorType connectorTypeFromString (const NOMADSUtil::String &sConnTypeName);
     void buildEthernetMACAddressFromString (NOMADSUtil::EtherMACAddr &eMACAddrToUpdate, const uint8 * const pszMACAddr);
     void buildVirtualNetProxyEthernetMACAddress (NOMADSUtil::EtherMACAddr &virtualEtherMACAddr, const uint8 ui8Byte5, const uint8 ui8Byte6);
+    bool checkEtherMACAddressFormat (const char * const pcEthernetMACAddress);
 
     inline static bool isConnectorTypeNameCorrect (const NOMADSUtil::String &sConnTypeNameToCheck)
     {
@@ -89,5 +90,9 @@ namespace ACMNetProxy
         return generateUInt64Key (rInetAddr.getIPAddress(), rInetAddr.getPort());
     }
 
+    inline bool checkCharRange (const char c, const char cMin, const char cMax)
+    {
+        return (c >= cMin) && (c <= cMax);
+    }
 }
 #endif  //INCL_UTILITIES_H

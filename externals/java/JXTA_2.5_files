@@ -1,0 +1,6 @@
+The JXTA 2.5 Release includes the following files:
+
+- bcprov-jdk14.jar
+- javax.servlet.jar
+- jxta.jar
+- org.mortbay.jetty.jar

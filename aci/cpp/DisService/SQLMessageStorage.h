@@ -2,7 +2,7 @@
  * SQLMessageStorage.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,21 +26,9 @@
 
 #include "SQLMessageHeaderStorage.h"
 
-#include "DArray2.h"
 #include "FTypes.h"
 #include "PtrLList.h"
-#include "ConnectivityHistory.h"
 #include "ManageableThread.h"
-
-namespace NOMADSUtil
-{
-    class String;
-}
-
-namespace IHMC_MISC
-{
-    class PreparedStatement;
-}
 
 namespace IHMC_ACI
 {
@@ -49,8 +37,7 @@ namespace IHMC_ACI
     class SQLMessageStorage : public SQLMessageHeaderStorage
     {
         public:
-            SQLMessageStorage (void);
-            SQLMessageStorage (const char *pszDBName, bool bUseTransactionTimer);
+            SQLMessageStorage (const char *pszDBName = NULL, bool bUseTransactionTimer = false);
             virtual ~SQLMessageStorage (void);
 
             int init (void);
@@ -80,20 +67,20 @@ namespace IHMC_ACI
             NOMADSUtil::PtrLList<Message> * getMessages (DisServiceDataCacheQuery *pQuery);
             NOMADSUtil::PtrLList<Message> * getCompleteChunks (const char *pszGroupName, const char *pszSender,
                                                                uint32 ui32MsgSeqId);
+            NOMADSUtil::PtrLList<Message> * getCompleteAnnotations (const char *pszAnnotatedObjMsgId);
 
         protected:
             friend class DataCache;
             friend class PersistentDataCache;
             friend class DataCacheReplicationController;
 
-            char * getCreateTableSQLStatement (void);
-            char * getInsertIntoTableSQLStatement (void);
+            NOMADSUtil::String getCreateTableSQLStatement (void);
+            NOMADSUtil::String getInsertIntoTableSQLStatement (void);
 
             /*
              * Insert the MessageInfo fields into the default data cache
              */
-            int insertIntoDataCacheBind (IHMC_MISC::PreparedStatement *pStmt,
-                                         Message *pMsgHeader);
+            int insertIntoDataCacheBind (IHMC_MISC::PreparedStatement *pStmt, Message *pMsgHeader);
 
         private:
             NOMADSUtil::PtrLList<Message> * getMessages (IHMC_MISC::PreparedStatement *pStmt, uint16 ui16LimitElements = 0);
@@ -117,6 +104,7 @@ namespace IHMC_ACI
             IHMC_MISC::PreparedStatement *_pGetFullyQualifiedMsg;    // Used to retrieve <GroupName>:<OriginatorNodeId>:<MsgSeqId>:<ChunkId>:<FragmentOffset>:<FragmentLength>
             IHMC_MISC::PreparedStatement *_pGetMsg;                  // Used to retrieve <GroupName>:<OriginatorNodeId>:<MsgSeqId>:<ChunkId>
             IHMC_MISC::PreparedStatement *_pGetComplChunksPrepStmt;
+            IHMC_MISC::PreparedStatement *_pGetComplAnnotationsPrepStmt;
     };
 }
 

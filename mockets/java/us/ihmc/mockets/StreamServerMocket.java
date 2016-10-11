@@ -23,7 +23,7 @@
  * @author Niranjan Suri
  * @author Maggie Breedy
  * @author Marco Arguedas
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.11 $
  */
 
 package us.ihmc.mockets;
@@ -79,13 +79,13 @@ public class StreamServerMocket
         return _listenPort;
     }
 
-    /**
-     *
-     */
-    protected void finalize()
-    {
-        dispose();
-    }
+//    /**
+//     *
+//     */
+//    protected void finalize()
+//    {
+//        dispose();
+//    }
 
     /**
      * Accept a new connection and return an instance of Mocket that represents

@@ -2,7 +2,7 @@
  * TCPSocket.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,8 +19,8 @@
  * TCP/IP Stream Socket Class header file
  *
  * Written by Niranjan Suri
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/TCPSocket.h,v 1.33 2014/11/06 21:30:46 gbenincasa Exp $
- * Revision: $Revision: 1.33 $
+ * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/TCPSocket.h,v 1.34 2016/06/09 20:02:45 gbenincasa Exp $
+ * Revision: $Revision: 1.34 $
  */
 
 #ifndef INCL_TCPSOCKET_H

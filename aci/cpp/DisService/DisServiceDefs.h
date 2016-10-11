@@ -2,7 +2,7 @@
  * DisServiceDefs.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,7 +42,9 @@
     #endif
 
     #if defined (WIN32)
-        #define snprintf _snprintf
+        #if _MCS_VER<1900
+            #define snprintf _snprintf
+        #endif
     #endif
 #endif	// INCL_DISSERVICE_DEFS_H
 

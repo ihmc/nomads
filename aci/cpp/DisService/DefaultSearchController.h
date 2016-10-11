@@ -2,7 +2,7 @@
  * DefaultSearchController.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -47,6 +47,9 @@ namespace IHMC_ACI
 
             void searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds,
                                      const char *pszMatchingNodeId);
+
+            void volatileSearchReplyArrived (const char *pszQueryId, const void *pReply,
+                                             uint16 ui162ReplyLen, const char *pszMatchingNodeId);
 
         private:
             void sendMessageRequest (const char *pszMessageId, const char *pszQueryId, uint16 ui16ClientId);

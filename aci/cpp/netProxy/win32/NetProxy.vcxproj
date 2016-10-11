@@ -195,7 +195,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\winpcap\Include;..\..\..\..\externals\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\externals\protobuf\win32\install 3.00-beta-2\include;..\..\..\..\work\misc\cpp\dtlsInfrastructure;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\winpcap\Include;..\..\..\..\externals\include;..\..\..\..\misc\cpp\netsensor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -206,12 +206,18 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>iphlpapi.lib;wpcap.lib;libeay32_debug.lib;ws2_32.lib;liblzma.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>iphlpapi.lib;wpcap.lib;ws2_32.lib;libeay32MDd.lib;ssleay32MDd.lib;liblzma.lib;libprotobuf_MDd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\lib;..\..\..\..\externals\lib\win32;..\..\..\..\externals\protobuf\protobuf-3.0.0-beta-2\win32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MD.dll ..\..\..\..\aci\cpp\netProxy\win32\Debug &amp; 
+copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MDd.dll ..\..\..\..\aci\cpp\netProxy\win32\Debug &amp; 
+copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MD.dll ..\..\..\..\aci\cpp\netProxy\win32\Debug &amp;
+copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MDd.dll ..\..\..\..\aci\cpp\netProxy\win32\Debug</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -236,7 +242,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\winpcap\Include;..\..\..\..\externals\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\externals\protobuf\win32\install 3.00-beta-2\include;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\util\cpp;..\..\..\..\util\cpp\net;..\..\..\..\externals\winpcap\Include;..\..\..\..\externals\include;..\..\..\..\misc\cpp\netsensor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -246,14 +252,20 @@
       <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>IPHlpApi.Lib;libeay32_release.lib;ws2_32.lib;liblzma.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>iphlpapi.lib;wpcap.lib;ws2_32.lib;libeay32MD.lib;ssleay32MD.lib;liblzma.lib;libprotobuf_MD.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\lib;..\..\..\..\externals\lib\win32;..\..\..\..\externals\protobuf\protobuf-3.0.0-beta-2\win32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MD.dll ..\..\..\..\aci\cpp\netProxy\win32\Release &amp; 
+copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MDd.dll ..\..\..\..\\aci\cpp\netProxy\win32\Release &amp; 
+copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MD.dll ..\..\..\..\aci\cpp\netProxy\win32\Release &amp;
+copy /Y ..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MDd.dll ..\..\..\..\aci\cpp\netProxy\win32\Release </Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -454,6 +466,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\externals\zlib\win32\zlib.vcxproj">
       <Project>{544a0007-9ce2-4a8b-b24d-3aa18924fd15}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\misc\cpp\netsensor\win32\NetSensor.vcxproj">
+      <Project>{a6814ef4-242c-4997-b06a-2a8cac541203}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\mockets\cpp\win32\mockets.vcxproj">
       <Project>{b5b29df6-3670-4806-a979-47f87d27961a}</Project>

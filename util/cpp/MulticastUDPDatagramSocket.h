@@ -2,7 +2,7 @@
  * MulticastUDPDatagramSocket.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,6 +39,8 @@ namespace NOMADSUtil
             #endif
             virtual ~MulticastUDPDatagramSocket (void);
 
+            SocketType getType (void);
+
             // Join a Multicast group
             // NOTE: ui32ListenAddr has to be the same address the socket is bound to
             int joinGroup (uint32 ui32MulticastGroup, uint32 ui32ListenAddr = INADDR_ANY);
@@ -74,6 +76,11 @@ namespace NOMADSUtil
             DArray<InetAddr*> _ucastRelayDestinations;
             DArray<InetAddr*> _mcastRelayDestinations;
     };
+
+    inline DatagramSocket::SocketType MulticastUDPDatagramSocket::getType (void)
+    {
+        return DatagramSocket::ST_MulticastUDP;
+    }
 
 }
 

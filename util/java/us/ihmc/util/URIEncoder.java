@@ -2,7 +2,7 @@
  * URIEncoder.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,7 +35,7 @@ public class URIEncoder
      *         chars replaced with placeholders.
      *
      * @author dwelch
-     * @version $Revision: 1.6 $
+     * @version $Revision: 1.7 $
      */
     public static String removeSpecialChars (String stringWithSpecialChars)
     {

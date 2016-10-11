@@ -1,7 +1,7 @@
 /*
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -130,7 +130,7 @@ namespace ACMNetProxy
         uint16 ui16ConnectorsNum = static_cast<uint16> (_ConnectorStatsTable.getCount());
         UInt64Hashtable<ConnectorStats>::Iterator iterator = _ConnectorStatsTable.getAllElements();
         ConnectorStats *connectorStat = NULL;
-        while (connectorStat = iterator.getValue()) {
+        while ((connectorStat = iterator.getValue())) {
             connectorStat->lock();
             if ((connectorStat->getConnectorType() == CT_UDP) &&
                 ((i64CurrentTime - connectorStat->getLastUpdateTime()) > NetProxyApplicationParameters::DEFAULT_UDP_CONNECTOR_INACTIVITY_TIME)) {
@@ -148,7 +148,7 @@ namespace ACMNetProxy
         // Packing connectors and relative detailed statistics
         _MessagePacker.pack_uint16 (ui16ConnectorsNum);
         iterator = _ConnectorStatsTable.getAllElements();
-        while (connectorStat = iterator.getValue()) {
+        while ((connectorStat = iterator.getValue())) {
             connectorStat->lock();
 
             if ((connectorStat->getConnectorType() == CT_UDP) &&
@@ -164,7 +164,7 @@ namespace ACMNetProxy
             _MessagePacker.pack_uint32 (connectorStat->getRemoteProxyIP());
             _MessagePacker.pack_uint16 (connectorStat->getRemoteProxyPort());
             _MessagePacker.pack_uint32 ((uint32) ((i64CurrentTime - connectorStat->getCreationTime()) / 1000));
-
+			
             // Packing detailed statistics for the selected connector
             packDetailedStats (connectorStat, connectorStat->_detailedTCPStats, fElapsedTimeInSecs);
             packDetailedStats (connectorStat, connectorStat->_detailedUDPStats, fElapsedTimeInSecs);
@@ -243,6 +243,8 @@ namespace ACMNetProxy
                 summaryICMPStats.increaseTrafficIn (ui32BytesIn);
                 break;
             }
+            default:
+                break;
         }
     }
 
@@ -264,6 +266,8 @@ namespace ACMNetProxy
                 summaryICMPStats.increaseTrafficOut (ui32BytesOut);
                 break;
             }
+            default:
+                break;
         }
     }
 

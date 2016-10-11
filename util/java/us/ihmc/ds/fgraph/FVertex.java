@@ -2,7 +2,7 @@
  * FVertex.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,9 +28,9 @@ import java.util.Vector;
  * FVertex
  *
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.13 $
+ * @version $Revision: 1.14 $
  * Created on Apr 21, 2004 at 6:13:46 PM
- * $Date: 2014/11/07 17:58:06 $
+ * $Date: 2016/06/09 20:02:46 $
  * Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class FVertex implements Serializable

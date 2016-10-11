@@ -16,8 +16,8 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * @version     $Revision: 1.9 $
- *              $Date: 2014/10/29 23:05:26 $
+ * @version     $Revision: 1.12 $
+ *              $Date: 2015/02/20 23:34:18 $
  */
 
 package us.ihmc.mockets;
@@ -70,7 +70,7 @@ public class MocketInputStream extends InputStream
     public void close()
         throws IOException
     {
-        _streamMocketRef.close();
+        _streamMocketRef.closeSync();
     }
 
     public StreamMocket getStreamMocket()

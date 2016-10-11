@@ -2,7 +2,7 @@
  * DefaultDataCacheReplicationController.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,8 +21,6 @@
 #define INCL_DEFAULT_DATE_CACHE_REPLICATION_CONTROLLER_H
 
 #include "DataCacheReplicationController.h"
-
-#include "StringHashtable.h"
 
 namespace IHMC_ACI
 {

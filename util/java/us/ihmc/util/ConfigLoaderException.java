@@ -2,7 +2,7 @@
  * ConfigLoaderException.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,8 +23,8 @@ package us.ihmc.util;
  * ConfigLoaderException
  *
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.4 $
- * @ $Date: 2014/11/07 17:58:06 $
+ * @version $Revision: 1.5 $
+ * @ $Date: 2016/06/09 20:02:46 $
  * @ Created on Jul 20, 2005 at 2:37:58 PM
  */
 public class ConfigLoaderException extends RuntimeException

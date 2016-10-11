@@ -8,8 +8,8 @@
   ++ modified by Mauro Tortonesi <mtortonesi@ihmc.us>
   ++ modified by Maggie Breedy <mbreedy@ihmc.us>
   ++
-  ++ $Revision: 1.30 $
-  ++ $Date: 2014/11/07 17:33:48 $
+  ++ $Revision: 1.34 $
+  ++ $Date: 2015/01/16 23:05:49 $
   ++ ++++++++++++++++++++++++++++++++++++++++++++++++++
 -->
 
@@ -115,6 +115,7 @@
       <include name="us/ihmc/algos/IntegerMovingAverage.java"/>
       <include name="us/ihmc/ds/CircularQueue.java"/>
       <include name="us/ihmc/comm/CommHelperInterface.java"/>
+      <include name="us/ihmc/comm/CommHelper.java"/>
       <include name="us/ihmc/comm/CommException.java"/>
       <include name="us/ihmc/comm/ProtocolException.java"/>
       <include name="us/ihmc/util/Serializer.java"/>
@@ -166,8 +167,9 @@
       <include name="us/ihmc/algos/IntegerMovingAverage.java"/>
       <include name="us/ihmc/ds/CircularQueue.java"/>
 
-      <include name="us/ihmc/comm/CommException.java"/>
-      <include name="us/ihmc/comm/CommHelper.java"/>
+      <exclude name="us/ihmc/comm/CommException.java"/>
+      <exclude name="us/ihmc/comm/CommHelper.java"/>
+
       <include name="us/ihmc/io/LineReaderInputStream.java"/>
       <include name="us/ihmc/comm/ProtocolException.java"/>
       <include name="us/ihmc/util/Serializer.java"/>
@@ -234,6 +236,16 @@
         excludes="META-INF/MANIFEST.MF">
       <fileset dir="${build.dir}">
         <include name="us/ihmc/**/*.class" />
+	<!-- WARNING to use only with aci-android.jar -->
+	<exclude name="us/ihmc/comm/CommException.class"/>
+      	<exclude name="us/ihmc/comm/CommHelper.class"/>
+	<exclude name="us/ihmc/comm/CommHelperInterface.class"/>
+        <exclude name="us/ihmc/comm/ProtocolException.class"/>
+	<exclude name="us/ihmc/io/LineReaderInputStream.class"/>
+	<exclude name="us/ihmc/util/ByteConverter.class"/>
+	<exclude name="us/ihmc/util/ByteArray.class"/>
+	<exclude name="us/ihmc/util/ConfigLoader.class"/>
+	<exclude name="us/ihmc/util/ConfigLoaderException.class"/>
       </fileset>
       <!--fileset dir="${src.dir}">
         <include name="us/ihmc/mockets/**/*.java"/>

@@ -162,13 +162,13 @@ public class ServerMocket
         return _port;
     }
 
-    /**
-     * Removes the <code>ServerMocket</code> object.
-     */
-    protected void finalize()
-    {
-        dispose();
-    }
+//    /**
+//     * Removes the <code>ServerMocket</code> object.
+//     */
+//    protected void finalize()
+//    {
+//        dispose();
+//    }
 
     /**
      * Listens for a connection to be made and accepts it.

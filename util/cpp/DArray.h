@@ -2,7 +2,7 @@
  * darray.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,9 +44,6 @@
  * elements will be inserted, increase the growth increment.
  *
  * Written by Niranjan Suri
- *
- * RCSInfo: "$Header: /export/cvs/nomads.root/util/cpp/DArray.h,v 1.21 2014/11/06 21:30:17 gbenincasa Exp $"
- * Revision: "$Revision: 1.21 $"
  *
  */
 

@@ -2,7 +2,7 @@
  * TargetBasedReplicationController.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,21 +20,14 @@
 #include "TargetBasedReplicationController.h"
 
 #include "DisseminationService.h"
-#include "DisseminationServiceProxyServer.h"
 #include "DisServiceDefs.h"
-#include "SQLTransmissionHistory.h"
-#include "DisServiceDataCacheQuery.h"
-#include "StorageInterface.h"
 #include "DataCache.h"
 #include "MessageId.h"
 #include "MessageInfo.h"
 #include "DisServiceMsg.h"
-#include "DSSFLib.h"
 #include "TransmissionHistoryInterface.h"
-#include "PeerState.h"
 #include "ReceivedMessagesInterface.h"
 
-#include "BufferReader.h"
 #include "ConfigManager.h"
 #include "StringTokenizer.h"
 #include "Logger.h"

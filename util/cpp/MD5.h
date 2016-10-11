@@ -2,7 +2,7 @@
  * MD5.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -50,7 +50,7 @@ namespace NOMADSUtil
 
             // Update the checksum given the next set of data
             // Returns failure only if pBuf is NULL
-            int update (void *pBuf, unsigned long ulBufSize);
+            int update (const void *pBuf, unsigned long ulBufSize);
 
             // Get the checksum - may be called multiple times
             // Cannot call update() anymore until init() is called again
@@ -94,12 +94,12 @@ namespace NOMADSUtil
             } MD5_CTX;
 
             void MD5Init (MD5_CTX *);
-            void MD5Update (MD5_CTX *, unsigned char *, unsigned int);
+            void MD5Update (MD5_CTX *, const unsigned char *, unsigned int);
             void MD5Final (unsigned char [16], MD5_CTX *);
-            void MD5Transform (uint32[4], unsigned char [64]);
-            void Encode (unsigned char *, uint32 *, unsigned int);
-            void Decode (uint32 *, unsigned char *, unsigned int);
-            void MD5_memcpy (unsigned char *, unsigned char *, unsigned int);
+            void MD5Transform (uint32[4], const unsigned char [64]);
+            void Encode (unsigned char *, const uint32 *, unsigned int);
+            void Decode (uint32 *, const unsigned char *, unsigned int);
+            void MD5_memcpy (unsigned char *, const unsigned char *, unsigned int);
             void MD5_memset (unsigned char *, int, unsigned int);
 
             static const char * PRINT_PATTERN;
@@ -122,7 +122,6 @@ namespace NOMADSUtil
             static char * getMD5Checksum (Reader *pReader);
             static char * getMD5Checksum (BufferWriter *pWriter);
             static char * getMD5Checksum (const void *pBuf, uint32 ui32Len);
-            static char * getMD5Checksum (void *pBuf, uint32 ui32Len);
     };
 }
 

@@ -17,11 +17,15 @@
 #include "InetAddr.h"
 #include "UDPDatagramSocket.h"
 #include "StrClass.h"
+#include "ConfigManager.h"
 
 #if defined (WIN32)
+#include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX _MAX_PATH
-    #define snprintf _snprintf
+    #if _MCS_VER<1900
+        #define snprintf _snprintf    
+    #endif
 #elif defined (UNIX)
     #include <syslog.h>
     #if defined (OSX)
@@ -30,19 +34,22 @@
     #endif
 #endif
 
-
 namespace NOMADSUtil
 {
     Logger *pLogger;
-    Logger *pNetLog;
-    Logger *pTopoLog;
 }
 
 using namespace NOMADSUtil;
 
+const char * Logger::LOGGING_ENABLED_PROPERTY = "util.logger.enabled";
+const char * Logger::SCREEN_LOGGING_PROPERTY = "util.logger.out.screen.enabled";
+const char * Logger::FILE_LOGGING_PROPERTY = "util.logger.out.file.enabled";
+const char * Logger::ERROR_FILE_LOGGING_PROPERTY = "util.logger.error.file.path";
+const char * Logger::LOGGING_LEVEL_PROPERTY = "util.logger.detail";
+
 Logger::Logger (void)
+    : _i64StartTime (getTimeInMilliseconds())
 {
-    _i64StartTime = getTimeInMilliseconds();
     _fileLog = NULL;
     _fileErrorLog = NULL;
     _ui32DestAddr = 0;
@@ -80,6 +87,61 @@ Logger::~Logger (void)
         delete _pDGSocket;
         _pDGSocket = NULL;
     }
+}
+        
+int Logger::configure (ConfigManager *pCfgMgr)
+{
+    if (pCfgMgr == NULL) {
+        return -1;
+    }
+    if (pCfgMgr->getValueAsBool (LOGGING_ENABLED_PROPERTY, true)) {
+        if (pLogger == NULL) {
+            pLogger = new Logger();
+        }
+        if (pCfgMgr->getValueAsBool (SCREEN_LOGGING_PROPERTY, true)) {
+            pLogger->enableScreenOutput();
+        }
+        if (pCfgMgr->hasValue (FILE_LOGGING_PROPERTY)) {
+            if (pLogger->initLogFile (pCfgMgr->getValue (FILE_LOGGING_PROPERTY, "application.log")) < 0) {
+                return -2;
+            }
+            if (pLogger->enableFileOutput() < 0) {
+                return -3;
+            }
+        }
+        if (pCfgMgr->hasValue (ERROR_FILE_LOGGING_PROPERTY)) {
+            if (pLogger->initErrorLogFile (pCfgMgr->getValue (ERROR_FILE_LOGGING_PROPERTY)) < 0) {
+                return -4;
+            }
+            if (pLogger->enableErrorLogFileOutput() < 0) {
+                return -5;
+            }
+        }
+        const uint8 ui8DbgDetLevel = (uint8) pCfgMgr->getValueAsInt (LOGGING_LEVEL_PROPERTY, Logger::L_LowDetailDebug);
+        switch (ui8DbgDetLevel) {
+            case Logger::L_SevereError:
+            case Logger::L_MildError:
+            case Logger::L_Warning:
+            case Logger::L_Info:
+            case Logger::L_NetDetailDebug:
+            case Logger::L_LowDetailDebug:
+            case Logger::L_MediumDetailDebug:
+            case Logger::L_HighDetailDebug:
+                pLogger->setDebugLevel (ui8DbgDetLevel);
+                pLogger->logMsg ("Logger::configure", Logger::L_Info,
+                                 "Setting debug level to %d\n", ui8DbgDetLevel);
+                break;
+            default:
+                pLogger->setDebugLevel(Logger::L_LowDetailDebug);
+                pLogger->logMsg ("Logger::configure", Logger::L_Warning,
+                                 "Invalid Logger detail debug level. Setting it to %d\n",
+                                 Logger::L_LowDetailDebug);
+        }
+    }
+    else if (pLogger != NULL) {
+        delete pLogger;
+    }
+    return 0;
 }
 
 int Logger::initLogFile (const char *pszFileName, bool bAppendMode)
@@ -315,7 +377,7 @@ int Logger::logMsg (const char *pszSource, unsigned char uchLevel, const char *p
             lpStrings [0] = szBuf;
             if (!ReportEvent (_eventLogHandle, wType, 0, 1, NULL, 1, 0, lpStrings, NULL)) {
             }
-        #elif defined (LINUX)            
+        #elif defined (LINUX)
             int iPriority;
             switch (uchLevel) {
                 case L_SevereError:

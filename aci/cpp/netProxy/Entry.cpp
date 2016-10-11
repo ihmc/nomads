@@ -2,7 +2,7 @@
  * Entry.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -104,6 +104,9 @@ namespace ACMNetProxy
         i64RemoteActionTime = 0;
         i64IdleTime = 0;
 
+		assignedPriority = 0;
+		currentPriority = 0;
+
         _protocol = ProxyMessage::PMP_UNDEF_PROTOCOL;
 
         remoteProxyAddr.clear();
@@ -167,6 +170,11 @@ namespace ACMNetProxy
             delete _pTempTCPSegment;
             _pTempTCPSegment = NULL;
         }
+
+		if (pTCPSegment) {
+			delete pTCPSegment;
+			pTCPSegment = NULL;
+		}
     }
 
     void Entry::prepareNewConnection (void)
@@ -265,14 +273,14 @@ namespace ACMNetProxy
     TCPSegment * const Entry::dequeueLocallyReceivedData (uint16 ui16RequestedBytesNum)
     {
         int rc, extractedData = 0;
-        uint8 *ppBuf[1], ui8Flags = 0;
-        ppBuf[0] = NULL;
-        uint32 uiBufLen = 0, freedBytes = 0;
+        uint8 *ppBuf[1];
+        uint32 uiBufLen = 0;
         TCPSegment *pDataToReturn = _pAvailableData;
 
         static const uint8 TCP_DATA_FLAGS_FILTER = 0xF8;                // Nasty filter to avoid sending packets with control flags in a TCPDataProxyMessages
         static const uint8 TCP_DATA_FLAGS_FILTER_NO_PSH = 0xF0;         // Nasty filter to avoid sending packets with control or PSH flags in a TCPDataProxyMessages
-
+        
+        ppBuf[0] = NULL;
         if (pDataToReturn) {
             // We have data previously processed --> check if there are already enough bytes in the buffer
             checkAndLogMsg ("Entry::dequeueLocallyReceivedData", Logger::L_MediumDetailDebug,

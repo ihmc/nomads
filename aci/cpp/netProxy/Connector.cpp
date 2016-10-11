@@ -2,7 +2,7 @@
  * Connector.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -85,6 +85,12 @@ namespace ACMNetProxy
         Connection *pConnection = _connectionsTable.get (ui64HashKey);
         if (!pConnection) {
             pConnection = new Connection (_connectorType, query.getRemoteProxyUniqueID(), pRemoteProxyAddr, this);
+			if (!pConnection) {
+				checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_MildError,
+					            "impossible to instantiate a new %sConnection object for connection to the remote NetProxy with address %s:%hu\n",
+					            getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
+				return NULL;
+			}
             _connectionsTable.put (ui64HashKey, pConnection);
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_LowDetailDebug,
                             "created a %sConnection object to connect to the remote NetProxy at address %s:%hu\n",
@@ -94,14 +100,21 @@ namespace ACMNetProxy
         pConnection->lock();
         if (pConnection->isDeleteRequested()) {
             // Connection marked for delete --> create new Connection and add it to the Connections Table
-            pConnection->unlock();  // unlock old Connection instance
+            pConnection->unlock();  // unlock old Connection
+			pConnection = NULL;
             pConnection = new Connection (_connectorType, query.getRemoteProxyUniqueID(), pRemoteProxyAddr, this);
-            pConnection->lock();    // lock new Connection instance
+			if (!pConnection) {
+				checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_MildError,
+					            "impossible to instantiate a new %sConnection object for connection to the remote NetProxy with address %s:%hu\n",
+					            getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
+				return NULL;
+			}
+            pConnection->lock();    // lock new Connection
             _connectionsTable.put (ui64HashKey, pConnection);
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_Warning,
-                            "retrieved a %sConnection object for the remote NetProxy with address %s:%hu, but the object is marked for deletion; "
+                            "retrieved a %sConnection object for the remote NetProxy with address %s:%hu, but the object was marked for deletion; "
                             "created a new %sConnection object to connect to the remote NetProxy\n", getConnectorTypeAsString(),
-                            pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
+                            pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(), getConnectorTypeAsString());
         }
         _mConnectionsTable.unlock();
 
@@ -109,7 +122,7 @@ namespace ACMNetProxy
             // Status is CS_Connected and ConnectorAdapter is connected
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_Warning,
                             "retrieved an active %sConnection object for the remote NetProxy with address %s:%hu even if the query did not return any active "
-                            "Connection; %sConnection is connected to address %s:%hu\n", getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(),
+                            "Connection; %sConnection is connected to the address %s:%hu\n", getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(),
                             pRemoteProxyAddr->getPort(), getConnectorTypeAsString(), pConnection->getRemoteProxyInetAddr()->getIPAsString(),
                             pConnection->getRemoteProxyInetAddr()->getPort());
             _pConnectionManager->addNewActiveConnectionToRemoteProxy (pConnection);
@@ -123,17 +136,16 @@ namespace ACMNetProxy
             pConnection->unlock();
             return NULL;
         }
-        if ((pConnection->getStatus() == Connection::CS_NotConnected) || (pConnection->getStatus() == Connection::CS_ConnectionFailed)) {
-            if (pConnection->getConnectorAdapter()->isConnected()) {
-                // Close connection to keep consistency with the Connection status
-                pConnection->getConnectorAdapter()->close();
-                checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_Warning,
-                                "%sConnection object for remote NetProxy at address %s:%hu is in status %d, but the ConnectionAdapter was connected to "
-                                "the remote host; the actual connection was closed to keep consistency with the status of the %sConnection instance\n",
-                                getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(),
-                                pConnection->getStatus(), getConnectorTypeAsString());
-            }
-        }
+        if (pConnection->getConnectorAdapter()->isConnected()) {
+            // Close connection to keep consistency with the Connection status
+            pConnection->getConnectorAdapter()->close();
+            checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_Warning,
+                            "%sConnection object for remote NetProxy at address %s:%hu is in status %d, but the ConnectionAdapter was connected to "
+                            "the remote host; the actual connection was closed to keep consistency with the status of the %sConnection instance\n",
+                            getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(),
+                            pConnection->getStatus(), getConnectorTypeAsString());
+			//TO-DO: check if it is necessary to delete the ConnectorAdapter and create a new one
+		}
         _pConnectionManager->removeActiveConnectionFromTable (pConnection);
         pConnection->setStatusAsDisconnected();
 
@@ -176,6 +188,8 @@ namespace ACMNetProxy
             return NetProxyApplicationParameters::UDP_SERVER_PORT;
         case CT_CSR:
             return NetProxyApplicationParameters::CSR_MOCKET_SERVER_PORT;
+        case CT_UNDEF:
+            break;
         }
 
         return 0;
@@ -235,6 +249,8 @@ namespace ACMNetProxy
         case CT_CSR:
             return Connector::_pConnectionManager->getConnectorForType (connectorType) ?
                 Connector::_pConnectionManager->getConnectorForType (connectorType) : new CSRConnector();
+        case CT_UNDEF:
+            break;
         }
 
         return NULL;

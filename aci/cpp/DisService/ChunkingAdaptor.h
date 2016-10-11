@@ -2,7 +2,7 @@
  * ChunkingAdaptor.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,10 +31,13 @@
 
 #include "Chunker.h"
 
+#include "DArray2.h"
+
 namespace NOMADSUtil
 {
     class ConfigManager;
     class Reader;
+    class Writer;
 }
 
 namespace IHMC_ACI
@@ -72,7 +75,9 @@ namespace IHMC_ACI
             /**
              * NOTE: the returned Reader should be deallocated by the caller.
              */
-            static NOMADSUtil::Reader * reassemble (NOMADSUtil::PtrLList<Message> *pFragments, uint32 &ui32LargeObjLen);
+            static NOMADSUtil::Reader * reassemble (NOMADSUtil::PtrLList<Message> *pFragments,
+                                                    NOMADSUtil::PtrLList<Message> *pAnnotations,
+                                                    uint32 &ui32LargeObjLen);
 
             /**
              * Method to generate a ChunkMsgInfo, given am instance of
@@ -93,6 +98,27 @@ namespace IHMC_ACI
              * NOTE: the returned IHMC_MISC::Chunker::Fragment should be deallocated by the caller.
              */
             static IHMC_MISC::Chunker::Fragment * getChunkerFragment (const void *pData, uint32 ui32DataLenght);
+    };
+
+    struct CustomChunkDescription
+    {
+        CustomChunkDescription (IHMC_MISC::Chunker::Type inputType = IHMC_MISC::Chunker::UNSUPPORTED,
+                                IHMC_MISC::Chunker::Type outputType = IHMC_MISC::Chunker::UNSUPPORTED);
+        ~CustomChunkDescription (void);
+
+        static void deleteIntervals (IHMC_MISC::Chunker::Interval **ppIntervals);
+
+        /**
+         * NOTE: the caller must deallocate the returned structure
+         */
+        IHMC_MISC::Chunker::Interval ** getIntervals (void);
+
+        int read (NOMADSUtil::Reader *pReader);
+        int write (NOMADSUtil::Writer *pWriter);
+
+        IHMC_MISC::Chunker::Type _inputType;
+        IHMC_MISC::Chunker::Type _outputType;
+        NOMADSUtil::DArray2<IHMC_MISC::Chunker::Interval> _dimensions;
     };
 }
 

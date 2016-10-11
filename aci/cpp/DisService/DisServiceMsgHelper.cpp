@@ -2,7 +2,7 @@
  * DisServiceMsgHelper.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -206,7 +206,11 @@ DisServiceMsg * DisServiceMsgHelper::getInstance (uint8 ui8Type)
         case DisServiceMsg::DSMT_SearchMsgReply:
             pDSMsg = new SearchReplyMsg();
             break;
-            
+
+        case DisServiceMsg::DSMT_VolatileSearchMsgReply:
+            pDSMsg = new VolatileSearchReplyMsg();
+            break;
+
         case DisServiceMsg::DSMT_ImprovedSubStateMessage:
             pDSMsg = new DisServiceImprovedSubscriptionStateMsg();
             break;
@@ -301,6 +305,9 @@ const char * DisServiceMsgHelper::getMessageTypeAsString (uint8 ui8MsgType)
         case DisServiceMsg::DSMT_SearchMsgReply:
             return "DSMT_SearchMsgReply";
 
+        case DisServiceMsg::DSMT_VolatileSearchMsgReply:
+            return "DSMT_VolatileSearchMsgReply";
+
         case DisServiceMsg::DSMT_ImprovedSubStateMessage:
             return "DSMT_ImprovedSubStateMessage";
 
@@ -360,6 +367,7 @@ bool DisServiceMsgHelper::messageTypeExists (uint8 ui8MsgType)
         case DisServiceMsg::DSMT_SubAdvMessage:
         case DisServiceMsg::DSMT_SearchMsg:            
         case DisServiceMsg::DSMT_SearchMsgReply:
+        case DisServiceMsg::DSMT_VolatileSearchMsgReply:
         case DisServiceMsg::DSMT_ImprovedSubStateMessage:
         case DisServiceMsg::DSMT_ProbabilitiesMsg:
             return true;

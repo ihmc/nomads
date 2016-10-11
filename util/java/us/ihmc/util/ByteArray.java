@@ -2,7 +2,7 @@
  * ByteArray.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@ package us.ihmc.util;
  * 
  * @author Tom Cowin <tcowin@ai.uwf.edu>
  * @version 1.0
- * $Revision: 1.15 $
+ * $Revision: 1.16 $
  */
 public class ByteArray
 {

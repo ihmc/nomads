@@ -2,7 +2,7 @@
  * Logger.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,13 +21,11 @@
 #define INCL_LOGGER_H
 
 #include <stdio.h>
-#include <stdarg.h>
 #include <cstring>
 
 #include "FTypes.h"
 #include "ManageableThread.h"
 #include "Mutex.h"
-#include "NLFLib.h"
 
 #if defined (WIN32)
     // Do not want to include windows.h here because it will in turn include winsock.h
@@ -42,6 +40,7 @@
 
 namespace NOMADSUtil
 {
+    class ConfigManager;
     class UDPDatagramSocket;
 
     class Logger
@@ -70,6 +69,13 @@ namespace NOMADSUtil
             };
 
             static const int DEFAULT_NETWORK_LOGGING_PORT = 1300;
+            static const char * LOGGING_ENABLED_PROPERTY;
+            static const char * SCREEN_LOGGING_PROPERTY;
+            static const char * FILE_LOGGING_PROPERTY;
+            static const char * ERROR_FILE_LOGGING_PROPERTY;
+            static const char * LOGGING_LEVEL_PROPERTY;
+
+            static int configure (ConfigManager *pCfgMgr);
 
             int initLogFile (const char *pszFileName, bool bAppend = true);
             int initErrorLogFile (const char *pszFileName, bool bAppend = true);
@@ -107,7 +113,7 @@ namespace NOMADSUtil
 
         protected:
             Mutex _mLog;
-            int64 _i64StartTime;
+            const int64 _i64StartTime;
             FILE *_fileLog;
             FILE *_fileErrorLog;
             uint32 _ui32DestAddr;
@@ -148,8 +154,6 @@ namespace NOMADSUtil
     };
 
     extern Logger *pLogger;
-    extern Logger *pNetLog;
-    extern Logger *pTopoLog;
 
     inline void Logger::enableScreenOutput (void)
     {

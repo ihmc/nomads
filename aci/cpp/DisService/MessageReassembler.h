@@ -2,7 +2,7 @@
  * MessageReassembler.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,6 +27,7 @@
 
 #include "LoggingMutex.h"
 #include "ManageableThread.h"
+#include "SetUniquePtrLList.h"
 #include "StringHashtable.h"
 #include "UInt32Hashtable.h"
 
@@ -55,6 +56,9 @@ namespace IHMC_ACI
                                 bool bExpBackoff=DEFAULT_ENABLE_EXPONENTIAL_BACKOFF,
                                 bool bReqFragmentsForOpporAcquiredMsgs=DEFAULT_REQUEST_FRAGMENTS_FOR_OPPORTUNISTICALLY_ACQUIRED_MESSAGES);
             virtual ~MessageReassembler (void);
+
+            void lock (void);
+            void unlock (void);
 
             bool usingExponentialBackOff (void);
             bool requestOpportunisticallyReceivedMessages (void);
@@ -103,7 +107,6 @@ namespace IHMC_ACI
             bool containsMessage (const char *pszGroupName, const char *pszPublisherNodeId,
                                   uint32 ui32MsgSeqId, uint8 ui8ChunkId);
             bool containsMessage (MessageId *pMsgId);
-            bool containsMessage (MessageHeader *pMI, bool bSpecificFragment=true);
 
             /**
              * Returns true if the fragment specified is fully contained in the MessageReassembler
@@ -182,7 +185,7 @@ namespace IHMC_ACI
 
             struct FragmentWrapper
             {
-                FragmentWrapper (uint32 ui32FragOffset, uint16 ui16FragLength, bool bIsChunkFrag);
+                FragmentWrapper (uint32 ui32FragOffset, uint16 ui16FragLength);
                 // NOTE: the destructor does not free pFragment
                 ~FragmentWrapper (void);
 
@@ -192,7 +195,6 @@ namespace IHMC_ACI
 
                 const uint32 ui32FragmentOffset;
                 const uint16 ui16FragmentLength;
-                const bool bIsChunk;
                 void *pFragment;
             };
 
@@ -211,7 +213,7 @@ namespace IHMC_ACI
 
                 virtual ~FragmentedMessage (void);
 
-                void addFragment (FragmentWrapper *pFragmentWrap);
+                bool addFragment (FragmentWrapper *pFragmentWrap);
                 uint64 getCachedBytes (void) const;
                 FragmentWrapper * getFirstFragment (void);
                 FragmentWrapper * getNextFragment (void);
@@ -246,14 +248,16 @@ namespace IHMC_ACI
 
                 private:
                     uint64 ui64CachedBytes;
-                    NOMADSUtil::PtrLList<FragmentWrapper> fragments;                    
+                    NOMADSUtil::SetUniquePtrLList<FragmentWrapper> fragments;                    
             };
+
+            typedef NOMADSUtil::PtrLList<FragmentedMessage> ChunkList;
 
             struct MessagesByPublisher
             {
                 MessagesByPublisher (void);
                 ~MessagesByPublisher (void);
-                NOMADSUtil::PtrLList<FragmentedMessage> messages;
+                NOMADSUtil::UInt32Hashtable<ChunkList> messages;
             };
 
             struct MessagesByGroup
@@ -400,10 +404,9 @@ namespace IHMC_ACI
     //==========================================================================
     //  STRUCT FragmentWrapper inline functions
     //==========================================================================
-    inline MessageReassembler::FragmentWrapper::FragmentWrapper (uint32 ui32FragOffset, uint16 ui16FragLength, bool bIsChunkFrag)
+    inline MessageReassembler::FragmentWrapper::FragmentWrapper (uint32 ui32FragOffset, uint16 ui16FragLength)
         : ui32FragmentOffset (ui32FragOffset),
-          ui16FragmentLength (ui16FragLength),
-          bIsChunk (bIsChunkFrag)
+          ui16FragmentLength (ui16FragLength)
     {
         pFragment = NULL;
     }
@@ -416,7 +419,7 @@ namespace IHMC_ACI
     //  STRUCT MessagesBySender inline functions
     //==========================================================================
     inline MessageReassembler::MessagesByPublisher::MessagesByPublisher (void)
-        : messages (false)
+        : messages (true)
     {
     }
 

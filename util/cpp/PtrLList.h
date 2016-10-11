@@ -2,7 +2,7 @@
  * PtrLList.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -45,6 +45,7 @@ namespace NOMADSUtil
             void prepend (T *pel);
             void insert (T *pel);
             T * remove (T *pel);
+            T * removeFirst (void);
             void removeAll (void);
             T * replace (T *pelOld, T *pelNew);
             T * getFirst (void);
@@ -268,6 +269,24 @@ namespace NOMADSUtil
                     }
                 }
             }
+        }
+        return NULL;
+    }
+
+    template <class T> T * PtrLList<T>::removeFirst (void)
+    {
+        if (pRoot) {
+            Node *pTempNode = pRoot;
+            T *pelDeleted = pRoot->pel;
+            pRoot = pRoot->pNextNode;
+            if (!pRoot) {
+                pTail = NULL;
+            }
+            if (pNextGetNode == pTempNode) {
+                pNextGetNode = pRoot;
+            }
+            delete pTempNode;
+            return pelDeleted;
         }
         return NULL;
     }

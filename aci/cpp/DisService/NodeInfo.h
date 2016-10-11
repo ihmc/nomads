@@ -2,7 +2,7 @@
  * NodeInfo.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,15 +28,10 @@
 #include "SubscriptionList.h"
 
 #include "DArray.h"
-#include "FTypes.h"
-#include "PtrLList.h"
-#include "StrClass.h"
-#include "PtrLList.h"
 #include "StringHashtable.h"
 #include "StringHashthing.h"
 #include "UInt32Hashtable.h"
 
-#include "StringStringHashtable.h"
 #include "StringFloatHashtable.h"
 
 namespace NOMADSUtil
@@ -50,12 +45,10 @@ namespace NOMADSUtil
 
 namespace IHMC_ACI
 {
+    class DisServiceDataMsg;
     class History;
     class Message;
-}
 
-namespace IHMC_ACI
-{
     class NodeInfo : public NOMADSUtil::StringHashthing
     {
         public:

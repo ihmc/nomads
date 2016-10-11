@@ -190,8 +190,18 @@ IntDataTest : IntDataTest.o libmockets.a
 	$(UTILDIR)/linux/libsecurity.a \
 	$(UTILDIR)/linux/libutil.a \
 	$(OPENSSL_LIBS) \
-	-ldl -lpthread \
+	-ldl -ludt -lpthread \
 	-o IntDataTest 
+
+IntDataTest2 : IntDataTest2.o libmockets.a
+	$(CPP) -g -Wall -Wextra -Wno-unused-parameter -Wno-unknown-pragmas -DUNIX -DLINUX -DUSE_SQLITE -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM $(INCLUDES) \
+	../IntDataTest2.cpp \
+	$(MOCKETSDIR)/linux/libmockets.a \
+	$(UTILDIR)/linux/libsecurity.a \
+	$(UTILDIR)/linux/libutil.a \
+	$(OPENSSL_LIBS) \
+	-ldl -ludt -lpthread \
+	-o IntDataTest2 
 
 IntDataTestUnrelUnseq : IntDataTestUnrelUnseq.o libmockets.a
 	$(CPP) -o IntDataTestUnrelUnseq IntDataTestUnrelUnseq.o \
@@ -495,6 +505,8 @@ libutil.a :
 
 libsecurity.a :
 	make -C $(UTILDIR)/linux libsecurity.a
+
+all: udt.dll libudt.a udt
 
 %.o : ../%.cpp
 	$(CPP) -c $(CPPFLAGS) $(INCLUDES) $<

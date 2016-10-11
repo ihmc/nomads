@@ -26,7 +26,8 @@
 class Mocket;
 class StreamMocket;
 
-class MocketWriter : NOMADSUtil::Writer
+// Added "public" for NOMADSUtil::Writer on 01/20/2015 to make aci/cpp/kernel compile
+class MocketWriter : public NOMADSUtil::Writer
 {
     public:
         MocketWriter (StreamMocket *pMocket, bool bDeleteWhenDone = false);

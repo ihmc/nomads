@@ -2,7 +2,7 @@
  * MutexUDPQueue.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@ namespace ACMNetProxy
 
         resetGet();
         UDPDatagramPacket *pUDPDatagramPacket = NULL;
-        while (pUDPDatagramPacket = getNext()) {
+        while ((pUDPDatagramPacket = getNext())) {
             if (pUDPDatagramPacket->matchesIPPacket (pIPHeader)) {
                 return pUDPDatagramPacket;
             }
@@ -73,7 +73,7 @@ namespace ACMNetProxy
             // Fragment received --> looking for relative incomplete UDP datagram
             UDPDatagramPacket *pUDPDatagramPacket;
             resetGet();
-            while (pUDPDatagramPacket = getNext()) {
+            while ((pUDPDatagramPacket = getNext())) {
                 if (!pUDPDatagramPacket->isDatagramComplete() &&
                     SequentialArithmetic::lessThan (pUDPDatagramPacket->getIPIdentification(), pIPHeader->ui16Ident)) {
                     // Old incomplete fragments can be deleted from the queue

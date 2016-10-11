@@ -1,5 +1,7 @@
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utillib", "..\..\..\..\util\cpp\win32\utillib.vcxproj", "{8B739421-E28C-4FC1-B6ED-26D635617F7B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PublishTest", "..\..\..\test\cpp\DisService\win32\PublishTest.vcxproj", "{16B3CEAD-4BE9-4220-A9C3-F2685754BCD6}"
@@ -67,10 +69,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pnglib", "..\..\..\..\exter
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DisServicePacketTool", "DisServicePacketTool.vcxproj", "{BFE6C7C7-71AA-437A-8B9C-73B6F65A925E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nmslib", "..\..\..\..\nms\cpp\win32\nms.vcxproj", "{9D10D61D-AECD-4B3A-9087-A2992C73BA48}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "medialib", "..\..\..\..\misc\cpp\media\win32\medialib.vcxproj", "{F06D3152-6735-4FB3-8AE8-351DE439833A}"
+EndProject
 Global
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = DisService.vsmdi
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
@@ -476,8 +479,39 @@ Global
 		{BFE6C7C7-71AA-437A-8B9C-73B6F65A925E}.Template|Win32.ActiveCfg = Release|Win32
 		{BFE6C7C7-71AA-437A-8B9C-73B6F65A925E}.Template|Win32.Build.0 = Release|Win32
 		{BFE6C7C7-71AA-437A-8B9C-73B6F65A925E}.Template|x64.ActiveCfg = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Debug|Win32.Build.0 = Debug|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Debug|x64.ActiveCfg = Debug|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Release|Win32.ActiveCfg = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Release|Win32.Build.0 = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Release|x64.ActiveCfg = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Static Release|Win32.ActiveCfg = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Static Release|Win32.Build.0 = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Static Release|x64.ActiveCfg = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Template|Win32.ActiveCfg = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Template|Win32.Build.0 = Release|Win32
+		{9D10D61D-AECD-4B3A-9087-A2992C73BA48}.Template|x64.ActiveCfg = Release|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Debug|Win32.Build.0 = Debug|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Debug|x64.ActiveCfg = Debug|x64
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Debug|x64.Build.0 = Debug|x64
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Release|Win32.ActiveCfg = Release|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Release|Win32.Build.0 = Release|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Release|x64.ActiveCfg = Release|x64
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Release|x64.Build.0 = Release|x64
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Static Release|Win32.ActiveCfg = Static Release|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Static Release|Win32.Build.0 = Static Release|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Static Release|x64.ActiveCfg = Static Release|x64
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Static Release|x64.Build.0 = Static Release|x64
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Template|Win32.ActiveCfg = Release|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Template|Win32.Build.0 = Release|Win32
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Template|x64.ActiveCfg = Release|x64
+		{F06D3152-6735-4FB3-8AE8-351DE439833A}.Template|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = DisService.vsmdi
 	EndGlobalSection
 EndGlobal

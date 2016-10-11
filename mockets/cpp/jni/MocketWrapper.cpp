@@ -100,7 +100,14 @@ JNIEXPORT void JNICALL Java_us_ihmc_mockets_Mocket_init (JNIEnv *pEnv, jobject j
     // bAbortConnection = false;
     jclass jcMocket = pEnv->GetObjectClass (joThis);
     jfieldID jfMocket = pEnv->GetFieldID (jcMocket, "_mocket", "J");
-    Mocket *pMocket = new Mocket();
+    const char *pszConfigFile = NULL;
+    if (jsConfigFile != NULL) {
+        pszConfigFile = pEnv->GetStringUTFChars (jsConfigFile, NULL);
+    }
+    Mocket *pMocket = new Mocket (pszConfigFile);
+    if (pszConfigFile != NULL) {
+        pEnv->ReleaseStringUTFChars (jsConfigFile, pszConfigFile);
+    }
     if (pMocket == NULL) {
         pEnv->ThrowNew (pEnv->FindClass ("java/lang/NullPointerException"), "MocketsJavaWrapper not initialized - mocket is null");
         return;
@@ -432,7 +439,9 @@ JNIEXPORT jint JNICALL Java_us_ihmc_mockets_Mocket_close (JNIEnv *pEnv, jobject 
     }
     int iCloseReturn = pMocket->close();
     if (iCloseReturn < 0) {
-        pEnv->ThrowNew (pEnv->FindClass ("java/io/IOException"), "close returned with error");
+		char szErrMsg[1024];
+		sprintf (szErrMsg, "close returned with error: %d", iCloseReturn);
+		pEnv->ThrowNew (pEnv->FindClass ("java/io/IOException"), szErrMsg);
         return iCloseReturn;
     }
     return iCloseReturn;

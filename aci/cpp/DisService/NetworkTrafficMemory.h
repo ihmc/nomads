@@ -2,7 +2,7 @@
  * NetworkTrafficMemory.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,6 +23,7 @@
 #ifndef INCL_NETWORK_TRAFFIC_MEMORY_H
 #define	INCL_NETWORK_TRAFFIC_MEMORY_H
 
+#include "DArray2.h"
 #include "LoggingMutex.h"
 #include "PtrLList.h"
 #include "StringHashtable.h"
@@ -54,15 +55,13 @@ namespace IHMC_ACI
              * filtering.
              */
             NetworkTrafficMemory (uint16 ui16IgnoreRequestTime=DEFAULT_IGNORE_REQUEST_TIME);
-            NetworkTrafficMemory (NOMADSUtil::ConfigManager *pConfigManager);
-
             virtual ~NetworkTrafficMemory (void);
 
             /**
              * Add a message to NetworkTrafficMemory
              * NOTE: the content of pMSg is copied.
              */
-            int add (MessageHeader * pMH, int64 ui64ReceivingTime);
+            int add (MessageHeader *pMH, int64 ui64ReceivingTime);
 
             /**
              * Accept a message (fragment) containing the requested range.
@@ -77,6 +76,8 @@ namespace IHMC_ACI
 
             static const uint16 DEFAULT_IGNORE_REQUEST_TIME;
 
+            const uint16 _ui16IgnoreRequestTime;
+
         private:
             struct FragmentWrapper
             {
@@ -89,152 +90,88 @@ namespace IHMC_ACI
 
                 bool overlaps (uint32 ui32FragOffset, uint32 ui32FragEnd);
 
-                uint32 ui32Offset;
-                uint32 ui32End;
-                int64 i64LastServingTime;
+                uint32 _ui32Offset;
+                uint32 _ui32End;
+                int64 _i64LastServingTime;
             };
 
-            struct FragmentedMessageHeader
+            class FragmentWrapperList : public NOMADSUtil::PtrLList<FragmentWrapper>
             {
-                FragmentedMessageHeader (void);
-                virtual ~FragmentedMessageHeader (void);
-
-                NOMADSUtil::PtrLList<FragmentWrapper> fragments;  // In ascending order
+                public:
+                    FragmentWrapperList (void);
+                    ~FragmentWrapperList (void);
             };
 
-            struct FragmentedChunk : public FragmentedMessageHeader
-            {
-                FragmentedChunk (void);
-                ~FragmentedChunk (void);
-            };
+            typedef NOMADSUtil::UInt32Hashtable<FragmentWrapperList> FragmentedMessage;
+            typedef NOMADSUtil::UInt32Hashtable<FragmentedMessage> MessagesBySender;
+            typedef NOMADSUtil::StringHashtable<MessagesBySender> MessagesByGroup;
 
-            struct FragmentedMessage : public FragmentedMessageHeader
-            {
-                FragmentedMessage (void);
-                ~FragmentedMessage (void);
-
-                NOMADSUtil::UInt32Hashtable<FragmentedChunk> chunksByChunkId;
-            };
-
-            struct MessagesBySender
-            {
-                MessagesBySender (void);
-                ~MessagesBySender (void);
-
-                NOMADSUtil::UInt32Hashtable<FragmentedMessage> messageBySeqId;
-            };
-
-            struct MessagesByGroup
-            {
-                MessagesByGroup (void);
-                ~MessagesByGroup (void);
-
-                NOMADSUtil::StringHashtable<MessagesBySender> messageBySender;
-            };
-
-            int add (const char *pszGroupName, const char *pszPublisherNodeId, uint32 ui32MsgSeqId,
-                     uint32 ui32FragOffset, uint32 ui32FragLength, int64 ui64ReceivingTime);
-            int add (const char *pszGroupName, const char *pszPublisherNodeId, uint32 ui32MsgSeqId,
-                     uint8 ui8ChunkId, uint32 ui32FragOffset, uint32 ui32FragLength, int64 ui64ReceivingTime);
-            int add (FragmentedMessageHeader *pFM, uint32 ui32FragOffset, uint32 ui32FragLength, int64 ui64ReceivingTime);
+            int add (FragmentWrapperList *pFM, MessageHeader *pMH, int64 ui64ReceivingTime);
+            bool expired (FragmentWrapper *pFragWr, int64 i64Now);
 
             void cleanUp (void);
             void cleanEmptyMessageBySender (MessagesByGroup * pMG);
             void cleanEmptyFragmentedMessage (MessagesBySender * pMS);
-            void cleanFragmentedMessageHeader (FragmentedMessageHeader * pFMH);
+            void cleanEmptyChunkList (FragmentedMessage *pFM);
+            void cleanExpiredFragments (FragmentWrapperList *pFragList);
 
-            FragmentedMessage * getOrAddFragmentedMessage (const char *pszGroupName, const char *pszSenderNodeId,
-                                                           uint32 ui32MsgSeqId);
+            FragmentWrapperList * getOrAddFragmentedMessage (MessageHeader *pMH, bool bAdd);
 
         private:
-            uint16 _ui16IgnoreRequestTime;
-
             NOMADSUtil::StringHashtable<MessagesByGroup> _messageByGroup;
-            NOMADSUtil::LoggingMutex _m;;
+            NOMADSUtil::LoggingMutex _m;
     };
 
-    inline NetworkTrafficMemory::FragmentWrapper::FragmentWrapper(uint32 ui32FragOffset, uint32 ui32FragEnd, int64 i64ReceivingTime)
+    inline bool NetworkTrafficMemory::expired (NetworkTrafficMemory::FragmentWrapper *pFragWr, int64 i64Now)
     {
-        ui32Offset = ui32FragOffset;
-        ui32End = ui32FragEnd;
-        i64LastServingTime = i64ReceivingTime;
+        return (_ui16IgnoreRequestTime > 0) && ((i64Now - pFragWr->_i64LastServingTime) > _ui16IgnoreRequestTime);
     }
 
-    inline NetworkTrafficMemory::FragmentWrapper::~FragmentWrapper ()
+    inline NetworkTrafficMemory::FragmentWrapper::FragmentWrapper (uint32 ui32FragOffset, uint32 ui32FragEnd, int64 i64ReceivingTime)
+        : _ui32Offset (ui32FragOffset),
+          _ui32End (ui32FragEnd),
+          _i64LastServingTime (i64ReceivingTime)
+    {
+    }
+
+    inline NetworkTrafficMemory::FragmentWrapper::~FragmentWrapper (void)
     {
     }
 
     inline bool NetworkTrafficMemory::FragmentWrapper::operator > (const FragmentWrapper &rhsFragment)
     {
-        return (ui32Offset > rhsFragment.ui32Offset);
+        return (_ui32Offset > rhsFragment._ui32Offset);
     }
 
     inline bool NetworkTrafficMemory::FragmentWrapper::operator == (const FragmentWrapper &rhsFragment)
     {
-        return (ui32Offset == rhsFragment.ui32Offset);
+        return (_ui32Offset == rhsFragment._ui32Offset);
     }
 
     inline bool NetworkTrafficMemory::FragmentWrapper::operator < (const FragmentWrapper &rhsFragment)
     {
-        return (ui32Offset < rhsFragment.ui32Offset);
+        return (_ui32Offset < rhsFragment._ui32Offset);
     }
 
     inline bool NetworkTrafficMemory::FragmentWrapper::overlaps (uint32 ui32FragOffset, uint32 ui32FragEnd)
     {
-        return (!((ui32FragEnd <= ui32Offset) || (ui32FragOffset >= ui32End)));
+        return (!((ui32FragEnd <= _ui32Offset) || (ui32FragOffset >= _ui32End)));
     }
 
-    inline NetworkTrafficMemory::FragmentedMessageHeader::FragmentedMessageHeader()
-        : fragments (false)
+    inline NetworkTrafficMemory::FragmentWrapperList::FragmentWrapperList (void)
+        : NOMADSUtil::PtrLList<FragmentWrapper> (false)
     {
     }
 
-    inline NetworkTrafficMemory::FragmentedMessageHeader::~FragmentedMessageHeader()
+    inline NetworkTrafficMemory::FragmentWrapperList::~FragmentWrapperList (void)
     {
         FragmentWrapper *pFW;
-        FragmentWrapper *pFWTmp = fragments.getFirst();
-        while ((pFW = pFWTmp)!= NULL) {
-            pFWTmp = fragments.getNext();
-            delete fragments.remove (pFW);
+        FragmentWrapper *pFWTmp = getFirst();
+        while ((pFW = pFWTmp) != NULL) {
+            pFWTmp = getNext();
+            delete remove (pFW);
+            pFW = NULL;
         }
-    }
-
-    inline NetworkTrafficMemory::FragmentedChunk::FragmentedChunk()
-    {
-    }
-
-    inline NetworkTrafficMemory::FragmentedChunk::~FragmentedChunk()
-    {
-    }
-
-    inline NetworkTrafficMemory::FragmentedMessage::FragmentedMessage()
-        : chunksByChunkId (US_INITSIZE, true)
-    {
-    }
-
-    inline NetworkTrafficMemory::FragmentedMessage::~FragmentedMessage()
-    {
-        chunksByChunkId.removeAll();
-    }
-
-    inline NetworkTrafficMemory::MessagesBySender::MessagesBySender()
-        : messageBySeqId (US_INITSIZE, true)
-    {
-    }
-
-    inline NetworkTrafficMemory::MessagesBySender::~MessagesBySender()
-    {
-        messageBySeqId.removeAll();
-    }
-
-    inline NetworkTrafficMemory::MessagesByGroup::MessagesByGroup()
-        : messageBySender (true, true, true, true)
-    {
-    }
-
-    inline NetworkTrafficMemory::MessagesByGroup::~MessagesByGroup()
-    {
-        messageBySender.removeAll();
     }
 }
 

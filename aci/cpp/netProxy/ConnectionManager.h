@@ -5,7 +5,7 @@
  * ConnectionManager.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -86,7 +86,7 @@ namespace ACMNetProxy
         const NPDArray2<AutoConnectionEntry> * const getAutoConnectionTable (void) const;
         AutoConnectionEntry * const getAutoConnectionEntryToRemoteProxyID (uint32 ui32RemoteProxyID) const;
         void clearAutoConnectionTable (void);
-
+		NOMADSUtil::LList<uint32> *getRemoteProxyAddrList();
 
     private:
         friend class NetProxyConfigManager;
@@ -109,8 +109,8 @@ namespace ACMNetProxy
         AutoConnectionEntry * const getAutoConnectionEntryForProxyWithID (uint32 ui32RemoteProxyID) const;
 
         static void updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, const RemoteProxyInfo & updatedRemoteProxyInfo);
-        static void updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr * const pInetAddr,
-                                           uint16 ui16MocketsServerPort, uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
+        static void updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, const NOMADSUtil::InetAddr * const pInetAddr, uint16 ui16MocketsServerPort,
+                                           uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
 
         /* A list of all enabled connectors; their index in the list is the integer representation of their ConnectorType */
         NOMADSUtil::DArray<Connector *> _connectorsTable;
@@ -159,18 +159,6 @@ namespace ACMNetProxy
     inline Connection * const ConnectionManager::addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy)
     {
         return addNewActiveConnectionToRemoteProxy (pConnectionToRemoteProxy, pConnectionToRemoteProxy->getRemoteProxyID());
-    }
-
-    inline bool ConnectionManager::isRemoteHostIPMapped (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
-    {
-        bool res = false;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
-            std::pair<AddressRangeDescriptor, ConnectivitySolutions *> *pPair = _remoteHostAddressMappingCache.get (ui32RemoteHostIP);
-            res = pPair ? pPair->first.matchesPort (ui16RemoteHostPort) : isAddressAMatchInTheMappingBook (ui32RemoteHostIP, ui16RemoteHostPort);
-            _m.unlock();
-        }
-
-        return res;
     }
 
     inline const NOMADSUtil::InetAddr * ConnectionManager::getInetAddressForProtocolAndProxyWithID (ConnectorType connectorType, uint32 ui32RemoteProxyID) const
@@ -245,7 +233,7 @@ namespace ACMNetProxy
     }
 
     inline const NPDArray2<AutoConnectionEntry> * const ConnectionManager::getAutoConnectionTable (void) const
-    {
+	{
         return &_autoConnectionList;
     }
 

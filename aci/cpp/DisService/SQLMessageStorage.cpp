@@ -2,7 +2,7 @@
  * SQLMessageStorage.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -45,31 +45,20 @@ using namespace NOMADSUtil;
 //  SQLITE INTERFACE
 //==============================================================================
 
-SQLMessageStorage::SQLMessageStorage()
-    : SQLMessageHeaderStorage()
-{
-    _pDSDCQuery = new DisServiceDataCacheQuery();
-    _bUseTransactionTimer = false;
-    _pGetData = NULL;
-    _pGetMsg = NULL;
-    _pGetFullyQualifiedMsg = NULL;
-    _pGetComplChunksPrepStmt = NULL;
-    _pCommitThread = NULL;
-}
-
 SQLMessageStorage::SQLMessageStorage (const char *pszDBName, bool bUseTransactionTimer)
-    : SQLMessageHeaderStorage (pszDBName)
+    : SQLMessageHeaderStorage (pszDBName),
+    _pCommitThread (NULL),
+    _bUseTransactionTimer (pszDBName == NULL ? false : bUseTransactionTimer),
+    _pDSDCQuery (new DisServiceDataCacheQuery ()),
+    _pGetData (NULL),
+    _pGetFullyQualifiedMsg (NULL),
+    _pGetMsg (NULL),
+    _pGetComplChunksPrepStmt (NULL),
+    _pGetComplAnnotationsPrepStmt (NULL)
 {
-    _pDSDCQuery = new DisServiceDataCacheQuery();
-    _bUseTransactionTimer = bUseTransactionTimer;
-    _pGetData = NULL;
-    _pGetMsg = NULL;
-    _pGetFullyQualifiedMsg = NULL;
-    _pGetComplChunksPrepStmt = NULL;
-    _pCommitThread = NULL;
 }
 
-SQLMessageStorage::~SQLMessageStorage()
+SQLMessageStorage::~SQLMessageStorage (void)
 {
     delete _pDSDCQuery;
     _pDSDCQuery = NULL;
@@ -79,6 +68,8 @@ SQLMessageStorage::~SQLMessageStorage()
     _pGetFullyQualifiedMsg = NULL;
     delete _pGetComplChunksPrepStmt;
     _pGetComplChunksPrepStmt = NULL;
+    delete _pGetComplAnnotationsPrepStmt;
+    _pGetComplAnnotationsPrepStmt = NULL;
     if (_pCommitThread != NULL && _pCommitThread->isRunning()) {
         _pCommitThread->requestTermination();
     }
@@ -113,7 +104,7 @@ int SQLMessageStorage::init()
     return 0;
 }
 
-char * SQLMessageStorage::getCreateTableSQLStatement()
+String SQLMessageStorage::getCreateTableSQLStatement()
 {
     String sql = (String) "CREATE TABLE IF NOT EXISTS " + SQLMessageHeaderStorage::TABLE_NAME + " (";
 
@@ -125,6 +116,8 @@ char * SQLMessageStorage::getCreateTableSQLStatement()
 
     sql = sql + FIELD_OBJECT_ID + " TEXT, ";
     sql = sql + FIELD_INSTANCE_ID + " TEXT, ";
+    sql = sql + FIELD_ANNOTATION_MSG_ID + " TEXT, ";
+    sql = sql + FIELD_ANNOTATION_METADATA + " BLOB, ";
 
     sql = sql + FIELD_TAG + " INT, ";
 
@@ -152,17 +145,21 @@ char * SQLMessageStorage::getCreateTableSQLStatement()
     sql += "PRIMARY KEY (";
     sql = sql + SQLMessageHeaderStorage::PRIMARY_KEY + "));";
 
-    return sql.r_str();
+    return sql;
 }
 
-char * SQLMessageStorage::getInsertIntoTableSQLStatement()
+String SQLMessageStorage::getInsertIntoTableSQLStatement()
 {
     String sql = "INSERT INTO ";
     sql = sql + SQLMessageHeaderStorage::TABLE_NAME + " (";
     sql = sql + SQLMessageHeaderStorage::ALL_PERSISTENT + ")";
-    sql = sql + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+    sql = sql + " VALUES (?,?,?,?,?,"
+                         "?,?,?,?,?,"
+                         "?,?,?,?,?,"
+                         "?,?,?,?,?,"
+                         "?,?,?,?,?);";
 
-    return sql.r_str();
+    return sql;
 }
 
 int SQLMessageStorage::insertIntoDataCacheBind (PreparedStatement *pStmt, Message *pMsg)
@@ -172,8 +169,7 @@ int SQLMessageStorage::insertIntoDataCacheBind (PreparedStatement *pStmt, Messag
     }
 
     return pStmt->bind (SQLMessageHeaderStorage::FIELD_DATA_COLUMN_NUMBER + 1,
-                        (void*)pMsg->getData(),
-                        pMsg->getMessageHeader()->getFragmentLength());
+                        pMsg->getData(), pMsg->getMessageHeader()->getFragmentLength());
 }
 
 void * SQLMessageStorage::getData (const char *pszKey)
@@ -313,10 +309,10 @@ Message * SQLMessageStorage::getMessage (const char *pszKey)
                          + SQLMessageHeaderStorage::FIELD_CHUNK_ID + " = ?4 AND "
                          + SQLMessageHeaderStorage::FIELD_FRAGMENT_OFFSET +" = 0 AND "
                          + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = " + SQLMessageHeaderStorage::FIELD_TOT_MSG_LENGTH + ";";
-            _pGetMsg = _pDB->prepare ((const char *)sql);
+            _pGetMsg = _pDB->prepare (sql);
             if (_pGetMsg == NULL) {
                 checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                                "failed to prepare statement: %s\n", (const char *)sql);
+                                "failed to prepare statement: %s\n", sql.c_str());
                 _m.unlock (229);
                 return NULL;
             }
@@ -412,15 +408,14 @@ PtrLList<Message> * SQLMessageStorage::getCompleteChunks (const char *pszGroupNa
                                  + SQLMessageHeaderStorage::FIELD_MSG_SEQ_ID + " = ?3 AND "
                                  + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = " + SQLMessageHeaderStorage::FIELD_TOT_MSG_LENGTH + ";";
 
-        _pGetComplChunksPrepStmt = _pDB->prepare ((const char *) sql);
+        _pGetComplChunksPrepStmt = _pDB->prepare (sql);
         if (_pGetComplChunksPrepStmt != NULL) {
             checkAndLogMsg ("SQLMessageStorage::getCompleteChunks", Logger::L_Info,
-                            "Statement %s prepared successfully.\n", (const char *)sql);
+                            "Statement %s prepared successfully.\n", sql.c_str());
         }
         else {
             checkAndLogMsg ("SQLMessageStorage::getCompleteChunks", Logger::L_SevereError,
-                            "Could not prepare statement: %s.\n",
-                            (const char *)sql); 
+                            "Could not prepare statement: %s.\n", sql.c_str()); 
             _m.unlock (231);
             return NULL;
         }
@@ -443,6 +438,51 @@ PtrLList<Message> * SQLMessageStorage::getCompleteChunks (const char *pszGroupNa
         checkAndLogMsg ("SQLMessageStorage::getCompleteChunks", Logger::L_HighDetailDebug,
                         "did not find any fragment matching %s:%s:%u\n", pszGroupName, pszSender,
                         ui32MsgSeqId);
+    }
+
+    _m.unlock (231);
+    return pList;
+}
+
+PtrLList<Message> * SQLMessageStorage::getCompleteAnnotations (const char *pszAnnotatedObjMsgId)
+{
+    const char *pszMethodName = "SQLMessageStorage::getCompleteAnnotation";
+    if (pszAnnotatedObjMsgId == NULL) {
+        return NULL;
+    }
+    _m.lock (231);
+    if (_pGetComplAnnotationsPrepStmt == NULL) {
+        String sql = (String) "SELECT " + SQLMessageHeaderStorage::ALL_PERSISTENT + " FROM " + SQLMessageHeaderStorage::TABLE_NAME + " WHERE "
+            + SQLMessageHeaderStorage::FIELD_ANNOTATION_MSG_ID + " = ?1 AND "
+            + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = " + SQLMessageHeaderStorage::FIELD_TOT_MSG_LENGTH + ";";
+
+        _pGetComplAnnotationsPrepStmt = _pDB->prepare (sql.c_str ());
+        if (_pGetComplAnnotationsPrepStmt != NULL) {
+            checkAndLogMsg (pszMethodName, Logger::L_Info,
+                "Statement %s prepared successfully.\n", sql.c_str ());
+        }
+        else {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                "Could not prepare statement: %s.\n", sql.c_str());
+            _m.unlock (231);
+            return NULL;
+        }
+    }
+
+    // Bind the values to the prepared statement
+    if (_pGetComplAnnotationsPrepStmt->bind (1, pszAnnotatedObjMsgId) < 0) {
+        checkAndLogMsg (pszMethodName, bindingError);
+        _pGetComplAnnotationsPrepStmt->reset ();
+        _m.unlock (231);
+        return NULL;
+    }
+
+    // Execute the statement
+    PtrLList<Message> *pList = getMessages (_pGetComplAnnotationsPrepStmt);
+    _pGetComplAnnotationsPrepStmt->reset();
+    if (pList == NULL || pList->getFirst() == NULL) {
+        checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
+                        "did not find any annotation for %s\n", pszAnnotatedObjMsgId);
     }
 
     _m.unlock (231);

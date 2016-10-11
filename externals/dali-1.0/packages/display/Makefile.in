@@ -1,0 +1,70 @@
+#------------------------------------------------------------------
+# stuff modified by configure
+#------------------------------------------------------------------
+
+TCL_DIR = @TCL_DIR@
+TCL_LIB = @TCL_LIB@
+TK_DIR = @TK_DIR@
+TK_LIB = @TK_LIB@
+DEFS=@DEFS@
+EXTRA_LIBS=@EXTRA_LIBS@
+LIB_INSTALL_DIR=@PREFIX@/lib
+BIN_INSTALL_DIR=@PREFIX@/bin
+
+#-------------------------------------------------------------------
+# This is the Makefile for the DvmDisplay package.  It uses Tk and
+# is therefore treated differently from the rest of Dali packages.
+#--------------------------------------------------------------------
+
+.SUFFIXES: .c .o
+CC=gcc
+AR=ar -rsc
+LD=ld -G -z text
+MKDIR=mkdir -p
+MV=mv
+
+PACKAGES_DIR=..
+OBJ_DIR=./obj
+DVM_LIB_DIR=./lib
+
+INCLUDE=-I$(TCL_DIR)/include\
+	-I../../include
+#Solaris 2.x
+#CFLAGS= -O2 -Kpic $(INCLUDE) 
+CFLAGS= -Wall -O6 -fpic $(DEFS) $(INCLUDE) 
+LIBS=-l$(TCL_LIB) -lm -ldl $(EXTRA_LIBS)
+
+#SunOS 4.x
+#CFLAGS= -Wall -fpic $(INCLUDE) 
+#LIBS=-ltcl8.0 -lm
+
+LIBDIR=-L$(TCL_DIR)/lib -L$(DVM_LIB_DIR)
+
+#---------------------------------------------------------------
+# DISPLAY
+#---------------------------------------------------------------
+
+DISPLAY_DIR=$(PACKAGES_DIR)/display
+DISPLAY_SO=$(DVM_LIB_DIR)/tclDvmDisplay.so
+DISPLAY_OBJ_DIR=$(DISPLAY_DIR)/obj
+DISPLAY_TCL_OBJS=\
+	$(DISPLAY_OBJ_DIR)/displaycmd.o\
+	$(DISPLAY_OBJ_DIR)/displayinit.o
+
+all : $(DISPLAY_SO)
+
+install : $(LIB_INSTALL_DIR)
+	$(MV) $(DISPLAY_SO) $(LIB_INSTALL_DIR)
+
+clean :
+	\rm -rf $(DISPLAY_TCL_OBJS)
+
+$(LIB_INSTALL_DIR) :
+	$(MKDIR) $(LIB_INSTALL_DIR)
+
+$(DISPLAY_OBJ_DIR) :
+	$(MKDIR) $@
+$(DISPLAY_OBJ_DIR)/%.o : $(DISPLAY_DIR)/tcl/%.c
+	$(CC) -I$(DISPLAY_DIR) -c $(CFLAGS) $< -o $@
+$(DISPLAY_SO) : $(DISPLAY_OBJ_DIR) $(DISPLAY_TCL_OBJS) 
+	$(LD) $(DISPLAY_TCL_OBJS) -o $@

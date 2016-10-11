@@ -2,7 +2,7 @@
  * NLFLib.cpp
  *
  *This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,12 +23,15 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/timeb.h>
+
+//#include <sys/timeb.h>
 #include <sys/types.h>
 #include <time.h>
 
 #if defined (WIN32)
+	#include <sys/timeb.h>
     #include <io.h>
+#include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX _MAX_PATH
     #define PATH_SEP '\\'
@@ -733,6 +736,14 @@ uint32 NOMADSUtil::minimum (uint32 ui32FirstVal, uint32 ui32SecondVal)
         return ui32FirstVal;
     }
     return ui32SecondVal;
+}
+
+uint64 NOMADSUtil::minimum (uint64 ui64FirstVal, uint64 ui64SecondVal)
+{
+    if (ui64FirstVal < ui64SecondVal) {
+        return ui64FirstVal;
+    }
+    return ui64SecondVal;
 }
 
 float NOMADSUtil::minimum (float fFirstVal, float fSecondVal)

@@ -1,30 +1,33 @@
 /*
- * PacketRouter.cpp
- *
- * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 3 (GPLv3) as published by the Free Software Foundation.
- *
- * U.S. Government agencies and organizations may redistribute
- * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS
- * 252.227-7014(a)(12) (February 2014).
- *
- * Alternative licenses that allow for use within commercial products may be
- * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
- */
+* PacketRouter.cpp
+*
+* This file is part of the IHMC NetProxy Library/Component
+* Copyright (c) 2010-2016 IHMC.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 3 (GPLv3) as published by the Free Software Foundation.
+*
+* U.S. Government agencies and organizations may redistribute
+* and/or modify this program under terms equivalent to
+* "Government Purpose Rights" as defined by DFARS
+* 252.227-7014(a)(12) (February 2014).
+*
+* Alternative licenses that allow for use within commercial products may be
+* available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
+*/
 
 #if defined (LINUX)
-    #include <algorithm>
+#include <algorithm>
+
 #endif
+
 
 #include "SequentialArithmetic.h"
 #include "net/NetUtils.h"
 #include "StringTokenizer.h"
 #include "InetAddr.h"
+#include "NetSensor.h"
 #include "Logger.h"
 
 #include "PacketRouter.h"
@@ -43,29 +46,84 @@
 
 
 #if defined (USE_DISSERVICE)
-    using namespace IHMC_ACI;
+using namespace IHMC_ACI;
 #endif
 using namespace NOMADSUtil;
+
+namespace IHMC_MISC
+{
+    NetSensor *netSensor;
+}
+
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 namespace ACMNetProxy
 {
-    int PacketRouter::init (NetworkInterface * const pInternalInterface, NetworkInterface * const pExternalInterface)
-    {
+    int PacketRouter::init (NetworkInterface * const pInternalInterface, NetworkInterface * const pExternalInterface) {
         int rc;
-        #if defined (USE_DISSERVICE)
-            // Initialize DisService
-            //_pDisService = new DisseminationService (_pConfigurationManager);  /*!!*/ // Need to fix
-            if (0 != (rc = _pDisService->init())) {
-                checkAndLogMsg ("PacketRouter::init", Logger::L_MildError,
-                                "failed to initialize DisseminationService; rc = %d\n", rc);
-                return -1;
-            }
-            _pDisService->registerDisseminationServiceListener (0, this);
-            _pDisService->subscribe (0, "netproxy.reliable", 0, true, true, true);
-            _pDisService->subscribe (0, "netproxy.unreliable", 0, false, true, true);
-        #endif
+		if (NetProxyApplicationParameters::ACTIVATE_NETSENSOR) {
+			if (ACMNetProxy::NetProxyApplicationParameters::GATEWAY_MODE) {
+				checkAndLogMsg("main", Logger::L_Info,
+					"NetProxy is running in GW mode: initializing NetSensor\n");
+				IHMC_MISC::netSensor = new IHMC_MISC::NetSensor();
+
+				if (0 != (rc = IHMC_MISC::netSensor->initAsAComponent(NetProxyApplicationParameters::NETSENSOR_CONFIG_FILE))) {
+					checkAndLogMsg("PacketRouter::init", Logger::L_SevereError,
+						"Could not initialize NetSensor; rc = %d\n", rc);
+				}
+				while (IHMC_MISC::netSensor->setRemoteNetProxyList(_pConnectionManager->getRemoteProxyAddrList()) == -1) {
+					checkAndLogMsg("PacketRouter::init", Logger::L_Info,
+						"Repeating RemoteNetProxyList query...\n");
+				}
+
+				if (pInternalInterface->getMACAddr() == NULL) {
+					checkAndLogMsg("PacketRouter::init", Logger::L_MildError,
+						"pInternalInterface->getMACAddr() returned NULL\n");
+				}
+				if (pExternalInterface->getMACAddr() == NULL) {
+					checkAndLogMsg("PacketRouter::init", Logger::L_MildError,
+						"pExternalInterface->getMACAddr() returned NULL\n");
+				}
+				if (pExternalInterface->getIPv4Addr() == NULL) {
+					checkAndLogMsg("PacketRouter::init", Logger::L_MildError,
+						"pExternalInterface->getIPv4Addr() returned NULL\n");
+				}
+				if (pExternalInterface->getDefaultGateway() == NULL) {
+					checkAndLogMsg("PacketRouter::init", Logger::L_MildError,
+						"pExternalInterface->getDefaultGateway() returned NULL\n");
+				}
+				if (pExternalInterface->getNetmask() == NULL) {
+					checkAndLogMsg("PacketRouter::init", Logger::L_MildError,
+						"pExternalInterface->getNetmask() returned NULL\n");
+				}
+
+				IHMC_MISC::netSensor->setNetProxyValues(
+					pInternalInterface->getMACAddr(),
+					pExternalInterface->getMACAddr(),
+					NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR,
+					(pExternalInterface->getDefaultGateway())->ui32Addr,
+					(pExternalInterface->getNetmask())->ui32Addr);
+
+				IHMC_MISC::netSensor->start();
+				checkAndLogMsg("PacketRouter::init", Logger::L_Info,
+					"NetSensor's threads started\n");
+			}
+		}
+
+
+    #if defined (USE_DISSERVICE)
+        // Initialize DisService
+        //_pDisService = new DisseminationService (_pConfigurationManager);  /*!!*/ // Need to fix
+        if (0 != (rc = _pDisService->init())) {
+            checkAndLogMsg ("PacketRouter::init", Logger::L_MildError,
+                            "failed to initialize DisseminationService; rc = %d\n", rc);
+            return -1;
+        }
+        _pDisService->registerDisseminationServiceListener(0, this);
+        _pDisService->subscribe(0, "netproxy.reliable", 0, true, true, true);
+        _pDisService->subscribe(0, "netproxy.unreliable", 0, false, true, true);
+    #endif
 
         _pInternalInterface = pInternalInterface;
         _pExternalInterface = pExternalInterface;
@@ -96,17 +154,16 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::startThreads (void)
-    {
+    int PacketRouter::startThreads (void) {
         Connector *pConnector = NULL;
         UInt32Hashset * const hsEnabledConnectors = _pConfigurationManager->getEnabledConnectorsSet();
-        for (UInt32Hashset::Iterator iter (hsEnabledConnectors); !iter.end(); iter.nextElement()) {
+        for (UInt32Hashset::Iterator iter(hsEnabledConnectors); !iter.end(); iter.nextElement()) {
             ConnectorType ct = static_cast<ConnectorType> (iter.getKey());
-            pConnector = _pConnectionManager->getConnectorForType (ct);
+            pConnector = _pConnectionManager->getConnectorForType(ct);
             if (!pConnector) {
                 checkAndLogMsg ("PacketRouter::startThreads", Logger::L_Warning,
                                 "found null pointer in the ConnectorSet for type %s; ignoring connector\n",
-                                connectorTypeToString (ct));
+                                connectorTypeToString(ct));
                 continue;
             }
 
@@ -139,7 +196,7 @@ namespace ACMNetProxy
         if (0 != _remoteTCPTransmitterThread.start (false)) {
             return -6;
         }
-        if (_pConnectionManager->getAutoConnectionTable()->size() > 0) {
+        if (_autoConnectionManagerThread.getNumOfValidAutoConnectionEntries() > 0) {
             if (0 != _autoConnectionManagerThread.start (false)) {
                 return -7;
             }
@@ -156,14 +213,13 @@ namespace ACMNetProxy
 
         while (!_bLocalUDPDatagramsManagerThreadRunning) {
             // Wait for UDPDatagramsManager thread to actually start execution!
-            sleepForMilliseconds (10);
+            sleepForMilliseconds(10);
         }
 
         return 0;
     }
 
-    int PacketRouter::joinThreads (void)
-    {
+    int PacketRouter::joinThreads (void) {
         if (0 != PacketRouter::_localUDPDatagramsManagerThread.join()) {
             return -1;
         }
@@ -188,7 +244,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::sendARPRequestForGatewayMACAddress (void) {
+    int PacketRouter::sendARPRequestForGatewayMACAddress(void) {
         int rc = 0;
         if (!NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
             checkAndLogMsg ("PacketRouter::sendARPRequestForGatewayMACAddress", Logger::L_MildError,
@@ -200,8 +256,8 @@ namespace ACMNetProxy
                             "unable to generate an ARP request packet because the gateway node IP address is unknown\n");
             return -2;
         }
-        if (0 != (rc = sendARPRequest (_pExternalInterface, NetProxyApplicationParameters::NETPROXY_IP_ADDR,
-                                       NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR))) {
+        if (0 != (rc = sendARPRequest(_pExternalInterface, NetProxyApplicationParameters::NETPROXY_IP_ADDR,
+                                      NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR))) {
             checkAndLogMsg ("PacketRouter::sendARPRequestForGatewayMACAddress", Logger::L_MildError,
                             "could not send an ARP request for IP address %s; sendARPRequest() failed with rc = %d\n",
                             InetAddr(NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR).getIPAsString(), rc);
@@ -214,8 +270,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    void PacketRouter::wakeUpAutoConnectionAndRemoteTransmitterThreads (void)
-    {
+    void PacketRouter::wakeUpAutoConnectionAndRemoteTransmitterThreads (void) {
         if (_pConnectionManager->getAutoConnectionTable()->size() > 0) {
             _mAutoConnectionManager.lock();
             _cvAutoConnectionManager.notifyAll();
@@ -233,8 +288,7 @@ namespace ACMNetProxy
         }
     }
 
-    void PacketRouter::requestTermination (void)
-    {
+    void PacketRouter::requestTermination (void) {
         if (PacketRouter::isTerminationRequested()) {
             return;
         }
@@ -257,8 +311,8 @@ namespace ACMNetProxy
         _pTCPConnTable->clearTable();
 
         UInt32Hashset * const hsEnabledConnectors = _pConfigurationManager->getEnabledConnectorsSet();
-        for (UInt32Hashset::Iterator iter (hsEnabledConnectors); !iter.end(); iter.nextElement()) {
-            Connector * const pConnector = _pConnectionManager->getConnectorForType (static_cast<ConnectorType> (iter.getKey()));
+        for (UInt32Hashset::Iterator iter(hsEnabledConnectors); !iter.end(); iter.nextElement()) {
+            Connector * const pConnector = _pConnectionManager->getConnectorForType(static_cast<ConnectorType> (iter.getKey()));
             if (pConnector) {
                 pConnector->terminateExecution();
             }
@@ -290,12 +344,12 @@ namespace ACMNetProxy
         }
     }
 
-    void PacketRouter::InternalReceiverThread::run (void)
-    {
+    void PacketRouter::InternalReceiverThread::run (void) {
         int rc, received = 0;
-        uint8 ui8Buf[NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS];
-
+        uint8 ui8Buf[(NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS >= NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU) ?
+            NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS : NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU];
         _bInternalReceiverThreadRunning = true;
+
         while (!PacketRouter::isTerminationRequested()) {
             received = PacketRouter::_pInternalInterface->readPacket (ui8Buf, sizeof (ui8Buf));
             if (received > 0) {
@@ -306,11 +360,11 @@ namespace ACMNetProxy
                 }
             }
         }
+
         _bInternalReceiverThreadRunning = false;
     }
 
-    void PacketRouter::ExternalReceiverThread::run (void)
-    {
+    void PacketRouter::ExternalReceiverThread::run (void) {
         int rc, received = 0;
         uint8 ui8Buf[NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS];
 
@@ -325,11 +379,11 @@ namespace ACMNetProxy
                 }
             }
         }
+
         _bExternalReceiverThreadRunning = false;
     }
 
-    void PacketRouter::LocalUDPDatagramsManagerThread::run (void)
-    {
+    void PacketRouter::LocalUDPDatagramsManagerThread::run (void) {
         _bLocalUDPDatagramsManagerThreadRunning = true;
         int rc;
         MutexUDPQueue readyUDPDatagramPacketQueue;
@@ -339,17 +393,18 @@ namespace ACMNetProxy
 
         _mLocalUDPDatagramsManager.lock();
         if (NetworkConfigurationSettings::UDP_NAGLE_ALGORITHM_TIMEOUT == 0) {
+            // Nagle's-like algorithm for UDP disabled
             pUDPDatagramsQueue = _pUDPReassembledDatagramsQueue;
             while (!PacketRouter::isTerminationRequested()) {
                 i64CurrentCycleTime = getTimeInMilliseconds();
                 pUDPDatagramsQueue->lock();
                 pUDPDatagramsQueue->resetGet();
 
-                while (pUDPDatagramPacket = pUDPDatagramsQueue->getNext()) {
+                while ((pUDPDatagramPacket = pUDPDatagramsQueue->getNext())) {
                     if (!pUDPDatagramPacket->isDatagramComplete()) {
                         if ((i64CurrentCycleTime - pUDPDatagramPacket->getCreationTime()) >= LDMT_TIME_BETWEEN_ITERATIONS) {
                             // Timeout expired --> UDP Datagram could not be reassembled --> deleting incomplete fragment
-                            delete pUDPDatagramsQueue->remove (pUDPDatagramPacket);
+                            delete pUDPDatagramsQueue->remove(pUDPDatagramPacket);
                             checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::run", Logger::L_MediumDetailDebug,
                                             "packet still incomplete after reassembly timeout expired; dropping fragment addressed to <%s:%hu>\n",
                                             InetAddr(pUDPDatagramPacket->getDestinationIPAddr()).getIPAsString(), pUDPDatagramPacket->getDestinationPortNum());
@@ -362,9 +417,10 @@ namespace ACMNetProxy
                         // Send packet by itself (since data was sent using UDP, it's not necessary to maintain the order)
                         if (pUDPDatagramPacket->getConnector()->isEnqueueingAllowed()) {
                             pUDPDatagramPacket->getConnection()->sendUDPUnicastPacketToRemoteHost (pUDPDatagramPacket->getRemoteProxyAddr(), pUDPDatagramPacket->getSourceIPAddr(),
-                                                                                                   pUDPDatagramPacket->getDestinationIPAddr(), pUDPDatagramPacket->getUDPPacket(),
-                                                                                                   pUDPDatagramPacket->getPacketLen(), pUDPDatagramPacket->getCompressionSetting(),
-                                                                                                   ProxyMessage::Protocol (pUDPDatagramPacket->getPMProtocol()));
+                                                                                                   pUDPDatagramPacket->getDestinationIPAddr(), pUDPDatagramPacket->getIPPacketTTL(),
+                                                                                                   pUDPDatagramPacket->getUDPPacket(), pUDPDatagramPacket->getPacketLen(),
+                                                                                                   pUDPDatagramPacket->getCompressionSetting(),
+                                                                                                   ProxyMessage::Protocol(pUDPDatagramPacket->getPMProtocol()));
                         }
                         else {
                             checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::run", Logger::L_LowDetailDebug,
@@ -372,7 +428,7 @@ namespace ACMNetProxy
                                             pUDPDatagramPacket->getPacketLen(), InetAddr(pUDPDatagramPacket->getDestinationIPAddr()).getIPAsString(),
                                             pUDPDatagramPacket->getDestinationPortNum());
                         }
-                        delete pUDPDatagramsQueue->remove (pUDPDatagramPacket);
+                        delete pUDPDatagramsQueue->remove(pUDPDatagramPacket);
                         pUDPDatagramPacket = NULL;
                     }
                     else if (readyUDPDatagramPacketQueue.getEnqueuedBytesCount() == 0) {
@@ -382,7 +438,7 @@ namespace ACMNetProxy
                     }
                     else {
                         // In this case, some packets have already been enqueued and packet size is less than the configured threshold --> check if wrapping together is possible
-                        if (pReferenceUDPDatagramPacket->canBeWrappedTogether (pUDPDatagramPacket)) {
+                        if (pReferenceUDPDatagramPacket->canBeWrappedTogether(pUDPDatagramPacket)) {
                             // It's possible to wrap packets together
                             readyUDPDatagramPacketQueue.enqueue (pUDPDatagramsQueue->remove (pUDPDatagramPacket));
                         }
@@ -411,21 +467,22 @@ namespace ACMNetProxy
                 }
                 pUDPDatagramsQueue->unlock();
 
-                _cvLocalUDPDatagramsManager.wait (LDMT_TIME_BETWEEN_ITERATIONS);
+                _cvLocalUDPDatagramsManager.wait(LDMT_TIME_BETWEEN_ITERATIONS);
             }
         }
         else {
+            // Nagle's-like algorithm for UDP enabled
             while (!PacketRouter::isTerminationRequested()) {
                 i64CurrentCycleTime = getTimeInMilliseconds();
                 i64NextCycleTime = 0;
                 _mUDPDatagramsQueueHashTable.lock();
                 UInt32Hashtable<MutexUDPQueue>::Iterator udpDatagramsQueueIterator = _ui32UDPDatagramsQueueHashTable.getAllElements();
                 _mUDPDatagramsQueueHashTable.unlock();
-                while (pUDPDatagramsQueue = udpDatagramsQueueIterator.getValue()) {
+                while ((pUDPDatagramsQueue = udpDatagramsQueueIterator.getValue())) {
                     if (!pUDPDatagramsQueue->isEmpty()) {
                         pUDPDatagramsQueue->lock();
                         pUDPDatagramsQueue->resetGet();
-                        while (pUDPDatagramPacket = pUDPDatagramsQueue->getNext()) {
+                        while ((pUDPDatagramPacket = pUDPDatagramsQueue->getNext())) {
                             if (!pUDPDatagramPacket->isDatagramComplete()) {
                                 // Fragment incomplete
                                 if ((i64CurrentCycleTime - pUDPDatagramPacket->getCreationTime()) >= NetworkConfigurationSettings::UDP_NAGLE_ALGORITHM_TIMEOUT) {
@@ -439,12 +496,13 @@ namespace ACMNetProxy
                                 continue;
                             }
                             if (pUDPDatagramPacket->getPacketLen() >= NetworkConfigurationSettings::MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD) {
-                                // Send packet by itself; since the used protocol is UDP, it's not necessary to maintain any order
+                                // Send packet by itself; since the used protocol is UDP, it is not necessary to keep the receiving order
                                 if (pUDPDatagramPacket->getConnector()->isEnqueueingAllowed()) {
                                     pUDPDatagramPacket->getConnection()->sendUDPUnicastPacketToRemoteHost (pUDPDatagramPacket->getRemoteProxyAddr(), pUDPDatagramPacket->getSourceIPAddr(),
-                                                                                                           pUDPDatagramPacket->getDestinationIPAddr(), pUDPDatagramPacket->getUDPPacket(),
-                                                                                                           pUDPDatagramPacket->getPacketLen(), pUDPDatagramPacket->getCompressionSetting(),
-                                                                                                           ProxyMessage::Protocol (pUDPDatagramPacket->getPMProtocol()));
+                                                                                                           pUDPDatagramPacket->getDestinationIPAddr(), pUDPDatagramPacket->getIPPacketTTL(),
+                                                                                                           pUDPDatagramPacket->getUDPPacket(), pUDPDatagramPacket->getPacketLen(),
+                                                                                                           pUDPDatagramPacket->getCompressionSetting(),
+                                                                                                           ProxyMessage::Protocol(pUDPDatagramPacket->getPMProtocol()));
                                 }
                                 else {
                                     checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::run", Logger::L_LowDetailDebug,
@@ -463,7 +521,7 @@ namespace ACMNetProxy
                                 while ((readyUDPDatagramPacketQueue.getEnqueuedBytesCount() < NetworkConfigurationSettings::MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD) &&
                                     (pUDPDatagramPacket = pUDPDatagramsQueue->getNext())) {
                                     // Check if packet is complete, or continue to the next one
-                                    if  (pUDPDatagramPacket->isDatagramComplete()) {
+                                    if (pUDPDatagramPacket->isDatagramComplete()) {
                                         // Check whether packet has to be sent by itself or it can be wrapped together with other packets
                                         if (pUDPDatagramPacket->getPacketLen() >= NetworkConfigurationSettings::MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD) {
                                             // Send packet by itself; since the used protocol is UDP, it's not necessary to maintain any order
@@ -471,10 +529,11 @@ namespace ACMNetProxy
                                                 pUDPDatagramPacket->getConnection()->sendUDPUnicastPacketToRemoteHost (pUDPDatagramPacket->getRemoteProxyAddr(),
                                                                                                                        pUDPDatagramPacket->getSourceIPAddr(),
                                                                                                                        pUDPDatagramPacket->getDestinationIPAddr(),
+                                                                                                                       pUDPDatagramPacket->getIPPacketTTL(),
                                                                                                                        pUDPDatagramPacket->getUDPPacket(),
                                                                                                                        pUDPDatagramPacket->getPacketLen(),
                                                                                                                        pUDPDatagramPacket->getCompressionSetting(),
-                                                                                                                       ProxyMessage::Protocol (pUDPDatagramPacket->getPMProtocol()));
+                                                                                                                       ProxyMessage::Protocol(pUDPDatagramPacket->getPMProtocol()));
                                             }
                                             else {
                                                 checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::run", Logger::L_LowDetailDebug,
@@ -495,7 +554,7 @@ namespace ACMNetProxy
                                 if (readyUDPDatagramPacketQueue.getEnqueuedBytesCount() >= NetworkConfigurationSettings::MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD) {
                                     // Required size reached --> creating and sending out MultipleUDPPacket and deleting buffered UDP Datagrams
                                     readyUDPDatagramPacketQueue.resetGet();
-                                    while (pUDPDatagramPacket = readyUDPDatagramPacketQueue.getNext()) {
+                                    while ((pUDPDatagramPacket = readyUDPDatagramPacketQueue.getNext())) {
                                         pUDPDatagramsQueue->remove (pUDPDatagramPacket);
                                     }
                                     if (0 > (rc = sendEnqueuedDatagramsToRemoteProxy (&readyUDPDatagramPacketQueue))) {
@@ -546,10 +605,10 @@ namespace ACMNetProxy
                         }
 
                         // Calculate next time when a timeout for a certain UDP datagram will expire
-                        if (pUDPDatagramPacket = pUDPDatagramsQueue->peek()) {
+                        if ((pUDPDatagramPacket = pUDPDatagramsQueue->peek())) {
                             i64NextCycleTime = (i64NextCycleTime == 0) ? (pUDPDatagramPacket->getCreationTime() + NetworkConfigurationSettings::UDP_NAGLE_ALGORITHM_TIMEOUT) :
-                                                                         std::min (i64NextCycleTime, (pUDPDatagramPacket->getCreationTime() +
-                                                                                                      NetworkConfigurationSettings::UDP_NAGLE_ALGORITHM_TIMEOUT));
+                                std::min (i64NextCycleTime, (pUDPDatagramPacket->getCreationTime() +
+                                                             NetworkConfigurationSettings::UDP_NAGLE_ALGORITHM_TIMEOUT));
                         }
                         pUDPDatagramsQueue->unlock();
                     }
@@ -560,7 +619,7 @@ namespace ACMNetProxy
                     break;
                 }
                 i64TimeToWait = (i64NextCycleTime == 0) ? LDMT_TIME_BETWEEN_ITERATIONS : (i64NextCycleTime - i64CurrentCycleTime);
-                _cvLocalUDPDatagramsManager.wait (i64TimeToWait);
+                _cvLocalUDPDatagramsManager.wait(i64TimeToWait);
             }
         }
         _mLocalUDPDatagramsManager.unlock();
@@ -570,11 +629,10 @@ namespace ACMNetProxy
 
     int PacketRouter::LocalUDPDatagramsManagerThread::addDatagramToOutgoingQueue (const InetAddr * const pRemoteProxyAddr, Connection * const pConnection, Connector * const pConnector,
                                                                                   const CompressionSetting * const pCompressionSetting, const ProxyMessage::Protocol pmProtocol,
-                                                                                  const IPHeader * const pIPHeader, const UDPHeader * const pUDPHeader)
-    {
+                                                                                  const IPHeader * const pIPHeader, const UDPHeader * const pUDPHeader) {
         if (!pRemoteProxyAddr || !pConnection || !pConnector ||
             !pCompressionSetting || !pIPHeader || !pUDPHeader) {
-            // All information is required
+            // All parameters are required
             return -1;
         }
 
@@ -608,12 +666,12 @@ namespace ACMNetProxy
                 const UDPDatagramPacket * const pUDPDatagramPacket = pUDPDatagramsQueue->findPacketFromIPHeader (pIPHeader);
                 checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::addDatagramToOutgoingQueue", Logger::L_MediumDetailDebug,
                                 "correctly reassembled UDP datagram packet with %hu bytes of data and addressed to address %s:%hu\n",
-                                (pUDPDatagramPacket->getPacketLen() - sizeof (UDPHeader)),
-                                InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(), pUDPDatagramPacket->getDestinationPortNum());
+                                (pUDPDatagramPacket->getPacketLen() - sizeof(UDPHeader)), InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(),
+                                pUDPDatagramPacket->getDestinationPortNum());
             }
         }
         else {
-            // Nagle's algorithm entails buffering received packets, adding them to a different queue, based on the destination IP
+            // Nagle's algorithm entails buffering received packets by adding them to a different queue, based on the destination IP
             UDPDatagramPacket *pUDPDatagramPacket = new UDPDatagramPacket (pRemoteProxyAddr, pConnection, pConnector, pCompressionSetting, pmProtocol, pIPHeader, pUDPHeader);
             if (!pUDPDatagramPacket) {
                 checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::addDatagramToOutgoingQueue", Logger::L_MildError,
@@ -633,6 +691,7 @@ namespace ACMNetProxy
                                     pUDPDatagramPacket->getCurrentPacketLen(), rc);
                 }
                 pUDPDatagramsQueue->unlock();
+                delete pUDPDatagramPacket;
                 return -4;
             }
             else if (rc == MutexUDPQueue::ENQUEUING_BUFFER_FULL) {
@@ -641,6 +700,9 @@ namespace ACMNetProxy
                                 "%u bytes are already in the queue (%u bytes left); discarding packet\n",
                                 pUDPDatagramPacket->getPacketLen(), pUDPDatagramsQueue->getEnqueuedBytesCount(),
                                 pUDPDatagramsQueue->getSpaceLeftInBuffer());
+                pUDPDatagramsQueue->unlock();
+                delete pUDPDatagramPacket;
+                return -5;
             }
             else if (bCompleteFragment) {
                 checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::addDatagramToOutgoingQueue", Logger::L_HighDetailDebug,
@@ -672,8 +734,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::LocalUDPDatagramsManagerThread::sendEnqueuedDatagramsToRemoteProxy (MutexUDPQueue * const pUDPDatagramsQueue) const
-    {
+    int PacketRouter::LocalUDPDatagramsManagerThread::sendEnqueuedDatagramsToRemoteProxy (MutexUDPQueue * const pUDPDatagramsQueue) const {
         static const UDPDatagramPacket *pReferenceUDPDatagramPacket = NULL;
 
         if (!pUDPDatagramsQueue) {
@@ -691,7 +752,7 @@ namespace ACMNetProxy
                 if (0 != (rc = pConnection->sendMultipleUDPDatagramsToRemoteHost (pReferenceUDPDatagramPacket->getRemoteProxyAddr(), pReferenceUDPDatagramPacket->getSourceIPAddr(),
                                                                                   pReferenceUDPDatagramPacket->getDestinationIPAddr(), pUDPDatagramsQueue,
                                                                                   pReferenceUDPDatagramPacket->getCompressionSetting(),
-                                                                                  ProxyMessage::Protocol (pReferenceUDPDatagramPacket->getPMProtocol())))) {
+                                                                                  ProxyMessage::Protocol(pReferenceUDPDatagramPacket->getPMProtocol())))) {
                     checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::sendEnqueuedDatagramsToRemoteProxy", Logger::L_MildError,
                                     "sendMultipleUDPDatagramsToRemoteHost() failed with rc = %d\n", rc);
                     return -2;
@@ -699,8 +760,9 @@ namespace ACMNetProxy
             }
             else {
                 if (0 != (rc = pConnection->sendUDPUnicastPacketToRemoteHost (pReferenceUDPDatagramPacket->getRemoteProxyAddr(), pReferenceUDPDatagramPacket->getSourceIPAddr(),
-                                                                              pReferenceUDPDatagramPacket->getDestinationIPAddr(), pReferenceUDPDatagramPacket->getUDPPacket(),
-                                                                              pReferenceUDPDatagramPacket->getPacketLen(), pReferenceUDPDatagramPacket->getCompressionSetting(),
+                                                                              pReferenceUDPDatagramPacket->getDestinationIPAddr(), pReferenceUDPDatagramPacket->getIPPacketTTL(),
+                                                                              pReferenceUDPDatagramPacket->getUDPPacket(), pReferenceUDPDatagramPacket->getPacketLen(),
+                                                                              pReferenceUDPDatagramPacket->getCompressionSetting(),
                                                                               ProxyMessage::Protocol (pReferenceUDPDatagramPacket->getPMProtocol())))) {
                     checkAndLogMsg ("PacketRouter::LocalUDPDatagramsManagerThread::sendEnqueuedDatagramsToRemoteProxy", Logger::L_MildError,
                                     "sendUDPUnicastPacketToRemoteHost() failed with rc = %d\n", rc);
@@ -718,13 +780,11 @@ namespace ACMNetProxy
         return pUDPDatagramsQueue->getEnqueuedBytesCount();
     }
 
-    void PacketRouter::LocalTCPTransmitterThread::run (void)
-    {
+    void PacketRouter::LocalTCPTransmitterThread::run (void) {
         int rc;
         int64 i64CurrTime = 0;
         register Entry *pEntry = NULL;
         ReceivedData *pData = NULL;
-        const TCPSegment *pSegment = NULL;
 
         _bLocalTCPTransmitterThreadRunning = true;
         _mLocalTCPTransmitter.lock();
@@ -775,10 +835,10 @@ namespace ACMNetProxy
                             ((i64CurrTime - pEntry->i64LastAckTime) > NetProxyApplicationParameters::SYN_SENT_RETRANSMISSION_TIMEOUTS[pEntry->ui8RetransmissionAttempts])) {
                             // A retransmission for the SYN packet is required
                             if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, pData->getTCPFlags(), pData->getSequenceNumber(),
-                                                                              pData->getData(), pData->getItemLength()))) {
+                                                                            pData->getData(), pData->getItemLength()))) {
                                 checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_MildError,
                                                 "L%hu-R%hu: failed to send packet with flag %hu to host; rc = %d\n", pData->getTCPFlags(), rc);
-                                PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                                PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                                 pEntry->reset();
                             }
                             else {
@@ -801,15 +861,15 @@ namespace ACMNetProxy
                             while ((pData != NULL) && (pData->getItemLength() > 0)) {
                                 // Check if in the receiver buffer there is enough room to receive the packet
                                 if (SequentialArithmetic::lessThanOrEqual (SequentialArithmetic::delta (pData->getFollowingSequenceNumber(), pEntry->ui32LastAckSeqNum),
-                                                                            (uint32) pEntry->ui16ReceiverWindowSize)) {
+                                    (uint32) pEntry->ui16ReceiverWindowSize)) {
                                     // Check if enough time has elapsed to perform a (re)transmission
                                     if ((i64CurrTime - pData->_i64LastTransmitTime) > pEntry->ui16RTO) {
                                         if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, pData->getTCPFlags(), pData->getSequenceNumber(),
-                                                                                          pData->getData(), pData->getItemLength()))) {
+                                                                                        pData->getData(), pData->getItemLength()))) {
                                             checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_Warning,
                                                             "L%hu-R%hu: sendTCPPacketToHost() failed with rc = %d\n",
                                                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-                                            PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                                            PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                                             pEntry->reset();
                                             pData = NULL;
                                             break;
@@ -821,7 +881,7 @@ namespace ACMNetProxy
                                                             "L%hu-R%hu: transmitted to local host %hu bytes of data with FLAGs %hhu starting at SEQ number %u "
                                                             "(relative %u); next packet will have SEQ number %u\n", pEntry->ui16ID, pEntry->ui16RemoteID,
                                                             pData->getItemLength(), pData->getTCPFlags(), pData->getSequenceNumber(),
-                                                            SequentialArithmetic::delta (pData->getSequenceNumber(), pEntry->ui32StartingOutSeqNum), pEntry->ui32OutSeqNum);
+                                                            SequentialArithmetic::delta(pData->getSequenceNumber(), pEntry->ui32StartingOutSeqNum), pEntry->ui32OutSeqNum);
                                         }
                                         else {
                                             if (SequentialArithmetic::lessThan (pEntry->ui32OutSeqNum, pData->getFollowingSequenceNumber())) {
@@ -847,7 +907,7 @@ namespace ACMNetProxy
                                                             "L%hu-R%hu: RETRANSMITTED %hu bytes of data with FLAGs %hhu starting at sequence number %u (relative %u); "
                                                             "new RTO is %hu and next packet will have SEQ number %u\n", pEntry->ui16ID, pEntry->ui16RemoteID,
                                                             pData->getItemLength(), pData->getTCPFlags(), pData->getSequenceNumber(),
-                                                            SequentialArithmetic::delta (pData->getSequenceNumber(), pEntry->ui32StartingOutSeqNum),
+                                                            SequentialArithmetic::delta(pData->getSequenceNumber(), pEntry->ui32StartingOutSeqNum),
                                                             pEntry->ui16RTO, pEntry->ui32OutSeqNum);
                                         }
 
@@ -865,7 +925,7 @@ namespace ACMNetProxy
                                                     "has SEQ number %u (relative %u) and is %hu bytes long; receiver window size is %hu and there are "
                                                     "%d packets in the outgoing queue; waiting before transmitting\n",
                                                     pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32LastAckSeqNum, pData->getSequenceNumber(),
-                                                    SequentialArithmetic::delta (pData->getSequenceNumber(), pEntry->ui32StartingOutSeqNum),
+                                                    SequentialArithmetic::delta(pData->getSequenceNumber(), pEntry->ui32StartingOutSeqNum),
                                                     pData->getItemLength(), pEntry->ui16ReceiverWindowSize, pEntry->outBuf.size());
 
                                     // Check if we can send an octet to force update
@@ -886,12 +946,11 @@ namespace ACMNetProxy
                                         }
                                         pEntry->ui16RTO = pEntry->ui16SRTT;
 
-                                        const int iPeekedOctet = pData->peekOctet (pEntry->ui32OutSeqNum);
+                                        const int iPeekedOctet = pData->peekOctet(pEntry->ui32OutSeqNum);
                                         if ((iPeekedOctet < 0) || (iPeekedOctet > 255)) {
                                             checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_Warning,
                                                             "L%hu-R%hu: failed to extract an octed with SEQ number %u from a packet with SEQ number %u and %hu bytes long; rc = %d\n",
-                                                            pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32OutSeqNum,
-                                                            pData->getSequenceNumber(), pData->getItemLength(), iPeekedOctet);
+                                                            pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32OutSeqNum, pData->getSequenceNumber(), pData->getItemLength(), iPeekedOctet);
                                             PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
                                             pEntry->reset();
                                             pData = NULL;
@@ -900,7 +959,7 @@ namespace ACMNetProxy
                                             // Octet correctly peeked
                                             const uint8 ui8PeekedOctet = iPeekedOctet;
                                             if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_PSH | TCPHeader::TCPF_ACK,
-                                                                                              pEntry->ui32OutSeqNum, &ui8PeekedOctet, 1))) {
+                                                                                            pEntry->ui32OutSeqNum, &ui8PeekedOctet, 1))) {
                                                 checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_MildError,
                                                                 "L%hu-R%hu: failed to send PSH+ACK packet to host to force sending a window update; rc = %d\n",
                                                                 pEntry->ui16ID, pEntry->ui16RemoteID, rc);
@@ -913,7 +972,7 @@ namespace ACMNetProxy
                                                 pEntry->i64LocalActionTime = i64CurrTime;
                                                 pEntry->ui32LastACKedSeqNum = pEntry->ui32NextExpectedInSeqNum;
                                                 if (SequentialArithmetic::lessThan (SequentialArithmetic::delta (pEntry->ui32OutSeqNum, pEntry->ui32LastAckSeqNum),
-                                                                                    (uint32) pEntry->ui16ReceiverWindowSize)) {
+                                                    (uint32) pEntry->ui16ReceiverWindowSize)) {
                                                     pEntry->ui32OutSeqNum++;
                                                     checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_LowDetailDebug,
                                                                     "L%hu-R%hu: successfully sent one octet with SEQ number %lu to force local host to send a window update; "
@@ -941,11 +1000,11 @@ namespace ACMNetProxy
                         if (pData && ((pData->getTCPFlags() & TCPHeader::TCPF_FIN) != 0) && ((pEntry->localStatus == TCTLS_ESTABLISHED) ||
                             (pEntry->localStatus == TCTLS_CLOSE_WAIT) || ((i64CurrTime - pData->_i64LastTransmitTime) >= pEntry->ui16RTO))) {
                             /*
-                             * Placeholder for a FIN packet. Note that, technically, before transmitting the FIN, we should
-                             * check that the remote window size has at least one free byte to enqueue the FIN.
-                             */
+                            * Placeholder for a FIN packet. Note that, technically, before transmitting the FIN, we should
+                            * check that the remote window size has at least one free byte to enqueue the FIN.
+                            */
                             if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, pData->getTCPFlags(), pData->getSequenceNumber(),
-                                                                              pData->getData(), pData->getItemLength()))) {
+                                                                            pData->getData(), pData->getItemLength()))) {
                                 checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_MildError,
                                                 "L%hu-R%hu: failed to send packet with flag %hu to host; rc = %d\n", pData->getTCPFlags(), rc);
                                 PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
@@ -1001,7 +1060,7 @@ namespace ACMNetProxy
                         }
                     }
                     else if (((i64CurrTime - pEntry->i64LocalActionTime) > NetProxyApplicationParameters::IDLE_TCP_FAST_RETRANSMIT_TRIGGER_TIMEOUT) &&
-                        pEntry->areThereHolesInOutgoingDataBuffer() && !pEntry->isOutgoingDataReady()) {
+                             pEntry->areThereHolesInOutgoingDataBuffer() && !pEntry->isOutgoingDataReady()) {
                         if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
                             checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
                                             "L%hu-R%hu: failed to send ACK packet to local host to trigger fast retransmit; rc = %d\n",
@@ -1020,10 +1079,10 @@ namespace ACMNetProxy
                     }
                     else if (((i64CurrTime - pEntry->i64LocalActionTime) > NetProxyApplicationParameters::IDLE_TCP_CONNECTION_NOTIFICATION_TIME) &&
                         ((i64CurrTime - pEntry->i64RemoteActionTime) > NetProxyApplicationParameters::IDLE_TCP_CONNECTION_NOTIFICATION_TIME) &&
-                        ((i64CurrTime - pEntry->i64IdleTime) > NetProxyApplicationParameters::IDLE_TCP_CONNECTION_NOTIFICATION_TIME)) {
+                             ((i64CurrTime - pEntry->i64IdleTime) > NetProxyApplicationParameters::IDLE_TCP_CONNECTION_NOTIFICATION_TIME)) {
                         // Check performed only if there is no data to transmit
                         if (!(pEntry->getConnector()->isConnectedToRemoteAddr (&pEntry->remoteProxyAddr) ||
-                            pEntry->getConnector()->isConnectingToRemoteAddr (&pEntry->remoteProxyAddr))) {
+                              pEntry->getConnector()->isConnectingToRemoteAddr (&pEntry->remoteProxyAddr))) {
                             if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                                 checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_MildError,
                                                 "L%hu-R%hu: failed to send RST packet to host; rc = %d\n",
@@ -1044,7 +1103,7 @@ namespace ACMNetProxy
                                             pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->localStatus, pEntry->remoteStatus,
                                             i64CurrTime - pEntry->i64LocalActionTime);
                         }
-                        /*
+
                         if (pEntry->getOutgoingBufferRemainingSpacePercentage() >= 30.0) {
                             // If window is not full, we send an heartbeat
                             if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
@@ -1057,17 +1116,17 @@ namespace ACMNetProxy
                                 continue;
                             }
                         }
-                        */
+
                     }
 
                     // Check if it's necessary to send an ACK to local host to update LastACKedSeqNum
-                    if (SequentialArithmetic::lessThan (pEntry->ui32LastACKedSeqNum, pEntry->ui32NextExpectedInSeqNum) && ((pEntry->localStatus == TCTLS_ESTABLISHED) ||
+                    if (SequentialArithmetic::lessThan(pEntry->ui32LastACKedSeqNum, pEntry->ui32NextExpectedInSeqNum) && ((pEntry->localStatus == TCTLS_ESTABLISHED) ||
                         (pEntry->localStatus == TCTLS_FIN_WAIT_1) || (pEntry->localStatus == TCTLS_FIN_WAIT_2))) {
                         if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
                             checkAndLogMsg ("PacketRouter::localTransmitterThreadRun", Logger::L_MildError,
                                             "L%hu-R%hu: failed to send ACK packet with number %u (relative %u) and SEQ number %u (relative %u) to local host; rc = %d\n",
                                             pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32NextExpectedInSeqNum,
-                                            SequentialArithmetic::delta (pEntry->ui32NextExpectedInSeqNum, pEntry->ui32StartingInSeqNum),
+                                            SequentialArithmetic::delta(pEntry->ui32NextExpectedInSeqNum, pEntry->ui32StartingInSeqNum),
                                             pEntry->ui32OutSeqNum, SequentialArithmetic::delta (pEntry->ui32OutSeqNum, pEntry->ui32StartingOutSeqNum), rc);
                             PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
                             pEntry->reset();
@@ -1099,12 +1158,10 @@ namespace ACMNetProxy
         _bLocalTCPTransmitterThreadRunning = false;
     }
 
-    void PacketRouter::RemoteTCPTransmitterThread::run (void)
-    {
+    void PacketRouter::RemoteTCPTransmitterThread::run (void) {
         int rc;
         uint64 i64CurrTime = 0;
         double beginningTCPWindowPercentage;
-        AutoConnectionEntry *pAutoConnectionEntry = NULL;
         register Entry *pEntry = NULL;
         Connector *pConnector = NULL;
         Connection *pConnection = NULL;
@@ -1118,24 +1175,57 @@ namespace ACMNetProxy
             _pTCPConnTable->resetGet();
             while (NULL != (pEntry = _pTCPConnTable->getNextActiveRemoteEntry())) {
                 if (pEntry->tryLock() == Mutex::RC_Ok) {
+
+                    bool _bPriorityMechanismActive = false; //this will become a netproxy internal parameter
+                    if (_bPriorityMechanismActive) {
+
+                        if (pEntry->assignedPriority > _pTCPConnTable->highestKnownPriority) {
+                            _pTCPConnTable->newHighestPriority = pEntry->assignedPriority;
+                            checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MediumDetailDebug,
+                                           "Table's New Highest Priority changed to %d", _pTCPConnTable->newHighestPriority);
+                        }
+                        else {
+                            checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MediumDetailDebug,
+                                           "Assigned priority: %d is not higher than the current higher priority: %d", pEntry->assignedPriority, _pTCPConnTable->newHighestPriority);
+                        }
+
+                        if (pEntry->currentPriority < _pTCPConnTable->highestKnownPriority) {
+                            pEntry->currentPriority++;
+                            checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MediumDetailDebug,
+                                           "Entry's current priority incremented to %d, switching to next entry since minimum priority is %d",
+                                           pEntry->currentPriority, _pTCPConnTable->highestKnownPriority);
+                            pEntry->unlock();
+                            continue;
+                        }
+                        else {
+                            pEntry->currentPriority = pEntry->assignedPriority;
+                            checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MediumDetailDebug,
+                                           "Entry priority is higher enough to be computed in this cicle, resetting priority counter: %d and process the entry",
+                                           pEntry->currentPriority);
+                        }
+                    }
+
                     if (!(pConnector = pEntry->getConnector())) {
                         checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
                                         "L%hu-R%hu: getConnector() returned a NULL pointer; sending an RST packet to local host "
                                         "and clearing connection\n", pEntry->ui16ID, pEntry->ui16RemoteID);
+
                         if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
-                            checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
-                                            "L%hu-R%hu: failed to send RST packet to host; rc = %d\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                            checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
+                                           "L%hu-R%hu: failed to send RST packet to host; rc = %d\n",
+                                           pEntry->ui16ID, pEntry->ui16RemoteID, rc);
                         }
                         pEntry->reset();
                         pEntry->unlock();
                         continue;
                     }
+
                     if (!(pConnection = pEntry->getConnection())) {
                         checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
                                         "L%hu-R%hu: getConnection() returned a NULL pointer; sending an RST packet to local host "
                                         "and clearing connection\n", pEntry->ui16ID, pEntry->ui16RemoteID);
-                        if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+
+                        if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                             checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
                                             "L%hu-R%hu: failed to send RST packet to host; rc = %d\n",
                                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
@@ -1146,17 +1236,20 @@ namespace ACMNetProxy
                     }
 
                     if ((pEntry->remoteStatus == TCTRS_WaitingConnEstablishment) && pConnector->isEnqueueingAllowed() && pConnection->isConnected()) {
-                        // It is still necessary to send an OpenTCPConnection Request to the remote proxy
+                        // It is still necessary to send an OpenTCPConnection REQUEST to the remote proxy
                         bReachable = _pConnectionManager->getReachabilityFromRemoteProxyWithID (pConnection->getRemoteProxyID());
+
+                        //this method may have to be fixed too to be non-blocking
                         if (0 != (rc = pConnection->sendOpenTCPConnectionRequest (pEntry, bReachable))) {
                             checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
                                             "L%hu-R0: sendOpenTCPConnectionRequest() failed with rc = %d\n",
                                             pEntry->ui16ID, rc);
+
                             pEntry->ui32StartingOutSeqNum = 0;
-                            if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST | TCPHeader::TCPF_ACK, 0))) {
-                                checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
-                                                "L%hu-R0: failed to send RST+ACK packet; rc = %d\n",
-                                                pEntry->ui16ID, rc);
+                            if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST | TCPHeader::TCPF_ACK, 0))) {
+                                checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
+                                               "L%hu-R0: failed to send RST+ACK packet; rc = %d\n",
+                                               pEntry->ui16ID, rc);
                             }
                             else {
                                 checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_LowDetailDebug,
@@ -1179,17 +1272,18 @@ namespace ACMNetProxy
                         continue;
                     }
                     else if ((pEntry->remoteStatus == TCTRS_ConnRequested) && (pEntry->localStatus == TCTLS_ESTABLISHED) && pConnector->isEnqueueingAllowed()) {
-                        // It is still necessary to send an OpenTCPConnection Request to the remote proxy
+                        // It is still necessary to send an OpenTCPConnection RESPONSE to the remote proxy
                         bReachable = _pConnectionManager->getReachabilityFromRemoteProxyWithID (pConnection->getRemoteProxyID());
                         if (pConnection->isConnected()) {
+                            //this method may have to be fixed too to be non-blocking
                             if (0 != (rc = pConnection->sendTCPConnectionOpenedResponse (pEntry, bReachable))) {
                                 checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
                                                 "L%hu-R%hu: sendOpenTCPConnectionRequest() failed with rc = %d\n",
                                                 pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-                                if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
-                                    checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
-                                                    "L%hu-R%hu: failed to send RST+ACK packet; rc = %d\n",
-                                                    pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                                if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                                    checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
+                                                   "L%hu-R%hu: failed to send RST+ACK packet; rc = %d\n",
+                                                   pEntry->ui16ID, pEntry->ui16RemoteID, rc);
                                 }
                                 else {
                                     checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
@@ -1221,7 +1315,7 @@ namespace ACMNetProxy
                             continue;
                         }
                         else {
-                            if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                            if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                                 checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
                                                 "L%hu-R%hu: failed to send RST+ACK packet; rc = %d\n",
                                                 pEntry->ui16ID, pEntry->ui16RemoteID, rc);
@@ -1245,22 +1339,31 @@ namespace ACMNetProxy
                                         pEntry->getOutgoingReadyBytesCount());
                         // Transmission to remote proxy is allowed only if the remote connection is either in status ConnEstablished or in status DisconnRequestReceived
                         if ((pEntry->remoteStatus == TCTRS_ConnEstablished) || (pEntry->remoteStatus == TCTRS_DisconnRequestReceived)) {
-                            const TCPSegment * const pTCPSegment = pEntry->dequeueLocallyReceivedData (NetworkConfigurationSettings::MAX_TCP_DATA_PROXY_MESSAGE_PAYLOAD_SIZE);
-                            if (pTCPSegment == NULL) {
-                                checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
-                                                "L%hu-R%hu: dequeue() failed; sending RST packet to local host and clearing connection\n",
-                                                pEntry->ui16ID, pEntry->ui16RemoteID);
-                                if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                            /////////////////////////////////////////////////
+                            if (pEntry->pTCPSegment == NULL) {
+                                //if we are not holding a segment from the previous cycle we dequeue another segment
+                                pEntry->pTCPSegment = pEntry->dequeueLocallyReceivedData(NetworkConfigurationSettings::MAX_TCP_DATA_PROXY_MESSAGE_PAYLOAD_SIZE);
+                            }
+                            //////////////////////////////////////////					
+                            //check that the dequeue went correctly
+                            if (pEntry->pTCPSegment == NULL) {
+                                checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
+                                               "L%hu-R%hu: dequeue() failed; sending RST packet to local host and clearing connection\n",
+                                               pEntry->ui16ID, pEntry->ui16RemoteID);
+
+                                if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                                     checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
                                                     "L%hu-R%hu: sendTCPPacketToHost() failed sending an RST to local host; with rc = %d\n",
                                                     pEntry->ui16ID, pEntry->ui16RemoteID, rc);
                                 }
-                                PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                                PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                                 pEntry->reset();
-                                delete pTCPSegment;
+                                //delete pEntry->pTcpSegment;
+                                //pEntry->pTcpSegment = NULL;
                                 break;
                             }
-                            if (pTCPSegment->getTCPFlags() & TCPHeader::TCPF_FIN) {
+
+                            if (pEntry->pTCPSegment->getTCPFlags() & TCPHeader::TCPF_FIN) {
                                 // If we have not ACKed the FIN yet, we should send an ACK to the local application
                                 if ((pEntry->localStatus == TCTLS_ESTABLISHED) || (pEntry->localStatus == TCTLS_FIN_WAIT_1) ||
                                     (pEntry->localStatus == TCTLS_FIN_WAIT_2)) {
@@ -1280,11 +1383,12 @@ namespace ACMNetProxy
                                             checkAndLogMsg ("TCPManager::remoteTransmitterThreadRun", Logger::L_MildError,
                                                             "L%hu-R%hu: failed to send FIN+ACK packet; rc = %d\n",
                                                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-                                            PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                                            PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                                             pEntry->reset();
                                             pEntry->unlock();
                                             break;
                                         }
+
                                         if (pEntry->localStatus == TCTLS_FIN_WAIT_1) {
                                             // Our FIN still has to be ACKed and a FIN from local application has been received --> moving to CLOSING
                                             checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_LowDetailDebug,
@@ -1304,31 +1408,44 @@ namespace ACMNetProxy
                                     }
                                 }
 
-                                if (pTCPSegment->getItemLength() > 0) {
-                                    if (0 != (rc = pConnection->sendTCPDataToRemoteHost (pEntry, pTCPSegment->getData(), pTCPSegment->getItemLength(),
-                                                                                         pTCPSegment->getTCPFlags() & TCP_DATA_FLAGS_MASK))) {
-                                        checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
-                                                        "L%hu-R%hu: sendTCPDataToRemoteHost() failed with rc = %d; sending RST packet to local host and clearing connection\n",
-                                                        pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-                                        if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
-                                            checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
-                                                            "L%hu-R%hu: sendTCPPacketToHost() failed sending an RST to local host; with rc = %d\n",
-                                                            pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                                if (pEntry->pTCPSegment->getItemLength() > 0) {
+                                    //if the priority mechanism is active this method will be non-blocking
+                                    if (0 != (rc = pConnection->sendTCPDataToRemoteHost(pEntry, pEntry->pTCPSegment->getData(), pEntry->pTCPSegment->getItemLength(),
+                                                                                        pEntry->pTCPSegment->getTCPFlags() & TCP_DATA_FLAGS_MASK))) {
+
+                                        if (rc == -4) {
+                                            checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_Info,
+                                                           "L%hu-R%hu: sendTCPPacketToHost() dropping the send for this cycle\n",
+                                                           pEntry->ui16ID, pEntry->ui16RemoteID);
+                                            break;
                                         }
-                                        pEntry->reset();
-                                        delete pTCPSegment;
-                                        break;
+                                        else {
+                                            checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
+                                                           "L%hu-R%hu: sendTCPDataToRemoteHost() failed with rc = %d; sending RST packet to local host and clearing connection\n",
+                                                           pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+
+                                            if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                                                checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
+                                                               "L%hu-R%hu: sendTCPPacketToHost() failed sending an RST to local host; with rc = %d\n",
+                                                               pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                                            }
+                                            pEntry->reset();
+                                            delete pEntry->pTCPSegment;
+                                            pEntry->pTCPSegment = NULL;
+                                            break;
+                                        }
                                     }
                                     else {
                                         pEntry->i64RemoteActionTime = i64CurrTime;
                                         checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MediumDetailDebug,
                                                         "L%hu-R%hu: transmitted %hu bytes of TCP data with FLAGs %hhu via %s to remote proxy\n",
-                                                        pEntry->ui16ID, pEntry->ui16RemoteID, pTCPSegment->getItemLength(),
-                                                        pTCPSegment->getTCPFlags(), pEntry->getConnector()->getConnectorTypeAsString());
+                                                        pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->pTCPSegment->getItemLength(),
+                                                        pEntry->pTCPSegment->getTCPFlags(), pEntry->getConnector()->getConnectorTypeAsString());
                                     }
                                 }
 
                                 // Flush any data left in compressor buffer
+                                //this method may have to become non-blocking
                                 if (0 != (rc = flushAndSendCloseConnectionRequest (pEntry))) {
                                     checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
                                                     "L%hu-R%hu: failed to flush data and to send a CloseTCPConnection request to remote proxy; rc = %d\n",
@@ -1358,38 +1475,52 @@ namespace ACMNetProxy
                                 }
 
                                 // CloseTCPConnection request has been sent to remote proxy --> nothing else to do for this entry
-                                delete pTCPSegment;
+                                delete pEntry->pTCPSegment;
+                                pEntry->pTCPSegment = NULL;
                                 break;
                             }
-                            else if (pTCPSegment->getItemLength() == 0) {
+                            else if (pEntry->pTCPSegment->getItemLength() == 0) {
                                 checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_HighDetailDebug,
                                                 "L%hu-R%hu: dequeue() returned an empty data packet (buffering compression?) with FLAGs %hhu; ignoring\n",
-                                                pEntry->ui16ID, pEntry->ui16RemoteID, pTCPSegment->getTCPFlags());
-                                delete pTCPSegment;
+                                                pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->pTCPSegment->getTCPFlags());
+                                delete pEntry->pTCPSegment;
+                                pEntry->pTCPSegment = NULL;
                                 continue;
                             }
 
-                            if (0 != (rc = pConnection->sendTCPDataToRemoteHost (pEntry, pTCPSegment->getData(), pTCPSegment->getItemLength(), pTCPSegment->getTCPFlags()))) {
-                                checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
-                                                "L%hu-R%hu: sendTCPDataToRemoteHost() failed with rc = %d; sending RST packet to local host and clearing connection\n",
-                                                pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-                                if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
-                                    checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
-                                                    "L%hu-R%hu: sendTCPPacketToHost() failed with rc = %d\n",
-                                                    pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                            //if the priority mechanism is active this method will be non-blocking
+                            if (0 != (rc = pConnection->sendTCPDataToRemoteHost(pEntry, pEntry->pTCPSegment->getData(),
+                                                                                pEntry->pTCPSegment->getItemLength(), pEntry->pTCPSegment->getTCPFlags()))) {
+                                if (rc == -4) {
+                                    checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
+                                                   "L%hu-R%hu: sendTCPPacketToHost() outgoing queue full, dropped the send for this cycle\n",
+                                                   pEntry->ui16ID, pEntry->ui16RemoteID);
+                                    break;
                                 }
-                                PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
-                                pEntry->reset();
-                                delete pTCPSegment;
-                                break;
+                                else {
+                                    checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
+                                                   "L%hu-R%hu: sendTCPDataToRemoteHost() failed with rc = %d; sending RST packet to local host and clearing connection\n",
+                                                   pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                                    if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                                        checkAndLogMsg("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
+                                                       "L%hu-R%hu: sendTCPPacketToHost() failed with rc = %d\n",
+                                                       pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                                    }
+                                    PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
+                                    pEntry->reset();
+                                    //delete pEntry->pTCPSegment;
+                                    //pEntry->pTCPSegment = NULL;
+                                    break;
+                                }
                             }
                             else {
                                 pEntry->i64RemoteActionTime = i64CurrTime;
                                 checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MediumDetailDebug,
                                                 "L%hu-R%hu: transmitted %hu bytes of TCP data with FLAGs %hhu via %s to remote proxy\n",
-                                                pEntry->ui16ID, pEntry->ui16RemoteID, pTCPSegment->getItemLength(),
-                                                pTCPSegment->getTCPFlags(), pEntry->getConnector()->getConnectorTypeAsString());
-                                delete pTCPSegment;
+                                                pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->pTCPSegment->getItemLength(),
+                                                pEntry->pTCPSegment->getTCPFlags(), pEntry->getConnector()->getConnectorTypeAsString());
+                                delete pEntry->pTCPSegment;
+                                pEntry->pTCPSegment = NULL;
                             }
                         }
                         else if (pEntry->remoteStatus == TCTRS_ConnRequested) {
@@ -1407,6 +1538,7 @@ namespace ACMNetProxy
                                                 " attempt to remote proxy failed; resetting connection\n",
                                                 pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->getOutgoingTotalBytesCount(),
                                                 pEntry->getOutgoingReadyBytesCount());
+
                                 if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                                     checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
                                                     "L%hu-R%hu: sendTCPPacketToHost() failed with rc = %d\n",
@@ -1428,16 +1560,18 @@ namespace ACMNetProxy
                                             "of remote connection to remote proxy is %d; resetting connection\n",
                                             pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->getOutgoingTotalBytesCount(),
                                             pEntry->getOutgoingReadyBytesCount(), pEntry->remoteStatus);
+
                             if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                                 checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
                                                 "L%hu-R%hu: sendTCPPacketToHost() failed with rc = %d\n",
                                                 pEntry->ui16ID, pEntry->ui16RemoteID, rc);
                             }
-                            PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                            PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                             pEntry->reset();
                             break;
                         }
                         else {
+                            //I don't need to store this since it is a duplicate
                             const TCPSegment * const pTCPSegment = pEntry->dequeueLocallyReceivedData (NetworkConfigurationSettings::MAX_TCP_DATA_PROXY_MESSAGE_PAYLOAD_SIZE);
                             if (pTCPSegment == NULL) {
                                 checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
@@ -1448,7 +1582,7 @@ namespace ACMNetProxy
                                                     "L%hu-R%hu: sendTCPPacketToHost() failed with rc = %d\n",
                                                     pEntry->ui16ID, pEntry->ui16RemoteID, rc);
                                 }
-                                PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                                PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                                 pEntry->reset();
                                 delete pTCPSegment;
                             }
@@ -1466,11 +1600,12 @@ namespace ACMNetProxy
                     if ((beginningTCPWindowPercentage < 30.0) && (pEntry->getOutgoingBufferRemainingSpacePercentage() >= 30.0) &&
                         ((pEntry->localStatus == TCTLS_ESTABLISHED) || (pEntry->localStatus == TCTLS_FIN_WAIT_1) ||
                         (pEntry->localStatus == TCTLS_FIN_WAIT_2))) {
-                        if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
+
+                        if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
                             checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_Warning,
                                             "L%hu-R%hu: failed to send ACK packet to signal present TCP Window Size to host; rc = %d\n",
                                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-                            PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                            PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                             pEntry->reset();
                         }
                         else {
@@ -1495,14 +1630,13 @@ namespace ACMNetProxy
         _bRemoteTCPTransmitterThreadRunning = false;
     }
 
-    void PacketRouter::AutoConnectionManager::run (void)
-    {
+    void PacketRouter::AutoConnectionManager::run (void) {
         int rc;
         uint32 ui32RemoteProxyID = 0;
         uint16 ui16Port = 0;
         uint64 i64CurrTime = 0, i64NextCycleTime = 0, i64TimeToWait = 0;
         const uint64 i64ShortWait = 2000;
-        ConnectorType connectorType (CT_UNDEF);
+        ConnectorType connectorType(CT_UNDEF);
         String sIPAddress;
         const Connector *pConnector = NULL;
         const NPDArray2<AutoConnectionEntry> * const pAutoConnectionTable = _pConnectionManager->getAutoConnectionTable();
@@ -1517,11 +1651,29 @@ namespace ACMNetProxy
             for (int i = 0; i <= pAutoConnectionTable->getHighestIndex() && !PacketRouter::isTerminationRequested(); ++i) {
                 // Save values in local variables to avoid problems in case of memory deallocation at program exit
                 AutoConnectionEntry &rAutoConnectionEntry = pAutoConnectionTable->get (i);
+                if (!rAutoConnectionEntry.getRemoteProxyInetAddress()) {
+                    rAutoConnectionEntry.setInvalid();
+                    checkAndLogMsg ("PacketRouter::AutoConnectionManager", Logger::L_Warning,
+                                    "impossible to establish a connection via %s to the remote NetProxy with ID %u\n",
+                                    connectorTypeToString (rAutoConnectionEntry.getConnectorType()),
+                                    rAutoConnectionEntry.getRemoteProxyID());
+                    if (getNumOfValidAutoConnectionEntries() == 0) {
+                        _mAutoConnectionManager.unlock();
+                        _bAutoConnectionManagerThreadRunning = false;
+
+                        checkAndLogMsg ("PacketRouter::AutoConnectionManager", Logger::L_Warning,
+                                        "no entries left in the autoConnectionTable; stopping thread execution!\n");
+                        return;
+                    }
+
+                    continue;
+                }
+
                 connectorType = rAutoConnectionEntry.getConnectorType();
                 ui32RemoteProxyID = rAutoConnectionEntry.getRemoteProxyID();
                 sIPAddress = rAutoConnectionEntry.getRemoteProxyInetAddress()->getIPAsString();
                 ui16Port = rAutoConnectionEntry.getRemoteProxyInetAddress()->getPort();
-                if (pConnector = _pConnectionManager->getConnectorForType (connectorType)) {
+                if ((pConnector = _pConnectionManager->getConnectorForType (connectorType))) {
                     if (_pConnectionManager->isConnectionToRemoteProxyOpenedForConnector (connectorType, ui32RemoteProxyID) && rAutoConnectionEntry.isSynchronized()) {
                         // Connection is already established
                         continue;
@@ -1559,16 +1711,24 @@ namespace ACMNetProxy
                         i64NextCycleTime = std::min (i64NextCycleTime, i64CurrTime + i64ShortWait);
                         continue;       // Avoids updating the last connection attempt time
                     }
-                    rAutoConnectionEntry.updateLastConnectionAttemptTime (i64CurrTime);
+                    rAutoConnectionEntry.updateLastConnectionAttemptTime(i64CurrTime);
                 }
                 else {
-                    checkAndLogMsg ("PacketRouter::AutoConnectionManager", Logger::L_SevereError,
-                                    "impossible to retrieve %s Connector from the ConnectionManager; terminating thread!\n",
-                                    connectorTypeToString (connectorType));
+                    // Connector not found (maybe it was disabled in the configuration file?) - removing entry from the autoConnectionTable
+                    checkAndLogMsg ("PacketRouter::AutoConnectionManager", Logger::L_MildError,
+                                    "impossible to retrieve %s Connector from the ConnectionManager, necessary for the autoConnection "
+                                    "to the remote NetProxy at address %s\n", connectorTypeToString (connectorType), sIPAddress.c_str());
 
-                    _mAutoConnectionManager.unlock();
-                    _bAutoConnectionManagerThreadRunning = false;
-                    return;
+                    rAutoConnectionEntry.setInvalid();
+                    if (getNumOfValidAutoConnectionEntries() == 0) {
+                        _mAutoConnectionManager.unlock();
+                        _bAutoConnectionManagerThreadRunning = false;
+
+                        checkAndLogMsg ("PacketRouter::AutoConnectionManager", Logger::L_Warning,
+                                        "no entries left in the autoConnectionTable; stopping thread execution!\n");
+                        return;
+                    }
+                    continue;
                 }
             }
 
@@ -1577,7 +1737,7 @@ namespace ACMNetProxy
             }
             i64TimeToWait = i64NextCycleTime - i64CurrTime;
             if (i64TimeToWait > 0) {
-                _cvAutoConnectionManager.wait (i64TimeToWait);
+                _cvAutoConnectionManager.wait(i64TimeToWait);
             }
         }
 
@@ -1585,11 +1745,23 @@ namespace ACMNetProxy
         _bAutoConnectionManagerThreadRunning = false;
     }
 
-    void PacketRouter::CleanerThread::run (void)
-    {
+    int PacketRouter::AutoConnectionManager::getNumOfValidAutoConnectionEntries (void) {
+        static const NPDArray2<AutoConnectionEntry> * const pAutoConnectionTable = _pConnectionManager->getAutoConnectionTable();
+
+        int numOfValidEntries = 0;
+        for (int i = 0; i <= pAutoConnectionTable->getHighestIndex() && !PacketRouter::isTerminationRequested(); ++i) {
+            if (pAutoConnectionTable->get(i).isValid()) {
+                ++numOfValidEntries;
+            }
+        }
+
+        return numOfValidEntries;
+    }
+
+    void PacketRouter::CleanerThread::run (void) {
         int rc;
         bool bWorkDone = false;
-        uint32 ui32EntriesNum = 0, ui32BufferSize = 0;
+        uint32 ui32EntriesNum = 0;
         int64 i64CurrTime = 0, i64RefTime = getTimeInMilliseconds();
         Entry *pEntry = NULL;
 
@@ -1603,7 +1775,7 @@ namespace ACMNetProxy
             while (NULL != (pEntry = _pTCPConnTable->getNextEntry())) {
                 if (pEntry->tryLock() == Mutex::RC_Ok) {
                     // Check the entry to see if it needs to be cleaned up
-                    if ((pEntry->localStatus == TCTLS_TIME_WAIT) && ((i64CurrTime - pEntry->i64LocalActionTime) >= TCPConnTable::MSL)) {
+                    if ((pEntry->localStatus == TCTLS_TIME_WAIT) && ((i64CurrTime - pEntry->i64LocalActionTime) >= TCPConnTable::STANDARD_MSL)) {
                         checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_LowDetailDebug,
                                         "L%hu-R%hu: cleaning communication entry in status TIME_WAIT\n",
                                         pEntry->ui16ID, pEntry->ui16RemoteID);
@@ -1621,45 +1793,59 @@ namespace ACMNetProxy
                         checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_Info,
                                         "L%hu-R%hu: SYN_SENT timeout expired; sending an RST to the local application and a RemoteReset request to remote proxy\n",
                                         pEntry->ui16ID, pEntry->ui16RemoteID);
-                        if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                        if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                             checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
                                             "L%hu-R%hu: failed to send RST packet; rc = %d\n",
                                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
                         }
-                        PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                        PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
                         pEntry->reset();
                         bWorkDone = true;
                     }
-                    else if ((pEntry->localStatus == TCTLS_SYN_RCVD) && ((pEntry->remoteStatus == TCTRS_WaitingConnEstablishment) || (pEntry->remoteStatus == TCTRS_Unknown))&&
-                        ((i64CurrTime - pEntry->i64RemoteActionTime) > NetProxyApplicationParameters::DEFAULT_REMOTE_CONN_ESTABLISHMENT_TIMEOUT)) {
-                        checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_Info,
-                                        "L%hu-R%hu: remote connection establishment timeout expired; sending an RST to the local "
-                                        "application and a RemoteTCPResetRequest ProxyMessage to remote proxy at address <%s:%hu>\n",
-                                        pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString(),
-                                        pEntry->remoteProxyAddr.getPort());
-                        if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
-                            checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
-                                            "L%hu-R%hu: failed to send RST packet; rc = %d\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                    else if (pEntry->localStatus == TCTLS_SYN_RCVD) {
+                        if (!pEntry->getConnection() || pEntry->getConnection()->hasFailedConnecting()) {
+                            checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_Info,
+                                            "L%hu-R%hu: remote connection attempt with the proxy at address %s:%hu has failed; "
+                                            "sending an RST to the local application\n", pEntry->ui16ID, pEntry->ui16RemoteID,
+                                            pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort());
+                            if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                                checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
+                                                "L%hu-R%hu: failed to send RST packet; rc = %d\n",
+                                                pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                            }
+                            pEntry->reset();
+                            bWorkDone = true;
                         }
-                        PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
-                        pEntry->reset();
-                        bWorkDone = true;
-                    }
-                    else if ((pEntry->localStatus == TCTLS_SYN_RCVD) && (pEntry->remoteStatus == TCTRS_ConnRequested) &&
-                        ((i64CurrTime - pEntry->i64RemoteActionTime) > (2 * TCPConnTable::MSL))) {
-                        checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_Info,
-                                        "L%hu-R%hu: remote connection status is ConnRequested, but the no answer was received before the timeout expired; "
-                                        "sending an RST local application and a RemoteTCPResetRequest ProxyMessage to remote proxy at address <%s:%hu>\n",
-                                        pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort());
-                        if (0 != (rc = TCPManager::sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
-                            checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
-                                            "L%hu-R%hu: failed to send RST packet; rc = %d\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                        else if (((pEntry->remoteStatus == TCTRS_ConnRequested) || (pEntry->remoteStatus == TCTRS_WaitingConnEstablishment)) &&
+                            (!pEntry->getConnection() || pEntry->getConnection()->getConnectorType() == CT_UDP) &&
+                                 ((i64CurrTime - pEntry->i64RemoteActionTime) > NetProxyApplicationParameters::VIRTUAL_CONN_ESTABLISHMENT_TIMEOUT)) {
+                            checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_Info,
+                                            "L%hu-R%hu: the status of the remote %s connection with the proxy at address %s:%hu is ConnRequested, "
+                                            "but no action was detected in the last %lldms, which caused the VIRTUAL_CONN_ESTABLISHMENT_TIMEOUT "
+                                            "to expire; sending an RST to the local application and a remote reset request to the remote NetProxy\n",
+                                            pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort());
+                            if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                                checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
+                                                "L%hu-R%hu: failed to send RST packet; rc = %d\n",
+                                                pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                            }
+                            PacketRouter::sendRemoteResetRequestIfNeeded(pEntry);
+                            pEntry->reset();
+                            bWorkDone = true;
                         }
-                        PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
-                        pEntry->reset();
-                        bWorkDone = true;
+                        else if (pEntry->remoteStatus == TCTRS_Unknown) {
+                            checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_Info,
+                                            "L%hu-R%hu: remote connection withe the proxy at address %s:%hu in status TCTRS_Unknown when the local connection "
+                                            "is in status TCTLS_SYN_RCVD: inconsistent state; sending an RST to the local application\n", pEntry->ui16ID,
+                                            pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort());
+                            if (0 != (rc = TCPManager::sendTCPPacketToHost(pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                                checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
+                                                "L%hu-R%hu: failed to send RST packet; rc = %d\n",
+                                                pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                            }
+                            pEntry->reset();
+                            bWorkDone = true;
+                        }
                     }
                     pEntry->unlock();
                 }
@@ -1672,9 +1858,9 @@ namespace ACMNetProxy
                 ui32EntriesNum = _pTCPConnTable->getEntriesNum();
                 _pTCPConnTable->cleanMemory();
                 if (ui32EntriesNum != _pTCPConnTable->getEntriesNum()) {
-                        checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_MediumDetailDebug,
-                                        "TCP connections table shrinked to %u entries\n",
-                                        _pTCPConnTable->getEntriesNum());
+                    checkAndLogMsg ("PacketRouter::cleanerThread", Logger::L_MediumDetailDebug,
+                                    "TCP connections table shrinked to %u entries\n",
+                                    _pTCPConnTable->getEntriesNum());
                 }
             }
 
@@ -1682,41 +1868,39 @@ namespace ACMNetProxy
             if (PacketRouter::isTerminationRequested()) {
                 break;
             }
-            _cvCleaner.wait (CT_TIME_BETWEEN_ITERATIONS);
+            _cvCleaner.wait(CT_TIME_BETWEEN_ITERATIONS);
         }
 
         _mCleaner.unlock();
         _bCleanerThreadRunning = false;
     }
 
-    int PacketRouter::UpdateGUIThread::init (const char * const pszNotificationAddressList)
-    {
-        StringTokenizer stAddressList (pszNotificationAddressList, ',');
+    int PacketRouter::UpdateGUIThread::init (const char * const pszNotificationAddressList) {
+        StringTokenizer stAddressList(pszNotificationAddressList, ',');
 
         // Parse notification address list
         while (const char * const pszPairToken = stAddressList.getNextToken()) {
-            StringTokenizer stPair (pszPairToken, ':');
+            StringTokenizer stPair(pszPairToken, ':');
             String sIP = stPair.getNextToken();
             String sPort = stPair.getNextToken();
 
-            _notificationAddressList.add (std::make_pair (sIP, static_cast<uint16> (atoi (sPort))));
+            _notificationAddressList.add(std::make_pair(sIP, static_cast<uint16> (atoi(sPort))));
         }
 
         return 0;
     }
 
-    void PacketRouter::UpdateGUIThread::run (void)
-    {
+    void PacketRouter::UpdateGUIThread::run (void) {
         int rc;
         const char *pcUpdateGUIMessage = NULL, *pszIPAddress = NULL;
         uint16 ui16UpdateGUIMessageLen = 0, ui16Port = 0;
 
         _bUpdateGUIThreadRunning = true;
         _mGUIUpdater.lock();
-        _cvGUIUpdater.wait (UGT_TIME_BETWEEN_ITERATIONS);
+        _cvGUIUpdater.wait(UGT_TIME_BETWEEN_ITERATIONS);
         while (!PacketRouter::isTerminationRequested()) {
             _pGUIStatsManager->packGUIUpdateMessage();
-            _pGUIStatsManager->getGUIUpdateMessage (pcUpdateGUIMessage, ui16UpdateGUIMessageLen);
+            _pGUIStatsManager->getGUIUpdateMessage(pcUpdateGUIMessage, ui16UpdateGUIMessageLen);
 
             // Send an UpdateGUI message to all addresses in the Notification Address List
             for (int i = 0; i <= _notificationAddressList.getHighestIndex(); ++i) {
@@ -1737,27 +1921,28 @@ namespace ACMNetProxy
             if (PacketRouter::isTerminationRequested()) {
                 break;
             }
-            _cvGUIUpdater.wait (UGT_TIME_BETWEEN_ITERATIONS);
+            _cvGUIUpdater.wait(UGT_TIME_BETWEEN_ITERATIONS);
         }
 
         _mGUIUpdater.unlock();
         _bUpdateGUIThreadRunning = false;
     }
 
-    int PacketRouter::handlePacketFromInternalInterface (const uint8 * const pPacket, uint16 ui16PacketLen)
-    {
+    int PacketRouter::handlePacketFromInternalInterface (const uint8 * const pPacket, uint16 ui16PacketLen) {
         static int rc = 0;
         EtherFrameHeader * const pEthHeader = (EtherFrameHeader*) pPacket;
         pEthHeader->ntoh();
 
         if (NetProxyApplicationParameters::GATEWAY_MODE) {
             if (pEthHeader->src == NetProxyApplicationParameters::NETPROXY_INTERNAL_INTERFACE_MAC_ADDR) {
+                // Packet generated by the internal interface
                 checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                 "ignoring packet generated by this host on the internal interface\n");
                 return 0;
             }
+
             if (hostBelongsToTheExternalNetwork (pEthHeader->src)) {
-                // Packet originated on the external network was just reinjected on the internal one --> ignore it
+                // Packet originated in the external network and reinjected on the internal one --> ignore it
                 checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                 "ignoring ethernet packet originated on the external network (source MAC address %2x:%2x:%2x:%2x:%2x:%2x) and previously "
                                 "forwarded on the internal one by the NetProxy (destination MAC address %2x:%2x:%2x:%2x:%2x:%2x)\n", (int) pEthHeader->src.ui8Byte1,
@@ -1791,8 +1976,8 @@ namespace ACMNetProxy
 
             if (pARPPacket->spa.ui32Addr != 0) {
                 // This is not an ARP probe --> process it
-                if (EndianHelper::htonl (pARPPacket->spa.ui32Addr) != NetProxyApplicationParameters::NETPROXY_IP_ADDR &&
-                    pARPPacket->sha != NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
+                if ((EndianHelper::htonl (pARPPacket->spa.ui32Addr) != NetProxyApplicationParameters::NETPROXY_IP_ADDR) &&
+                    (pARPPacket->sha != NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR)) {
                     // The sender is not this machine
                     _pARPCache.insert (pARPPacket->spa.ui32Addr, pARPPacket->sha);          // Opportunistically cache the MAC address of the sender
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
@@ -1814,14 +1999,14 @@ namespace ACMNetProxy
                         checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_SevereError,
                                         "sendPacketToHost() of an ARP probe packet (target protocol address: %s) "
                                         "of %hu bytes long on the external interface failed with rc = %d\n",
-                                        InetAddr (pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen, rc);
+                                        InetAddr(pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen, rc);
                         return -1;
                     }
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                     "successfully forwarded an ARP probe packet (target protocol address: %s) of %hu bytes long on the "
                                     "external network interface; both the source Ethernet MAC address and the source hardware address of "
                                     "the ARP packet were changed to be the MAC address of the external network interface of this host\n",
-                                    InetAddr (pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen);
+                                    InetAddr(pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen);
                 }
                 else {
                     // Another host is trying to use our own address! --> reply with a gratuitous ARP announcement on both interfaces
@@ -1846,10 +2031,10 @@ namespace ACMNetProxy
 
             if (pARPPacket->ui16Oper == 1) {
                 // ARP Request
-                if ((NetProxyApplicationParameters::GATEWAY_MODE) && !_pConnectionManager->isRemoteHostIPMapped (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)) &&
+                if ((NetProxyApplicationParameters::GATEWAY_MODE) && !_pConnectionManager->isRemoteHostIPMapped(EndianHelper::htonl (pARPPacket->tpa.ui32Addr)) &&
                     (EndianHelper::htonl (pARPPacket->tpa.ui32Addr) != NetProxyApplicationParameters::NETPROXY_IP_ADDR)) {
                     /* The NetProxy is running in gateway mode and the requested address is not an entry in the config file, nor the
-                     * address of the local host --> the received ARP packet needs to be forwarded on the external network. */
+                    * address of the local host --> the received ARP packet needs to be forwarded on the external network. */
                     pARPPacket->sha = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                     pARPPacket->hton();
                     pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
@@ -1891,7 +2076,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MediumDetailDebug,
                                     "successfully sent an ARP Response (Source Protocol Address: %s - Source Hardware "
                                     "Address: %2x:%2x:%2x:%2x:%2x:%2x) on the internal network interface\n",
-                                    InetAddr(EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(), targetMACAddr.ui8Byte1,
+                                    InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(), targetMACAddr.ui8Byte1,
                                     targetMACAddr.ui8Byte2, targetMACAddr.ui8Byte3, targetMACAddr.ui8Byte4,
                                     targetMACAddr.ui8Byte5, targetMACAddr.ui8Byte6);
                 }
@@ -1900,25 +2085,25 @@ namespace ACMNetProxy
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                     "received an ARP Request with Target Protocol Address %s that cannot "
                                     "be remapped to any remote instance of NetProxy; ignoring\n",
-                                    InetAddr(EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                    InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                 }
             }
             else if (NetProxyApplicationParameters::GATEWAY_MODE && (pARPPacket->ui16Oper == 2)) {
                 // ARP Response when running in Gateway Mode
-                if (EndianHelper::htonl (pARPPacket->tpa.ui32Addr) != NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
+                if (EndianHelper::htonl(pARPPacket->tpa.ui32Addr) != NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
                     // The target protocol address is not the address of this machine
                     if (pARPPacket->tha == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
                         /* The Target Hardware Address is the MAC address of this machine. This means that the NetProxy has
-                         * forwarded an ARP request from the external to the internal interface in the past and changed its
-                         * source hardware address to be the one of this machine --> change it back to the original MAC address */
-                        const EtherMACAddr * const pDestEther = _pARPCache.lookup (pARPPacket->tpa.ui32Addr);
+                        * forwarded an ARP request from the external to the internal interface in the past and changed its
+                        * source hardware address to be the one of this machine --> change it back to the original MAC address */
+                        const EtherMACAddr * const pDestEther = _pARPCache.lookup(pARPPacket->tpa.ui32Addr);
                         if (!pDestEther) {
                             checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_Warning,
                                             "received an ARP Response with source protocol address %s, target protocol address not of this machine "
                                             "(%s), but with the target hardware address of this machine; however, it was not possible to find "
                                             "the real hardware address in the local ARP cache\n",
-                                            InetAddr (EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(),
-                                            InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                            InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(),
+                                            InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                             return -5;
                         }
                         pARPPacket->tha = *pDestEther;
@@ -1926,7 +2111,7 @@ namespace ACMNetProxy
                     }
                     else {
                         // The Target Hardware Address is not the MAC address of this machine --> cache it
-                        _pARPCache.insert (pARPPacket->tpa.ui32Addr, pARPPacket->tha);
+                        _pARPCache.insert(pARPPacket->tpa.ui32Addr, pARPPacket->tha);
                         checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_LowDetailDebug,
                                         "caching ARP address %2x:%2x:%2x:%2x:%2x:%2x for IP address %d.%d.%d.%d\n",
                                         (int) pARPPacket->tha.ui8Byte1, (int) pARPPacket->tha.ui8Byte2, (int) pARPPacket->tha.ui8Byte3,
@@ -1940,8 +2125,8 @@ namespace ACMNetProxy
                     checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                                     "received an ARP Response with source protocol address %s and addressed to this host (target "
                                     "protocol address: %s); it is not necessary to forward it on the internal network\n",
-                                    InetAddr (EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(),
-                                    InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                    InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(),
+                                    InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                     return 0;
                 }
 
@@ -1951,7 +2136,7 @@ namespace ACMNetProxy
                 pEthHeader->dest = (pARPPacket->ui16Oper == 1) ? NetProxyApplicationParameters::BROADCAST_MAC_ADDR : pEthHeader->dest;
                 pARPPacket->hton();
                 pEthHeader->hton();
-                if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
+                if (0 != (rc = sendPacketToHost(_pExternalInterface, pPacket, ui16PacketLen))) {
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_SevereError,
                                     "sendPacketToHost() of an ARP Response packet (source protocol address: %s - destination protocol "
                                     "address: %s) of %hu bytes long on the external network interface failed with rc = %d\n",
@@ -1963,7 +2148,7 @@ namespace ACMNetProxy
                                 "successfully forwarded an ARP Response packet (opcode: %hu - source protocol address: %s - destination protocol "
                                 "address: %s) of %hu bytes long on the external network interface; both the source Ethernet MAC "
                                 "address and the source hardware address of the ARP packet were changed to be the MAC address "
-                                "of the external network interface of this host\n", EndianHelper::ntohs (pARPPacket->ui16Oper),
+                                "of the external network interface of this host\n", EndianHelper::ntohs(pARPPacket->ui16Oper),
                                 InetAddr(pARPPacket->spa.ui32Addr).getIPAsString(), InetAddr(pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen);
             }
         }
@@ -1978,68 +2163,93 @@ namespace ACMNetProxy
 
             if (NetProxyApplicationParameters::GATEWAY_MODE) {
                 // NetProxy running in Gateway Mode
-                if (pEthHeader->dest == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
-                    // The packet was sent to this node; check if the NetProxy needs to process it
-                    if (ui32DestAddr == NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
-                        // The packet is addressed to our host --> forward it onto the external interface so that the OS kernel can process it
-                        pIPHeader->hton();
-                        pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                        pIPHeader->destAddr.ui32Addr = ui32DestAddr;
-                        //pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
-                        pEthHeader->hton();
-                        if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
-                            if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs (pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
-                                // Send back on the external interface an ICMP Packet Fragmentation Needed (Type 3, Code 4) message
-                                pEthHeader->ntoh();
-                                pIPHeader->ntoh();
-                                pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                                pIPHeader->destAddr.ui32Addr = ui32DestAddr;
-                                if (0 != (rc = buildAndSendICMPMessageToHost (_pInternalInterface, ICMPHeader::T_Destination_Unreachable, ICMPHeader::CDU_Fragmentation_needed_and_DF_set,
-                                                                              NetProxyApplicationParameters::NETPROXY_IP_ADDR, pIPHeader->srcAddr.ui32Addr, pIPHeader))) {
-                                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
-                                                    "buildAndSendICMPMessageToHost() failed when sending back an ICMP Packet Fragmentation "
-                                                    "Needed (Type 3, Code 4) message to the internal network; rc = %d\n", rc);
-                                    return -7;
-                                }
-                                checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
-                                                "IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long could not be "
-                                                "forwarded on the external network because its size exceeds the MTU of %hu bytes; successfully "
-                                                "sent back an ICMP Packet Fragmentation Needed (Type 3, Code 4) message to the sender\n",
-                                                pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(),
-                                                ui16PacketLen, NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF);
-                                return 1;
+
+                if ((pEthHeader->dest == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) &&
+                    (ui32DestAddr == NetProxyApplicationParameters::NETPROXY_IP_ADDR)) {
+                    // The packet is addressed to this host --> forward it onto the external interface so that the OS kernel can process it
+                    pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                    pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                    pIPHeader->computeChecksum();
+                    pIPHeader->hton();
+                    pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
+                    pEthHeader->hton();
+                    if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
+                        if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs(pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
+                            // Send back on the external interface an ICMP Packet Fragmentation Needed (Type 3, Code 4) message
+                            pEthHeader->ntoh();
+                            pIPHeader->ntoh();
+                            pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
+                            pIPHeader->destAddr.ui32Addr = ui32DestAddr;
+                            if (0 != (rc = buildAndSendICMPMessageToHost (_pInternalInterface, ICMPHeader::T_Destination_Unreachable, ICMPHeader::CDU_Fragmentation_needed_and_DF_set,
+                                                                          NetProxyApplicationParameters::NETPROXY_IP_ADDR, pIPHeader->srcAddr.ui32Addr, pIPHeader))) {
+                                checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
+                                                "buildAndSendICMPMessageToHost() failed when sending back an ICMP Packet Fragmentation "
+                                                "Needed (Type 3, Code 4) message to the internal network; rc = %d\n", rc);
+                                return -7;
                             }
-                            else if (ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) {
-                                // Fragmentation of IP packets not yet implemented --> drop packet!
-                                checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_Warning,
-                                                "Fragmentation of IP packets not yet implemented: packet will be dropped\n");
-                            }
-                            checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
-                                            "sendPacketToHost() of an IP packet (IP protocol type: %hhu - source: %s - destination: %s) "
-                                            "of %hu bytes long on the external interface failed with rc = %d\n", pIPHeader->ui8Proto,
-                                            InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen, rc);
-                            return -8;
+                            checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
+                                            "IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long could not be "
+                                            "forwarded on the external network because its size exceeds the MTU of %hu bytes; successfully "
+                                            "sent back an ICMP Packet Fragmentation Needed (Type 3, Code 4) message to the sender\n",
+                                            pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(),
+                                            ui16PacketLen, NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF);
+                            return 1;
                         }
+                        else if (ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) {
+                            // Fragmentation of IP packets not yet implemented --> drop packet!
+                            checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_Warning,
+                                            "Fragmentation of IP packets not yet implemented: packet will be dropped\n");
+                        }
+                        checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
+                                        "sendPacketToHost() of an IP packet (IP protocol type: %hhu - source: %s - destination: %s) "
+                                        "of %hu bytes long on the external interface failed with rc = %d\n", pIPHeader->ui8Proto,
+                                        InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen, rc);
+                        return -8;
+                    }
+                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
+                                    "received a packet addressed to this host (source IP: %s - destination: IP %s): NetProxy "
+                                    "forwarded the packet on the external interface so that the OS can process it\n",
+                                    InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString());
+                    return 0;
+                }
+
+                // The packet is not addressed to this host: check if the TTL needs to be decremented and if forwarding is necessary
+                if (!NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE) {
+                    // Non-transparent Gateway Mode
+                    if (pIPHeader->ui8TTL > 1) {
+                        // Decrement the TTL
+                        --(pIPHeader->ui8TTL);
                         checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
-                                        "received a packet addressed to this host (source IP: %s - destination: IP %s): NetProxy "
-                                        "forwarded the packet on the external interface so that the OS can process it\n",
-                                        InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString());
+                                        "received an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long; "
+                                        "the value of the TTL field was decremented to %hhu; \n", pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(),
+                                        InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen, pIPHeader->ui8TTL);
+                    }
+                    else {
+                        // TTL reached 0, throw away the packet!
+                        checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
+                                        "received an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long "
+                                        "with a TTL value of %hhu; dropping it\n", pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(),
+                                        InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen, pIPHeader->ui8TTL);
                         return 0;
                     }
+                }
 
+                if (pEthHeader->dest == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
+                    // The packet was sent to this node, but the IP address did not match; check if the NetProxy needs to process it or forward it
                     if (!_pConnectionManager->isRemoteHostIPMapped (pIPHeader->destAddr.ui32Addr)) {
                         /* IP packet with the MAC address of this machine, but with an IP address that cannot be mapped to any
                         * remote NetProxy --> change destination Ethernet MAC address and forward it to the network gateway. */
+                        pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                        pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                        pIPHeader->computeChecksum();
                         pIPHeader->hton();
-                        pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                        pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                         pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                         const EtherMACAddr *pDestEther = _pARPCache.lookup (EndianHelper::ntohl (pIPHeader->destAddr.ui32Addr));
                         pDestEther = pDestEther ? pDestEther : &NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_MAC_ADDR;
                         pEthHeader->dest = *pDestEther;
                         pEthHeader->hton();
                         if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
-                            if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs (pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
+                            if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs(pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
                                 // Send back on the external interface an ICMP Packet Fragmentation Needed (Type 3, Code 4) message
                                 pEthHeader->ntoh();
                                 pIPHeader->ntoh();
@@ -2080,29 +2290,42 @@ namespace ACMNetProxy
                                         pDestEther->ui8Byte3, pDestEther->ui8Byte4, pDestEther->ui8Byte5, pDestEther->ui8Byte6);
                         return 0;
                     }
-                    // If we reach this point, packet needs further processing. It will be done below.
+                    // If we reach this point, the packet needs further processing; it will be done below.
                 }
                 else if (isMACAddrBroadcast (pEthHeader->dest) || isMACAddrMulticast (pEthHeader->dest)) {
-                    // Forward broadcast packets on the external interface
-                    pIPHeader->hton();
-                    pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                    pIPHeader->destAddr.ui32Addr = ui32DestAddr;
-                    pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
-                    pEthHeader->hton();
-                    if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
-                        checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_SevereError,
-                                        "sendPacketToHost() of an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes "
-                                        "long and with a %s destination MAC address on the external interface failed with rc = %d\n",
+                    // Received a packet with a broadcast or a Multicast Ethernet address
+                    if ((isMACAddrBroadcast (pEthHeader->dest) && NetProxyApplicationParameters::BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE) ||
+                        (isMACAddrMulticast (pEthHeader->dest) && NetProxyApplicationParameters::MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE)) {
+                        // Forward multicast/broadcast packets on the external interface
+                        EtherMACAddr srcMacAddr = pEthHeader->src;
+                        pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                        pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                        pIPHeader->computeChecksum();
+                        pIPHeader->hton();
+                        pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
+                        pEthHeader->hton();
+                        if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
+                            checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_SevereError,
+                                            "sendPacketToHost() of an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes "
+                                            "long and with a %s destination MAC address on the external interface failed with rc = %d\n",
+                                            pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(),
+                                            ui16PacketLen, isMACAddrBroadcast (pEthHeader->dest) ? "Broadcast" : "Multicast", rc);
+                            return -11;
+                        }
+                        checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
+                                        "successfully forwarded an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long "
+                                        "and with a %s destination MAC address on the external network interface; the source Ethernet MAC address "
+                                        "of the Ethernet packet was changed to be the MAC address of the external network interface of this host\n",
                                         pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(),
-                                        ui16PacketLen, isMACAddrBroadcast (pEthHeader->dest) ? "Broadcast" : "Multicast", rc);
-                        return -11;
+                                        ui16PacketLen, isMACAddrBroadcast (pEthHeader->dest) ? "Broadcast" : "Multicast");
+
+                        // Re-establish the host format for both the Ethernet frame and the IP datagram in case further processing is required
+                        pEthHeader->ntoh();
+                        pEthHeader->src = srcMacAddr;
+                        pIPHeader->ntoh();
+                        pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
+                        pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                     }
-                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
-                                    "successfully forwarded an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long "
-                                    "and with a %s destination MAC address on the external network interface; the source Ethernet MAC address "
-                                    "of the Ethernet packet was changed to be the MAC address of the external network interface of this host\n",
-                                    pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(),
-                                    ui16PacketLen, isMACAddrBroadcast (pEthHeader->dest) ? "Broadcast" : "Multicast");
                     if (!_pConnectionManager->isRemoteHostIPMapped (pIPHeader->destAddr.ui32Addr)) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                         "no mapping found for the destination address of the %s IP packet (source: %s - destination: %s): "
@@ -2110,20 +2333,22 @@ namespace ACMNetProxy
                                         InetAddr(pIPHeader->srcAddr.ui32Addr).getIPAsString(), InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString());
                         return 0;
                     }
+
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                     "found a mapping for the destination address of the %s IP packet (source: %s - destination: %s): "
                                     "processing it for forwading\n", isMACAddrBroadcast (pEthHeader->dest) ? "Broadcast" : "Multicast",
                                     InetAddr(pIPHeader->srcAddr.ui32Addr).getIPAsString(), InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString());
                 }
-                else {
-                    // Packet not addressed to this host: change source MAC address and forward it to the external network
+                else if (!hostBelongsToTheInternalNetwork (pEthHeader->dest)) {
+                    // Packet not addressed to this host nor to another machine in the internal network: change source MAC address and forward it onto the external network
+                    pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                    pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                    pIPHeader->computeChecksum();
                     pIPHeader->hton();
-                    pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                    pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                     pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                     pEthHeader->hton();
                     if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
-                        if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs (pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
+                        if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs(pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
                             // Send back on the external interface an ICMP Packet Fragmentation Needed (Type 3, Code 4) message
                             pEthHeader->ntoh();
                             pIPHeader->ntoh();
@@ -2162,6 +2387,18 @@ namespace ACMNetProxy
                                     "long on the external network interface; the source Ethernet MAC address of the Ethernet packet was "
                                     "changed to be the MAC address of the external network interface of this host\n", pIPHeader->ui8Proto,
                                     InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen);
+
+                    return 0;
+                }
+                else {
+                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
+                                    "IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long and with destination Ethernet "
+                                    "MAC address %2x:%2x:%2x:%2x:%2x:%2x does not need to be processed nor forwarded onto the external network\n",
+                                    pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(),
+                                    ui16PacketLen, (int) pEthHeader->dest.ui8Byte1, (int) pEthHeader->dest.ui8Byte2,
+                                    (int) pEthHeader->dest.ui8Byte3, (int) pEthHeader->dest.ui8Byte4,
+                                    (int) pEthHeader->dest.ui8Byte5, (int) pEthHeader->dest.ui8Byte6);
+
                     return 0;
                 }
             }
@@ -2180,26 +2417,25 @@ namespace ACMNetProxy
 
             // If we reach this point, the NetProxy needs to process the packet
             if (pIPHeader->ui8Proto == IP_PROTO_ICMP) {
-                ICMPHeader *pICMPHeader = (ICMPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
-                uint8 *pICMPData = (uint8*) (((uint8*) pICMPHeader) + sizeof (ICMPHeader));
+                ICMPHeader *pICMPHeader = reinterpret_cast<ICMPHeader*> ((reinterpret_cast<uint8*> (pIPHeader)) + ui16IPHeaderLen);
+                uint8 *pICMPData = reinterpret_cast<uint8*> (reinterpret_cast<uint8*> (pICMPHeader) + sizeof (ICMPHeader));
                 uint16 ui16ICMPDataLen = ui16PacketLen - (sizeof (EtherFrameHeader) + ui16IPHeaderLen + sizeof (ICMPHeader));
                 pICMPHeader->ntoh();
-                const ProtocolSetting * const pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (pIPHeader->srcAddr.ui32Addr, pIPHeader->destAddr.ui32Addr, IP_PROTO_ICMP);
-                ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_ICMP_MAPPING_PROTOCOL;
-                ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
+                const ProtocolSetting *pProtocolSetting = _pConfigurationManager->mapAddrToProtocol(pIPHeader->srcAddr.ui32Addr, pIPHeader->destAddr.ui32Addr, IP_PROTO_ICMP);
                 if (!pProtocolSetting) {
-                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
-                                    "received an ICMP packet destined to address %s which could not be mapped to any specific protocol - using standard protocol %s",
-                                    InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(),
-                                    ProtocolSetting::getProxyMessageProtocolAsString (ProtocolSetting::DEFAULT_UDP_MAPPING_PROTOCOL));
+                    pProtocolSetting = ProtocolSetting::getDefaultICMPProtocolSetting();
+                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
+                                    "received an ICMP packet destined to address %s which could not be mapped to any specific protocol; using the standard protocol %s",
+                                    InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(), pProtocolSetting->getProxyMessageProtocolAsString());
                 }
 
-                QueryResult query (_pConnectionManager->queryConnectionToRemoteHostForConnectorType (connectorType, pIPHeader->destAddr.ui32Addr, 0));
+                ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
+                QueryResult query(_pConnectionManager->queryConnectionToRemoteHostForConnectorType (connectorType, pIPHeader->destAddr.ui32Addr, 0));
                 const InetAddr * const pRemoteProxyAddr = query.getBestConnectionSolution();
                 if (!pRemoteProxyAddr || !query.isValid()) {
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
-                                    "received an ICMP message with type %hhu and code %hhu destined for %s which could not be mapped to a proxy address "
-                                    "- replying with a destination unreachable:host unreachable ICMP message\n", pICMPHeader->ui8Type,
+                                    "received an ICMP message with type %hhu and code %hhu destined for %s which could not be mapped to a proxy address; "
+                                    "replying with a destination unreachable:host unreachable ICMP message\n", pICMPHeader->ui8Type,
                                     pICMPHeader->ui8Code, InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString());
                     if (0 != (rc = buildAndSendICMPMessageToHost (_pInternalInterface, ICMPHeader::T_Destination_Unreachable, ICMPHeader::CDU_Host_Unreachable,
                                                                   NetProxyApplicationParameters::NETPROXY_IP_ADDR, pIPHeader->srcAddr.ui32Addr, pIPHeader))) {
@@ -2214,7 +2450,7 @@ namespace ACMNetProxy
                                 "received an ICMP message from %s with type %hhu, code %hhu and %hu bytes addressed to %s that will remapped over %s; "
                                 "rest of header is %hhu|%hhu|%hhu|%hhu\n", InetAddr(pIPHeader->srcAddr.ui32Addr).getIPAsString(), pICMPHeader->ui8Type,
                                 pICMPHeader->ui8Code, ui16ICMPDataLen, InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(),
-                                connectorTypeToString (connectorType), ((uint8*) &pICMPHeader->ui32RoH)[3], ((uint8*) &pICMPHeader->ui32RoH)[2],
+                                connectorTypeToString(connectorType), ((uint8*) &pICMPHeader->ui32RoH)[3], ((uint8*) &pICMPHeader->ui32RoH)[2],
                                 ((uint8*) &pICMPHeader->ui32RoH)[1], ((uint8*) &pICMPHeader->ui32RoH)[0]);
 
                 Connector * pConnector = _pConnectionManager->getConnectorForType (connectorType);
@@ -2222,7 +2458,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                     "could not retrieve the connector to remote proxy with address %s for protocol %s\n",
                                     InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(),
-                                    ProtocolSetting::getProxyMessageProtocolAsString (currentProtocol));
+                                    pProtocolSetting->getProxyMessageProtocolAsString());
                     return -15;
                 }
                 if (!pConnector->isEnqueueingAllowed()) {
@@ -2234,9 +2470,9 @@ namespace ACMNetProxy
 
                 Connection *pConnection = query.getActiveConnectionToRemoteProxy();
                 if (!pConnection) {
-                    pConnection = pConnector->openNewConnectionToRemoteProxy (query, false);
+                    pConnection = pConnector->openNewConnectionToRemoteProxy(query, false);
                     if (!pConnection) {
-                        pConnection = pConnector->getAvailableConnectionToRemoteProxy (pRemoteProxyAddr);
+                        pConnection = pConnector->getAvailableConnectionToRemoteProxy(pRemoteProxyAddr);
                         if (!pConnection) {
                             checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_SevereError,
                                             "could not create a new %sConnection to send an ICMP packet to the remote NetProxy\n",
@@ -2249,8 +2485,9 @@ namespace ACMNetProxy
                 bool bReachable = _pConnectionManager->getReachabilityFromRemoteHost (pIPHeader->destAddr.ui32Addr, 0);
                 String mocketsConfFile = _pConnectionManager->getMocketsConfigFileForConnectionsToRemoteHost (pIPHeader->destAddr.ui32Addr, 0);
                 if (0 != (rc = pConnection->sendICMPProxyMessageToRemoteHost (pRemoteProxyAddr, pICMPHeader->ui8Type, pICMPHeader->ui8Code, pICMPHeader->ui32RoH,
-                                                                              pIPHeader->srcAddr.ui32Addr, pIPHeader->destAddr.ui32Addr, const_cast<const uint8 * const> (pICMPData),
-                                                                              ui16ICMPDataLen, currentProtocol, bReachable))) {
+                                                                              pIPHeader->srcAddr.ui32Addr, pIPHeader->destAddr.ui32Addr, pIPHeader->ui8TTL,
+                                                                              const_cast<const uint8 * const> (pICMPData), ui16ICMPDataLen,
+                                                                              pProtocolSetting->getProxyMessageProtocol(), bReachable))) {
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                     "could not send the ICMP Proxy Message with type %hhu and code %hhu to remote proxy with address %s via %s; rc = %d\n",
                                     pICMPHeader->ui8Type, pICMPHeader->ui8Code, InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(),
@@ -2263,26 +2500,30 @@ namespace ACMNetProxy
                 pUDPHeader->ntoh();
                 if (!_pConnectionManager->isRemoteHostIPMapped (pIPHeader->destAddr.ui32Addr, pUDPHeader->ui16DPort)) {
                     if (NetProxyApplicationParameters::GATEWAY_MODE) {
-                        /* TCP packet with an IP address that is mapped to a remote NetProxy, but the port number does
+                        /* UDP packet with an IP address that is mapped to a remote NetProxy, but the port number does
                          * not match --> change destination Ethernet MAC address and forward it to the network gateway. */
                         pUDPHeader->hton();
+                        pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                        pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                        pIPHeader->computeChecksum();
                         pIPHeader->hton();
-                        pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                        pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                         pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                         const EtherMACAddr *pDestEther = _pARPCache.lookup (EndianHelper::ntohl (pIPHeader->destAddr.ui32Addr));
-                        pDestEther = pDestEther ? pDestEther : &NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_MAC_ADDR;
+                        if (!(isMACAddrBroadcast (pEthHeader->dest) || isMACAddrMulticast (pEthHeader->dest))) {
+                            pDestEther = pDestEther ? pDestEther : &NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_MAC_ADDR;
+                            pEthHeader->dest = *pDestEther;
+                        }
                         pEthHeader->hton();
                         if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
                             pUDPHeader->ntoh();
-                            if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs (pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
+                            if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs(pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
                                 // Send back on the external interface an ICMP Packet Fragmentation Needed (Type 3, Code 4) message
                                 pEthHeader->ntoh();
                                 pIPHeader->ntoh();
                                 pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
                                 pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                                 if (0 != (rc = buildAndSendICMPMessageToHost (_pInternalInterface, ICMPHeader::T_Destination_Unreachable, ICMPHeader::CDU_Fragmentation_needed_and_DF_set,
-                                    NetProxyApplicationParameters::NETPROXY_IP_ADDR, pIPHeader->srcAddr.ui32Addr, pIPHeader))) {
+                                                                              NetProxyApplicationParameters::NETPROXY_IP_ADDR, pIPHeader->srcAddr.ui32Addr, pIPHeader))) {
                                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                                     "buildAndSendICMPMessageToHost() failed when sending back an ICMP Packet Fragmentation "
                                                     "Needed (Type 3, Code 4) message to the internal network; rc = %d\n", rc);
@@ -2292,7 +2533,7 @@ namespace ACMNetProxy
                                                 "UDP packet (source: %s:%hu - destination: %s:%hu) of %hu bytes long could not be forwarded "
                                                 "on the external network because its size exceeds the MTU of %hu bytes; successfully sent "
                                                 "back an ICMP Packet Fragmentation Needed (Type 3, Code 4) message to the sender\n",
-                                                InetAddr (ui32SrcAddr).getIPAsString(), pUDPHeader->ui16SPort, InetAddr (ui32DestAddr).getIPAsString(),
+                                                InetAddr(ui32SrcAddr).getIPAsString(), pUDPHeader->ui16SPort, InetAddr(ui32DestAddr).getIPAsString(),
                                                 pUDPHeader->ui16DPort, ui16PacketLen, NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF);
                                 return 4;
                             }
@@ -2303,8 +2544,8 @@ namespace ACMNetProxy
                             }
                             checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                             "sendPacketToHost() of a UDP packet (source: %s:%hu - destination: %s:%hu) of %hu bytes long on the external "
-                                            "interface failed with rc = %d\n", InetAddr (ui32SrcAddr).getIPAsString(), pUDPHeader->ui16SPort,
-                                            InetAddr (ui32DestAddr).getIPAsString(), pUDPHeader->ui16DPort, ui16PacketLen, rc);
+                                            "interface failed with rc = %d\n", InetAddr(ui32SrcAddr).getIPAsString(), pUDPHeader->ui16SPort,
+                                            InetAddr(ui32DestAddr).getIPAsString(), pUDPHeader->ui16DPort, ui16PacketLen, rc);
                             return -19;
                         }
                         pUDPHeader->ntoh();
@@ -2313,7 +2554,7 @@ namespace ACMNetProxy
                                         "not match the entry in the Address Mapping Table on the external network interface; both the source and "
                                         "destination Ethernet MAC addresses of the Ethernet packet were changed to be the MAC address of the "
                                         "external network interface of this host and %2x:%2x:%2x:%2x:%2x:%2x, respectively\n",
-                                        InetAddr (ui32SrcAddr).getIPAsString(), pUDPHeader->ui16SPort, InetAddr (ui32DestAddr).getIPAsString(),
+                                        InetAddr(ui32SrcAddr).getIPAsString(), pUDPHeader->ui16SPort, InetAddr(ui32DestAddr).getIPAsString(),
                                         pUDPHeader->ui16DPort, ui16PacketLen, pDestEther->ui8Byte1, pDestEther->ui8Byte2,
                                         pDestEther->ui8Byte3, pDestEther->ui8Byte4, pDestEther->ui8Byte5, pDestEther->ui8Byte6);
                         return 0;
@@ -2334,16 +2575,15 @@ namespace ACMNetProxy
                 }
 
                 uint16 ui16UDPPacketLen = pIPHeader->ui16TLen - ui16IPHeaderLen;
-                const ProtocolSetting * const pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (pIPHeader->srcAddr.ui32Addr, pUDPHeader->ui16SPort, pIPHeader->destAddr.ui32Addr,
-                                                                                                            pUDPHeader->ui16DPort, IP_PROTO_UDP);
-                ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_UDP_MAPPING_PROTOCOL;
-                ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
+                const ProtocolSetting *pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (pIPHeader->srcAddr.ui32Addr, pUDPHeader->ui16SPort,
+                                                                                                     pIPHeader->destAddr.ui32Addr, pUDPHeader->ui16DPort, IP_PROTO_UDP);
                 if (!pProtocolSetting) {
-                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
-                                    "received a UDP packet destined to address %s:%hu which could not be mapped to any specific protocol - using standard protocol %s",
-                                    InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(), pUDPHeader->ui16DPort,
-                                    ProtocolSetting::getProxyMessageProtocolAsString (ProtocolSetting::DEFAULT_UDP_MAPPING_PROTOCOL));
+                    pProtocolSetting = ProtocolSetting::getDefaultUDPProtocolSetting();
+                    checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
+                                    "received a UDP packet destined to address %s:%hu which could not be mapped to any specific protocol; using the standard protocol %s",
+                                    InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(), pUDPHeader->ui16DPort, pProtocolSetting->getProxyMessageProtocolAsString());
                 }
+                ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
 
                 if (isMACAddrBroadcast (pEthHeader->dest)) {
                     // For now, do not use DisService for Broadcast and Multicast traffic
@@ -2354,7 +2594,7 @@ namespace ACMNetProxy
                     //}
 
                     // For the moment, sendBroadcastPacket() method forwards the packets only to remote NetProxies specified in the configuration file
-                    if (0 != (rc = sendBroadcastPacket ((const uint8*) pEthHeader, sizeof (EtherFrameHeader) + pIPHeader->ui16TLen, pIPHeader->srcAddr.ui32Addr,
+                    if (0 != (rc = sendBroadcastPacket ((const uint8*) pEthHeader, sizeof(EtherFrameHeader) + pIPHeader->ui16TLen, pIPHeader->srcAddr.ui32Addr,
                                                         pIPHeader->destAddr.ui32Addr, pUDPHeader->ui16DPort, &pProtocolSetting->getCompressionSetting()))) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                         "sendBroadcastPacket() failed with rc = %d\n", rc);
@@ -2363,7 +2603,7 @@ namespace ACMNetProxy
                     return 0;
                 }
                 else if (isMACAddrMulticast (pEthHeader->dest)) {
-                    if (0 != (rc = sendMulticastPacket ((const uint8*) pEthHeader, sizeof (EtherFrameHeader) + pIPHeader->ui16TLen, pIPHeader->srcAddr.ui32Addr,
+                    if (0 != (rc = sendMulticastPacket ((const uint8*) pEthHeader, sizeof(EtherFrameHeader) + pIPHeader->ui16TLen, pIPHeader->srcAddr.ui32Addr,
                                                         pIPHeader->destAddr.ui32Addr, pUDPHeader->ui16DPort, &pProtocolSetting->getCompressionSetting()))) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                         "sendMulticastPacket() failed with rc = %d\n", rc);
@@ -2387,12 +2627,12 @@ namespace ACMNetProxy
                         }
                         return 0;
                     }
-                    Connector * pConnector = _pConnectionManager->getConnectorForType (connectorType);
+                    Connector *pConnector = _pConnectionManager->getConnectorForType (connectorType);
                     if (pConnector == NULL) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                         "could not retrieve the connector to remote proxy with address %s for protocol %s\n",
                                         InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(),
-                                        ProtocolSetting::getProxyMessageProtocolAsString (currentProtocol));
+                                        ProtocolSetting::getProxyMessageProtocolAsString (pProtocolSetting->getProxyMessageProtocol()));
                         return -24;
                     }
 
@@ -2413,7 +2653,7 @@ namespace ACMNetProxy
                     if ((pIPHeader->ui16FlagsAndFragOff & (IP_MF_FLAG_FILTER | IP_OFFSET_FILTER)) == 0) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                         "UDP Unicast packet received: payload size %u; source address: %s:%hu - destination address: %s:%hu\n",
-                                        static_cast<unsigned int> (ui16UDPPacketLen) - sizeof (UDPHeader), InetAddr(pIPHeader->srcAddr.ui32Addr).getIPAsString(),
+                                        static_cast<unsigned int> (ui16UDPPacketLen) - sizeof(UDPHeader), InetAddr(pIPHeader->srcAddr.ui32Addr).getIPAsString(),
                                         pUDPHeader->ui16SPort, InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(), pUDPHeader->ui16DPort);
                     }
                     else {
@@ -2426,7 +2666,7 @@ namespace ACMNetProxy
                     }
 
                     if (0 > (rc = _localUDPDatagramsManagerThread.addDatagramToOutgoingQueue (pRemoteProxyAddr, pConnection, pConnector, &(pProtocolSetting->getCompressionSetting()),
-                                                                                              currentProtocol, pIPHeader, pUDPHeader))) {
+                                                                                              pProtocolSetting->getProxyMessageProtocol(), pIPHeader, pUDPHeader))) {
                         if (rc == -2) {
                             checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MediumDetailDebug,
                                             "impossible to reassemble received UDP fragment; dropping fragment\n", rc);
@@ -2444,18 +2684,20 @@ namespace ACMNetProxy
                 pTCPHeader->ntoh();
                 if (!_pConnectionManager->isRemoteHostIPMapped (pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort)) {
                     /* TCP packet with an IP address that is mapped to a remote NetProxy, but the port number does
-                     * not match --> change destination Ethernet MAC address and forward it to the network gateway. */
+                    * not match --> change destination Ethernet MAC address and forward it to the network gateway. */
                     pTCPHeader->hton();
+                    pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                    pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                    pIPHeader->computeChecksum();
                     pIPHeader->hton();
-                    pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                    pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                     pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                     const EtherMACAddr *pDestEther = _pARPCache.lookup (EndianHelper::ntohl (pIPHeader->destAddr.ui32Addr));
                     pDestEther = pDestEther ? pDestEther : &NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_MAC_ADDR;
+                    pEthHeader->dest = *pDestEther;
                     pEthHeader->hton();
                     if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
                         pTCPHeader->ntoh();
-                        if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs (pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
+                        if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) && (EndianHelper::ntohs(pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
                             // Send back on the external interface an ICMP Packet Fragmentation Needed (Type 3, Code 4) message
                             pEthHeader->ntoh();
                             pIPHeader->ntoh();
@@ -2472,8 +2714,8 @@ namespace ACMNetProxy
                                             "TCP packet (source: %s:%hu - destination: %s:%hu) of %hu bytes long could not be forwarded "
                                             "on the external network because its size exceeds the MTU of %hu bytes; successfully sent "
                                             "back an ICMP Packet Fragmentation Needed (Type 3, Code 4) message to the sender\n",
-                                             InetAddr(ui32SrcAddr).getIPAsString(), pTCPHeader->ui16SPort, InetAddr(ui32DestAddr).getIPAsString(),
-                                             pTCPHeader->ui16DPort, ui16PacketLen, NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF);
+                                            InetAddr(ui32SrcAddr).getIPAsString(), pTCPHeader->ui16SPort, InetAddr(ui32DestAddr).getIPAsString(),
+                                            pTCPHeader->ui16DPort, ui16PacketLen, NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF);
                             return 5;
                         }
                         else if (ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_EXTERNAL_IF) {
@@ -2501,9 +2743,9 @@ namespace ACMNetProxy
                 checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_HighDetailDebug,
                                 "received a TCP Packet with SEQ number %u, ACK number %u, and flags %hhu from %s:%hu to %s:%hu "
                                 "that needs to be processed by the NetProxy\n", pTCPHeader->ui32SeqNum, pTCPHeader->ui32AckNum,
-                                pTCPHeader->ui8Flags, InetAddr (pIPHeader->srcAddr.ui32Addr).getIPAsString(), pTCPHeader->ui16SPort,
-                                InetAddr (pIPHeader->destAddr.ui32Addr).getIPAsString(), pTCPHeader->ui16DPort);
-                if (0 != (rc = TCPManager::handleTCPPacketFromHost ((const uint8*) pIPHeader, pIPHeader->ui16TLen))) {
+                                pTCPHeader->ui8Flags, InetAddr(pIPHeader->srcAddr.ui32Addr).getIPAsString(), pTCPHeader->ui16SPort,
+                                InetAddr(pIPHeader->destAddr.ui32Addr).getIPAsString(), pTCPHeader->ui16DPort);
+                if (0 != (rc = TCPManager::handleTCPPacketFromHost (reinterpret_cast<uint8*> (pIPHeader), pIPHeader->ui16TLen))) {
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_MildError,
                                     "handleTCPPacketFromHost() failed with rc = %d\n", rc);
                     return -29;
@@ -2520,11 +2762,11 @@ namespace ACMNetProxy
                 // NetProxy running in gateway mode --> forward it to the external interface
                 pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                 pEthHeader->hton();
-                if (0 != (rc = sendPacketToHost (_pExternalInterface, pPacket, ui16PacketLen))) {
+                if (0 != (rc = sendPacketToHost(_pExternalInterface, pPacket, ui16PacketLen))) {
                     checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_SevereError,
                                     "sendPacketToHost() of an unknown ethernet packet (ethernet protocol type %hu) of "
                                     "%hu bytes long on the external interface failed with rc = %d\n",
-                                    EndianHelper::ntohs (pEthHeader->ui16EtherType), ui16PacketLen, rc);
+                                    EndianHelper::ntohs(pEthHeader->ui16EtherType), ui16PacketLen, rc);
                     return -30;
                 }
                 if (pEthHeader->ui16EtherType == ET_IP_v6) {
@@ -2543,7 +2785,7 @@ namespace ACMNetProxy
                                     "successfully forwarded an unknown ethernet packet (ethernet protocol type %hu) of %hu bytes long on the external "
                                     "network (source MAC address %2x:%2x:%2x:%2x:%2x:%2x - destination MAC address %2x:%2x:%2x:%2x:%2x:%2x); the "
                                     "source Ethernet MAC address of the Ethernet packet was changed to be the MAC address of the external network "
-                                    "interface of this host\n", EndianHelper::ntohs (pEthHeader->ui16EtherType), ui16PacketLen,
+                                    "interface of this host\n", EndianHelper::ntohs(pEthHeader->ui16EtherType), ui16PacketLen,
                                     (int) pEthHeader->src.ui8Byte2, (int) pEthHeader->src.ui8Byte1, (int) pEthHeader->src.ui8Byte4,
                                     (int) pEthHeader->src.ui8Byte3, (int) pEthHeader->src.ui8Byte6, (int) pEthHeader->src.ui8Byte5,
                                     (int) pEthHeader->dest.ui8Byte2, (int) pEthHeader->dest.ui8Byte1, (int) pEthHeader->dest.ui8Byte4,
@@ -2555,11 +2797,24 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::handlePacketFromExternalInterface (const uint8 * const pPacket, uint16 ui16PacketLen)
-    {
+    int PacketRouter::handlePacketFromExternalInterface(const uint8 * const pPacket, uint16 ui16PacketLen) {
         int rc;
         EtherFrameHeader * const pEthHeader = (EtherFrameHeader*) pPacket;
         pEthHeader->ntoh();
+
+
+        //DEBUG
+        if (pEthHeader->ui16EtherType == ET_IP) {
+            IPHeader *pIPHeader = (IPHeader*) (pPacket + sizeof(EtherFrameHeader));
+            uint16 ui16IPHeaderLen = (pIPHeader->ui8VerAndHdrLen & 0x0F) * 4;
+            uint8 uint8Protocol = pIPHeader->ui8Proto;
+            pIPHeader->ntoh();
+            pIPHeader->ntoh();
+            uint32 ui32SrcAddr = pIPHeader->srcAddr.ui32Addr;
+            uint32 ui32DestAddr = pIPHeader->destAddr.ui32Addr;
+            //	printf("EE DEBUG - Src: %s, Dst: %s   -    ", InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString());
+        }
+
 
         if (hostBelongsToTheInternalNetwork (pEthHeader->src)) {
             // Packet originated on the internal network was just reinjected on the external one --> ignore it
@@ -2571,8 +2826,9 @@ namespace ACMNetProxy
                             (int) pEthHeader->dest.ui8Byte4, (int) pEthHeader->dest.ui8Byte5, (int) pEthHeader->dest.ui8Byte6);
             return 0;
         }
+
         if (!hostBelongsToTheExternalNetwork (pEthHeader->src)) {
-            // Add new host to the list of hosts in the internal network
+            // Add new host to the list of hosts in the external network
             _daExternalHosts[_daExternalHosts.getHighestIndex() + 1] = pEthHeader->src;
             checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                             "added source MAC address %2x:%2x:%2x:%2x:%2x:%2x to the set of hosts belonging to the external network\n",
@@ -2581,7 +2837,7 @@ namespace ACMNetProxy
         }
 
         if (pEthHeader->ui16EtherType == ET_ARP) {
-            register ARPPacket *pARPPacket = (ARPPacket*) (pPacket + sizeof (EtherFrameHeader));
+            register ARPPacket *pARPPacket = (ARPPacket*) (pPacket + sizeof(EtherFrameHeader));
             pARPPacket->ntoh();
             checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                             "ARP Packet: operation %d - source %d.%d.%d.%d (%2x:%2x:%2x:%2x:%2x:%2x) - target %d.%d.%d.%d (%2x:%2x:%2x:%2x:%2x:%2x)\n",
@@ -2622,16 +2878,16 @@ namespace ACMNetProxy
                             // ARP Response
                             if (pARPPacket->tha == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
                                 /* The Target Hardware Address is the MAC address of this machine. This means that the NetProxy had
-                                 * forwarded an ARP Request from the internal to the external interface in the past and changed its
-                                 * source hardware address to be the one of this machine --> change it back to the original MAC address. */
-                                const EtherMACAddr * const pDestEther = _pARPCache.lookup (pARPPacket->tpa.ui32Addr);
+                                * forwarded an ARP Request from the internal to the external interface in the past and changed its
+                                * source hardware address to be the one of this machine --> change it back to the original MAC address. */
+                                const EtherMACAddr * const pDestEther = _pARPCache.lookup(pARPPacket->tpa.ui32Addr);
                                 if (!pDestEther) {
                                     checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_Warning,
                                                     "received an ARP Response with source protocol address %s, target protocol address not of this machine "
                                                     "(%s), but with the target hardware address of this machine; however, it was not possible to find "
                                                     "the real hardware address in the local ARP cache\n",
-                                                    InetAddr (EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(),
-                                                    InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                                    InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(),
+                                                    InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                                     return -1;
                                 }
                                 pARPPacket->tha = *pDestEther;
@@ -2639,19 +2895,19 @@ namespace ACMNetProxy
                             }
                             else {
                                 // ARP Response with a Target Hardware Address that is not the MAC address of this machine --> cache it
-                                _pARPCache.insert (pARPPacket->tpa.ui32Addr, pARPPacket->tha);
+                                _pARPCache.insert(pARPPacket->tpa.ui32Addr, pARPPacket->tha);
                                 checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_LowDetailDebug,
                                                 "caching ARP address %2x:%2x:%2x:%2x:%2x:%2x for IP address %s\n",
                                                 (int) pARPPacket->tha.ui8Byte1, (int) pARPPacket->tha.ui8Byte2, (int) pARPPacket->tha.ui8Byte3,
                                                 (int) pARPPacket->tha.ui8Byte4, (int) pARPPacket->tha.ui8Byte5, (int) pARPPacket->tha.ui8Byte6,
-                                                InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                                InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                             }
 
-                            if (EndianHelper::htonl (pARPPacket->tpa.ui32Addr) == NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR) {
+                            if (EndianHelper::htonl(pARPPacket->tpa.ui32Addr) == NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR) {
                                 // The Target Protocol Address is the Network Gateway --> do not forward the packet on the internal interface
                                 checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                                                 "dropping ARP Response with Target Protocol Address of the network gateway (address: %s)\n",
-                                                InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                                InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                                 return 0;
                             }
                         }
@@ -2661,33 +2917,33 @@ namespace ACMNetProxy
                         // ARP message with the Target Protocol Address of this host --> it is not necessary to forward it on the internal network
                         checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                                         "received an ARP %s with Source Protocol Address %s addressed to this host (Target Protocol Address: %s); "
-                                        "avoid forwarding it on the internal network\n", (pARPPacket->ui16Oper == 1) ? "Request": "Response",
-                                        InetAddr (EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(),
-                                        InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                        "avoid forwarding it on the internal network\n", (pARPPacket->ui16Oper == 1) ? "Request" : "Response",
+                                        InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(),
+                                        InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                         return 0;
                     }
                 }
                 else if (pARPPacket->sha == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
-                    if (EndianHelper::htonl (pARPPacket->spa.ui32Addr) == NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
+                    if (EndianHelper::htonl(pARPPacket->spa.ui32Addr) == NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
                         // The sender of the ARP message is this machine
                         if (pARPPacket->ui16Oper == 1) {
                             // ARP Request
-                            if (EndianHelper::htonl (pARPPacket->tpa.ui32Addr) == NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR) {
+                            if (EndianHelper::htonl(pARPPacket->tpa.ui32Addr) == NetProxyApplicationParameters::NETWORK_GATEWAY_NODE_IP_ADDR) {
                                 // ARP Request generated by this host and addressed to the network gateway --> avoid forwarding it on the internal network
                                 checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                                                 "ARP Request generated by this machine and addressed to the network gateway (Source Protocol "
                                                 "Address: %s - Target Protocol Address: %s); avoid forwarding packet on the internal network\n",
-                                                InetAddr (EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(),
-                                                InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                                InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(),
+                                                InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                                 return 0;
                             }
 
-                            const EtherMACAddr * const pSrcEther = _pARPCache.lookup (pARPPacket->tpa.ui32Addr);
-                            if (pSrcEther && hostBelongsToTheInternalNetwork (*pSrcEther)) {
+                            const EtherMACAddr * const pSrcEther = _pARPCache.lookup(pARPPacket->tpa.ui32Addr);
+                            if (pSrcEther && hostBelongsToTheInternalNetwork(*pSrcEther)) {
                                 /* The NetProxy knows that the destination belongs to the internal network --> immediately reply to it.
-                                 * If this is not done, the OS will see the ARP Response coming from both the internal and external interface,
-                                 * in this order, and it will not generate packets, since the internal interface does not have an IP address. */
-                                if (0 != (rc = sendARPReplyToHost (_pExternalInterface, pARPPacket, *pSrcEther))) {
+                                * If this is not done, the OS will see the ARP Response coming from both the internal and external interface,
+                                * in this order, and it will not generate packets, since the internal interface does not have an IP address. */
+                                if (0 != (rc = sendARPReplyToHost(_pExternalInterface, pARPPacket, *pSrcEther))) {
                                     checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
                                                     "sendARPReplyToHost() on the external network interface failed with rc = %d\n", rc);
                                     return -2;
@@ -2695,7 +2951,7 @@ namespace ACMNetProxy
                                 checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_MediumDetailDebug,
                                                 "successfully sent an ARP Response to this same host with the pair <Source Protocol Address %s "
                                                 "- Source Hardware Address: %2x:%2x:%2x:%2x:%2x:%2x> on the external network interface\n",
-                                                InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString(),
+                                                InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString(),
                                                 pSrcEther->ui8Byte1, pSrcEther->ui8Byte2, pSrcEther->ui8Byte3,
                                                 pSrcEther->ui8Byte4, pSrcEther->ui8Byte5, pSrcEther->ui8Byte6);
                                 return 0;
@@ -2705,7 +2961,7 @@ namespace ACMNetProxy
                                 checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                                                 "successfully sent an ARP Response to this same host with the pair <Source Protocol Address %s "
                                                 "- Source Hardware Address: %2x:%2x:%2x:%2x:%2x:%2x> on the external network interface\n",
-                                                InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString(),
+                                                InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString(),
                                                 pSrcEther->ui8Byte1, pSrcEther->ui8Byte2, pSrcEther->ui8Byte3,
                                                 pSrcEther->ui8Byte4, pSrcEther->ui8Byte5, pSrcEther->ui8Byte6);
                                 return 0;
@@ -2717,8 +2973,8 @@ namespace ACMNetProxy
                             checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                                             "ARP Response generated by this machine (Source Protocol Address: %s - Target Protocol Address: %s); "
                                             "this is a reply to an ARP Request generated by a host in the external network - avoid forwarding "
-                                            "the packet on the internal network\n", InetAddr (EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(),
-                                            InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                            "the packet on the internal network\n", InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(),
+                                            InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                         }
                     }
                     else {
@@ -2727,43 +2983,43 @@ namespace ACMNetProxy
                                         "ARP %s with the source Hardware Address of this machine, but a different Source Protocol Address (%s), "
                                         "and Target Protocol Address %s; the NetProxy forwarded the packet from the internal to the external "
                                         "network in the past - ignore it\n", (pARPPacket->ui16Oper == 1) ? "Request" : "Response",
-                                        InetAddr (EndianHelper::htonl (pARPPacket->spa.ui32Addr)).getIPAsString(),
-                                        InetAddr (EndianHelper::htonl (pARPPacket->tpa.ui32Addr)).getIPAsString());
+                                        InetAddr(EndianHelper::htonl(pARPPacket->spa.ui32Addr)).getIPAsString(),
+                                        InetAddr(EndianHelper::htonl(pARPPacket->tpa.ui32Addr)).getIPAsString());
                         return 0;
                     }
                 }
             }
             else {
                 // ARP Probe
-                if (EndianHelper::htonl (pARPPacket->tpa.ui32Addr) != NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
+                if (EndianHelper::htonl(pARPPacket->tpa.ui32Addr) != NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
                     // Forwarding ARP probe to the internal network
                     pARPPacket->sha = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                     pARPPacket->hton();
                     pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                     pEthHeader->hton();
-                    if (0 != (rc = sendPacketToHost (_pInternalInterface, pPacket, ui16PacketLen))) {
+                    if (0 != (rc = sendPacketToHost(_pInternalInterface, pPacket, ui16PacketLen))) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
                                         "sendPacketToHost() of an ARP probe packet (target protocol address: %s) "
                                         "of %hu bytes long on the internal interface failed with rc = %d\n",
-                                        InetAddr (pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen, rc);
+                                        InetAddr(pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen, rc);
                         return -3;
                     }
                     checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
                                     "successfully forwarded an ARP probe packet (target protocol address: %s) of %hu bytes long on the "
                                     "internal network interface; both the source Ethernet MAC address and the source hardware address of "
                                     "the ARP packet were changed to be the MAC address of the external network interface of this host\n",
-                                    InetAddr (pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen);
+                                    InetAddr(pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen);
                 }
                 else {
                     // Another host is trying to use our own address! --> reply with a gratuitous ARP announcement on both interfaces
-                    if (0 != (rc = sendARPAnnouncement (_pInternalInterface, pARPPacket, NetProxyApplicationParameters::NETPROXY_IP_ADDR,
-                                                        NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR))) {
+                    if (0 != (rc = sendARPAnnouncement(_pInternalInterface, pARPPacket, NetProxyApplicationParameters::NETPROXY_IP_ADDR,
+                                                       NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR))) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
                                         "sendARPAnnouncement() on the internal network interface failed with rc = %d\n", rc);
                         return -4;
                     }
-                    if (0 != (rc = sendARPAnnouncement (_pExternalInterface, pARPPacket, NetProxyApplicationParameters::NETPROXY_IP_ADDR,
-                                                        NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR))) {
+                    if (0 != (rc = sendARPAnnouncement(_pExternalInterface, pARPPacket, NetProxyApplicationParameters::NETPROXY_IP_ADDR,
+                                                       NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR))) {
                         checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
                                         "sendARPAnnouncement() on the external network interface failed with rc = %d\n", rc);
                         return -4;
@@ -2782,11 +3038,11 @@ namespace ACMNetProxy
             pEthHeader->dest = (pARPPacket->ui16Oper == 1) ? NetProxyApplicationParameters::BROADCAST_MAC_ADDR : pEthHeader->dest;
             pARPPacket->hton();
             pEthHeader->hton();
-            if (0 != (rc = sendPacketToHost (_pInternalInterface, pPacket, ui16PacketLen))) {
+            if (0 != (rc = sendPacketToHost(_pInternalInterface, pPacket, ui16PacketLen))) {
                 checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
                                 "sendPacketToHost() of an ARP packet (opcode: %hu - source protocol address: %s - destination "
                                 "protocol address: %s) of %hu bytes long on the internal network interface failed with rc = %d\n",
-                                EndianHelper::ntohs (pARPPacket->ui16Oper), InetAddr(pARPPacket->spa.ui32Addr).getIPAsString(),
+                                EndianHelper::ntohs(pARPPacket->ui16Oper), InetAddr(pARPPacket->spa.ui32Addr).getIPAsString(),
                                 InetAddr(pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen, rc);
                 return -5;
             }
@@ -2795,30 +3051,51 @@ namespace ACMNetProxy
                             "protocol address: %s) of %hu bytes long on the internal network interface; both the source "
                             "Ethernet MAC address and the source hardware address of the ARP packet were changed to be "
                             "the MAC address of the external network interface of this host\n",
-                            EndianHelper::ntohs (pARPPacket->ui16Oper), InetAddr(pARPPacket->spa.ui32Addr).getIPAsString(),
+                            EndianHelper::ntohs(pARPPacket->ui16Oper), InetAddr(pARPPacket->spa.ui32Addr).getIPAsString(),
                             InetAddr(pARPPacket->tpa.ui32Addr).getIPAsString(), ui16PacketLen);
             return 0;
         }
         else if (pEthHeader->ui16EtherType == ET_IP) {
-            register IPHeader *pIPHeader = (IPHeader*) (pPacket + sizeof (EtherFrameHeader));
+            register IPHeader *pIPHeader = (IPHeader*) (pPacket + sizeof(EtherFrameHeader));
             uint32 ui32SrcAddr = pIPHeader->srcAddr.ui32Addr;
             uint32 ui32DestAddr = pIPHeader->destAddr.ui32Addr;
             pIPHeader->ntoh();
             pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
             pIPHeader->destAddr.ui32Addr = ui32DestAddr;
 
-            if (pEthHeader->dest == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
-                // The packet was sent to this node; check if the NetProxy needs to process it
-                if (ui32DestAddr == NetProxyApplicationParameters::NETPROXY_IP_ADDR) {
-                    // The packet is addressed to our host: the kernel will deliver it to the interested application -- just ignore it
+            if ((pEthHeader->dest == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) &&
+                (ui32DestAddr == NetProxyApplicationParameters::NETPROXY_IP_ADDR)) {
+                // The packet is addressed to this host: the kernel will deliver it to the interested application -- just ignore it
+                checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
+                                "received a packet addressed to this host (source IP: %s - destination IP: %s): this method will ignore the "
+                                "packet as the kernel will take care of it (it might be a packet coming from a remote NetProxy, or a packet "
+                                "coming from a host in the internal network that the NetProxy had forwarded on the external interface)\n",
+                                InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString());
+                return 0;
+            }
+
+            // The packet is not addressed to this host: check if the TTL needs to be decremented and if forwarding is necessary
+            if (!NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE) {
+                // Non-transparent Gateway Mode
+                if (pIPHeader->ui8TTL > 1) {
+                    // Decrement the TTL
+                    --(pIPHeader->ui8TTL);
                     checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
-                                    "received a packet addressed to this host (source IP: %s - destination IP: %s): this method will ignore the "
-                                    "packet as the kernel will take care of it (it might be a packet coming from a remote NetProxy, or a packet "
-                                    "coming from a host in the internal network that the NetProxy had forwarded on the external interface)\n",
-                                    InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString());
+                                    "received an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long; "
+                                    "the value of the TTL field was decremented to %hhu; \n", pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(),
+                                    InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen, pIPHeader->ui8TTL);
+                }
+                else {
+                    // TTL reached 0, throw away the packet!
+                    checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_LowDetailDebug,
+                                    "received an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long with a TTL value of %hhu; dropping it\n",
+                                    pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen, pIPHeader->ui8TTL);
                     return 0;
                 }
+            }
 
+            if (pEthHeader->dest == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR) {
+                // The packet was sent to this node, but the IP address did not match; check if the NetProxy needs to forward it onto the internal network
                 const EtherMACAddr * const pDestEther = _pARPCache.lookup (EndianHelper::ntohl (pIPHeader->destAddr.ui32Addr));
                 if (!pDestEther) {
                     // No entry in the ARP Cache matches the destination IP address of the received IP packet --> drop it!
@@ -2828,21 +3105,23 @@ namespace ACMNetProxy
                                     InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString());
                     return -6;
                 }
+
+                pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                pIPHeader->computeChecksum();
                 pIPHeader->hton();
-                pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                 pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                 pEthHeader->dest = *pDestEther;
                 pEthHeader->hton();
                 if (0 != (rc = sendPacketToHost (_pInternalInterface, pPacket, ui16PacketLen))) {
-                    if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF) && (EndianHelper::ntohs (pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
+                    if ((ui16PacketLen > NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF) && (EndianHelper::ntohs(pIPHeader->ui16FlagsAndFragOff) & IP_DF_FLAG_FILTER)) {
                         // Send back on the external interface an ICMP Packet Fragmentation Needed (Type 3, Code 4) message
                         pEthHeader->ntoh();
                         pIPHeader->ntoh();
                         pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
                         pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                         if (0 != (rc = buildAndSendICMPMessageToHost (_pExternalInterface, ICMPHeader::T_Destination_Unreachable, ICMPHeader::CDU_Fragmentation_needed_and_DF_set,
-                                                                      NetProxyApplicationParameters::NETPROXY_IP_ADDR, ui32SrcAddr, pIPHeader))) {
+                                                                     NetProxyApplicationParameters::NETPROXY_IP_ADDR, ui32SrcAddr, pIPHeader))) {
                             checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
                                             "buildAndSendICMPMessageToHost() failed when sending back an ICMP Packet Fragmentation Needed (Type %hhu, Code %hhu) message "
                                             "because an IP packet (IP protocol type: %hhu - source IP: %s - destination IP: %s) of %hu bytes long was received; rc = %d\n",
@@ -2874,15 +3153,27 @@ namespace ACMNetProxy
                                 "successfully forwarded an IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu "
                                 "bytes long on the internal network interface; the source Ethernet MAC address of the Ethernet "
                                 "packet was changed to be the MAC address of the external network interface of this host\n",
-                                pIPHeader->ui8Proto, InetAddr (ui32SrcAddr).getIPAsString(),
-                                InetAddr (ui32DestAddr).getIPAsString(), ui16PacketLen);
+                                pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(),
+                                InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen);
                 return 0;
             }
-            else if (hostBelongsToTheInternalNetwork (pEthHeader->dest)) {
-                // Such packets are generated by the current node or by services such as a DHCP server --> forward them on the internal interface
+            else if (!hostBelongsToTheExternalNetwork (pEthHeader->dest)) {
+                /* Packets not addressed to the network gateway nor other nodes in the external network (including those
+                 * generated by applications running on this host) --> forward them onto the internal network */
+                uint16 ui16IPHeaderLen = (pIPHeader->ui8VerAndHdrLen & 0x0F) * 4;
+                uint16 ui16UPDHeaderCRC = 0;
+                UDPHeader *pUDPHeader = reinterpret_cast<UDPHeader*> (reinterpret_cast<uint8*> (pIPHeader) + ui16IPHeaderLen);
+                pIPHeader->srcAddr.ui32Addr = ntohl (ui32SrcAddr);
+                pIPHeader->destAddr.ui32Addr = ntohl (ui32DestAddr);
+                if ((pIPHeader->ui8Proto == IP_PROTO_UDP) && (pEthHeader->src == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR)) {
+                    // Set UDP checksum to 0 to avoid issues due to the UDP checksum being offloaded to the NIC when the source is this machine
+                    pUDPHeader->ntoh();
+                    ui16UPDHeaderCRC = pUDPHeader->ui16CRC;
+                    pUDPHeader->ui16CRC = 0;
+                    pUDPHeader->hton();
+                }
+                pIPHeader->computeChecksum();
                 pIPHeader->hton();
-                pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
-                pIPHeader->destAddr.ui32Addr = ui32DestAddr;
                 pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
                 pEthHeader->hton();
                 if (0 != (rc = sendPacketToHost (_pInternalInterface, pPacket, ui16PacketLen))) {
@@ -2892,6 +3183,10 @@ namespace ACMNetProxy
                         pIPHeader->ntoh();
                         pIPHeader->srcAddr.ui32Addr = ui32SrcAddr;
                         pIPHeader->destAddr.ui32Addr = ui32DestAddr;
+                        if ((pIPHeader->ui8Proto == IP_PROTO_UDP) && (pEthHeader->src == NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR)) {
+                            pUDPHeader->ntoh();
+                            pUDPHeader->ui16CRC = ui16UPDHeaderCRC;
+                        }
                         if (0 != (rc = buildAndSendICMPMessageToHost (_pExternalInterface, ICMPHeader::T_Destination_Unreachable, ICMPHeader::CDU_Fragmentation_needed_and_DF_set,
                                                                       NetProxyApplicationParameters::NETPROXY_IP_ADDR, ui32SrcAddr, pIPHeader))) {
                             checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
@@ -2921,11 +3216,14 @@ namespace ACMNetProxy
                                     InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen, rc);
                     return -10;
                 }
+                checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_MediumDetailDebug,
+                                "IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long was successfully forwarded onto the internal network\n",
+                                pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(), ui16PacketLen);
             }
             else {
-                checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
-                                "IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long and with "
-                                "destination Ethernet MAC address %2x:%2x:%2x:%2x:%2x:%2x does not need to be processed\n",
+                checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_LowDetailDebug,
+                                "IP packet (IP protocol type: %hhu - source: %s - destination: %s) of %hu bytes long and with destination Ethernet "
+                                "MAC address %2x:%2x:%2x:%2x:%2x:%2x does not need to be processed nor forwarded onto the internal network\n",
                                 pIPHeader->ui8Proto, InetAddr(ui32SrcAddr).getIPAsString(), InetAddr(ui32DestAddr).getIPAsString(),
                                 ui16PacketLen, (int) pEthHeader->dest.ui8Byte1, (int) pEthHeader->dest.ui8Byte2,
                                 (int) pEthHeader->dest.ui8Byte3, (int) pEthHeader->dest.ui8Byte4,
@@ -2933,47 +3231,44 @@ namespace ACMNetProxy
             }
         }
         else {
-            // Non-IP, Non-ARP ethernet packet received
-            if (NetProxyApplicationParameters::GATEWAY_MODE) {
-                // NetProxy running in gateway mode --> forward it to the external interface
-                EtherMACAddr oldEtherMACAddr = pEthHeader->src;
-                pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
-                pEthHeader->hton();
-                if (0 != (rc = sendPacketToHost (_pInternalInterface, pPacket, ui16PacketLen))) {
-                    checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
-                                    "sendPacketToHost() of an unknown ethernet packet (ethernet protocol type %hu) of "
-                                    "%hu bytes long on the internal interface failed with rc = %d\n",
-                                    EndianHelper::ntohs (pEthHeader->ui16EtherType), ui16PacketLen, rc);
-                    return -11;
-                }
-                if (pEthHeader->ui16EtherType == ET_IP_v6) {
-                    checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
-                                    "successfully forwarded IPv6 packet of %hu bytes long on the internal network (source MAC address "
-                                    "%2x:%2x:%2x:%2x:%2x:%2x - destination MAC address %2x:%2x:%2x:%2x:%2x:%2x)\n",
-                                    ui16PacketLen, (int) pEthHeader->src.ui8Byte2, (int) pEthHeader->src.ui8Byte1, (int) pEthHeader->src.ui8Byte4,
-                                    (int) pEthHeader->src.ui8Byte3, (int) pEthHeader->src.ui8Byte6, (int) pEthHeader->src.ui8Byte5,
-                                    (int) pEthHeader->dest.ui8Byte2, (int) pEthHeader->dest.ui8Byte1, (int) pEthHeader->dest.ui8Byte4,
-                                    (int) pEthHeader->dest.ui8Byte3, (int) pEthHeader->dest.ui8Byte6, (int) pEthHeader->dest.ui8Byte5);
-                }
-                else {
-                    checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
-                                    "successfully forwarded an unknown Ethernet packet (Ethernet protocol type %hu) of %hu bytes long on the internal "
-                                    "network (source MAC address %2x:%2x:%2x:%2x:%2x:%2x - destination MAC address %2x:%2x:%2x:%2x:%2x:%2x); the "
-                                    "source Ethernet MAC address of the Ethernet packet was changed to be the MAC address of the external "
-                                    "network interface of this host\n", EndianHelper::ntohs (pEthHeader->ui16EtherType), ui16PacketLen,
-                                    (int) oldEtherMACAddr.ui8Byte2, (int) oldEtherMACAddr.ui8Byte1, (int) oldEtherMACAddr.ui8Byte4,
-                                    (int) oldEtherMACAddr.ui8Byte3, (int) oldEtherMACAddr.ui8Byte6, (int) oldEtherMACAddr.ui8Byte5,
-                                    (int) pEthHeader->dest.ui8Byte2, (int) pEthHeader->dest.ui8Byte1, (int) pEthHeader->dest.ui8Byte4,
-                                    (int) pEthHeader->dest.ui8Byte3, (int) pEthHeader->dest.ui8Byte6, (int) pEthHeader->dest.ui8Byte5);
-                }
+            // Non-IP, Non-ARP ethernet packet received --> forward it to the external interface
+            EtherMACAddr oldEtherMACAddr = pEthHeader->src;
+            pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
+            pEthHeader->hton();
+            if (0 != (rc = sendPacketToHost (_pInternalInterface, pPacket, ui16PacketLen))) {
+                checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_SevereError,
+                                "sendPacketToHost() of an unknown ethernet packet (ethernet protocol type %hu) of "
+                                "%hu bytes long on the internal interface failed with rc = %d\n",
+                                EndianHelper::ntohs(pEthHeader->ui16EtherType), ui16PacketLen, rc);
+                return -11;
+            }
+
+            if (pEthHeader->ui16EtherType == ET_IP_v6) {
+                checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
+                                "successfully forwarded IPv6 packet of %hu bytes long on the internal network (source MAC address "
+                                "%2x:%2x:%2x:%2x:%2x:%2x - destination MAC address %2x:%2x:%2x:%2x:%2x:%2x)\n",
+                                ui16PacketLen, (int) pEthHeader->src.ui8Byte2, (int) pEthHeader->src.ui8Byte1, (int) pEthHeader->src.ui8Byte4,
+                                (int) pEthHeader->src.ui8Byte3, (int) pEthHeader->src.ui8Byte6, (int) pEthHeader->src.ui8Byte5,
+                                (int) pEthHeader->dest.ui8Byte2, (int) pEthHeader->dest.ui8Byte1, (int) pEthHeader->dest.ui8Byte4,
+                                (int) pEthHeader->dest.ui8Byte3, (int) pEthHeader->dest.ui8Byte6, (int) pEthHeader->dest.ui8Byte5);
+            }
+            else {
+                checkAndLogMsg ("PacketRouter::handlePacketFromExternalInterface", Logger::L_HighDetailDebug,
+                                "successfully forwarded an unknown Ethernet packet (Ethernet protocol type %hu) of %hu bytes long on the internal "
+                                "network (source MAC address %2x:%2x:%2x:%2x:%2x:%2x - destination MAC address %2x:%2x:%2x:%2x:%2x:%2x); the "
+                                "source Ethernet MAC address of the Ethernet packet was changed to be the MAC address of the external "
+                                "network interface of this host\n", EndianHelper::ntohs(pEthHeader->ui16EtherType), ui16PacketLen,
+                                (int) oldEtherMACAddr.ui8Byte2, (int) oldEtherMACAddr.ui8Byte1, (int) oldEtherMACAddr.ui8Byte4,
+                                (int) oldEtherMACAddr.ui8Byte3, (int) oldEtherMACAddr.ui8Byte6, (int) oldEtherMACAddr.ui8Byte5,
+                                (int) pEthHeader->dest.ui8Byte2, (int) pEthHeader->dest.ui8Byte1, (int) pEthHeader->dest.ui8Byte4,
+                                (int) pEthHeader->dest.ui8Byte3, (int) pEthHeader->dest.ui8Byte6, (int) pEthHeader->dest.ui8Byte5);
             }
         }
 
         return 0;
     }
 
-    int PacketRouter::sendPacketToHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize)
-    {
+    int PacketRouter::sendPacketToHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize) {
         int rc;
 
         if ((rc = pNI->writePacket (pPacket, iSize)) != iSize) {
@@ -2985,8 +3280,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::wrapEtherAndSendPacketToHost (NetworkInterface * const pNI, uint8 *pui8Buf, uint16 ui16PacketLen)
-    {
+    int PacketRouter::wrapEtherAndSendPacketToHost (NetworkInterface * const pNI, uint8 *pui8Buf, uint16 ui16PacketLen) {
         int rc;
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Buf;
         IPHeader *pIPHeader = (IPHeader*) (pui8Buf + sizeof (EtherFrameHeader));
@@ -2995,14 +3289,13 @@ namespace ACMNetProxy
             const EtherMACAddr *pMACAddr = _pARPCache.lookup (pIPHeader->destAddr.ui32Addr);
             if (pMACAddr == NULL) {
                 if ((pNI == _pInternalInterface) || NetUtils::areInSameNetwork (NetProxyApplicationParameters::NETPROXY_IP_ADDR,
-                                                                                NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK,
-                                                                                EndianHelper::htonl (pIPHeader->destAddr.ui32Addr),
+                                                                                NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK, EndianHelper::htonl (pIPHeader->destAddr.ui32Addr),
                                                                                 NetProxyApplicationParameters::NETPROXY_NETWORK_NETMASK)) {
                     checkAndLogMsg ("PacketRouter::wrapEtherAndSendPacketToHost", Logger::L_Warning,
                                     "do not have the MAC address associated to the IP address %s, which belongs to the same network of this "
                                     "machine - sending an ARP request to retrieve the MAC address and then returning an error code\n",
                                     InetAddr(EndianHelper::htonl (pIPHeader->destAddr.ui32Addr)).getIPAsString());
-                    if (0 != (rc = sendARPRequest (pNI, EndianHelper::htonl (pIPHeader->srcAddr.ui32Addr), EndianHelper::htonl (pIPHeader->destAddr.ui32Addr)))) {
+                    if (0 != (rc = sendARPRequest (pNI, EndianHelper::htonl(pIPHeader->srcAddr.ui32Addr), EndianHelper::htonl(pIPHeader->destAddr.ui32Addr)))) {
                         checkAndLogMsg ("PacketRouter::wrapEtherAndSendPacketToHost", Logger::L_MildError,
                                         "could not send ARP request for IP address %s; sendARPRequest() failed with rc = %d\n",
                                         InetAddr(EndianHelper::htonl (pIPHeader->srcAddr.ui32Addr)).getIPAsString(), rc);
@@ -3025,7 +3318,7 @@ namespace ACMNetProxy
                     }
                     checkAndLogMsg ("PacketRouter::wrapEtherAndSendPacketToHost", Logger::L_MediumDetailDebug,
                                     "IP address %s does not belong to the same network of this machine - using MAC address of the gateway\n",
-                                    InetAddr(EndianHelper::htonl (pIPHeader->destAddr.ui32Addr)).getIPAsString());
+                                    InetAddr(EndianHelper::htonl(pIPHeader->destAddr.ui32Addr)).getIPAsString());
                 }
             }
 
@@ -3033,42 +3326,42 @@ namespace ACMNetProxy
             pEthHeader->dest = *pMACAddr;
         }
         else {
-            buildVirtualNetProxyEthernetMACAddress (pEthHeader->src, pIPHeader->srcAddr.ui8Byte3, pIPHeader->srcAddr.ui8Byte4);
-            buildVirtualNetProxyEthernetMACAddress (pEthHeader->dest, pIPHeader->destAddr.ui8Byte3, pIPHeader->destAddr.ui8Byte4);
+            buildVirtualNetProxyEthernetMACAddress(pEthHeader->src, pIPHeader->srcAddr.ui8Byte3, pIPHeader->srcAddr.ui8Byte4);
+            buildVirtualNetProxyEthernetMACAddress(pEthHeader->dest, pIPHeader->destAddr.ui8Byte3, pIPHeader->destAddr.ui8Byte4);
         }
         pEthHeader->ui16EtherType = ET_IP;
 
         switch (pIPHeader->ui8Proto) {
-            case IP_PROTO_ICMP:
-            {
-                ICMPHeader *pICMPHeader = (ICMPHeader*) (((uint8*)pIPHeader) + ui16IPHeaderLen);
-                pICMPHeader->hton();
-                break;
-            }
-            case IP_PROTO_TCP:
-            {
-                TCPHeader *pTCPHeader = (TCPHeader*) (((uint8*)pIPHeader) + ui16IPHeaderLen);
-                pTCPHeader->hton();
-                break;
-            }
-            case IP_PROTO_UDP:
-            {
-                UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*)pIPHeader) + ui16IPHeaderLen);
-                pUDPHeader->hton();
-                break;
-            }
-            default:
-            {
-                checkAndLogMsg ("PacketRouter::wrapEtherAndSendPacketToHost", Logger::L_MildError,
-                                "received a non-ICMP/non-TCP/non-UDP packet; protocol = %hhu\n",
-                                pIPHeader->ui8Proto);
-                return -2;
-            }
+        case IP_PROTO_ICMP:
+        {
+            ICMPHeader *pICMPHeader = (ICMPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
+            pICMPHeader->hton();
+            break;
+        }
+        case IP_PROTO_TCP:
+        {
+            TCPHeader *pTCPHeader = (TCPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
+            pTCPHeader->hton();
+            break;
+        }
+        case IP_PROTO_UDP:
+        {
+            UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
+            pUDPHeader->hton();
+            break;
+        }
+        default:
+        {
+            checkAndLogMsg ("PacketRouter::wrapEtherAndSendPacketToHost", Logger::L_MildError,
+                            "received a non-ICMP/non-TCP/non-UDP packet; protocol = %hhu\n",
+                            pIPHeader->ui8Proto);
+            return -2;
+        }
         }
         pIPHeader->hton();
         pEthHeader->hton();
 
-        if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof (EtherFrameHeader) + ui16PacketLen))) {
+        if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof(EtherFrameHeader) + ui16PacketLen))) {
             checkAndLogMsg ("PacketRouter::wrapEtherAndSendPacketToHost", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
             return -3;
@@ -3077,31 +3370,30 @@ namespace ACMNetProxy
         pEthHeader->ntoh();
         pIPHeader->ntoh();
         switch (pIPHeader->ui8Proto) {
-            case IP_PROTO_ICMP:
-            {
-                ICMPHeader *pICMPHeader = (ICMPHeader*) (((uint8*)pIPHeader) + ui16IPHeaderLen);
-                pICMPHeader->ntoh();
-                break;
-            }
-            case IP_PROTO_TCP:
-            {
-                TCPHeader *pTCPHeader = (TCPHeader*) (((uint8*)pIPHeader) + ui16IPHeaderLen);
-                pTCPHeader->ntoh();
-                break;
-            }
-            case IP_PROTO_UDP:
-            {
-                UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*)pIPHeader) + ui16IPHeaderLen);
-                pUDPHeader->ntoh();
-                break;
-            }
+        case IP_PROTO_ICMP:
+        {
+            ICMPHeader *pICMPHeader = (ICMPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
+            pICMPHeader->ntoh();
+            break;
+        }
+        case IP_PROTO_TCP:
+        {
+            TCPHeader *pTCPHeader = (TCPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
+            pTCPHeader->ntoh();
+            break;
+        }
+        case IP_PROTO_UDP:
+        {
+            UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
+            pUDPHeader->ntoh();
+            break;
+        }
         }
 
         return 0;
     }
 
-    int PacketRouter::sendARPRequest (NetworkInterface * const pNI, uint32 ui32OriginatingIPAddr, uint32 ui32TargetIPAddr)
-    {
+    int PacketRouter::sendARPRequest(NetworkInterface * const pNI, uint32 ui32OriginatingIPAddr, uint32 ui32TargetIPAddr) {
         int rc;
         if (!ACMNetProxy::NetProxyApplicationParameters::GATEWAY_MODE) {
             // ARP Request is only supported in Gateway mode
@@ -3112,7 +3404,7 @@ namespace ACMNetProxy
 
         uint8 *pui8Buf = (uint8 *) _pPBM->getAndLockWriteBuf();
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Buf;
-        ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof (EtherFrameHeader));
+        ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof(EtherFrameHeader));
         pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
         pEthHeader->dest = NetProxyApplicationParameters::BROADCAST_MAC_ADDR;
         pEthHeader->ui16EtherType = ET_ARP;
@@ -3121,39 +3413,38 @@ namespace ACMNetProxy
         pARPPacket->ui8HLen = 6;
         pARPPacket->ui8PLen = 4;
         pARPPacket->sha = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
-        pARPPacket->spa.ui32Addr = EndianHelper::ntohl (ui32OriginatingIPAddr);
+        pARPPacket->spa.ui32Addr = EndianHelper::ntohl(ui32OriginatingIPAddr);
         pARPPacket->tha.ui8Byte1 = 0;
         pARPPacket->tha.ui8Byte2 = 0;
         pARPPacket->tha.ui8Byte3 = 0;
         pARPPacket->tha.ui8Byte4 = 0;
         pARPPacket->tha.ui8Byte5 = 0;
         pARPPacket->tha.ui8Byte6 = 0;
-        pARPPacket->tpa.ui32Addr = EndianHelper::ntohl (ui32TargetIPAddr);
+        pARPPacket->tpa.ui32Addr = EndianHelper::ntohl(ui32TargetIPAddr);
         pARPPacket->ui16Oper = 1;
         pARPPacket->hton();
         pEthHeader->hton();
 
-        if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof (EtherFrameHeader) + sizeof (ARPPacket)))) {
+        if (0 != (rc = sendPacketToHost(pNI, pui8Buf, sizeof(EtherFrameHeader) + sizeof(ARPPacket)))) {
             checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
-            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
-                    checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_SevereError,
-                                    "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+            if (0 != _pPBM->findAndUnlockWriteBuf(pui8Buf)) {
+                checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_SevereError,
+                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -2;
         }
 
-        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
-                checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_SevereError,
-                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
-                return -3;
+        if (0 != _pPBM->findAndUnlockWriteBuf(pui8Buf)) {
+            checkAndLogMsg ("PacketRouter::sendARPRequest", Logger::L_SevereError,
+                            "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+            return -3;
         }
 
         return 0;
     }
 
-    int PacketRouter::sendARPReplyToHost (NetworkInterface * const pNI, const ARPPacket * const pARPReqPacket, const EtherMACAddr &rTargetMACAddr)
-    {
+    int PacketRouter::sendARPReplyToHost(NetworkInterface * const pNI, const ARPPacket * const pARPReqPacket, const EtherMACAddr &rTargetMACAddr) {
         int rc;
         if (!pARPReqPacket) {
             return -1;
@@ -3167,7 +3458,7 @@ namespace ACMNetProxy
 
         uint8 *pui8Buf = (uint8 *) _pPBM->getAndLockWriteBuf();
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Buf;
-        ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof (EtherFrameHeader));
+        ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof(EtherFrameHeader));
         pEthHeader->dest = pARPReqPacket->sha;
         pEthHeader->src = rTargetMACAddr;
         pEthHeader->ui16EtherType = ET_ARP;
@@ -3183,27 +3474,26 @@ namespace ACMNetProxy
         pARPPacket->hton();
         pEthHeader->hton();
 
-        if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof (EtherFrameHeader) + sizeof (ARPPacket)))) {
+        if (0 != (rc = sendPacketToHost(pNI, pui8Buf, sizeof(EtherFrameHeader) + sizeof(ARPPacket)))) {
             checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
-            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
-                    checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_SevereError,
-                                    "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+            if (0 != _pPBM->findAndUnlockWriteBuf(pui8Buf)) {
+                checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_SevereError,
+                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -3;
         }
 
-        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
-                checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_SevereError,
-                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
-                return -4;
+        if (0 != _pPBM->findAndUnlockWriteBuf(pui8Buf)) {
+            checkAndLogMsg ("PacketRouter::sendARPReplyToHost", Logger::L_SevereError,
+                            "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+            return -4;
         }
 
         return 0;
     }
 
-    int PacketRouter::sendARPAnnouncement (NetworkInterface * const pNI, const ARPPacket * const pARPReqPacket, uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rMACAddr)
-    {
+    int PacketRouter::sendARPAnnouncement(NetworkInterface * const pNI, const ARPPacket * const pARPReqPacket, uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rMACAddr) {
         if (!pARPReqPacket) {
             return -1;
         }
@@ -3211,7 +3501,7 @@ namespace ACMNetProxy
         int rc;
         uint8 *pui8Buf = (uint8 *) _pPBM->getAndLockWriteBuf();
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Buf;
-        ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof (EtherFrameHeader));
+        ARPPacket *pARPPacket = (ARPPacket*) (pui8Buf + sizeof(EtherFrameHeader));
         pEthHeader->dest = NetProxyApplicationParameters::BROADCAST_MAC_ADDR;
         pEthHeader->src = rMACAddr;
         pEthHeader->ui16EtherType = ET_ARP;
@@ -3221,65 +3511,64 @@ namespace ACMNetProxy
         pARPPacket->ui8PLen = pARPReqPacket->ui8PLen;
         pARPPacket->ui16Oper = 2;
         pARPPacket->sha = rMACAddr;
-        pARPPacket->spa.ui32Addr = EndianHelper::ntohl (ui32IPAddr);
+        pARPPacket->spa.ui32Addr = EndianHelper::ntohl(ui32IPAddr);
         pARPPacket->tha = rMACAddr;
         pARPPacket->tpa = pARPPacket->spa;
         pARPPacket->hton();
         pEthHeader->hton();
 
-        if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof (EtherFrameHeader) + sizeof (ARPPacket)))) {
+        if (0 != (rc = sendPacketToHost (pNI, pui8Buf, sizeof(EtherFrameHeader) + sizeof(ARPPacket)))) {
             checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_MildError,
                             "sendPacketToHost() failed with rc = %d\n", rc);
             if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
-                    checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_SevereError,
-                                    "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+                checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_SevereError,
+                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -2;
         }
 
         if (0 != _pPBM->findAndUnlockWriteBuf (pui8Buf)) {
-                checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_SevereError,
-                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
-                return -3;
+            checkAndLogMsg ("PacketRouter::sendARPAnnouncement", Logger::L_SevereError,
+                            "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+            return -3;
         }
 
         return 0;
     }
 
     int PacketRouter::buildAndSendICMPMessageToHost (NetworkInterface * const pNI, ICMPHeader::Type ICMPType, ICMPHeader::Code_Destination_Unreachable ICMPCode,
-                                                     uint32 ui32SourceIP, uint32 ui32DestinationIP, IPHeader * const pRcvdIPPacket)
-    {
+                                                     uint32 ui32SourceIP, uint32 ui32DestinationIP, IPHeader * const pRcvdIPPacket) {
         int rc;
         uint8 *pui8Packet = (uint8 *) _pPBM->getAndLockWriteBuf();
-        IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
+        IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof(EtherFrameHeader));
         size_t uiICMPDataLen = ((pRcvdIPPacket->ui8VerAndHdrLen & 0x0F) * 4) + 8;
-        uint16 ui16IPPacketLen = sizeof (IPHeader) + sizeof (ICMPHeader) + uiICMPDataLen;
+        uint16 ui16IPPacketLen = sizeof(IPHeader) + sizeof(ICMPHeader) + uiICMPDataLen;
         uint32 ui32IPSourceAddr = pRcvdIPPacket->srcAddr.ui32Addr;
         uint32 ui32IPDestinationAddr = pRcvdIPPacket->destAddr.ui32Addr;
         if (ui16IPPacketLen > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
             checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_MildError,
                             "ICMP packet length with %hu bytes of data exceeds maximum packet size (%hu)\n",
                             ui16IPPacketLen, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf(pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -1;
         }
 
-        pIPHeader->ui8VerAndHdrLen = 0x40 | (sizeof (IPHeader) / 4);
+        pIPHeader->ui8VerAndHdrLen = 0x40 | (sizeof(IPHeader) / 4);
         pIPHeader->ui8TOS = 0;
         pIPHeader->ui16TLen = ui16IPPacketLen;
         pIPHeader->ui16Ident = PacketRouter::getMutexCounter()->tick();
         pIPHeader->ui16FlagsAndFragOff = 0;
         pIPHeader->ui8TTL = 128;
         pIPHeader->ui8Proto = IP_PROTO_ICMP;
-        pIPHeader->srcAddr.ui32Addr = EndianHelper::ntohl (ui32SourceIP);
-        pIPHeader->destAddr.ui32Addr = EndianHelper::ntohl (ui32DestinationIP);
+        pIPHeader->srcAddr.ui32Addr = EndianHelper::ntohl(ui32SourceIP);
+        pIPHeader->destAddr.ui32Addr = EndianHelper::ntohl(ui32DestinationIP);
         pIPHeader->computeChecksum();
 
-        ICMPHeader *pICMPHeader = (ICMPHeader*) ((uint8*) pIPHeader + sizeof (IPHeader));
-        uint8 *pICMPData = ((uint8*) pICMPHeader + sizeof (ICMPHeader));
+        ICMPHeader *pICMPHeader = (ICMPHeader*) ((uint8*) pIPHeader + sizeof(IPHeader));
+        uint8 *pICMPData = ((uint8*) pICMPHeader + sizeof(ICMPHeader));
         pICMPHeader->ui8Type = (uint8) ICMPType;
         pICMPHeader->ui8Code = ICMPCode;
         pRcvdIPPacket->hton();
@@ -3287,61 +3576,61 @@ namespace ACMNetProxy
         pRcvdIPPacket->destAddr.ui32Addr = ui32IPDestinationAddr;
 
         switch (ICMPType) {
-            case ICMPHeader::T_Destination_Unreachable:
+        case ICMPHeader::T_Destination_Unreachable:
+        {
+            switch (ICMPCode) {
+            case ICMPHeader::CDU_Host_Unreachable:
             {
-                switch (ICMPCode) {
-                    case ICMPHeader::CDU_Host_Unreachable:
-                    {
-                        // Rest of Header is unused
-                        pICMPHeader->ui32RoH = 0;
-                        memcpy ((void*) pICMPData, (void*) pRcvdIPPacket, uiICMPDataLen);
-                        pICMPHeader->computeChecksum (sizeof (ICMPHeader) + sizeof (IPHeader) + 8);
-                        break;
-                    }
-                    case ICMPHeader::CDU_Fragmentation_needed_and_DF_set:
-                    {
-                        // First word of Rest of Header is unused, the second word is the Next-hop MTU
-                        pICMPHeader->ui16RoHWord1 = 0;
-                        pICMPHeader->ui16RoHWord2 = NetProxyApplicationParameters::ETHERNET_DEFAULT_MTU;        // Next-hop MTU
-                        memcpy ((void*) pICMPData, (void*) pRcvdIPPacket, uiICMPDataLen);
-                        pICMPHeader->computeChecksum (sizeof (ICMPHeader) + sizeof (IPHeader) + 8);
-                        break;
-                    }
-                    default:
-                    {
-                        checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_Warning,
-                                        "could not find an entry for ICMP Message Type Destination Unreachable with Code %d\n", ICMPCode);
-                        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
-                            checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
-                                            "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
-                        }
-                        return -3;
-                    }
-                }
+                // Rest of Header is unused
+                pICMPHeader->ui32RoH = 0;
+                memcpy((void*) pICMPData, (void*) pRcvdIPPacket, uiICMPDataLen);
+                pICMPHeader->computeChecksum(sizeof(ICMPHeader) + sizeof(IPHeader) + 8);
+                break;
+            }
+            case ICMPHeader::CDU_Fragmentation_needed_and_DF_set:
+            {
+                // First word of Rest of Header is unused, the second word is the Next-hop MTU
+                pICMPHeader->ui16RoHWord1 = 0;
+                pICMPHeader->ui16RoHWord2 = NetProxyApplicationParameters::ETHERNET_DEFAULT_MTU;        // Next-hop MTU
+                memcpy ((void*) pICMPData, (void*) pRcvdIPPacket, uiICMPDataLen);
+                pICMPHeader->computeChecksum(sizeof(ICMPHeader) + sizeof(IPHeader) + 8);
                 break;
             }
             default:
             {
                 checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_Warning,
-                                "could not find an entry for ICMP Message Type %d\n", ICMPType);
-                if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
+                                "could not find an entry for ICMP Message Type Destination Unreachable with Code %d\n", ICMPCode);
+                if (0 != _pPBM->findAndUnlockWriteBuf(pui8Packet)) {
                     checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                                     "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
                 }
-                return -2;
+                return -3;
             }
+            }
+            break;
+        }
+        default:
+        {
+            checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_Warning,
+                            "could not find an entry for ICMP Message Type %d\n", ICMPType);
+            if (0 != _pPBM->findAndUnlockWriteBuf(pui8Packet)) {
+                checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
+                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+            }
+            return -2;
+        }
         }
 
-        if (0 != (rc = wrapEtherAndSendPacketToHost (pNI, pui8Packet, ui16IPPacketLen))) {
+        if (0 != (rc = wrapEtherAndSendPacketToHost(pNI, pui8Packet, ui16IPPacketLen))) {
             checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_MildError,
                             "wrapEtherAndSendPacketToHost() failed with rc = %d - could not send an ICMP message to host\n", rc);
-            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
+            if (0 != _pPBM->findAndUnlockWriteBuf(pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -4;
         }
-        if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
+        if (0 != _pPBM->findAndUnlockWriteBuf(pui8Packet)) {
             checkAndLogMsg ("PacketRouter::buildAndSendICMPMessageToHost", Logger::L_SevereError,
                             "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             return -5;
@@ -3350,20 +3639,22 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::forwardICMPMessageToHost (uint32 ui32LocalTargetIP, uint32 ui32RemoteOriginationIP, uint32 ui32RemoteProxyIP, ICMPHeader::Type ICMPType,
-                                                ICMPHeader::Code_Destination_Unreachable ICMPCode, uint32 ui32RoH, const uint8 * const pICMPData, uint16 ui16PayloadLen)
-    {
+    int PacketRouter::forwardICMPMessageToHost (uint32 ui32LocalTargetIP, uint32 ui32RemoteOriginationIP, uint32 ui32RemoteProxyIP, uint8 ui8PacketTTL,
+                                                ICMPHeader::Type ICMPType, ICMPHeader::Code_Destination_Unreachable ICMPCode, uint32 ui32RoH,
+                                                const uint8 * const pICMPData, uint16 ui16PayloadLen) {
+        (void) ui32RemoteProxyIP;
+
         int rc;
-        uint8 *pui8Packet = (uint8 *) _pPBM->getAndLockWriteBuf();
+        uint8 *pui8Packet = (uint8*) _pPBM->getAndLockWriteBuf();
         IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
         uint16 ui16IPPacketLen = sizeof (IPHeader) + sizeof (ICMPHeader) + ui16PayloadLen;
         if (ui16IPPacketLen > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
-            checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_MildError,
-                            "ICMP packet length with %hu bytes of data exceeds maximum packet size (%hu)\n",
-                            ui16IPPacketLen, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-            if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
-                checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_SevereError,
-                                "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
+            checkAndLogMsg("PacketRouter::forwardICMPMessageToHost", Logger::L_MildError,
+                           "ICMP packet length with %hu bytes of data exceeds maximum packet size (%hu)\n",
+                           ui16IPPacketLen, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
+            if (0 != _pPBM->findAndUnlockWriteBuf(pui8Packet)) {
+                checkAndLogMsg("PacketRouter::forwardICMPMessageToHost", Logger::L_SevereError,
+                               "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
             }
             return -1;
         }
@@ -3373,23 +3664,23 @@ namespace ACMNetProxy
         pIPHeader->ui16TLen = ui16IPPacketLen;
         pIPHeader->ui16Ident = PacketRouter::getMutexCounter()->tick();
         pIPHeader->ui16FlagsAndFragOff = 0;
-        pIPHeader->ui8TTL = 128;
+        pIPHeader->ui8TTL = ui8PacketTTL;
         pIPHeader->ui8Proto = IP_PROTO_ICMP;
         pIPHeader->srcAddr.ui32Addr = EndianHelper::ntohl (ui32RemoteOriginationIP);
         pIPHeader->destAddr.ui32Addr = EndianHelper::ntohl (ui32LocalTargetIP);
         pIPHeader->computeChecksum();
 
         ICMPHeader *pICMPHeader = (ICMPHeader*) ((uint8*) pIPHeader + sizeof (IPHeader));
-        pICMPHeader->ui8Type = (uint8) ICMPType;
+        pICMPHeader->ui8Type = static_cast<uint8> (ICMPType);
         pICMPHeader->ui8Code = ICMPCode;
         pICMPHeader->ui32RoH = ui32RoH;
-        memcpy ((void *) ((uint8*) pICMPHeader + sizeof (ICMPHeader)), (void *) pICMPData, ui16PayloadLen);
+        memcpy((void *) ((uint8*) pICMPHeader + sizeof (ICMPHeader)), (void *) pICMPData, ui16PayloadLen);
         pICMPHeader->computeChecksum (sizeof (ICMPHeader) + ui16PayloadLen);
 
         if (0 != (rc = wrapEtherAndSendPacketToHost (_pInternalInterface, pui8Packet, ui16IPPacketLen))) {
             checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_MildError,
                             "wrapEtherAndSendPacketToHost() failed trying to send an ICMP message to host with "
-                            "IP address %s; rc = %d\n", InetAddr (ui32LocalTargetIP).getIPAsString(), rc);
+                            "IP address %s; rc = %d\n", InetAddr(ui32LocalTargetIP).getIPAsString(), rc);
             if (0 != _pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("PacketRouter::forwardICMPMessageToHost", Logger::L_SevereError,
                                 "findAndUnlockWriteBuf() failed; impossible to find pointed buffer\n");
@@ -3413,8 +3704,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::initializeRemoteConnection (uint32 ui32RemoteProxyID, ConnectorType connectorType)
-    {
+    int PacketRouter::initializeRemoteConnection(uint32 ui32RemoteProxyID, ConnectorType connectorType) {
         if (ui32RemoteProxyID == 0) {
             checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_MildError,
                             "impossible to initialize connection to remote proxy: remote NetProxy UniqueID not valid\n");
@@ -3427,9 +3717,9 @@ namespace ACMNetProxy
         }
 
         int rc;
-        AutoConnectionEntry * const pAutoConnectionEntry = _pConnectionManager->getAutoConnectionEntryToRemoteProxyID (ui32RemoteProxyID);
+        AutoConnectionEntry * const pAutoConnectionEntry = _pConnectionManager->getAutoConnectionEntryToRemoteProxyID(ui32RemoteProxyID);
         ConnectorType currentConnectorType = pAutoConnectionEntry ? pAutoConnectionEntry->getConnectorType() : connectorType;
-        QueryResult query (_pConnectionManager->queryConnectionToRemoteProxyIDForConnectorType (currentConnectorType, ui32RemoteProxyID));
+        QueryResult query(_pConnectionManager->queryConnectionToRemoteProxyIDForConnectorType(currentConnectorType, ui32RemoteProxyID));
         const InetAddr *pRemoteProxyAddr = pAutoConnectionEntry ? pAutoConnectionEntry->getRemoteProxyInetAddress() : query.getBestConnectionSolution();
         if (!pRemoteProxyAddr) {
             checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_MildError,
@@ -3441,21 +3731,21 @@ namespace ACMNetProxy
             checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_LowDetailDebug,
                             "no protocol specification for AutoConnections to remote NetProxy with address %s:%hu was found; "
                             "using the same protocol as the remote proxy (%s)\n", pRemoteProxyAddr->getIPAsString(),
-                            pRemoteProxyAddr->getPort(), connectorTypeToString (connectorType));
+                            pRemoteProxyAddr->getPort(), connectorTypeToString(connectorType));
         }
 
-        Connector *pConnector = _pConnectionManager->getConnectorForType (currentConnectorType);
+        Connector *pConnector = _pConnectionManager->getConnectorForType(currentConnectorType);
         if (!pConnector) {
             checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_MildError,
                             "impossible to retrieve the connector for protocol %s\n",
-                            connectorTypeToString (currentConnectorType));
+                            connectorTypeToString(currentConnectorType));
             return -4;
         }
         Connection *pConnection = query.getActiveConnectionToRemoteProxy();
         if (!pConnection) {
-            pConnection = pConnector->openNewConnectionToRemoteProxy (query, false);
+            pConnection = pConnector->openNewConnectionToRemoteProxy(query, false);
             if (!pConnection) {
-                pConnection = pConnector->getAvailableConnectionToRemoteProxy (pRemoteProxyAddr);
+                pConnection = pConnector->getAvailableConnectionToRemoteProxy(pRemoteProxyAddr);
                 if (!pConnection) {
                     checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_MildError,
                                     "impossible to retrieve the Connection to remote NetProxy at address %s:%hu\n",
@@ -3465,9 +3755,9 @@ namespace ACMNetProxy
             }
         }
 
-        bool bReachable = _pConnectionManager->getReachabilityFromRemoteProxyWithID (ui32RemoteProxyID);
-        String sMocketConfigFile = _pConnectionManager->getMocketsConfigFileForProxyWithID (ui32RemoteProxyID);
-        if ((rc = pConnection->confirmOpenedConnectionWithRemoteProxy (pRemoteProxyAddr, bReachable)) != 0) {
+        bool bReachable = _pConnectionManager->getReachabilityFromRemoteProxyWithID(ui32RemoteProxyID);
+        String sMocketConfigFile = _pConnectionManager->getMocketsConfigFileForProxyWithID(ui32RemoteProxyID);
+        if ((rc = pConnection->confirmOpenedConnectionWithRemoteProxy(pRemoteProxyAddr, bReachable)) != 0) {
             checkAndLogMsg ("PacketRouter::initializeRemoteConnection", Logger::L_MildError,
                             "confirmOpenedConnectionWithRemoteProxy() failed with rc = %d\n", rc);
             return -6;
@@ -3482,21 +3772,18 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::sendUDPUniCastPacketToHost (uint32 ui32RemoteOriginationIP, uint32 ui32LocalTargetIP, const UDPHeader * const pUDPPacket)
-    {
-        static const uint16 ui16MaxUDPPacketLen = NetProxyApplicationParameters::TAP_INTERFACE_MTU - sizeof (IPHeader);
+    int PacketRouter::sendUDPUniCastPacketToHost (uint32 ui32RemoteOriginationIP, uint32 ui32LocalTargetIP, uint8 ui8PacketTTL, const UDPHeader * const pUDPPacket) {
+        static const uint16 MAX_UDP_PACKET_LENGTH = NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF - static_cast<uint16> (sizeof (IPHeader));
 
         int rc;
         uint8 *pui8Packet = (uint8 *) _pPBM->getAndLockWriteBuf();
         IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
-        UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*)pIPHeader) + sizeof (IPHeader));
-        uint16 ui16IPPacketLen = sizeof (IPHeader) + pUDPPacket->ui16Len;
-        uint16 ui16EthPacketLen = sizeof (EtherFrameHeader) + ui16IPPacketLen;
+        UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*) pIPHeader) + sizeof (IPHeader));
 
         pIPHeader->ui8VerAndHdrLen = 0x40 | (sizeof (IPHeader) / 4);
         pIPHeader->ui8TOS = 0;
         pIPHeader->ui16Ident = PacketRouter::getMutexCounter()->tick();
-        pIPHeader->ui8TTL = 128;
+        pIPHeader->ui8TTL = ui8PacketTTL;
         pIPHeader->ui8Proto = IP_PROTO_UDP;
         pIPHeader->srcAddr.ui32Addr = EndianHelper::ntohl (ui32RemoteOriginationIP);
         pIPHeader->destAddr.ui32Addr = EndianHelper::ntohl (ui32LocalTargetIP);
@@ -3504,8 +3791,8 @@ namespace ACMNetProxy
         // It might be necessary to split UDP Packet at the level of the IP protocol
         uint16 ui16WrittenBytes = 0;
         while (ui16WrittenBytes < pUDPPacket->ui16Len) {
-            if ((pUDPPacket->ui16Len - ui16WrittenBytes) > ui16MaxUDPPacketLen) {
-                pIPHeader->ui16TLen = ((ui16MaxUDPPacketLen / 8) * 8) + sizeof (IPHeader);
+            if ((pUDPPacket->ui16Len - ui16WrittenBytes) > MAX_UDP_PACKET_LENGTH) {
+                pIPHeader->ui16TLen = ((MAX_UDP_PACKET_LENGTH / 8) * 8) + sizeof (IPHeader);
                 pIPHeader->ui16FlagsAndFragOff = IP_MF_FLAG_FILTER | (((ui16WrittenBytes / 8) & IP_OFFSET_FILTER));
             }
             else {
@@ -3514,6 +3801,10 @@ namespace ACMNetProxy
             }
             pIPHeader->computeChecksum();
             memcpy (pUDPHeader, ((uint8*) pUDPPacket) + ui16WrittenBytes, pIPHeader->ui16TLen - sizeof (IPHeader));
+            if (ui16WrittenBytes == 0) {
+                // Set the checksum field of the UDP header to zero to avoid the UDP checksum check at the receiver
+                pUDPHeader->ui16CRC = 0U;
+            }
             if (0 != (rc = wrapEtherAndSendPacketToHost (_pInternalInterface, pui8Packet, pIPHeader->ui16TLen))) {
                 checkAndLogMsg ("PacketRouter::sendUDPUniCastPacketToHost", Logger::L_MildError,
                                 "wrapEtherAndSendPacketToHost() failed with rc = %d - could not send a UDP message to host\n", rc);
@@ -3538,24 +3829,22 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::sendUDPBCastMCastPacketToHost (const uint8 * const pPacket, uint16 ui16PacketLen)
-    {
+    int PacketRouter::sendUDPBCastMCastPacketToHost(const uint8 * const pPacket, uint16 ui16PacketLen) {
         int rc;
         uint8* pui8Packet = (uint8*) _pPBM->getAndLockWriteBuf();
         memcpy (pui8Packet, pPacket, ui16PacketLen);
         EtherFrameHeader *pEthHeader = (EtherFrameHeader*) pui8Packet;
+        pEthHeader->src = NetProxyApplicationParameters::NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;
         IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
         pIPHeader->srcAddr.ntoh();
         pIPHeader->destAddr.ntoh();
         uint16 ui16IPHeaderLen = (pIPHeader->ui8VerAndHdrLen & 0x0F) * 4;
         UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
         checkAndLogMsg ("PacketRouter::sendUDPBCastMCastPacketToHost", Logger::L_MediumDetailDebug,
-                        "Sending UDP Packet: size %d from %d.%d.%d.%d:%d to %d.%d.%d.%d:%d\n",
-                        (int) pUDPHeader->ui16Len - sizeof (UDPHeader),
-                        (int) pIPHeader->srcAddr.ui8Byte1, (int) pIPHeader->srcAddr.ui8Byte2, (int) pIPHeader->srcAddr.ui8Byte3, (int) pIPHeader->srcAddr.ui8Byte4,
-                        (int) pUDPHeader->ui16SPort,
-                        (int) pIPHeader->destAddr.ui8Byte1, (int) pIPHeader->destAddr.ui8Byte2, (int) pIPHeader->destAddr.ui8Byte3, (int) pIPHeader->destAddr.ui8Byte4,
-                        (int) pUDPHeader->ui16DPort);
+                        "Sending UDP Packet: size %hu from %hhu.%hhu.%hhu.%hhu:%hu to %hhu.%hhu.%hhu.%hhu:%hu\n",
+                        pUDPHeader->ui16Len - sizeof (UDPHeader), pIPHeader->srcAddr.ui8Byte1, pIPHeader->srcAddr.ui8Byte2,
+                        pIPHeader->srcAddr.ui8Byte3, pIPHeader->srcAddr.ui8Byte4, pUDPHeader->ui16SPort, pIPHeader->destAddr.ui8Byte1,
+                        pIPHeader->destAddr.ui8Byte2, pIPHeader->destAddr.ui8Byte3, pIPHeader->destAddr.ui8Byte4, pUDPHeader->ui16DPort);
         pUDPHeader->hton();
         pIPHeader->hton();
         pEthHeader->hton();
@@ -3578,8 +3867,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::sendRemoteResetRequestIfNeeded (Entry * const pEntry)
-    {
+    int PacketRouter::sendRemoteResetRequestIfNeeded (Entry * const pEntry) {
         int rc;
         Connection * const pConnection = pEntry->getConnection();
         if (!pConnection || !pConnection->isConnected()) {
@@ -3594,8 +3882,8 @@ namespace ACMNetProxy
         // Look if we need to reset remote connection
         if (((pEntry->remoteStatus == TCTRS_ConnEstablished) || (pEntry->remoteStatus == TCTRS_ConnRequested) ||
             (pEntry->remoteStatus == TCTRS_DisconnRequestSent) || (pEntry->remoteStatus == TCTRS_DisconnRequestReceived)) &&
-            (pEntry->ui16RemoteID != 0)) {
-            if (0 != (rc = pConnection->sendResetTCPConnectionRequest (pEntry))) {
+             (pEntry->ui16RemoteID != 0)) {
+            if (0 != (rc = pConnection->sendResetTCPConnectionRequest(pEntry))) {
                 checkAndLogMsg ("PacketRouter::sendRemoteResetRequestIfNeeded", Logger::L_MildError,
                                 "L%hu-R%hu: could not send a remoteResetRequest to remote proxy with address %s; rc = %d\n",
                                 pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString(), rc);
@@ -3607,14 +3895,13 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int PacketRouter::flushAndSendCloseConnectionRequest (Entry * const pEntry)
-    {
+    int PacketRouter::flushAndSendCloseConnectionRequest (Entry * const pEntry) {
         // Flush any data left in compressor buffer
         int rc;
         unsigned int uiBytesToSend = 0, uiSentBytes = 0;
         unsigned char *pDest[1];
         *pDest = NULL;
-        if (0 != (rc = pEntry->getConnectorWriter()->flush (pDest, uiBytesToSend))) {
+        if (0 != (rc = pEntry->getConnectorWriter()->flush(pDest, uiBytesToSend))) {
             checkAndLogMsg ("PacketRouter::flushAndSendCloseConnectionRequest", Logger::L_MildError,
                             "L%hu-R%hu: flushWriter() failed with rc = %d; sending RST packet to local host and clearing connection\n",
                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
@@ -3631,7 +3918,7 @@ namespace ACMNetProxy
         while (uiBytesToSend > uiSentBytes) {
             uint32 bytesToWriteToPacket = std::min ((uint32) (uiBytesToSend - uiSentBytes), (uint32) NetworkConfigurationSettings::MAX_TCP_DATA_PROXY_MESSAGE_PAYLOAD_SIZE);
             uint8 ui8Flags = (uiBytesToSend <= uiSentBytes) ? (TCPHeader::TCPF_ACK | TCPHeader::TCPF_PSH) : TCPHeader::TCPF_ACK;
-            if (0 != (rc = pEntry->getConnection()->sendTCPDataToRemoteHost (pEntry, *pDest + uiSentBytes, bytesToWriteToPacket, ui8Flags))) {
+            if (0 != (rc = pEntry->getConnection()->sendTCPDataToRemoteHost(pEntry, *pDest + uiSentBytes, bytesToWriteToPacket, ui8Flags))) {
                 checkAndLogMsg ("PacketRouter::flushAndSendCloseConnectionRequest", Logger::L_MildError,
                                 "L%hu-R%hu: sendTCPDataToRemoteHost() failed with rc = %d; couldn't send final (flushed) bytes;\n",
                                 pEntry->ui16ID, pEntry->ui16RemoteID, rc);
@@ -3653,7 +3940,7 @@ namespace ACMNetProxy
         }
 
         // The outgoing queue is empty, so send close request to the remote side
-        if (0 != (rc = pEntry->getConnection()->sendCloseTCPConnectionRequest (pEntry))) {
+        if (0 != (rc = pEntry->getConnection()->sendCloseTCPConnectionRequest(pEntry))) {
             checkAndLogMsg ("PacketRouter::flushAndSendCloseConnectionRequest", Logger::L_MildError,
                             "L%hu-R%hu: could not send close connection request to remote proxy %s; rc = %d\n",
                             pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteProxyAddr.getIPAsString(), rc);
@@ -3664,19 +3951,25 @@ namespace ACMNetProxy
     }
 
     int PacketRouter::sendBroadcastPacket (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32BroadcastSrcIP, uint32 ui32BroadcastDestIP,
-                                            uint16 ui16DestPort, const CompressionSetting * const pCompressionSetting)
-    {
+                                           uint16 ui16DestPort, const CompressionSetting * const pCompressionSetting) {
         int rc;
-        const InetAddr broadcastSourceIP (ui32BroadcastSrcIP), broadcastDestinationIP (ui32BroadcastDestIP);
+        const InetAddr broadcastSourceIP(ui32BroadcastSrcIP), broadcastDestinationIP(ui32BroadcastDestIP);
         const String mocketsConfFile = _pConnectionManager->getMocketsConfigFileForConnectionsToRemoteHost (ui32BroadcastDestIP, ui16DestPort);
-        const ProtocolSetting *const pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (ui32BroadcastSrcIP, ui32BroadcastDestIP, IP_PROTO_UDP);
-        const ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_UDP_MAPPING_PROTOCOL;
-        const ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
+        const ProtocolSetting *pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (ui32BroadcastSrcIP, ui32BroadcastDestIP, IP_PROTO_UDP);
+        if (!pProtocolSetting) {
+            pProtocolSetting = ProtocolSetting::getDefaultUDPProtocolSetting();
+            checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
+                            "received a UDP broadcast message with source address %s and addressed to %s:%hu that could not be mapped to any specific protocol; "
+                            "using the standard protocol %s", broadcastSourceIP.getIPAsString(), broadcastDestinationIP.getIPAsString(),
+                            ui16DestPort, pProtocolSetting->getProxyMessageProtocolAsString());
+        }
+
+        const ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
         Connector * const pConnector = _pConnectionManager->getConnectorForType (connectorType);
         if (!pConnector) {
             checkAndLogMsg ("PacketRouter::sendBroadcastPacket", Logger::L_Warning,
                             "could not retrieve the connector for protocol %s\n",
-                            ProtocolSetting::getProxyMessageProtocolAsString (currentProtocol));
+                            pProtocolSetting->getProxyMessageProtocolAsString());
             return -1;
         }
         if (!pConnector->isEnqueueingAllowed()) {
@@ -3686,9 +3979,9 @@ namespace ACMNetProxy
             return -2;
         }
 
-        const NPDArray2<QueryResult> daQueryList (_pConnectionManager->queryAllConnectionsToRemoteHostForConnectorType (connectorType, ui32BroadcastDestIP, ui16DestPort));
+        const NPDArray2<QueryResult> daQueryList(_pConnectionManager->queryAllConnectionsToRemoteHostForConnectorType (connectorType, ui32BroadcastDestIP, ui16DestPort));
         for (int i = 0; i <= daQueryList.getHighestIndex(); ++i) {
-            const QueryResult &query = daQueryList.get (i);
+            const QueryResult &query = daQueryList.get(i);
             if (!query.isValid()) {
                 continue;
             }
@@ -3707,41 +4000,58 @@ namespace ACMNetProxy
                         checkAndLogMsg ("PacketRouter::sendBroadcastPacket", Logger::L_MildError,
                                         "impossible to retrieve the Connection to remote NetProxy at address %s:%hu\n",
                                         pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
-                        return -3;
                     }
+                    else {
+                        // Still establishing connection --> skip sending for now
+                        checkAndLogMsg ("PacketRouter::sendBroadcastPacket", Logger::L_LowDetailDebug,
+                                        "the connection to the remote NetProxy at address %s:%hu is not established, yet. "
+                                        "Skip sending to this address for now.\n", pRemoteProxyAddr->getIPAsString(),
+                                        pRemoteProxyAddr->getPort());
+                    }
+
+                    // Move on to the next address in the query result list
+                    continue;
                 }
             }
 
             if (0 != (rc = pConnection->sendUDPBCastMCastPacketToRemoteHost (pRemoteProxyAddr, ui32BroadcastDestIP, pPacket, ui16PacketLen,
-                                                                             pCompressionSetting, currentProtocol))) {
+                                                                             pCompressionSetting, pProtocolSetting->getProxyMessageProtocol()))) {
                 checkAndLogMsg ("PacketRouter::sendBroadcastPacket", Logger::L_MildError,
                                 "sendUDPBCastMCastPacketToRemoteHost() failed when trying to send a message to the "
                                 "remote proxy with address %s; rc = %d\n", pRemoteProxyAddr->getIPAsString(), rc);
-
-                return -4;
+                continue;
             }
+
             checkAndLogMsg ("PacketRouter::sendBroadcastPacket", Logger::L_HighDetailDebug,
-                            "UDP Broadcast packet of size %hu addressed to address %s successfully forwarded to remote proxy at address %s\n",
-                            ui16PacketLen, broadcastDestinationIP.getIPAsString(), pRemoteProxyAddr->getIPAsString());
+                            "UDP broadcast packet of size %hu coming from the host with IP address %s and with destination "
+                            "address %s was successfully forwarded to the remote NetProxy at address %s\n",
+                            ui16PacketLen, broadcastSourceIP.getIPAsString(), broadcastDestinationIP.getIPAsString(),
+                            pRemoteProxyAddr->getIPAsString());
         }
 
         return 0;
     }
 
     int PacketRouter::sendMulticastPacket (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32MulticastSrcIP, uint32 ui32MulticastDestIP,
-                                            uint16 ui16DestPort, const CompressionSetting * const pCompressionSetting)
-    {
+                                           uint16 ui16DestPort, const CompressionSetting * const pCompressionSetting) {
         int rc;
-        const InetAddr broadcastSourceIP (ui32MulticastSrcIP), broadcastDestinationIP (ui32MulticastDestIP);
+        const InetAddr multicastSourceIP(ui32MulticastSrcIP), multicastDestinationIP(ui32MulticastDestIP);
         const String mocketsConfFile = _pConnectionManager->getMocketsConfigFileForConnectionsToRemoteHost (ui32MulticastDestIP, ui16DestPort);
         const ProtocolSetting *pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (ui32MulticastSrcIP, ui32MulticastDestIP, IP_PROTO_UDP);
-        const ProxyMessage::Protocol currentProtocol = pProtocolSetting ? pProtocolSetting->getProxyMessageProtocol() : ProtocolSetting::DEFAULT_UDP_MAPPING_PROTOCOL;
-        const ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (currentProtocol);
+        if (!pProtocolSetting) {
+            pProtocolSetting = ProtocolSetting::getDefaultUDPProtocolSetting();
+            checkAndLogMsg ("PacketRouter::handlePacketFromInternalInterface", Logger::L_LowDetailDebug,
+                            "received a UDP multicast message with source address %s and addressed to %s:%hu that could not be mapped to any specific protocol; "
+                            "using the standard protocol %s", multicastSourceIP.getIPAsString(), multicastDestinationIP.getIPAsString(),
+                            ui16DestPort, pProtocolSetting->getProxyMessageProtocolAsString());
+        }
+        
+        const ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
         Connector * const pConnector = _pConnectionManager->getConnectorForType (connectorType);
         if (!pConnector) {
             checkAndLogMsg ("PacketRouter::sendMulticastPacket", Logger::L_Warning,
                             "could not retrieve the connector for protocol %s\n",
-                            ProtocolSetting::getProxyMessageProtocolAsString (currentProtocol));
+                            pProtocolSetting->getProxyMessageProtocolAsString());
             return -1;
         }
         if (!pConnector->isEnqueueingAllowed()) {
@@ -3751,9 +4061,9 @@ namespace ACMNetProxy
             return -2;
         }
 
-        const NPDArray2<QueryResult> daQueryList (_pConnectionManager->queryAllConnectionsToRemoteHostForConnectorType (connectorType, ui32MulticastDestIP, ui16DestPort));
+        const NPDArray2<QueryResult> daQueryList(_pConnectionManager->queryAllConnectionsToRemoteHostForConnectorType(connectorType, ui32MulticastDestIP, ui16DestPort));
         for (int i = 0; i <= daQueryList.getHighestIndex(); ++i) {
-            const QueryResult &query = daQueryList.get (i);
+            const QueryResult &query = daQueryList.get(i);
             if (!query.isValid()) {
                 continue;
             }
@@ -3765,121 +4075,130 @@ namespace ACMNetProxy
 
             Connection *pConnection = query.getActiveConnectionToRemoteProxy();
             if (!pConnection) {
-                pConnection = pConnector->openNewConnectionToRemoteProxy (query, false);
+                pConnection = pConnector->openNewConnectionToRemoteProxy(query, false);
                 if (!pConnection) {
-                    pConnection = pConnector->getAvailableConnectionToRemoteProxy (query.getRemoteProxyServerAddress());
+                    pConnection = pConnector->getAvailableConnectionToRemoteProxy(query.getRemoteProxyServerAddress());
                     if (!pConnection) {
-                        checkAndLogMsg ("PacketRouter::sendMulticastPacket", Logger::L_MildError,
+                        checkAndLogMsg ("PacketRouter::sendMulticastPacket", Logger::L_Warning,
                                         "impossible to retrieve the Connection to remote NetProxy at address %s:%hu\n",
                                         pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
-                        return -3;
                     }
+                    else {
+                        // Still establishing connection --> skip sending for now
+                        checkAndLogMsg ("PacketRouter::sendMulticastPacket", Logger::L_LowDetailDebug,
+                                        "the connection to the remote NetProxy at address %s:%hu is not established, yet. Skip sending for now.\n",
+                                        pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
+                    }
+
+                    // Move on to the next address in the query result list
+                    continue;
                 }
             }
 
             if (0 != (rc = pConnection->sendUDPBCastMCastPacketToRemoteHost (pRemoteProxyAddr, ui32MulticastDestIP, pPacket, ui16PacketLen,
-                                                                             pCompressionSetting, currentProtocol))) {
+                                                                             pCompressionSetting, pProtocolSetting->getProxyMessageProtocol()))) {
                 checkAndLogMsg ("PacketRouter::sendMulticastPacket", Logger::L_MildError,
                                 "sendUDPBCastMCastPacketToRemoteHost() failed when trying to send a message to the "
                                 "remote proxy with address %s; rc = %d\n", pRemoteProxyAddr->getIPAsString(), rc);
-                return -4;
+                continue;
             }
             checkAndLogMsg ("PacketRouter::sendMulticastPacket", Logger::L_HighDetailDebug,
-                            "UDP multicast packet of size %hu coming from host with IP address %s and addressed "
-                            "to address %s successfully forwarded to remote proxy at address %s\n",
-                            ui16PacketLen, broadcastSourceIP.getIPAsString(), broadcastDestinationIP.getIPAsString(),
+                            "UDP multicast packet of size %hu coming from the host with IP address %s with destination "
+                            "address %s was successfully forwarded to the remote NetProxy at address %s\n",
+                            ui16PacketLen, multicastSourceIP.getIPAsString(), multicastDestinationIP.getIPAsString(),
                             pRemoteProxyAddr->getIPAsString());
         }
 
         return 0;
     }
 
-    int PacketRouter::sendBCastMCastPacketToDisService (const uint8 * const pPacket, uint16 ui16PacketLen)
-    {
-        #if defined (USE_DISSERVICE)
-            int rc;
-            if (_pDisService == NULL) {
-                checkAndLogMsg ("PacketRouter::sendBCastMCastPacketToDisService", Logger::L_MildError,
-                                "ignoring BCastMCast packet since DisService has not been initialized\n");
-                return -2;
-            }
-            if (0 != (rc = _pDisService->push (0, "netproxy.unreliable", "", 1, pPacket, ui16PacketLen, 0, 0, 0, 0, NULL, 0))) {
-                checkAndLogMsg ("PacketRouter::sendBCastMCastPacketToDisService", Logger::L_MildError,
-                                "push() on DisService failed with rc = %d\n", rc);
-                return -3;
-            }
-            else {
-                checkAndLogMsg ("PacketRouter::sendBCastMCastPacketToDisService", Logger::L_MediumDetailDebug,
-                                "sent a packet of size %d\n", (int) ui16PacketLen);
-            }
-            return 0;
-        #else
+    int PacketRouter::sendBCastMCastPacketToDisService (const uint8 * const pPacket, uint16 ui16PacketLen) {
+    #if defined (USE_DISSERVICE)
+        int rc;
+        if (_pDisService == NULL) {
             checkAndLogMsg ("PacketRouter::sendBCastMCastPacketToDisService", Logger::L_MildError,
-                            "DisService has not been included in build\n");
-            return -1;
-        #endif
+                            "ignoring BCastMCast packet since DisService has not been initialized\n");
+            return -2;
+        }
+        if (0 != (rc = _pDisService->push (0, "netproxy.unreliable", "", 1, pPacket, ui16PacketLen, 0, 0, 0, 0, NULL, 0))) {
+            checkAndLogMsg ("PacketRouter::sendBCastMCastPacketToDisService", Logger::L_MildError,
+                            "push() on DisService failed with rc = %d\n", rc);
+            return -3;
+        }
+        else {
+            checkAndLogMsg ("PacketRouter::sendBCastMCastPacketToDisService", Logger::L_MediumDetailDebug,
+                            "sent a packet of size %d\n", (int) ui16PacketLen);
+        }
+
+        return 0;
+    #else
+        (void) pPacket;
+        (void) ui16PacketLen;
+        checkAndLogMsg ("PacketRouter::sendBCastMCastPacketToDisService", Logger::L_MildError,
+                        "DisService has not been included in build\n");
+
+        return -1;
+    #endif
     }
 
-    #if defined (USE_DISSERVICE)
-        bool PacketRouter::dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pData, uint32 ui32Length, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority)
-        {
-            int rc;
-            checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MediumDetailDebug,
-                            "dataArrived: length = %d\n", (int) ui32Length);
-            if (ui32Length < (sizeof (EtherFrameHeader) + sizeof (IPHeader) + sizeof (UDPHeader))) {
-                checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MildError,
-                                "received a message that is smaller than a UDP packet - ignoring; size of message = %u; size must be at least %u\n",
-                                ui32Length, sizeof (EtherFrameHeader) + sizeof (IPHeader) + sizeof (UDPHeader));
-                return false;
-            }
-            else if (ui32Length > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
-                checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MildError,
-                                "received a message of size %lu that is too large - maximum MTU is %lu\n",
-                                ui32Length, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-            }
-            uint8 ui8Buf[NetProxyApplicationParameters::PROXY_MESSAGE_MTU];
-            EtherFrameHeader *pEthHeader = (EtherFrameHeader*) ui8Buf;
-            IPHeader *pIPHeader = (IPHeader*) (ui8Buf + sizeof (EtherFrameHeader));      /*!!*/ // Check if header for TUN/TAP is the size of an Ethernet header
-            memcpy (pEthHeader, pData, ui32Length);
-            uint16 ui16IPHeaderLen = (pIPHeader->ui8VerAndHdrLen & 0x0F) * 4;
-            UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*)pIPHeader) + ui16IPHeaderLen);
-            checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MediumDetailDebug,
-                            "sending UDP Packet: size %d from %d.%d.%d.%d:%d to %d.%d.%d.%d:%d\n",
-                            (int) pUDPHeader->ui16Len - sizeof (UDPHeader),
-                            (int) pIPHeader->srcAddr.ui8Byte1, (int) pIPHeader->srcAddr.ui8Byte2, (int) pIPHeader->srcAddr.ui8Byte3, (int) pIPHeader->srcAddr.ui8Byte4,
-                            (int) pUDPHeader->ui16SPort,
-                            (int) pIPHeader->destAddr.ui8Byte1, (int) pIPHeader->destAddr.ui8Byte2, (int) pIPHeader->destAddr.ui8Byte3, (int) pIPHeader->destAddr.ui8Byte4,
-                            (int) pUDPHeader->ui16DPort);
-            pEthHeader->hton();
-            pIPHeader->hton();
-            pUDPHeader->hton();
-            if (0 != (rc = sendPacketToHost (ui8Buf, ui32Length + sizeof (EtherFrameHeader)))) {
-                checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MildError,
-                                "sendPacketToHost() failed with rc = %d\n", rc);
-                return false;
-            }
-            return true;
+#if defined (USE_DISSERVICE)
+    bool PacketRouter::dataArrived(uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pData, uint32 ui32Length, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority) {
+        int rc;
+        checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MediumDetailDebug,
+                        "dataArrived: length = %d\n", (int) ui32Length);
+        if (ui32Length < (sizeof(EtherFrameHeader) + sizeof(IPHeader) + sizeof(UDPHeader))) {
+            checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MildError,
+                            "received a message that is smaller than a UDP packet - ignoring; size of message = %u; size must be at least %u\n",
+                            ui32Length, sizeof(EtherFrameHeader) + sizeof(IPHeader) + sizeof(UDPHeader));
+            return false;
+        }
+        else if (ui32Length > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
+            checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MildError,
+                            "received a message of size %lu that is too large - maximum MTU is %lu\n",
+                            ui32Length, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
+        }
+        uint8 ui8Buf[NetProxyApplicationParameters::PROXY_MESSAGE_MTU];
+        EtherFrameHeader *pEthHeader = (EtherFrameHeader*) ui8Buf;
+        IPHeader *pIPHeader = (IPHeader*) (ui8Buf + sizeof(EtherFrameHeader));      /*!!*/ // Check if header for TUN/TAP is the size of an Ethernet header
+        memcpy (pEthHeader, pData, ui32Length);
+        uint16 ui16IPHeaderLen = (pIPHeader->ui8VerAndHdrLen & 0x0F) * 4;
+        UDPHeader *pUDPHeader = (UDPHeader*) (((uint8*) pIPHeader) + ui16IPHeaderLen);
+        checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MediumDetailDebug,
+                        "sending UDP Packet: size %d from %d.%d.%d.%d:%d to %d.%d.%d.%d:%d\n",
+                        (int) pUDPHeader->ui16Len - sizeof(UDPHeader), (int) pIPHeader->srcAddr.ui8Byte1,
+                        (int) pIPHeader->srcAddr.ui8Byte2, (int) pIPHeader->srcAddr.ui8Byte3, (int) pIPHeader->srcAddr.ui8Byte4,
+                        (int) pUDPHeader->ui16SPort, (int) pIPHeader->destAddr.ui8Byte1, (int) pIPHeader->destAddr.ui8Byte2,
+                        (int) pIPHeader->destAddr.ui8Byte3, (int) pIPHeader->destAddr.ui8Byte4, (int) pUDPHeader->ui16DPort);
+        pEthHeader->hton();
+        pIPHeader->hton();
+        pUDPHeader->hton();
+        if (0 != (rc = sendPacketToHost (ui8Buf, ui32Length + sizeof(EtherFrameHeader)))) {
+            checkAndLogMsg ("PacketRouter::dataArrived", Logger::L_MildError,
+                            "sendPacketToHost() failed with rc = %d\n", rc);
+            return false;
         }
 
-        bool PacketRouter::chunkArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pChunk, uint32 ui32Length, uint8 ui8NChunks, uint8 ui8TotNChunks, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority)
-        {
-            return true;
-        }
+        return true;
+    }
 
-        bool PacketRouter::metadataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pMetadata, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority)
-        {
-            return true;
-        }
+    bool PacketRouter::chunkArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pChunk,
+                                     uint32 ui32Length, uint8 ui8NChunks, uint8 ui8TotNChunks, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority) {
+        return true;
+    }
 
-        bool PacketRouter::dataAvailable (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const char * pszId, const void *pMetadata, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority)
-        {
-            return true;
-        }
+    bool PacketRouter::metadataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pMetadata,
+                                        uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority) {
+        return true;
+    }
 
-    #endif
+    bool PacketRouter::dataAvailable (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const char * pszId,
+                                      const void *pMetadata, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority) {
+        return true;
+}
 
-    bool PacketRouter::hostBelongsToTheInternalNetwork (const EtherMACAddr & emaHost)
-    {
+#endif
+
+    bool PacketRouter::hostBelongsToTheInternalNetwork (const EtherMACAddr & emaHost) {
         static const EtherMACAddr * pInternalEthHostAddr = NULL;
         pInternalEthHostAddr = _daInternalHosts.getData();
 
@@ -3892,8 +4211,7 @@ namespace ACMNetProxy
         return false;
     }
 
-    bool PacketRouter::hostBelongsToTheExternalNetwork (const EtherMACAddr & emaHost)
-    {
+    bool PacketRouter::hostBelongsToTheExternalNetwork (const EtherMACAddr & emaHost) {
         static const EtherMACAddr * pExternalEthHostAddr = NULL;
         pExternalEthHostAddr = _daExternalHosts.getData();
 

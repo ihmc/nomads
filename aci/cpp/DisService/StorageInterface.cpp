@@ -2,7 +2,7 @@
  * StorageInterface.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,14 +24,8 @@
 
 #include "StrClass.h"
 
-#include "NLFLib.h"
-
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
-
-StorageInterface::StorageInterface()
-{
-}
 
 StorageInterface::StorageInterface (const char *pszStorageFile)
     : _dbName (pszStorageFile)
@@ -44,8 +38,8 @@ StorageInterface::~StorageInterface()
 
 bool StorageInterface::RetrievedSubscription::operator == (RetrievedSubscription &rhsRetrievedSubscription)
 {
-    String groupName = pszGroupName;
-    String rhsGroupName = rhsRetrievedSubscription.pszGroupName;
-    return ((groupName == rhsGroupName) ? true : false);
+    const String groupName (pszGroupName);
+    const String rhsGroupName (rhsRetrievedSubscription.pszGroupName);
+    return (groupName == rhsGroupName);
 }
 

@@ -55,7 +55,7 @@ public class Monitor extends Thread
     {
         //DatagramPacket dgPacket = new java.net.DatagramPacket(new byte[2048], 2048);
         DatagramPacket dgPacket = new java.net.DatagramPacket(new byte[65535], 65535);
-        while (true) {
+        while (!_terminate) {
             try {
                 _dgSocket.receive (dgPacket);
             }
@@ -256,8 +256,13 @@ public class Monitor extends Thread
             messSi.msgType = ByteConverter.from2BytesToUnsignedShortInt (buf2, 0);
         }
     }
+
+    public void requestTermination()
+    {
+        _terminate = true;
+    }
     
     private DatagramSocket _dgSocket;
     private MocketStatusListener _listener;
-    
+    private boolean _terminate = false;
 }

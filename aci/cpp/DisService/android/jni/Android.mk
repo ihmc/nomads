@@ -13,6 +13,24 @@ LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../util/cpp
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
+LOCAL_MODULE := dali
+LOCAL_SRC_FILES := android/obj/local/armeabi/libdali.so
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../../externals/dali-1.0
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := ihmcmedia
+LOCAL_SRC_FILES := android/obj/local/armeabi/libihmcmedia.so
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../misc/cpp/media
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := nms
+LOCAL_SRC_FILES := android/obj/local/armeabi/libnms.so
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../nms/cpp
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
 LOCAL_MODULE := sqlite3droid
 LOCAL_SRC_FILES := android/obj/local/armeabi/libsqlite3droid.so
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../externals/SQLite
@@ -48,6 +66,18 @@ LOCAL_SRC_FILES := android/obj/local/armeabi/libchunking.so
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../misc/cpp/chunking
 include $(PREBUILT_SHARED_LIBRARY)
 
+#include $(CLEAR_VARS)
+#LOCAL_MODULE := nockets
+#LOCAL_SRC_FILES := android/obj/local/armeabi/libnockets.so
+#LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../misc/cpp/nockets
+#include $(PREBUILT_SHARED_LIBRARY)
+
+#include $(CLEAR_VARS)
+#LOCAL_MODULE := mil_navy_nrl_norm
+#LOCAL_SRC_FILES := android/obj/local/armeabi/libmil_navy_nrl_norm.so
+#LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../externals/norm-1.5r6/include
+#include $(PREBUILT_SHARED_LIBRARY)
+
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := AckController.cpp \
     BandwidthSensitiveController.cpp \
@@ -64,6 +94,7 @@ LOCAL_SRC_FILES := AckController.cpp \
     DataCacheInterface.cpp \
     DataCacheReplicationController.cpp \
     DataRequestHandler.cpp \
+    DataRequestServer.cpp \
     DefaultDataCacheExpirationController.cpp \
     DefaultDataCacheReplicationController.cpp \
     DefaultForwardingController.cpp \
@@ -74,6 +105,7 @@ LOCAL_SRC_FILES := AckController.cpp \
     DisseminationServiceProxy.cpp \
     DisseminationServiceProxyServer.cpp \
     DisServiceDataCacheQuery.cpp \
+    DisServiceJNIWrapper.cpp \
     DisServiceMsg.cpp \
     DisServiceMsgHelper.cpp \
     DisServiceScheduler.cpp \
@@ -84,6 +116,7 @@ LOCAL_SRC_FILES := AckController.cpp \
     ForwardingController.cpp \
     History.cpp \
     HistoryFactory.cpp \
+    JNIUtils.cpp \
     Listener.cpp \
     ListenerNotifier.cpp \
     Message.cpp \
@@ -93,6 +126,7 @@ LOCAL_SRC_FILES := AckController.cpp \
     MessageRequestScheduler.cpp \
     NetworkTrafficMemory.cpp \
     NodeId.cpp \
+    NMSHelper.cpp \
     NodeInfo.cpp \
     PeerState.cpp \
     PersistentDataCache.cpp \
@@ -111,6 +145,7 @@ LOCAL_SRC_FILES := AckController.cpp \
     SQLTransmissionHistory.cpp \
     SearchController.cpp \
     Searches.cpp \
+    ServingRequestProbability.cpp \
     StorageInterface.cpp \
     Subscription.cpp \
     SubscriptionAdvTable.cpp \
@@ -141,11 +176,17 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/../../../util/cpp \
     $(LOCAL_PATH)/../../../util/cpp/net \
     $(LOCAL_PATH)/../../../util/cpp/graph \
+    $(LOCAL_PATH)/../../../util/cpp/proxy \
+    $(LOCAL_PATH)/../../../nms/cpp \
+    $(LOCAL_PATH)/../../../nms/cpp/proxy \
+    $(LOCAL_PATH)/../../../nms/cpp/proxy/client \
+    $(LOCAL_PATH)/../../../nms/cpp/proxy/server \
     $(LOCAL_PATH)/../../../externals/SQLite \
     $(LOCAL_PATH)/../../../externals/libjpeg \
     $(LOCAL_PATH)/../../../externals/TinyXPath \
     $(LOCAL_PATH)/../../../externals/msgpack/include \
     $(LOCAL_PATH)/../../../misc/cpp/lcppdc \
+	$(LOCAL_PATH)/../../../misc/cpp/media \
     $(LOCAL_PATH)/../../../misc/cpp/chunking
     
 #	$(LOCAL_PATH)/../../android/externals/openssl/jni/include \
@@ -154,11 +195,17 @@ LOCAL_C_INCLUDES += \
 LOCAL_SHARED_LIBRARIES := \
     sqlite3droid \
     libjpegdroid \
+    ihmcmedia \
     chunking \
     tinyxpath \
     msgpack \
     lcppdc \
-    util
+    nms \
+    dali \
+    util 
+#mil_navy_nrl_norm \
+#nockets
+	
 
 include $(BUILD_SHARED_LIBRARY)
 #include $(BUILD_STATIC_LIBRARY)

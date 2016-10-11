@@ -2,7 +2,7 @@
  * MessageQueueListener.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,9 +25,9 @@ import us.ihmc.ds.fgraph.message.FGraphMessage;
  * MessageQueueListener
  * 
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  *          Created on Jul 15, 2004 at 7:29:52 PM
- *          $Date: 2014/11/06 22:00:39 $
+ *          $Date: 2016/06/09 20:02:46 $
  *          Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public interface MessageQueueListener

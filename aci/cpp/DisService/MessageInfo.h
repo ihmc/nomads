@@ -2,7 +2,7 @@
  * MessageInfo.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,6 +22,8 @@
 
 #include "FTypes.h"
 #include "StrClass.h"
+
+#include "BufferReader.h"
 
 #include <stdio.h>
 
@@ -76,6 +78,8 @@ namespace IHMC_ACI
             char * getLargeObjectId (void);
 
             bool getAcknowledgment (void);
+            const char * getAnnotates (void) const;
+            const void * getAnnotationMetadata (uint32 &ui32BufLen) const;
             const char * getGroupName (void) const;
             const char * getPublisherNodeId (void) const;
             const char * getObjectId (void) const;
@@ -95,6 +99,9 @@ namespace IHMC_ACI
             int64 getExpiration (void) const;
 
             void setAcknowledgment (bool bAcknoledgement);
+            void setAnnotates (const char *pszAnnotatdObjMsgId);
+            // it makes a copy of the annotation metadata
+            int setAnnotationMetadata (const void *pBuf, uint32 ui32BufLen);
             void setFragmentOffset (uint32 ui32FragmentOffset);
             void setFragmentLength (uint32 ui32FragmentLength);
             void setMsgSeqId (uint32 ui32MsgSeqId);
@@ -144,6 +151,8 @@ namespace IHMC_ACI
             NOMADSUtil::String _instanceId;
             NOMADSUtil::String _mimeType;
             NOMADSUtil::String _checksum;
+            NOMADSUtil::String _annotatedObjMsgId;
+            NOMADSUtil::BufferReader _annotationMetadata;
 
             uint8 _ui8ChunkId;
             uint32 _ui32SeqId;

@@ -2,7 +2,7 @@
  * CircularOrderedBuffer.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,16 +40,9 @@ using namespace NOMADSUtil;
 namespace ACMNetProxy
 {
     CircularOrderedBuffer::CircularOrderedBuffer (unsigned int &uiStartingSequenceNumber, unsigned int uiMaxSize, unsigned int uiMinSize) :
-        _SeparateNodesList (false), _uiNextExpectedSequenceNumber (uiStartingSequenceNumber), _uiBufMinSize (uiMinSize), _uiBufMaxSize (uiMaxSize)
-    {
-        _pBuf = new unsigned char[uiMinSize];
-        _uiBufCurrentSize = uiMinSize;
-        _uiDataReaderPointer = 0;
-
-        _uiReadingSequenceNumber = 0;
-        _iReadyBytesInBuffer = 0;
-        _iTotalBytesInBuffer = 0;
-    }
+        _pBuf (new unsigned char[uiMinSize]), _uiDataReaderPointer (0), _uiBufMinSize (uiMinSize), _uiBufMaxSize (uiMaxSize),
+        _uiBufCurrentSize (uiMinSize), _uiReadingSequenceNumber (0), _uiNextExpectedSequenceNumber (uiStartingSequenceNumber),
+        _iReadyBytesInBuffer (0), _iTotalBytesInBuffer (0), _SeparateNodesList (false) { }
 
     CircularOrderedBuffer::~CircularOrderedBuffer (void)
     {
@@ -59,7 +52,7 @@ namespace ACMNetProxy
         _pBuf = NULL;
 
         TCPSegment *pOBW = NULL;
-        while (pOBW = _SeparateNodesList.getFirst()) {
+        while ((pOBW = _SeparateNodesList.getFirst())) {
             delete _SeparateNodesList.remove (pOBW);
         }
     }
@@ -111,7 +104,7 @@ namespace ACMNetProxy
         else if (pOrderableItem->getSequenceNumber() == _uiNextExpectedSequenceNumber) {
             // The newly received item is the expected one
             if (pOrderableItem->follows (*pOBW)) {
-                // An item is already in the buffer and the expected following one has been received
+                // An item is already in the buffer and the one that immediately follows it has been received
                 TCPSegment *pOBWNext = _SeparateNodesList.getNext();
                 if (!pOBWNext || (pOBWNext && !pOrderableItem->overlaps (*pOBWNext) && !pOrderableItem->isFollowedBy (*pOBWNext))) {
                     // No out-of-order items were previously received or they cannot be joined with the new one --> enqueuing new item and joining it with the previously buffered one
@@ -161,7 +154,7 @@ namespace ACMNetProxy
                 }
             }
             else if (pOrderableItem->isFollowedBy (*pOBW) || pOrderableItem->overlaps (*pOBW)) {
-                // An item is already in the buffer and it overlaps/comes immediately after the last received one
+                // An item is already in the buffer and it overlaps/comes immediately after the one with the expected SEQ number
                 if (bOverwriteData) {
                     // New item contains useful data - overwriting data and joining old item with the new one; also, check if this will reunite two or more disjointed items
                     TCPSegment *pOBWNext;
@@ -179,8 +172,6 @@ namespace ACMNetProxy
                                                             pOrderableItem->getFollowingSequenceNumber() : pOBW->getFollowingSequenceNumber();
                     delete _SeparateNodesList.replace (pOBW, new TCPSegment (_uiNextExpectedSequenceNumber, SequentialArithmetic::delta (uiHighestSequenceNumber, _uiNextExpectedSequenceNumber),
                                                                             getPositionInBuffer (_uiNextExpectedSequenceNumber), ui8Flags));
-                    insertedBytes = pOrderableItem->getItemLength();
-                    delete pOrderableItem;
                 }
                 else {
                     // Overlapping data won't be overwritten - inserting new item before the old one pOBW
@@ -189,9 +180,11 @@ namespace ACMNetProxy
                         delete pOrderableItem;
                         return -10;
                     }
+
                     ui8Flags |= pOBW->getTCPFlags();
+                    const unsigned int uiNewItemLength = SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), _uiNextExpectedSequenceNumber);
                     pOBW->setSequenceNumber (_uiNextExpectedSequenceNumber);
-                    pOBW->setItemLength (SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), _uiNextExpectedSequenceNumber));
+                    pOBW->setItemLength (uiNewItemLength);
                     pOBW->setData (getPositionInBuffer (_uiNextExpectedSequenceNumber));
                     pOBW->setTCPFlags(ui8Flags);
                     insertedBytes = uiBytesToWrite;
@@ -210,7 +203,7 @@ namespace ACMNetProxy
             }
         }
         else {
-            // There are already items in the list AND an item out of order has been received
+            // There are already items in the list AND an item has been received out of order
             TCPSegment *pPreviousItem = NULL;
             while (pOBW && (*pOBW <= *pOrderableItem)) {
                 pPreviousItem = pOBW;
@@ -408,7 +401,7 @@ namespace ACMNetProxy
             }
         }
 
-        // Data is not ready to be read from buffer (an item with the next expected SEQ number had never been received
+        // Data is not ready to be read from buffer (an item with the next expected SEQ number has never been received)
         return 0;
     }
 
@@ -587,7 +580,7 @@ namespace ACMNetProxy
         }
 
         unsigned int uiMinNewSize = SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), _uiReadingSequenceNumber);
-        if ((uiMinNewSize <= _uiBufCurrentSize) || (_uiBufCurrentSize == _uiBufMaxSize)){
+        if ((uiMinNewSize <= _uiBufCurrentSize) || (_uiBufCurrentSize == _uiBufMaxSize)) {
             return _uiBufCurrentSize;
         }
         if (uiMinNewSize > _uiBufMaxSize) {
@@ -759,10 +752,10 @@ namespace ACMNetProxy
                 return -4;
             }
             checkAndLogMsg ("CircularOrderedBuffer::rawCopyFromCircularBuffer", Logger::L_HighDetailDebug,
-                            "Copying %u bytes to buffer with address 0x%p; copying %d bytes from address 0x%p to address 0x%p "
-                            "in the second buffer, and remaining %hu bytes from address 0x%p to address 0x%p in the second buffer\n",
-                            uiBytesToRead, pDest, iFirstBlockOfBytes, (&_pBuf[_uiDataReaderPointer]), pDest,
-                            (uiBytesToRead - iFirstBlockOfBytes), _pBuf, &pDest[iFirstBlockOfBytes]);
+                            "Copying %u bytes to buffer with address 0x%p; copying %d bytes from address 0x%p in the source buffer to address "
+                            "0x%p in the destination buffer, and the remaining %hu bytes from address 0x%p in the source buffer to address "
+                            "0x%p in the destination buffer\n", uiBytesToRead, pDest, iFirstBlockOfBytes, (&_pBuf[_uiDataReaderPointer]),
+                            pDest, (uiBytesToRead - iFirstBlockOfBytes), _pBuf, &pDest[iFirstBlockOfBytes]);
 
             memcpy (pDest, &_pBuf[_uiDataReaderPointer], iFirstBlockOfBytes);
             memcpy (&pDest[iFirstBlockOfBytes], _pBuf, (uiBytesToRead - iFirstBlockOfBytes));

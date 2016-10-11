@@ -2,7 +2,7 @@
  * DatagramPacketMessage.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,8 +24,8 @@ import java.net.InetAddress;
 
 /*******************************************************
  * @author Marco Carvalho <mcarvalho@ai.uwf.edu>
- * @version $Revision: 1.3 $
- * $Date: 2014/11/06 22:04:15 $
+ * @version $Revision: 1.4 $
+ * $Date: 2016/06/09 20:02:46 $
  * 
  * DatagramPacketMessage 
  *****************************************************/

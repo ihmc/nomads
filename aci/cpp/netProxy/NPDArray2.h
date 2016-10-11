@@ -5,7 +5,7 @@
  * NPDarray2.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,8 +35,8 @@
  *
  * Written by Niranjan Suri
  *
- * RCSInfo: "$Header: /export/cvs/nomads.root/aci/cpp/netProxy/NPDArray2.h,v 1.5 2014/12/12 21:56:36 amorelli Exp $"
- * Revision: "$Revision: 1.5 $"
+ * RCSInfo: "$Header: /export/cvs/nomads.root/aci/cpp/netProxy/NPDArray2.h,v 1.6 2016/06/09 21:05:36 gbenincasa Exp $"
+ * Revision: "$Revision: 1.6 $"
  */
 
 #include <stdlib.h>

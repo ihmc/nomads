@@ -5,7 +5,7 @@
  * ConnectorAdapter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -45,7 +45,7 @@ namespace ACMNetProxy
     public:
         ConnectorAdapter (ConnectorType connectorType, uint8 * const pui8MemBuf, uint16 ui16MemBufSize);
         ConnectorAdapter (ConnectorType connectorType, uint32 ui32RemoteProxyIP, uint16 ui16RemoteProxyPort, uint8 * const pui8MemBuf, uint16 ui16MemBufSize);
-        ~ConnectorAdapter (void);
+        virtual ~ConnectorAdapter (void);
 
         virtual int bufferingMode (int iMode) = 0;
         virtual int readConfigFile (const char * const pszConfigFile) = 0;
@@ -100,11 +100,11 @@ namespace ACMNetProxy
 
 
     inline ConnectorAdapter::ConnectorAdapter (ConnectorType connectorType, uint8 * const pui8MemBuf, uint16 ui16MemBufSize) :
-        _connectorType (connectorType), _pui8MemBuf (pui8MemBuf), _ui16MemBufSize (ui16MemBufSize) { }
+        _pui8MemBuf (pui8MemBuf), _ui16MemBufSize (ui16MemBufSize), _connectorType (connectorType) { }
 
     inline ConnectorAdapter::ConnectorAdapter (ConnectorType connectorType, uint32 ui32RemoteProxyIP, uint16 ui16RemoteProxyPort,
                                                uint8 * const pui8MemBuf, uint16 ui16MemBufSize) :
-        _connectorType (connectorType), _pui8MemBuf (pui8MemBuf), _ui16MemBufSize (ui16MemBufSize)
+        _pui8MemBuf (pui8MemBuf), _ui16MemBufSize (ui16MemBufSize), _connectorType (connectorType)
     {
         _remoteProxyInetAddr = NOMADSUtil::InetAddr (ui32RemoteProxyIP, ui16RemoteProxyPort);
     }
@@ -112,6 +112,7 @@ namespace ACMNetProxy
     // Default implementation of a pure virtual method
     inline int ConnectorAdapter::readConfigFile (const char * const pszConfigFile)
     {
+        (void) pszConfigFile;
         return 0;
     }
 

@@ -5,7 +5,7 @@
  * NetProxyConfigManager.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,8 +25,6 @@
 #include <utility>
 
 #include "FTypes.h"
-#include "net/NetworkHeaders.h"
-#include "InetAddr.h"
 #include "StrClass.h"
 #include "UInt32Hashtable.h"
 #include "ConfigManager.h"
@@ -57,6 +55,7 @@ namespace ACMNetProxy
 
 
         private:
+			static const int readPriorityConfEntry(const char * const pcPriority);
             static const CompressionSetting readCompressionConfEntry (const char * const pcCompressionAlg);
 
             ProtocolSetting _psICMPProtocolSetting;
@@ -79,24 +78,6 @@ namespace ACMNetProxy
             friend class NetProxyConfigManager;
 
             int parseAndAddEntry (const char *pszEntry);
-
-            static const int MAX_LINE_LENGTH = 2048;
-        };
-
-
-        class UniqueIDsConfigFileReader
-        {
-        public:
-            UniqueIDsConfigFileReader (void);
-            ~UniqueIDsConfigFileReader (void);
-
-            int parseUniqueIDsConfigFile (const char * const pszPathToConfigFile);
-
-
-        private:
-            int parseAndAddEntry (const char *pszEntry);
-            int updateInfoWithKeyValuePair (RemoteProxyInfo & remoteProxyInfo, const NOMADSUtil::String & sKey, const NOMADSUtil::String & sValue);
-            int updateInfoWithMocketsConfigFilePath (RemoteProxyInfo & remoteProxyInfo, const NOMADSUtil::String & sMocketsConfigFilePath);
 
             static const int MAX_LINE_LENGTH = 2048;
         };
@@ -148,6 +129,46 @@ namespace ACMNetProxy
         };
 
 
+        class UniqueIDsConfigFileReader
+        {
+        public:
+            UniqueIDsConfigFileReader(void);
+            ~UniqueIDsConfigFileReader(void);
+
+            int parseUniqueIDsConfigFile(const char * const pszPathToConfigFile);
+
+
+        private:
+            int parseAndAddEntry(const char *pszEntry);
+            int updateInfoWithKeyValuePair(RemoteProxyInfo & remoteProxyInfo, const NOMADSUtil::String & sKey, const NOMADSUtil::String & sValue);
+            int updateInfoWithMocketsConfigFilePath(RemoteProxyInfo & remoteProxyInfo, const NOMADSUtil::String & sMocketsConfigFilePath);
+
+            static const int MAX_LINE_LENGTH = 2048;
+            static const NOMADSUtil::String ACTIVE_CONNECTIVITY_CONFIG_PARAMETER;
+            static const NOMADSUtil::String PASSIVE_CONNECTIVITY_CONFIG_PARAMETER;
+            static const NOMADSUtil::String BIDIRECTIONAL_CONNECTIVITY_CONFIG_PARAMETER;
+        };
+
+
+        class StaticARPTableConfigFileReader
+        {
+        public:
+            StaticARPTableConfigFileReader (void);
+            ~StaticARPTableConfigFileReader (void);
+
+            int parseStaticARPTableConfigFile (const char * const pszPathToConfigFile);
+
+
+        private:
+            friend class NetProxyConfigManager;
+
+            int parseAndAddEntry (const char *pszEntry) const;
+            int parseEtherMACAddress (const char * const pcEtherMACAddressString, NOMADSUtil::EtherMACAddr * const pEtherMACAddress) const;
+
+            static const int MAX_LINE_LENGTH = 2048;
+        };
+
+
     public:
         static NetProxyConfigManager * const getNetProxyConfigManager (void);
 
@@ -164,6 +185,8 @@ namespace ACMNetProxy
         friend class AddressRangeDescriptor;
         friend class AddressMappingConfigFileReader;
         friend class EndpointConfigFileReader;
+        friend class StaticARPTableConfigFileReader;
+        friend class PacketRouter;
 
         NetProxyConfigManager (void);
         explicit NetProxyConfigManager (const NetProxyConfigManager &rNetProxyConfigManager);       // Disallow object copy
@@ -180,6 +203,7 @@ namespace ACMNetProxy
         AddressMappingConfigFileReader _pamc;
         EndpointConfigFileReader _ecfr;
         UniqueIDsConfigFileReader _uicfr;
+        StaticARPTableConfigFileReader _satcfr;
 
         static const NOMADSUtil::String S_MOCKETS_CONNECTOR;
         static const NOMADSUtil::String S_SOCKET_CONNECTOR;
@@ -191,8 +215,8 @@ namespace ACMNetProxy
 
 
     inline NetProxyConfigManager::EndpointConfigParameters::EndpointConfigParameters (void) :
-        _psICMPProtocolSetting (ProtocolSetting::DEFAULT_ICMP_MAPPING_PROTOCOL), _psTCPProtocolSetting (ProtocolSetting::DEFAULT_TCP_MAPPING_PROTOCOL),
-        _psUDPProtocolSetting (ProtocolSetting::DEFAULT_UDP_MAPPING_PROTOCOL) { }
+        _psICMPProtocolSetting (*ProtocolSetting::getDefaultICMPProtocolSetting()), _psTCPProtocolSetting (*ProtocolSetting::getDefaultTCPProtocolSetting()),
+        _psUDPProtocolSetting (*ProtocolSetting::getDefaultUDPProtocolSetting()) { }
 
     inline NetProxyConfigManager::EndpointConfigParameters::~EndpointConfigParameters (void) { }
 
@@ -205,6 +229,8 @@ namespace ACMNetProxy
             return _psUDPProtocolSetting;
         case NOMADSUtil::IP_PROTO_TCP:
             return _psTCPProtocolSetting;
+        default:
+            break;
         }
 
         return ProtocolSetting::getInvalidProtocolSetting();
@@ -256,6 +282,10 @@ namespace ACMNetProxy
 
         return NULL;
     }
+
+    inline NetProxyConfigManager::StaticARPTableConfigFileReader::StaticARPTableConfigFileReader (void) {}
+
+    inline NetProxyConfigManager::StaticARPTableConfigFileReader::~StaticARPTableConfigFileReader (void) {}
 
     inline NOMADSUtil::UInt32Hashset * const NetProxyConfigManager::getEnabledConnectorsSet (void)
     {

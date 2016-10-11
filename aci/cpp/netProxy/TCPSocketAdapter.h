@@ -5,7 +5,7 @@
  * TCPSocketAdapter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -93,6 +93,9 @@ namespace ACMNetProxy
 
     inline int TCPSocketAdapter::registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg)
     {
+        (void) pCallbackFn;
+        (void) pCallbackArg;
+        
         return -1;
     }
 
@@ -125,6 +128,11 @@ namespace ACMNetProxy
     inline int TCPSocketAdapter::send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
                                        bool bSequenced, const void *pBuf, uint32 ui32BufSize)
     {
+        (void) pInetAddr;
+        (void) ui32DestVirtualIPAddr;
+        (void) bReliable;
+        (void) bSequenced;
+        
         int rc = _pTCPSocket->send (pBuf, ui32BufSize);
         if (rc == ui32BufSize) {
             return 0;
@@ -135,6 +143,8 @@ namespace ACMNetProxy
 
     inline int TCPSocketAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)
     {
+        (void) i64Timeout;
+        
         return _pTCPSocket->receive (pBuf, ui32BufSize);
     }
 

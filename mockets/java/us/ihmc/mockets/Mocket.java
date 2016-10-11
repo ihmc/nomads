@@ -2245,13 +2245,13 @@ public class Mocket
      */
     private native void init (String configFile) throws IOException;
 
-    /**
-     * Native method that removes <code>mocket</code> object.
-     */
-    protected void finalize()
-    {
-        dispose();
-    }
+//    /**
+//     * Native method that removes <code>mocket</code> object.
+//     */
+//    protected void finalize()
+//    {
+//        dispose();
+//    }
 
     private native void dispose();
 

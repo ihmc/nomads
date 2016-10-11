@@ -2,7 +2,7 @@
  * TCPSocketAdapter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,12 +30,15 @@ namespace ACMNetProxy
 {
     int TCPSocketAdapter::receiveMessage (void * const pBuf, uint32 ui32BufSize)
     {
+        (void) ui32BufSize;
         int rc=0, headerLen=0, payLoadLen=0;
         if ((rc = receive (pBuf, 1)) < 0) {
+            checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
+                            "receive() of 1 byte from socket failed with rc = %d\n", rc);
             return rc;
         }
 
-        ProxyMessage *pMsg = (ProxyMessage*) pBuf;
+        ProxyMessage *pMsg = reinterpret_cast<ProxyMessage*> (pBuf);
         uint8 * const ui8Buf = (uint8 * const) pBuf;
         uint8 ui8ProxyPcktType = pMsg->getMessageType();
         headerLen = rc;
@@ -71,11 +74,11 @@ namespace ACMNetProxy
                     return rc;
                 }
 
-                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pICMPPM->ui16PayloadLen - payLoadLen)) + payLoadLen) < pICMPPM->ui16PayloadLen) {
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pICMPPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pICMPPM->getPayloadLen()) {
                     if (rc < 0) {
                         checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
                                         "PMT_ICMPMessage - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
-                                        payLoadLen, pICMPPM->ui16PayloadLen, rc);
+                                        payLoadLen, pICMPPM->getPayloadLen(), rc);
                         return rc;
                     }
                     payLoadLen += rc;
@@ -93,11 +96,11 @@ namespace ACMNetProxy
                     return rc;
                 }
 
-                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pUDPUDPM->ui16PayloadLen - payLoadLen)) + payLoadLen) < pUDPUDPM->ui16PayloadLen) {
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pUDPUDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pUDPUDPM->getPayloadLen()) {
                     if (rc < 0) {
                         checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
                                         "PMT_UDPUnicastData - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
-                                        payLoadLen, pUDPUDPM->ui16PayloadLen, rc);
+                                        payLoadLen, pUDPUDPM->getPayloadLen(), rc);
                         return rc;
                     }
                     payLoadLen += rc;
@@ -115,11 +118,11 @@ namespace ACMNetProxy
                     return rc;
                 }
 
-                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pMUDPDPM->ui16PayloadLen - payLoadLen)) + payLoadLen) < pMUDPDPM->ui16PayloadLen) {
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pMUDPDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pMUDPDPM->getPayloadLen()) {
                     if (rc < 0) {
                         checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
                                         "PMT_MultipleUDPDatagrams - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
-                                        payLoadLen, pMUDPDPM->ui16PayloadLen, rc);
+                                        payLoadLen, pMUDPDPM->getPayloadLen(), rc);
                         return rc;
                     }
                     payLoadLen += rc;
@@ -138,11 +141,11 @@ namespace ACMNetProxy
                     return rc;
                 }
 
-                while (((rc = receive (ui8Buf + headerLen + payLoadLen, udpBMDPM->ui16PayloadLen - payLoadLen)) + payLoadLen) < udpBMDPM->ui16PayloadLen) {
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, udpBMDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < udpBMDPM->getPayloadLen()) {
                     if (rc < 0) {
                         checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
                                         "PMT_UDPBCastMCastData - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
-                                        payLoadLen, udpBMDPM->ui16PayloadLen, rc);
+                                        payLoadLen, udpBMDPM->getPayloadLen(), rc);
                         return rc;
                     }
                     payLoadLen += rc;
@@ -182,11 +185,11 @@ namespace ACMNetProxy
                     return rc;
                 }
 
-                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pTCPDataMsg->ui16PayloadLen - payLoadLen)) + payLoadLen) < pTCPDataMsg->ui16PayloadLen) {
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pTCPDataMsg->getPayloadLen() - payLoadLen)) + payLoadLen) < pTCPDataMsg->getPayloadLen()) {
                     if (rc < 0) {
                         checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
                                         "L%hu-R%hu: PMT_TCPData - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
-                                        pTCPDataMsg->ui16RemoteID, pTCPDataMsg->ui16LocalID, payLoadLen, pTCPDataMsg->ui16PayloadLen, rc);
+                                        pTCPDataMsg->getPayloadLen(), pTCPDataMsg->getPayloadLen(), payLoadLen, pTCPDataMsg->getPayloadLen(), rc);
                         return rc;
                     }
                     payLoadLen += rc;
@@ -224,6 +227,11 @@ namespace ACMNetProxy
     int TCPSocketAdapter::gsend (const InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
                                     const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2)
     {
+        (void) pInetAddr;
+        (void) ui32DestVirtualIPAddr;
+        (void) bReliable;
+        (void) bSequenced;
+        
         if (!pBuf1) {
             if (ui32BufSize1 > 0) {
                 return -1;
@@ -254,7 +262,7 @@ namespace ACMNetProxy
         return (rc == ui32TotalBytes) ? 0 : rc;
     }
 
-    // ALE: retrieves header of an incoming packet sent by a remote proxy
+    // retrieves the header of an incoming packet sent by a remote NetProxy
     template <class T> int TCPSocketAdapter::receiveProxyHeader (T * const pMess, int &iReceived)
     {
         int rc=0;

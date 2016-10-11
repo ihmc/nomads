@@ -2,7 +2,7 @@
  * DisseminationServiceProxy.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
 #include "PeerStatusListener.h"
 
 #include "Logger.h"
+#include "NLFLib.h"
 
 #include <string.h>
 
@@ -165,9 +166,9 @@ void DisseminationServiceProxy::run()
             delete _pCommHelper;
             _pCommHelper = 0;
         }
-        if (_pHandler != 0) {
+        if (_pHandler != NULL) {
             delete _pHandler;
-            _pHandler = 0;
+            _pHandler = NULL;
         }
         _mutex.unlock (136);
 

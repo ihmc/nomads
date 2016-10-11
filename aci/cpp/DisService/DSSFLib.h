@@ -2,7 +2,7 @@
  * DSSFLib.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -111,8 +111,8 @@ namespace IHMC_ACI
                               uint32 ui32SeqId, uint8 ui8ChunkId,
                               uint32 ui32FragmentLength, uint32 ui32FragmentOffest);
 
-    const char * extractGroupFromKey (const char *pszKey);
-    const char * extractSenderNodeIdFromKey (const char *pszKey);
+    NOMADSUtil::String extractGroupFromKey (const char *pszKey);
+    NOMADSUtil::String extractSenderNodeIdFromKey (const char *pszKey);
     char * toAllChunksMessageId (const char *pszKey);
 }
 

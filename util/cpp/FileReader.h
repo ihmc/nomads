@@ -2,7 +2,7 @@
  * FileReader.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,14 +29,17 @@ namespace NOMADSUtil
     {
         public:
             FileReader (const char *pszFilePath, const char *pszMode);
-            FileReader (FILE *pfile, bool bCloseFileWhenDone = false);
-            ~FileReader (void);
+            explicit FileReader (FILE *pfile, bool bCloseFileWhenDone = false);
+            virtual ~FileReader (void);
             int read (void *pBuf, int iCount);
             int readBytes (void *pBuf, uint32 ui32Count);
+            // set the file pointer at the ui64Pos-th position from the
+            // beginning of the file
+            int seek (long ui64Pos);
 
         protected:
-            FILE *_pfileInput;
             bool _bCloseFileWhenDone;
+            FILE *_pfileInput;
     };
 }
 

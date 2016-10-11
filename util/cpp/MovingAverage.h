@@ -2,7 +2,7 @@
  * MovingAverage.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,9 +20,7 @@
 #ifndef INCL_MOVING_AVERAGE_H
 #define INCL_MOVING_AVERAGE_H
 
-#if defined(OSX)
-    #define NULL 0
-#endif
+#include <stddef.h>
 
 namespace NOMADSUtil
 {
@@ -36,6 +34,8 @@ namespace NOMADSUtil
             void add (T value);
             T getSum (void);
             double getAverage (void);
+
+            void reset (void);
 
         private:
             unsigned short _usWindowSize;
@@ -96,6 +96,12 @@ namespace NOMADSUtil
         return _sum / ((double) _usNumValues);
     }
 
+    template <class T> void MovingAverage<T>::reset (void)
+    {
+        _sum = 0;
+        _usNextPos = 0;
+        _usNumValues = 0;
+    }
 }
 
 #endif   // #ifndef INCL_MOVING_AVERAGE_H

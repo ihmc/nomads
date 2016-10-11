@@ -2,7 +2,7 @@
  * SetUniquePtrLList.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,13 +51,13 @@ namespace NOMADSUtil
             // the uniqueness of the elements
             SetUniquePtrLList (const SetUniquePtrLList<T> &SourceList);
             virtual ~SetUniquePtrLList (void);
-            // NOTE: append does not check if the order of the elements in the
-            // list is maintained. Uniqueness is ensured.
+            // NOTE: append does not check if the order not the uniqueness of the
+            // elements in the list is maintained.
             // NOTE: if pel is a duplicate, it will be deleted. In order to
             // avoid deletion, search() should be called first. If the search
             // returns no element, pel can be safely appended.
             void append (T *pel);
-            // NOTE: prepend does not check if the order nor uniqueness of the
+            // NOTE: prepend does not check if the order nor the uniqueness of the
             // elements in the list are maintained. However, if pel is equal to
             // the root, it will not be prepended and it will be deleted. In
             // order to avoid deletion, getFirst() should be called first. If
@@ -112,51 +112,12 @@ namespace NOMADSUtil
 
     template <class T> void SetUniquePtrLList<T>::append (T *pel)
     {
-        Node *pNewNode;
-
-        pNewNode = new Node;
-        pNewNode->pel = pel;
-        pNewNode->pNextNode = NULL;
-
-        if (this->pRoot == NULL) {
-            this->pRoot = pNewNode;
-            this->pNextGetNode = this->pRoot;
-        }
-        else {
-            Node *pTempNode = this->pRoot;
-            while (pTempNode->pNextNode != NULL) {
-                pTempNode = pTempNode->pNextNode;
-                if (*pel == *(pTempNode->pel)) {
-                    // pel is a duplicate. Delete it and return
-                    delete pel;
-                    pel = NULL;
-                    return;
-                }
-            }
-            pTempNode->pNextNode = pNewNode;
-            if (this->pNextGetNode == NULL) {
-                this->pNextGetNode = pNewNode;
-            }
-        }
+        PtrLList<T>::append (pel);
     }
 
     template <class T> void SetUniquePtrLList<T>::prepend (T *pel)
     {
-        Node *pNewNode;
-
-        pNewNode = new Node;
-        pNewNode->pel = pel;
-        pNewNode->pNextNode = NULL;
-
-        if (this->pRoot == NULL) {
-            this->pRoot = pNewNode;
-            this->pNextGetNode = this->pRoot;
-        }
-        else {
-            pNewNode->pNextNode = this->pRoot;
-            this->pRoot = pNewNode;
-            this->pNextGetNode = pNewNode;
-        }
+        PtrLList<T>::prepend (pel);
     }
 
     template <class T> void SetUniquePtrLList<T>::insert (T *pel)
@@ -176,7 +137,7 @@ namespace NOMADSUtil
         pNewNode->pNextNode = NULL;
 
         if (this->pRoot == NULL) {
-            this->pRoot = pNewNode;
+            this->pRoot = this->pTail = pNewNode;
             this->pNextGetNode = this->pRoot;
             return NULL;
         }
@@ -241,6 +202,7 @@ namespace NOMADSUtil
 
         // Reached the end of the list
         pPrevNode->pNextNode = pNewNode;
+        this->pTail = pNewNode;
         return NULL;
     }
 
@@ -291,20 +253,35 @@ namespace NOMADSUtil
 
     template <class T> SetUniquePtrLList<T> & SetUniquePtrLList<T>::operator = (SetUniquePtrLList<T> & SourceList)
     {
-        Node *pTempNode = this->pRoot;
+        Node *pTempNode;
         while (this->pRoot) {
             pTempNode = this->pRoot;
             this->pRoot = this->pRoot->pNextNode;
             delete pTempNode;
         }
-        this->pRoot = NULL;
+        this->pRoot = this->pTail = NULL;
+        this->pNextGetNode = NULL;
 
-        /*!!*/ // Improve efficiency here by not calling append()
+        Node *pNewNode;
         pTempNode = SourceList.pRoot;
-        while (pTempNode) {
-            append (pTempNode->pel);
+        if (pTempNode) {
+            pNewNode = new Node;
+            pNewNode->pel = pTempNode->pel;
+            pNewNode->pNextNode = NULL;
+            this->pRoot = this->pTail = pNewNode;
+            this->pNextGetNode = this->pRoot;
             pTempNode = pTempNode->pNextNode;
         }
+        while (pTempNode) {
+            pNewNode = new Node;
+            pNewNode->pel = pTempNode->pel;
+            pNewNode->pNextNode = NULL;
+
+            this->pTail->pNextNode = pNewNode;
+            this->pTail = pNewNode;
+            pTempNode = pTempNode->pNextNode;
+        }
+
         return *this;
     }
 }

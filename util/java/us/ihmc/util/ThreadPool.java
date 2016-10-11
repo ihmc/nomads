@@ -2,7 +2,7 @@
  * ThreadPool.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,13 +22,14 @@
  *
  * @author      Marco Arguedas      <marguedas@ihmc.us>
  *
- * @version     $Revision: 1.6 $
- *              $Date: 2014/11/07 17:58:06 $
+ * @version     $Revision: 1.9 $
+ *              $Date: 2016/06/09 20:02:46 $
  */
 
 package us.ihmc.util;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -43,8 +44,8 @@ public class ThreadPool
         }
 
         _maxNumWorkers = maxNumWorkers;
-        _workers = new Vector();
-        _tasks = new Vector();
+        _workers = new ArrayList<ThreadPoolWorker>();
+        _tasks = new ArrayList<ThreadPoolTask>();
     }
 
     /**
@@ -91,7 +92,7 @@ public class ThreadPool
                 }
             } //while()
 
-            task = (ThreadPoolTask) _tasks.remove (0);
+            task = _tasks.remove (0);
         }
 
         return task;
@@ -208,6 +209,6 @@ public class ThreadPool
     private int _maxNumWorkers = 0;
     private int _numBusyWorkers = 0;
 
-    private Vector _workers;
-    private Vector _tasks;
+    private final List<ThreadPoolWorker> _workers;
+    private final List<ThreadPoolTask> _tasks;
 } //class ThreadPool

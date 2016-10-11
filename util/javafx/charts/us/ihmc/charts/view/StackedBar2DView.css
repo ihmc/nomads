@@ -1,0 +1,4 @@
+.chart-title {
+    -fx-wrap-text : true;
+    -fx-alignment : center;
+}

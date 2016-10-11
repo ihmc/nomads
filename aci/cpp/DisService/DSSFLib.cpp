@@ -2,7 +2,7 @@
  * DSSFLib.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -353,18 +353,18 @@ char * IHMC_ACI::convertFieldToKey (const char *pszGroupName, const char *pszSen
     return strDup ((const char *) msgId);
 }
 
-const char * IHMC_ACI::extractGroupFromKey (const char *pszKey)
+String IHMC_ACI::extractGroupFromKey (const char *pszKey)
 {
     DArray2<String> aTokenizedKey;
     convertKeyToField (pszKey, aTokenizedKey, 1U, MSG_ID_GROUP);
-    return strDup (aTokenizedKey[MSG_ID_GROUP]);
+    return String (aTokenizedKey[MSG_ID_GROUP]);
 }
 
-const char * IHMC_ACI::extractSenderNodeIdFromKey (const char *pszKey)
+String IHMC_ACI::extractSenderNodeIdFromKey (const char *pszKey)
 {
     DArray2<String> aTokenizedKey;
     convertKeyToField (pszKey, aTokenizedKey, 1U, MSG_ID_SENDER);
-    return strDup (aTokenizedKey[MSG_ID_SENDER]);
+    return String (aTokenizedKey[MSG_ID_SENDER]);
 }
 
 char * IHMC_ACI::toAllChunksMessageId (const char *pszKey)

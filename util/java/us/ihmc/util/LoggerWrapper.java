@@ -2,7 +2,7 @@
  * LoggerWrapper.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@ import java.io.*;
  * initilize the Logger.
  *
  * @author  Maggie Breedy <Nomads team>
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  *
  **/
 

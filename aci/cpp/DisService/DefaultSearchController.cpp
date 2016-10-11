@@ -2,7 +2,7 @@
  * DefaultSearchController.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -75,9 +75,9 @@ void DefaultSearchController::searchReplyArrived (const char *pszQueryId,
     }
 
     uint16 ui16ClientId = Searches::FORWARDED_SEARCH_CLIENT_ID;
-    char *pszQueryType = NULL;
-    char *pszQuerier = NULL; 
-    if (0 != Searches::getSearches()->getSearchInfo (pszQueryId, pszQueryType, pszQuerier, ui16ClientId)) {
+    String queryType;
+    String querier; 
+    if (0 != Searches::getSearches()->getSearchInfo (pszQueryId, queryType, querier, ui16ClientId)) {
         // The search was never forwarded by this node - do not process its
         // corresponding search reply
         return;
@@ -97,7 +97,7 @@ void DefaultSearchController::searchReplyArrived (const char *pszQueryId,
         if (bRequestMsg) {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "sending message request for "
                             "match %s to search %s\n", ppszMatchingMessageIds[i], pszQueryId);
-            if (_nodeId != pszQuerier) {
+            if (_nodeId != querier) {
                 ui16ClientId = Searches::FORWARDED_SEARCH_CLIENT_ID;
             }
             sendMessageRequest (ppszMatchingMessageIds[i], pszQueryId, ui16ClientId);
@@ -112,13 +112,11 @@ void DefaultSearchController::searchReplyArrived (const char *pszQueryId,
             }
         }
     }
+}
 
-    if (pszQueryType != NULL) {
-        free (pszQueryType);
-    }
-    if (pszQuerier != NULL) {
-        free (pszQuerier);
-    }
+void DefaultSearchController::volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId)
+{
+    // TODO: implement this
 }
 
 void DefaultSearchController::sendMessageRequest (const char *pszMsgId, const char *pszQueryId, uint16 ui16ClientId)

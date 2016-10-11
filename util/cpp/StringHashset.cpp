@@ -2,7 +2,7 @@
  * StringHashset.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -150,6 +150,14 @@ void StringHashset::removeAll()
     _ulState = 0;
 }
 
+void StringHashset::removeAll (StringHashset &set)
+{
+    Iterator iter = set.getAllElements();
+    for (; !iter.end(); iter.nextElement()) {
+        remove (iter.getKey());
+    }
+}
+
 StringHashset::Iterator StringHashset::getAllElements (void)
 {
     return Iterator (this, _ulState);
@@ -201,7 +209,7 @@ void StringHashset::deleteTable (HashtableEntry *pTable, unsigned short usSize)
 
         // Need to special case the first entry because the HTE
         // is part of the array and is not deleted
-        if (_bDeleteKeys && pHTE->pszKey != NULL) {
+        if ((_bDeleteKeys) && (pHTE->pszKey != NULL)) {
             delete[] pHTE->pszKey;
             pHTE->pszKey = NULL;
         }

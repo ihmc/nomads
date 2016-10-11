@@ -2,7 +2,7 @@
  * FileReader.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,20 +26,20 @@
 using namespace NOMADSUtil;
 
 FileReader::FileReader (const char *pszFilePath, const char *pszMode)
+    : _bCloseFileWhenDone (true),
+      _pfileInput (fopen (pszFilePath, pszMode))
 {
-    _pfileInput = fopen (pszFilePath, pszMode);
-    _bCloseFileWhenDone = true;
 }
 
 FileReader::FileReader (FILE *pfile, bool bCloseFileWhenDone)
+    : _bCloseFileWhenDone (bCloseFileWhenDone),
+      _pfileInput (pfile)
 {
-    _pfileInput = pfile;
-    _bCloseFileWhenDone = bCloseFileWhenDone;
 }
 
 FileReader::~FileReader (void)
 {
-    if (_bCloseFileWhenDone) {
+    if ((_bCloseFileWhenDone) && (_pfileInput != NULL)) {
         fclose (_pfileInput);
     }
     _pfileInput = NULL;
@@ -48,16 +48,37 @@ FileReader::~FileReader (void)
 int FileReader::read (void *pBuf, int iCount)
 {
     int rc;
-    if ((rc = (int) fread (pBuf, 1, iCount, _pfileInput)) < 0) {
+    if (_pfileInput == NULL) {
         return -1;
     }
+    if ((rc = (int) fread (pBuf, 1, iCount, _pfileInput)) < 0) {
+        return -2;
+    }
+    _ui32TotalBytesRead += rc;
     return rc;
 }
 
 int FileReader::readBytes (void *pBuf, uint32 ui32Count)
 {
-    if (ui32Count != fread (pBuf, 1, ui32Count, _pfileInput)) {
+    if (_pfileInput == NULL) {
         return -1;
+    }
+    size_t rc = fread (pBuf, 1, ui32Count, _pfileInput);
+    if (ui32Count != rc) {
+        return -2;
+    }
+    _ui32TotalBytesRead += rc;
+    return 0;
+}
+
+int FileReader::seek (long lPos)
+{
+    if (_pfileInput == NULL) {
+        return -1;
+    }
+    if (fseek (_pfileInput, lPos, SEEK_SET) < 0) {
+        return -2;
     }
     return 0;
 }
+

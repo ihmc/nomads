@@ -21,8 +21,9 @@
  *
  * @author Niranjan Suri
  * @author Maggie Breedy
+ * @author Enrico Casini (ecasini@ihmc.us)
  *
- * @version $Revision: 1.15 $
+ * @version $Revision: 1.27 $
  */
 
 package us.ihmc.mockets;
@@ -39,18 +40,85 @@ public class StreamMocket implements Serializable
      * Create a new, unconnected, endpoint for a mocket connection.
      */
     public StreamMocket ()
-            throws SocketException
+            throws IOException
     {
-        init();
+        this(null, null);
     }
 
     /**
-     * Create a new <code>StreamMocket</code> and connects it to the endpoint address.
+     * Create a new <code>StreamMocket</code> and connects it to the specified endpoint address.
+     *
+     * @param host the host name, or <code>null</code> for the loopback address.
+     * @param port the port number.
      */
     public StreamMocket (String host, int port) throws IOException
     {
+        this(host != null ? new InetSocketAddress(host, port) : new InetSocketAddress(InetAddress.getByName(null),
+                port), null);
+    }
+
+    /**
+     * Create a new <code>StreamMocket</code> and connects it to the specified <code>InetAddress</code> endpoint
+     * address.
+     *
+     * @param address the IP address.
+     * @param port    the port number.
+     */
+    public StreamMocket (InetAddress address, int port) throws IOException
+    {
+        this(address != null ? new InetSocketAddress(address, port) : null, null);
+    }
+
+    /**
+     * Creates a new <code>StreamMocket</code> and connects it to the specified remote host on
+     * the specified remote port. The <code>StreamMocket</code> will also bind() to the local
+     * address and port supplied.
+     *
+     * @param host      the name of the remote host, or <code>null</code> for the loopback address.
+     * @param port      the remote port
+     * @param localAddr the local address the socket is bound to
+     * @param localPort the local port the socket is bound to
+     * @throws IOException
+     */
+    public StreamMocket (String host, int port, InetAddress localAddr, int localPort) throws IOException
+    {
+        this(host != null ? new InetSocketAddress(host, port) :
+                        new InetSocketAddress(InetAddress.getByName(null), port),
+                new InetSocketAddress(localAddr, localPort));
+    }
+
+    /**
+     * Creates a new <code>StreamMocket</code> and connects it to the specified remote host on
+     * the specified remote port. The <code>StreamMocket</code> will also bind() to the local
+     * address and port supplied.
+     *
+     * @param address   @param address the remote address
+     * @param port      the remote port
+     * @param localAddr the local address the socket is bound to
+     * @param localPort the local port the socket is bound to
+     * @throws IOException
+     */
+    public StreamMocket (InetAddress address, int port, InetAddress localAddr, int localPort) throws IOException
+    {
+        this(address != null ? new InetSocketAddress(address, port) : null,
+                new InetSocketAddress(localAddr, localPort));
+
+    }
+
+    private StreamMocket (SocketAddress address, SocketAddress localAddr) throws IOException
+    {
         init();
-        connect(InetAddress.getByName(host), port);
+
+        try {
+            if (localAddr != null)
+                bind(localAddr);
+            if (address != null)
+                connect(address);
+        }
+        catch (IOException e) {
+            closeSync();
+            throw e;
+        }
     }
 
     /**
@@ -74,7 +142,47 @@ public class StreamMocket implements Serializable
     }
 
     /**
-     * Opens a connection to the specified remote address and port.
+     * Opens a connection to the specified remote <code>SocketAddress</code>
+     *
+     * @param remoteAddress the remote <code>SocketAddress</code> to connect to.
+     * @param timeout       the timeout value to be used in milliseconds.
+     * @throws java.io.IOException
+     */
+    public void connect (SocketAddress remoteAddress, int timeout)
+            throws IOException
+    {
+        if (remoteAddress == null)
+            throw new IllegalArgumentException("connect: The address can't be null");
+
+        if (!(remoteAddress instanceof InetSocketAddress))
+            throw new IllegalArgumentException("Unsupported address type");
+
+        this.connect(((InetSocketAddress) remoteAddress).getAddress(), ((InetSocketAddress) remoteAddress).getPort(),
+                timeout);
+    }
+
+
+    /**
+     * Opens a connection to the specified remote <code>SocketAddress</code>
+     *
+     * @param remoteAddress the remote <code>SocketAddress</code> to connect to.
+     * @throws java.io.IOException
+     */
+    public void connect (SocketAddress remoteAddress)
+            throws IOException
+    {
+        if (remoteAddress == null)
+            throw new IllegalArgumentException("connect: The address can't be null");
+
+        if (!(remoteAddress instanceof InetSocketAddress))
+            throw new IllegalArgumentException("Unsupported address type");
+
+        this.connect(((InetSocketAddress) remoteAddress).getAddress(), ((InetSocketAddress) remoteAddress).getPort(),
+                0);
+    }
+
+    /**
+     * Opens a connection to the specified <code>InetAddress</code> remote address and port.
      *
      * @param remoteAddress the remote address to connect to. Specified as an IP address.
      * @param remotePort    the remote port to connect to.
@@ -92,22 +200,36 @@ public class StreamMocket implements Serializable
      *
      * @param remoteAddress the remote address to connect to. Specified as an IP address.
      * @param remotePort    the remote port to connect to.
+     * @param timeout       the timeout value to be used in milliseconds.
      * @throws IOException if there was a problem in opening the connection
      */
-    public void connect (InetAddress remoteAddress, int remotePort, int connectTimeout)
+    public void connect (InetAddress remoteAddress, int remotePort, int timeout)
             throws IOException
     {
-        if (remoteAddress == null) {
-            throw new NullPointerException("remoteAddress");
-        }
+        if (remoteAddress == null)
+            throw new IllegalArgumentException("connect: The address can't be null");
+
         if (remotePort < 0) {
             throw new IllegalArgumentException("port cannot be negative: " + remotePort);
         }
-        if (connectTimeout < 0) {
-            throw new IllegalArgumentException("connectTimeout cannot be negative: " + connectTimeout);
+        if (timeout < 0) {
+            throw new IllegalArgumentException("timeout cannot be negative: " + timeout);
         }
 
-        connect(remoteAddress.getHostAddress(), remotePort, connectTimeout);
+        if (isClosed())
+            throw new IOException("StreamMocket is closed");
+
+        if (isConnected())
+            throw new IOException("StreamMocket already connected");
+
+        connect(remoteAddress.getHostAddress(), remotePort, timeout);
+
+        _connected = true;
+        /*
+         * If the StreamMocket was not bound before the connect, it is now because
+         * the kernel will have picked an ephemeral port & a local address
+         */
+        _bound = true;
     }
 
     /**
@@ -117,8 +239,7 @@ public class StreamMocket implements Serializable
      */
     public SocketAddress getLocalSocketAddress ()
     {
-        SocketAddress sockAddr = new InetSocketAddress(getLocalAddress(), getLocalPort());
-        return sockAddr;
+        return new InetSocketAddress(getLocalAddress(), getLocalPort());
     }
 
     /**
@@ -128,8 +249,10 @@ public class StreamMocket implements Serializable
      */
     public SocketAddress getRemoteSocketAddress ()
     {
-        SocketAddress sockAddr = new InetSocketAddress(getRemoteAddress(), getRemotePort());
-        return sockAddr;
+//        if (!isConnected())
+//            return null;
+
+        return new InetSocketAddress(getRemoteAddress(), getRemotePort());
     }
 
     /**
@@ -142,8 +265,73 @@ public class StreamMocket implements Serializable
     public void bind (SocketAddress localSocketAddress)
             throws IOException
     {
+        if (isClosed())
+            throw new IOException("StreamMocket is closed");
+        if (isBound())
+            throw new SocketException("Already bound");
+        if (!(localSocketAddress instanceof InetSocketAddress))
+            throw new IllegalArgumentException("Unsupported address type");
+
         InetSocketAddress ina = (InetSocketAddress) localSocketAddress;
         bind(ina.getAddress().getHostAddress(), ina.getPort());
+
+        _bound = true;
+    }
+
+    /**
+     * Returns the input stream for this connection.
+     *
+     * @return the input stream for the connection.
+     */
+    public InputStream getInputStream ()
+    {
+        if (_is == null) {
+            _is = new MocketInputStream(this);
+        }
+        return _is;
+    }
+
+    /**
+     * Returns the output stream for this connection.
+     *
+     * @return the output stream for the connection.
+     */
+    public OutputStream getOutputStream ()
+    {
+        if (_os == null) {
+            _os = new MocketOutputStream(this);
+        }
+
+        return _os;
+    }
+
+    /**
+     * Closes this <code>StreamMocket</code> in a synchronized way
+     * <p/>
+     * Once a <code>StreamMocket</code> has been closed, it is not available for further networking
+     * use (i.e. can't be reconnected or rebound). A new <code>StreamMocket</code> needs to be
+     * created.
+     * <p/>
+     * <p> Closing this socket will also close the <code>StreamMocket</code>'s
+     * {@link java.io.InputStream InputStream} and
+     * {@link java.io.OutputStream OutputStream}.
+     * <p/>
+     *
+     * @throws IOException if an I/O error occurs when closing this socket.
+     * @see #isClosed
+     */
+    @SuppressWarnings("deprecated")
+    public synchronized void closeSync () throws IOException
+    {
+
+        synchronized (closeLock) {
+
+            if (isClosed())
+                return;
+
+            close();
+            _closed = true;
+        }
     }
 
     /**
@@ -172,6 +360,38 @@ public class StreamMocket implements Serializable
      */
     public native void setDataBufferingTime (int ms);
 
+
+    /**
+     * @return
+     */
+    public boolean isConnected ()
+    {
+        return _connected;
+    }
+
+    /**
+     * @return
+     */
+    public boolean isClosed ()
+    {
+        synchronized (closeLock) {
+            return _closed;
+        }
+    }
+
+    public boolean isBound ()
+    {
+        return _bound;
+    }
+
+//    /**
+//     * Removes <code>StreamMocket</code> object.
+//     */
+//    protected void finalize ()
+//    {
+//        dispose();
+//    }
+
     /**
      * Returns the maximum time for buffering outgoing data before transmitting data.
      *
@@ -181,31 +401,9 @@ public class StreamMocket implements Serializable
     public native int getDataBufferingTime ();
 
     /**
-     * @return
-     */
-    public boolean isConnected ()
-    {
-        throw new UnsupportedOperationException("isConnected() is not implemented.");
-    }
-
-    /**
-     * @return
-     */
-    public boolean isClosed ()
-    {
-        throw new UnsupportedOperationException("isClosed() is not implemented.");
-    }
-
-    /**
-     * Removes <code>StreamMocket</code> object.
-     */
-    protected void finalize ()
-    {
-        dispose();
-    }
-
-    /**
      * Closes the connection.
+     *
+     * @deprecated This method is deprecated in favor of closeSync()
      */
     public native void close ();
 
@@ -229,32 +427,6 @@ public class StreamMocket implements Serializable
 
     private native void registerStatusListener (MocketStatusListener msl);
 
-    /**
-     * Returns the input stream for this connection.
-     *
-     * @return the input stream for the connection.
-     */
-    public InputStream getInputStream ()
-    {
-        if (_is == null) {
-            _is = new MocketInputStream(this);
-        }
-        return _is;
-    }
-
-    /**
-     * Returns the output stream for this connection.
-     *
-     * @return the output stream for the connection.
-     */
-    public OutputStream getOutputStream ()
-    {
-        if (_os == null) {
-            _os = new MocketOutputStream(this);
-        }
-
-        return _os;
-    }
 
     // /////////////////////////////////////////////////////////////////////////
     // INTERNAL CLASSES ////////////////////////////////////////////////////////
@@ -330,6 +502,15 @@ public class StreamMocket implements Serializable
         Waits _waits = new Waits();
     }
 
+
+    /**
+     * Various states of this StreamMocket.
+     */
+    private boolean created = false;
+    private boolean _bound = false;
+    private boolean _connected = false;
+    private boolean _closed = false;
+    private final Object closeLock = new Object();
 
     private InputStream _is = null;
     private OutputStream _os = null;

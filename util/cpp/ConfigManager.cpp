@@ -2,7 +2,7 @@
  * ConfigManager.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,6 +26,7 @@
 #include "LineOrientedReader.h"
 #include "DArray2.h"
 #include "StrClass.h"
+#include "FileReader.h"
 #include "FileUtils.h"
 
 #include <stdio.h>
@@ -34,26 +35,25 @@
 
 #if defined (UNIX)
     #define stricmp strcasecmp
-    #define _strdup strdup
     #include <limits.h>
 #endif
 
 using namespace NOMADSUtil;
 
 ConfigManager::ConfigManager (void)
+    : _iMaxLineLen (0),
+      // By default bCaseSensitiveKeys, bCloneKeys, bDeleteKeys, bCloneValues and
+       // bDeleteValues are all set to "true"
+      _pSettings (new StringStringHashtable()),
+      _pszConfigFile (NULL)
 {
-    _iMaxLineLen = 0;
-    // By default bCaseSensitiveKeys, bCloneKeys, bDeleteKeys, bCloneValues and
-    // bDeleteValues are all set to "true"
-    _pSettings = new StringStringHashtable();
-    _pszConfigFile = NULL;
 }
 
 ConfigManager::~ConfigManager (void)
 {
     delete _pSettings;
     _pSettings = NULL;
-    if (_pszConfigFile) {
+    if (_pszConfigFile != NULL) {
         free (_pszConfigFile);
         _pszConfigFile = NULL;
     }
@@ -146,6 +146,32 @@ void ConfigManager::writeConfigFile (void)
     writeConfigFile (_pszConfigFile);
 }
 
+int ConfigManager::addProperties (ConfigManager &cfgMgr)
+{
+    for (StringStringHashtable::Iterator iter = cfgMgr.getAllElements(); !iter.end(); iter.nextElement()) {
+        if (hasValue (iter.getKey())) {
+            const char *pszCurrValue = getValue (iter.getKey());
+            const char *pszNewValue = iter.getValue();
+            if (pszCurrValue == NULL) {
+                if (pszNewValue != NULL) {
+                    return -1;
+                }
+            }
+            else if (pszNewValue == NULL) {
+                return -2;
+            }
+            else if (stricmp (pszCurrValue, pszNewValue) != 0) {
+                return -3;
+            }
+            // no need to add it again
+        }
+        else {
+            setValue (iter.getKey(), iter.getValue());
+        }
+    }
+    return 0;
+}
+
 int ConfigManager::read (Reader *pReader, uint32 ui32Len, bool bBeTolerant)
 {
     if (_iMaxLineLen == 0) {
@@ -172,11 +198,13 @@ int ConfigManager::read (Reader *pReader, uint32 ui32Len, bool bBeTolerant)
 
         if (iLen == 0) {
             // Empty line
-            if (!bBeTolerant) {
+            if (bBeTolerant) {
+                continue;
+            }
+            else {
                 delete[] pszBuf;
                 return -4;
             }
-            continue;
         }
 
         if (pszBuf[0] == '#') {
@@ -198,12 +226,12 @@ int ConfigManager::read (Reader *pReader, uint32 ui32Len, bool bBeTolerant)
 
         char *pszSeparator;
         if (NULL == (pszSeparator = strchr (pszBuf, '='))) {
-            if (!bBeTolerant) {
-                delete[] pszBuf;
-                return -7;
+            if (bBeTolerant) {
+                continue;
             }
             else {
-                continue;
+                delete[] pszBuf;
+                return -7;
             }
         }
         char *pszKey = pszBuf;
@@ -212,12 +240,12 @@ int ConfigManager::read (Reader *pReader, uint32 ui32Len, bool bBeTolerant)
         }
         if (*pszKey == '=') {
             // Key field was empty!
-            if (!bBeTolerant) {
-                delete[] pszBuf;
-                return -8;
+            if (bBeTolerant) {
+                continue;
             }
             else {
-                continue;
+                delete[] pszBuf;
+                return -8;
             }
         }
         *pszSeparator = '\0';
@@ -254,7 +282,6 @@ int ConfigManager::read (Reader *pReader, uint32 ui32Len, bool bBeTolerant)
 
 int ConfigManager::readConfigFile (const char *pszFile, bool bBeTolerant)
 {
-    FILE *fileConfig;
     if (_iMaxLineLen == 0) {
         // init() has not been called
         return -1;
@@ -262,108 +289,23 @@ int ConfigManager::readConfigFile (const char *pszFile, bool bBeTolerant)
     if (pszFile == NULL) {
         return -2;
     }
-
-    if (NULL == (fileConfig = fopen (pszFile, "r"))) {
+    const int64 i64FileSize = FileUtils::fileSize (pszFile);
+    if (i64FileSize < 0) {
         return -3;
     }
-
-    if (_pszConfigFile) {
-        free (_pszConfigFile);
-        _pszConfigFile = NULL;
-    }
-    _pszConfigFile = _strdup (pszFile);
-
-    char *pszBuf = new char [_iMaxLineLen];
-    if (pszBuf == NULL) {
-        fclose (fileConfig);
+    if (i64FileSize > 0xFFFFFFFF) {
         return -4;
     }
-    int intLineCounter = -1;
-    while (fgets (pszBuf, _iMaxLineLen, fileConfig)) {
-        ++intLineCounter;
-        int iLen = (int) strlen (pszBuf);
-
-        //Perform a dos2unix eol conversion if necessary
-        if (iLen >= 2 && pszBuf[iLen-2] == '\r' && pszBuf[iLen-1] == '\n') {
-            pszBuf[iLen-2] = '\n';
-            pszBuf[iLen-1] = '\0';
-            iLen--;
+    FileReader reader (pszFile, "r");
+    int rc = read (&reader, (uint32) i64FileSize, bBeTolerant);
+    if (rc >= 0) {
+        if (_pszConfigFile) {
+            free (_pszConfigFile);
+            _pszConfigFile = NULL;
         }
-        
-        if (pszBuf[iLen-1] != '\n') {
-            if (!feof (fileConfig)) {
-                // Did not find \n so the buffer was not big enough!
-                fclose (fileConfig);
-                delete[] pszBuf;
-                return -5;
-            }
-        }
-        else {
-            if (iLen == 1 && !bBeTolerant) {
-                // Empty line!
-                fclose (fileConfig);
-                delete[] pszBuf;
-                return -6;
-            }
-            pszBuf [iLen-1] = '\0';
-        }
-        if (pszBuf[0] == '#') {
-            // This is a comment line
-            continue;
-        }
-        char *pszSeparator;
-        if (NULL == (pszSeparator = strchr (pszBuf, '='))) {
-            if (!bBeTolerant) {
-                fclose (fileConfig);
-                delete[] pszBuf;
-                return -7;
-            }
-            else {
-                continue;
-            }
-        }
-        char *pszKey = pszBuf;
-        while ((*pszKey == ' ') || (*pszKey == '\t')) {
-            *pszKey++;
-        }
-        if (*pszKey == '=') {
-            // Key field was empty!
-            if (!bBeTolerant) {
-                fclose (fileConfig);
-                delete[] pszBuf;
-                return -8;
-            }
-            else {
-                continue;
-            }
-        }
-        *pszSeparator = '\0';
-        char *pszKeyEnd = pszSeparator-1;
-        //skip leading spaces or tabs
-        while ((*pszKeyEnd == ' ') || (*pszKeyEnd == '\t')) {
-            *pszKeyEnd-- = '\0';
-        }
-        // Key is in pszKey
-
-        char *pszValue = pszSeparator+1;
-        while ((*pszValue == ' ') || (*pszValue == '\t')) {
-            pszValue++;
-        }
-        if (*pszValue == '\0') {
-            // Value field was empty!
-        }
-        char *pszValueEnd = pszValue + strlen (pszValue) - 1;
-        //skip trailing spaces or tabs
-        while ((*pszValueEnd == ' ') || (*pszValueEnd == '\t')) {
-            *pszValueEnd-- = '\0';
-        }
-        // Value is in pszValue
-
-        _pSettings->put (pszKey, pszValue);
+        _pszConfigFile = strDup (pszFile);
     }
-    fclose (fileConfig);
-    delete[] pszBuf;
-    return 0;
+    return rc;
 }
 
 int ConfigManager::performVariableSubstitution (void)

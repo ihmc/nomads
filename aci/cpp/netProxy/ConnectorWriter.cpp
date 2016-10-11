@@ -2,7 +2,7 @@
  * ConnectorWriter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -59,14 +59,18 @@ namespace ACMNetProxy
         *pDest = (unsigned char *) 0;
         uiDestLen = 0;
         _bFlushed = true;
+        
         return 0;
     }
 
     int ConnectorWriter::writeData (const unsigned char *pSrc, unsigned int uiSrcLen, unsigned char **pDest, unsigned int &uiDestLen, bool bLocalFlush)
     {
+        (void) bLocalFlush;
+        
         *pDest = const_cast<unsigned char *> (pSrc);
         uiDestLen = uiSrcLen;
         _bFlushed = false;
+        
         return 0;
     }
 
@@ -75,6 +79,7 @@ namespace ACMNetProxy
         *pDest = const_cast<unsigned char *> (pSrc);
         uiDestLen = uiSrcLen;
         _bFlushed = true;
+        
         return 0;
     }
 

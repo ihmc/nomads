@@ -2,7 +2,7 @@
  * ResourceLocker.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,7 +42,7 @@ namespace IHMC_ACI
 
             int addSearchInfo (const char *pszQueryId, const char *pszQueryType, const char *pszQuerier, uint16 ui16ClientId);
             int receivedSearchInfo (const char *pszQueryId, const char *pszQueryType, const char *pszQuerier);
-            int getSearchInfo (const char *pszQueryId, char *&pszQueryType, char *&pszQuerier, uint16 &ui16ClientId);
+            int getSearchInfo (const char *pszQueryId, NOMADSUtil::String &queryType, NOMADSUtil::String &querier, uint16 &ui16ClientId);
             int getSearchQueryId (const char *pszQueryId, uint16 &ui16ClientId);
             bool hasSearchInfo (const char *pszQueryId);
             bool isSearchFromPeer (const char *pszQueryId, const char *pszQuerierNodeId);

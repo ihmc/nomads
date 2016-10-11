@@ -5,7 +5,7 @@
  * AutoConnectionEntry.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -48,7 +48,7 @@ namespace ACMNetProxy
         public:
             AutoConnectionEntry (void);
             AutoConnectionEntry (const uint32 ui32RemoteProxyID, const ConnectorType connectorType,
-                              const uint32 ui32AutoReconnectTimeInMillis = NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME);
+                                 const uint32 ui32AutoReconnectTimeInMillis = NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME);
 
             const AutoConnectionEntry & operator= (const AutoConnectionEntry &rhs);
 
@@ -56,7 +56,10 @@ namespace ACMNetProxy
             void synchronized (void);
             void resetSynch (void);
 
+            void setInvalid (void);
+
             bool isSynchronized (void) const;
+            bool isValid (void) const;
             const uint32 getRemoteProxyID (void) const;
             ConnectorType getConnectorType (void) const;
             const NOMADSUtil::InetAddr * const getRemoteProxyInetAddress (void) const;
@@ -76,6 +79,7 @@ namespace ACMNetProxy
             uint32 _ui32AutoReconnectTimeInMillis;
             uint64 _ui64LastConnectionAttemptTime;
             bool _bSynchronized;
+            bool _bValid;
 
             static ConnectionManager * const P_CONNECTION_MANAGER;
     };
@@ -83,7 +87,7 @@ namespace ACMNetProxy
 
     inline AutoConnectionEntry::AutoConnectionEntry (void) :
         _ui32RemoteProxyID (0), _connectorType (CT_UNDEF), _pConnectivitySolutions (NULL), _ui32AutoReconnectTimeInMillis (NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME),
-        _ui64LastConnectionAttemptTime (0), _bSynchronized (false) { }
+        _ui64LastConnectionAttemptTime (0), _bSynchronized (false), _bValid (false) { }
 
     inline void AutoConnectionEntry::synchronized (void)
     {
@@ -95,9 +99,19 @@ namespace ACMNetProxy
         _bSynchronized = false;
     }
 
+    inline void AutoConnectionEntry::setInvalid (void)
+    {
+        _bValid = false;
+    }
+
     inline bool AutoConnectionEntry::isSynchronized (void) const
     {
         return _bSynchronized;
+    }
+
+    inline bool AutoConnectionEntry::isValid (void) const
+    {
+        return _bValid;
     }
 
     inline const uint32 AutoConnectionEntry::getRemoteProxyID (void) const

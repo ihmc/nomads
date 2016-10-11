@@ -2,7 +2,7 @@
  * MessageId.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@ namespace IHMC_ACI
     {
         public:
             MessageId (void);
-            MessageId (const char *pszMsgId);
+            explicit MessageId (const char *pszMsgId);
             MessageId (const char *pszGroupName, const char *pszOriginatorNodeId,
                        uint32 ui32SeqId, uint8 ui8ChunkId);
 

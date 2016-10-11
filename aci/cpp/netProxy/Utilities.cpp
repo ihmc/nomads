@@ -2,7 +2,7 @@
  * Utilities.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,6 +40,8 @@ namespace ACMNetProxy
             {
                 return 'I';
             }
+            case PT_UNDEF:
+                break;
         }
 
         return -1;
@@ -60,11 +62,12 @@ namespace ACMNetProxy
             {
                 return 'U';
             }
-
             case CT_CSR:
             {
                 return 'C';
             }
+            case CT_UNDEF:
+                break;
         }
 
         return -1;
@@ -77,21 +80,20 @@ namespace ACMNetProxy
             {
                 return sMocket;
             }
-
             case CT_SOCKET:
             {
                 return sTCPSocket;
             }
-
             case CT_UDP:
             {
                 return sUDPSocket;
             }
-
             case CT_CSR:
             {
                 return sCSR;
             }
+            case CT_UNDEF:
+                break;
         }
 
         return sUNDEF;
@@ -134,4 +136,28 @@ namespace ACMNetProxy
         virtualEtherMACAddr.ui8Byte5 = ui8Byte5;
         virtualEtherMACAddr.ui8Byte6 = ui8Byte6;
     }
+
+
+    bool checkEtherMACAddressFormat (const char *pcEthernetMACAddress) {
+        unsigned int length = 0;
+        while (*pcEthernetMACAddress) {
+            if (*pcEthernetMACAddress == ':') {
+                ++pcEthernetMACAddress;
+                length = 0;
+                continue;
+            }
+            ++length;
+            if (length >= 3) {
+                return false;
+            }
+            if (!checkCharRange(*pcEthernetMACAddress, '0', '9') && !checkCharRange(*pcEthernetMACAddress, 'a', 'f') &&
+                !checkCharRange(*pcEthernetMACAddress, 'A', 'F')) {
+                return false;
+            }
+            ++pcEthernetMACAddress;
+        }
+        
+        return true;
+    }
+
 }

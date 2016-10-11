@@ -2,7 +2,7 @@
  * SubscriptionState.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,6 +29,7 @@
 #include "Logger.h"
 #include "SequentialArithmetic.h"
 #include "MessageRequestScheduler.h"
+#include "StringHashset.h"
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
@@ -62,6 +63,8 @@ int SubscriptionState::messageArrived (Message *pMsg, RequestDetails *pDetails)
 
 int SubscriptionState::messageArrived (Message *pMsg, bool bIsInHistory, RequestDetails *pDetails)
 {
+    const char *pszMethodName = "SubscriptionState::messageArrivedInternal";
+
     if (pMsg->getMessageHeader()->isChunk()) {
         MessageHeader *pMH = pMsg->getMessageHeader();
         _m.lock (240);
@@ -72,31 +75,30 @@ int SubscriptionState::messageArrived (Message *pMsg, bool bIsInHistory, Request
         return 0;
     }
 
-    const char *pszMethodName = "SubscriptionState::messageArrivedInternal";
-
     MessageInfo *pMI = pMsg->getMessageInfo();
+    const String groupName (pMI->getGroupName());
+    const String publisher (pMI->getPublisherNodeId());
+    const uint32 ui32IncomingMsgSeqId = pMI->getMsgSeqId();
+    const uint8 ui8IncomingMsgChunkId = pMI->getChunkId();
+
     DArray<uint16> *pSubscribingClients = _pLocalNodeInfo->getSubscribingClients (pMsg);
-
-    if (pSubscribingClients != NULL) {
-        const char *pszGroupName = pMI->getGroupName();
-        const char *pszPublisherId = pMI->getPublisherNodeId();
-        uint32 ui32IncomingMsgSeqId = pMI->getMsgSeqId();
-
-        _m.lock (241);
-        uint32 ui32CurrentExpectedMsgId = getSubscriptionStateInternal (pszGroupName, pszPublisherId);
+    _m.lock(241);
+    if ((pSubscribingClients != NULL) && (isRelevantInternal (groupName, publisher, ui32IncomingMsgSeqId, ui8IncomingMsgChunkId) || bIsInHistory)) {
 
         //----------------------------------------------------------------------
         //  THERE IS AT LEAST ONE CLIENT SUBSCRIBING THE GROUP
         //----------------------------------------------------------------------
-        bool bSequential = _pLocalNodeInfo->requireSequentiality (pszGroupName, pMI->getTag());
-        bool bReliable = _pLocalNodeInfo->requireGroupReliability (pszGroupName, pMI->getTag());
-        bool bMetaDataWrappedInData = pMI->isMetaDataWrappedInData();
+        const uint32 ui32CurrentExpectedMsgId = getSubscriptionStateInternal (groupName, publisher);
+        const bool bSequential = _pLocalNodeInfo->requireSequentiality (groupName, pMI->getTag());
+        const bool bReliable = _pLocalNodeInfo->requireGroupReliability (groupName, pMI->getTag());
+        const bool bMetaDataWrappedInData = pMI->isMetaDataWrappedInData();
 
         //----------------------------------------------------------------------
         //  HISTORY MESSAGE
         //  (sequential/reliable transmission constraints do not not apply)
         //----------------------------------------------------------------------
         if (bIsInHistory) {
+            checkAndLogMsg (pszMethodName, Logger::L_Info, "history message %s arrived.\n", pMI->getMsgId());
             _m.unlock (241);
             notifyDisseminationServiceAndDeallocateMessage (pMsg, pDetails);
             delete pSubscribingClients;
@@ -111,22 +113,22 @@ int SubscriptionState::messageArrived (Message *pMsg, bool bIsInHistory, Request
             notifyDisseminationService (pMsg, pDetails);
             if (!bMetaDataWrappedInData) {
                 if (bReliable) {
-                    nonSequentialReliableMessageArrived (pszGroupName, pszPublisherId, ui32IncomingMsgSeqId);
+                    nonSequentialReliableMessageArrived (groupName, publisher, ui32IncomingMsgSeqId);
                     if (ui32IncomingMsgSeqId == ui32CurrentExpectedMsgId) {
                         // Increment subscription state
                         // The transmission is reliable, the subscription state
                         // must be incremented only when the incoming message is
                         // the next expected.
-                        setSubscriptionState (pszGroupName, pszPublisherId, (ui32IncomingMsgSeqId + 1));
+                        setSubscriptionState (groupName, publisher, (ui32IncomingMsgSeqId + 1));
                     }
                 }
                 else {
-                    nonSequentialUnreliableMessageArrived (pszGroupName, pszPublisherId, ui32IncomingMsgSeqId);
+                    nonSequentialUnreliableMessageArrived (groupName, publisher, ui32IncomingMsgSeqId);
                     if (ui32CurrentExpectedMsgId <= ui32IncomingMsgSeqId) {
                         // The transmission is not reliable, the subscription state
                         // must be incremented only when the incoming message is
                         // the next expected.
-                        setSubscriptionState (pszGroupName, pszPublisherId, (ui32IncomingMsgSeqId + 1));
+                        setSubscriptionState (groupName, publisher, (ui32IncomingMsgSeqId + 1));
                     }
                 }
             }
@@ -145,8 +147,8 @@ int SubscriptionState::messageArrived (Message *pMsg, bool bIsInHistory, Request
         //----------------------------------------------------------------------
         if (ui32IncomingMsgSeqId < ui32CurrentExpectedMsgId) {
             // The message is no longer relevant: drop it
-            checkAndLogMsg (pszMethodName, Logger::L_Warning,
-                            "received message %s, that is not longer relevant; ui32CurrentExpectedMsgId = %u.\n",
+            checkAndLogMsg (pszMethodName, Logger::L_Warning, "received message %s, "
+                            "that is not longer relevant; ui32CurrentExpectedMsgId = %u.\n",
                             pMI->getMsgId(), ui32CurrentExpectedMsgId);
             deallocateMessage (pMsg);
         }
@@ -158,7 +160,7 @@ int SubscriptionState::messageArrived (Message *pMsg, bool bIsInHistory, Request
             // case ui32NewExpectedMsgId == ui32CurrentExpectedMsgId
             notifyDisseminationService (pMsg, pDetails);
             if (!bMetaDataWrappedInData) {
-                setSubscriptionState (pszGroupName, pszPublisherId, ui32IncomingMsgSeqId+1);
+                setSubscriptionState (groupName, publisher, ui32IncomingMsgSeqId+1);
             }
 
             // Check also if there are buffered messages that are now allowed to
@@ -166,15 +168,15 @@ int SubscriptionState::messageArrived (Message *pMsg, bool bIsInHistory, Request
             if (bReliable && !bMetaDataWrappedInData) {
                 bool bIsPreviousMetaDataWrappedInData = false;
                 MessageInfo *pMITmp;
-                for (Message *pMsgTmp = unbufferMessage (pszGroupName, pszPublisherId, getSubscriptionStateInternal (pszGroupName, pszPublisherId));
+                for (Message *pMsgTmp = unbufferMessage (groupName, publisher, getSubscriptionStateInternal (groupName, publisher));
                      (pMsgTmp != NULL) && (!bIsPreviousMetaDataWrappedInData);
-                     pMsgTmp = unbufferMessage (pszGroupName, pszPublisherId, getSubscriptionStateInternal (pszGroupName, pszPublisherId))) {
+                     pMsgTmp = unbufferMessage (groupName, publisher, getSubscriptionStateInternal (groupName, publisher))) {
 
                     pMITmp = pMsgTmp->getMessageInfo();
 
                     notifyDisseminationService (pMsgTmp, pDetails);
                     if (!bMetaDataWrappedInData) {
-                        setSubscriptionState (pszGroupName, pszPublisherId, (pMsgTmp->getMessageHeader()->getMsgSeqId()+1));
+                        setSubscriptionState (groupName, publisher, (pMsgTmp->getMessageHeader()->getMsgSeqId()+1));
                     }
                     bIsPreviousMetaDataWrappedInData = pMITmp->isMetaDataWrappedInData();
                     deallocateMessage (pMsgTmp);
@@ -183,11 +185,11 @@ int SubscriptionState::messageArrived (Message *pMsg, bool bIsInHistory, Request
 
             deallocateMessage (pMsg);
         }
-        _m.unlock (241);
     }
     else {
         deallocateMessage (pMsg);
     }
+    _m.unlock (241);
 
     delete pSubscribingClients;
     pSubscribingClients = NULL;
@@ -230,12 +232,12 @@ void SubscriptionState::getMissingMessageRequests (MessageRequestScheduler *pReq
         pszGroupName = iGroup.getKey();
         for (StringHashtable<State>::Iterator iSender = pBG->_statesBySender.getAllElements(); !iSender.end(); iSender.nextElement()) {
             State *pState = iSender.getValue();
-            const char *pszSenderNodeId = iSender.getKey();
+            const String senderNodeId (iSender.getKey());
             /*!!*/ // This is a hack - prevent the sender from generating messages created at the local node
 
-            if (0 != stricmp (pszSenderNodeId, _pDisService->getNodeId())) {
+            if (senderNodeId != _pDisService->getNodeId()) {
                 pState->fillUpMissingMessages (pReqScheduler, pMessageReassembler, pszGroupName,
-                                               pszSenderNodeId, (uint32)_pDisService->getMissingFragmentTimeout());
+                                               senderNodeId, (uint32)_pDisService->getMissingFragmentTimeout());
             }
         }
     }
@@ -285,13 +287,19 @@ uint32 SubscriptionState::getSubscriptionStateInternal (const char *pszGroupName
 bool SubscriptionState::isRelevant (const char *pszGroupName, const char *pszSenderNodeID,
                                     uint32 ui32IncomingMsgSeqId, uint8 ui8ChunkId)
 {
-    _m.lock (245);
+    _m.lock(245);
+    bool bRet = isRelevantInternal (pszGroupName, pszSenderNodeID, ui32IncomingMsgSeqId, ui8ChunkId);
+    _m.unlock(245);
+    return bRet;
+}
+
+bool SubscriptionState::isRelevantInternal (const char *pszGroupName, const char *pszSenderNodeID,
+                                            uint32 ui32IncomingMsgSeqId, uint8 ui8ChunkId)
+{
     if (ui8ChunkId != MessageHeader::UNDEFINED_CHUNK_ID) {
         // It's a chunk!
-        bool bRet = !_rcvdChunks.contains (pszGroupName, pszSenderNodeID,
-                                           ui32IncomingMsgSeqId, ui8ChunkId);
-        _m.unlock (245);
-        return bRet;
+        return !_rcvdChunks.contains (pszGroupName, pszSenderNodeID,
+                                      ui32IncomingMsgSeqId, ui8ChunkId);
     }
 
     ByGroup *pByGroup = _states.get (pszGroupName);
@@ -300,12 +308,11 @@ bool SubscriptionState::isRelevant (const char *pszGroupName, const char *pszSen
         if ((pState != NULL) && (pState->bExpectedSeqIdSet)) {
 
             // If the bFirstSeqIdSet has not been set yet, it must return true
-            bool bRet = pState->isRelevant (ui32IncomingMsgSeqId);
-            _m.unlock (245);
-            return bRet;
+            return pState->isRelevant (ui32IncomingMsgSeqId);
         }
     }
-    _m.unlock (245);
+    checkAndLogMsg ("WEIRD", Logger::L_Info, "%s:%s:u:%u.\n", pszGroupName, pszSenderNodeID,
+                                                             ui32IncomingMsgSeqId, ui8ChunkId);
     return true;
 }
 
@@ -340,19 +347,19 @@ void SubscriptionState::setSubscriptionState (const char *pszGroupName, const ch
         }
         pByGroup->_statesBySender.put (pszSenderNodeID, pState);
     }
-    
+
     if (!pState->bExpectedSeqIdSet) {
         pState->ui32ExpectedSeqId = ui32NewExpectedSeqId;
         pState->bExpectedSeqIdSet = true;
     }
     else if (SequentialArithmetic::greaterThan (ui32NewExpectedSeqId, pState->ui32ExpectedSeqId)) {
         if (pState->_ui8Type == NONSEQ_REL_STATE) {
-            NonSequentialReliableCommunicationState* pNonSeqRel = (NonSequentialReliableCommunicationState*) pState;
+            NonSequentialReliableCommunicationState *pNonSeqRel = (NonSequentialReliableCommunicationState*) pState;
             uint32 *pUI32FirstMissingMsg = pNonSeqRel->missingSeqId.getFirst();
             if (pUI32FirstMissingMsg) {
                 pState->ui32ExpectedSeqId = ((*pUI32FirstMissingMsg > ui32NewExpectedSeqId) ? *pUI32FirstMissingMsg : ui32NewExpectedSeqId);
             }
-            else if ( pNonSeqRel->bHighestSeqIdRcvdSet && pNonSeqRel->ui32HighestSeqIdReceived == ui32NewExpectedSeqId) {
+            else if (pNonSeqRel->bHighestSeqIdRcvdSet && pNonSeqRel->ui32HighestSeqIdReceived == ui32NewExpectedSeqId) {
                 pState->ui32ExpectedSeqId = ++ui32NewExpectedSeqId;
             }
             else {
@@ -560,22 +567,19 @@ void SubscriptionState::nonSequentialReliableMessageArrived (const char *pszGrou
         // FIRST MESSAGE COMPLETELY RECEIVED CASE:
         pNonSeqState->ui32HighestSeqIdReceived = ui32SeqId;
         pNonSeqState->bHighestSeqIdRcvdSet = true;
-        if (!wildcardStringCompare(pszGroupName, "DisServiceProGroup.*")) {
-            if (SequentialArithmetic::greaterThan(ui32SeqId, pNonSeqState->ui32ExpectedSeqId)) {
-                uint32 ui32FirstMissingSeqIdToAdd = pNonSeqState->ui32ExpectedSeqId;
-                uint32 ui32LastMissingSeqIdToAdd = ui32SeqId - 1;
-                uint32 *pUISeqId;
-                while (SequentialArithmetic::lessThanOrEqual (ui32FirstMissingSeqIdToAdd, ui32LastMissingSeqIdToAdd)) {
-                    if (pNonSeqState->missingSeqId.search (&ui32FirstMissingSeqIdToAdd) == NULL) {
-                        // If not present already, add it
-                        pUISeqId = new uint32[1];
-                        if (pUISeqId != NULL) {
-                            pUISeqId[0] = ui32FirstMissingSeqIdToAdd;
-                            pNonSeqState->missingSeqId.insert (pUISeqId);
-                        }
+        if (SequentialArithmetic::greaterThan (ui32SeqId, pNonSeqState->ui32ExpectedSeqId)) {
+            uint32 ui32FirstMissingSeqIdToAdd = pNonSeqState->ui32ExpectedSeqId;
+            uint32 ui32LastMissingSeqIdToAdd = ui32SeqId - 1;
+            while (SequentialArithmetic::lessThanOrEqual (ui32FirstMissingSeqIdToAdd, ui32LastMissingSeqIdToAdd)) {
+                if (pNonSeqState->missingSeqId.search (&ui32FirstMissingSeqIdToAdd) == NULL) {
+                    // If not present already, add it
+                    uint32 *pUISeqId = new uint32[1];
+                    if (pUISeqId != NULL) {
+                        pUISeqId[0] = ui32FirstMissingSeqIdToAdd;
+                        pNonSeqState->missingSeqId.insert (pUISeqId);
                     }
-                    ui32FirstMissingSeqIdToAdd++;
                 }
+                ui32FirstMissingSeqIdToAdd++;
             }
         }
         _m.unlock (254);
@@ -587,30 +591,8 @@ void SubscriptionState::nonSequentialReliableMessageArrived (const char *pszGrou
         return;
     }
 
-    // NOTE: this is a hack. In theory, in non-sequence and reliable
-    // transmissions, missing messages should be requested. However,
-    // in case the message belongs to DisServiceProGroup, DisServicePro
-    // selects the messages to be transmitted, and the missing
-    // message should not be requested.
-    // DisServicePro would need a unreliable extra-message,
-    // but a reliable intra-message transmission.
-    if (wildcardStringCompare (pszGroupName, "DisServiceProGroup.*")) {
-        uint32 *pUI32SeqId = pNonSeqState->missingSeqId.remove (&ui32SeqId);
-        if (pUI32SeqId) {
-            delete pUI32SeqId;
-            pUI32SeqId = NULL;
-        }
-        int *pCounter = pNonSeqState->requestCounters.get (ui32SeqId);
-        if (pCounter) {
-            delete pCounter;
-            pCounter = NULL;
-        }
-        _m.unlock (254);
-        return;
-    }
-
     uint32 ui32HighestSeqIdTmp = pNonSeqState->ui32ExpectedSeqId - 1;
-    if (SequentialArithmetic::lessThan(pNonSeqState->ui32HighestSeqIdReceived, ui32HighestSeqIdTmp)) {
+    if (SequentialArithmetic::lessThan (pNonSeqState->ui32HighestSeqIdReceived, ui32HighestSeqIdTmp)) {
         pNonSeqState->ui32HighestSeqIdReceived = ui32HighestSeqIdTmp;
     }
 
@@ -813,10 +795,10 @@ void SubscriptionState::SequentialReliableCommunicationState::fillUpMissingMessa
             }
         }
 
-        if ((bufferedCompleteMessages.get(ui32MsgSeqId) == NULL) &&
+        if ((bufferedCompleteMessages.get (ui32MsgSeqId) == NULL) &&
             (!pMessageReassembler->containsMessage (pszGroupName, pszSenderNodeId, ui32MsgSeqId))) {
             // Add the request
-            pReqScheduler->addRequest(new DisServiceDataReqMsg::MessageRequest (pszGroupName, pszSenderNodeId, ui32MsgSeqId), true, true);
+            pReqScheduler->addRequest (new DisServiceDataReqMsg::MessageRequest (pszGroupName, pszSenderNodeId, ui32MsgSeqId), true, true);
             if (pCounter == NULL) {
                 pCounter = new int[1];
                 if (pCounter != NULL) {
@@ -1003,6 +985,7 @@ bool SubscriptionState::NonSequentialReliableCommunicationState::isRelevant (uin
     if (!bExpectedSeqIdSet) {
         // It means that no message has been received yet for the subscription,
         // therefore it is always relevant
+        checkAndLogMsg ("WEIRD", Logger::L_Info, "bExpectedSeqIdSet = false :u:.\n", ui32IncomingMsgSeqId);
         return true;
     }
     if (ui32IncomingMsgSeqId >= ui32ExpectedSeqId) {

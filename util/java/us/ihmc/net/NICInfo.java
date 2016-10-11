@@ -2,7 +2,7 @@
  * NICInfo.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@ import java.net.InetAddress;
  * Created on October 02, 2006
  *
  * @author Matteo Rebeschini <mrebeschini@ihmc.us>
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.6 $
  * $Date: 2005/09/27 23:30:49
  */
 public class NICInfo

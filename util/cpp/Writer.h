@@ -2,7 +2,7 @@
  * Writer.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -64,11 +64,20 @@ namespace NOMADSUtil
             // Returns 0 if successful or -1 in case of an error
             virtual int writeBytes (const void *pBuf, unsigned long ulCount) = 0;
 
+            // Write a float value
+            // NOTE: The data is converted to big-endian format if this is a little-endian machine
+            int writeFloat (void *pBuf);
+            virtual int writeUI8 (void *pBuf);
+            virtual int writeUI16 (void *pBuf);
+            virtual int writeUI32 (void *pBuf);
+            virtual int writeUI64 (void *pBuf);
+            virtual int writeString (const char *pBuf);
+
             // Flush any buffered data
             virtual int flush (void);
 
             // Close the underlying 'stream'
-            virtual int close();
+            virtual int close (void);
 
             static void byteSwap16 (void *pBuf);
             static void byteSwap32 (void *pBuf);
@@ -86,6 +95,12 @@ namespace NOMADSUtil
     inline int Writer::flush (void)
     {
         return 0;
+    }
+
+    inline int Writer::writeFloat (void *pBuf)
+    {
+        // Assume a float is 4 bytes. It may be architecture-dependent
+        return write32 (pBuf);
     }
 
     inline void Writer::byteSwap16 (void *pBuf)

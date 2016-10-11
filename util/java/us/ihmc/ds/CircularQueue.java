@@ -2,7 +2,7 @@
  * CircularQueue.java
  * 
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@ import java.util.Enumeration;
  * Implementation of a Circular Queue.
  *
  * @author: Maggie Breedy
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  *
  */
 public class CircularQueue implements Serializable

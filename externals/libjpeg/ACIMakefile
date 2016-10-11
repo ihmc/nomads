@@ -1,0 +1,16 @@
+all: libjpeg.a
+
+checkMakefile:
+	if test -e Makefile; \
+		then echo Makefile exists; \
+		else (chmod +x configure; CFLAGS="-fPIC" ./configure; make clean) \
+	fi
+
+libjpeg.a: checkMakefile
+	make
+
+clean:
+	if test -e Makefile; \
+                then echo make clean; make distclean;\
+                else echo done; \
+        fi

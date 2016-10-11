@@ -1,0 +1,97 @@
+Copyright Notice
+
+1998 Cornell University
+
+This software was developed by members of the Zeno Group :
+
+Faculty :
+Brian Smith (bsmith@cs.cornell.edu)
+
+Students :
+Haye Chan (haye@cs.cornell.edu)
+Matthew Chew (machiu@cs.cornell.edu)
+Jose Machuca (jose@cs.cornell.edu)
+Sugata Mukhopadhyay (sugata@cs.cornelle.edu)
+Wei Tsang Ooi (weitsang@cs.cornell.edu)
+Daniel Rabinovitz (dsr@cs.cornell.edu)
+Jiesang Song (jiesang@cs.cornell.edu)
+Steve Weiss (sweiss@cs.cornell.edu)
+
+Department of Computer Science
+Cornell University
+Ithaca, New York 14853
+
+
+For more information please contact dali@cs.cornell.edu.
+
+
+LICENSE TERMS AND CONDITIONS
+
+
+1.  The 'Software', below, refers to the Dali Virtual Machine, developed by
+    the Zeno Group (in either source-code, object-code or executable-code
+    form), and related documentation, and a 'work based on the Software' means
+    a work based on either the Software, on part of the Software, or on any
+    derivative work of the Software under copyright law: that is, a work
+    containing all or a portion of the Dali Virtual Machine, either verbatim or
+    with modifications.  Each licensee is addressed as 'you' or 'Licensee.'
+
+
+2.  Cornell University as the parent organization of the Zeno Group
+    holds copyrights in the Software.  The copyright holder reserves all
+    rights except those expressly granted to licensees, and U.S.  Government
+    license rights.
+
+
+3.  Permission is hereby granted to use, copy, modify, and to redistribute
+    to others for non-commercial or research purposes.  If you distribute
+    a copy or copies of the Software, or you modify a copy or copies of 
+    the Software or any portion of it, thus forming a work based on the 
+    Software, and make and/or distribute copies of such work, you must meet 
+    the following conditions:
+
+
+    a)  If you make a copy of the Software (modified or verbatim) it must 
+    include the copyright notice and this license.
+
+
+    b)  You must cause the modified Software to carry prominent notices
+    stating that you changed specified portions of the Software.
+
+
+4.  LICENSEE AGREES THAT THE EXPORT OF GOODS AND/OR TECHNICAL
+    DATA FROM THE UNITED STATES MAY REQUIRE SOME FORM OF EXPORT
+    CONTROL LICENSE FROM THE U.S. GOVERNMENT AND THAT FAILURE TO
+    OBTAIN SUCH EXPORT CONTROL LICENSE MAY RESULT IN CRIMINAL
+    LIABILITY UNDER U.S. LAWS.
+
+
+5.  Portions of the Software resulted from work developed under a U.S.
+    Government Contract and are subject to the following license: the
+    Government is granted for itself and others acting on its behalf a
+    paid-up, nonexclusive, irrevocable worldwide license in this computer
+    software to reproduce, prepare derivative works, and perform publicly
+    and display publicly.
+
+
+6.  Disclaimer of warranty: Licensor provides the software on an ``as is''
+    basis.  Licensor does not warrent, guarantee, or make any representations
+    regarding the use or results of the software with respect to its
+    correctness, accuracy, reliability or performance.  The entire risk of
+    the use and performance of the software is assumed by licensee.
+    ALL WARANTIES INCLUDING, WITHOUT LIMITATION, ANY WARRANTY OF FITNESS
+    FOR A PARTICULAR PURPOSE OR MERCHANTABILITY ARE HEREBY EXCLUDED.
+
+7.  Lack of maintainance or support services:  Licensee understands and
+    agrees that licensor is under no obligation to provide maintanance,
+    support or update services, notices of latent defects, or correction
+    of defects for the software.
+
+8.  Limitation of liability, indemnification: Even if advised of the
+    possibility of damages, under no circumstances shall licensor be liable
+    to licensee or any third party for damages of any character, including,
+    without limitation, direct, indirect, incidental, consequential or
+    special damages, loss of profits, loss of use, loss of goodwill, computer
+    failure or malfunction.  Licensee agrees to indemnify and hold harmless
+    licensor for any and all liability licensor may incur as a result of
+    licensee's use of the software.

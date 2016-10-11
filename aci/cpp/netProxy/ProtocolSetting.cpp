@@ -2,7 +2,7 @@
  * ProtocolSetting.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,6 +39,16 @@ namespace ACMNetProxy
                 return "TCP";
             case ProxyMessage::PMP_UDP:
                 return "UDP";
+            case ProxyMessage::PMP_UNDEF_CSR:
+                return "CSR";
+            case ProxyMessage::PMP_CSRRS:
+                return "CSRRS";
+            case ProxyMessage::PMP_CSRUS:
+                return "CSRUS";
+            case ProxyMessage::PMP_CSRRU:
+                return "CSRRU";
+            case ProxyMessage::PMP_CSRUU:
+                return "CSRUU";
         }
 
         return (char *) 0;
@@ -51,8 +61,8 @@ namespace ACMNetProxy
 
         return (sProtocolToCheck == "mockets") || (sProtocolToCheck == "mocketsrs") || (sProtocolToCheck == "mocketsuu") ||
                (sProtocolToCheck == "mocketsus") || (sProtocolToCheck == "mocketsru") || (sProtocolToCheck == "tcp") ||
-               (sProtocolToCheck == "udp") || (sProtocolToCheck == "csr") || (sProtocolToCheck == "csrrs") || (sProtocolToCheck == "csruu") ||
-               (sProtocolToCheck == "csrus") || (sProtocolToCheck == "csrru");
+               (sProtocolToCheck == "udp") || (sProtocolToCheck == "csr") || (sProtocolToCheck == "csrrs") ||
+               (sProtocolToCheck == "csruu") || (sProtocolToCheck == "csrus") || (sProtocolToCheck == "csrru");
     }
 
     ProxyMessage::Protocol ProtocolSetting::getProtocolFlagFromProtocolString (const char * const pProtocolName)
@@ -129,8 +139,11 @@ namespace ACMNetProxy
                 return ProxyMessage::PMP_UDP;
             case CT_CSR:
                 return ProxyMessage::PMP_UNDEF_CSR;
+            case CT_UNDEF:
+                return ProxyMessage::PMP_UNDEF_PROTOCOL;
         }
 
         return ProxyMessage::PMP_UNDEF_PROTOCOL;
     }
+    
 }

@@ -2,7 +2,7 @@
  * MIMEUtils.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,8 +19,14 @@
 
 package us.ihmc.util;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
+import javax.activation.MimetypesFileTypeMap;
 
 /**
  *
@@ -31,6 +37,50 @@ public class MIMEUtils
     public static final Pattern MSDOC = Pattern.compile ("application/.*\\.openxmlformats-officedocument\\..*");
     public static final Pattern MSDOC_OLD = Pattern.compile ("application/.*(\\.)*((.*excel)|(.*msword)|(.*powerpoint))");
     public static final Pattern OPENDOC = Pattern.compile ("application/.*\\.opendocument\\..*");
+
+    private static final String MIME_TYPE_FILE = "/us/ihmc/util/mime/MIMETypes.properties";
+    private static final String MIME_TYPE_FILEP = "us.ihmc.util.mime.MIMETypes";
+
+    // File extension -> MIME Type
+    // Load custom mime-types file (since its location appears not to be that standard...
+    private static final MimetypesFileTypeMap _mimeTypes = new MimetypesFileTypeMap (MIMEUtils.class.getResourceAsStream (MIME_TYPE_FILE));
+
+    // MIME Type -> File extension
+    private static final HashMap<String, String> _fileExtensions = new HashMap<String, String>();
+    static {
+        ResourceBundle bundle = ResourceBundle.getBundle (MIME_TYPE_FILEP);
+        for (Enumeration e = bundle.getKeys(); e.hasMoreElements(); ) {
+            String type = (String) e.nextElement();
+            String[] extensions = (bundle.getString (type)).split ("s+");
+            if (_fileExtensions.get (type) == null) {
+                _fileExtensions.put (type, extensions[0]);
+            }
+        }
+    }
+
+    public static String getMIMEType (File file) throws Exception
+    {
+        if (file.exists()) {
+            String type = _mimeTypes.getContentType (file);
+            if (type == null) {
+                throw new Exception ("No MIME type for file " + file.getAbsolutePath());
+            }
+            return type;
+        }
+        throw new FileNotFoundException ("File " + file.getAbsolutePath() + " not found");
+    }
+
+    /**
+     * Given the MIME type, it returns a possible file extension (or null if a
+     * mapping was not found)
+     */
+    public static String getExtension (String mimeType)
+    {
+        if (mimeType == null || mimeType.length() == 0) {
+            return null;
+        }
+        return _fileExtensions.get (mimeType);
+    }
 
     /**
      * Return true if the MIMI type matches MSDOC or MSDOC_OLD or OPENDOC
@@ -84,8 +134,11 @@ public class MIMEUtils
         return false;
     }
 
-    public static void main (String[] args)
+    public static void main (String[] args) throws Exception
     {
+        for (String file : args) {
+            System.out.println ("The MIME type of file " + file + " is: " + getMIMEType (new File (file)));
+        }
         ArrayList<String> strings = new ArrayList<String>();
 
         strings.add ("application/vnd.openxmlformats-officedocument.wordprocessingml.document");

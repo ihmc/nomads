@@ -2,7 +2,7 @@
  * SecureReader.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,7 +18,9 @@
  */
 
 #include "SecureReader.h"
-
+#ifdef WIN32
+    #include <winsock2.h>
+#endif
 #include "openssl/des.h"
 #include "openssl/err.h"
 #include "openssl/rsa.h"

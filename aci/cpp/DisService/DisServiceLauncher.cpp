@@ -2,7 +2,7 @@
  * DisServiceLauncher.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,6 +30,10 @@
 #include <signal.h>
 #include <sys/stat.h>
 
+#ifdef UNIX
+    #include "SigFaultHandler.h"
+#endif
+
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
@@ -40,6 +44,11 @@ Mutex _m;
 
 int main (int argc, char *argv[])
 {
+    const String execName (argv[0]);
+    #ifdef UNIX
+        SigFaultHandler handler (execName);
+    #endif
+
     _m.lock();
     _terminated = false;
     _m.unlock();
@@ -167,4 +176,5 @@ void sigIntHandler (int sig)
     _m.lock();
     _terminated = true;
     _m.unlock();
+    exit(0);
 }

@@ -33,7 +33,6 @@
 #include "Mutex.h"
 #include "StrClass.h"
 
-
 namespace NOMADSUtil
 {
     class UDPDatagramSocket;

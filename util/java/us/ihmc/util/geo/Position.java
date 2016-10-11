@@ -2,7 +2,7 @@
  * Position.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -43,6 +43,21 @@ public final class Position
     {
         _latitude = latitude;
         _longitude = longitude;
+        _elevation = BigDecimal.valueOf (0);
+    }
+
+    /**
+     * Constructor for <code>Position</code>
+     *
+     * @param latitude  <code>BigDecimal</code> representation of the latitude value
+     * @param longitude <code>BigDecimal</code> representation of the longitude value
+     * @param elevation <code>BigDecimal</code> representation of the elevation value
+     */
+    public Position (BigDecimal latitude, BigDecimal longitude, BigDecimal elevation)
+    {
+        _latitude = latitude;
+        _longitude = longitude;
+        _elevation = elevation;
     }
 
     /**
@@ -55,6 +70,7 @@ public final class Position
     {
         _latitude = new BigDecimal(latitude);
         _longitude = new BigDecimal(longitude);
+        _elevation = BigDecimal.valueOf (0);
     }
 
     /**
@@ -75,6 +91,16 @@ public final class Position
     public BigDecimal getLongitude ()
     {
         return _longitude;
+    }
+
+    /**
+     * Gets the elevation of this Position's object
+     *
+     * @return a BigDecimal reference representing elevation
+     */
+    public BigDecimal getElevation()
+    {
+        return _elevation;
     }
 
     @Override
@@ -112,11 +138,14 @@ public final class Position
         sb.append(_latitude.doubleValue());
         sb.append(separator);
         sb.append(_longitude.doubleValue());
+        sb.append(separator);
+        sb.append(_elevation.doubleValue());
         return sb.toString().trim();
     }
 
     private final BigDecimal _latitude;
     private final BigDecimal _longitude;
+    private final BigDecimal _elevation;
 
     public final static String separator = ",";
     public final static double SAMPLE_LATITUDE = 21.44688;

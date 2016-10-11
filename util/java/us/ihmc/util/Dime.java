@@ -2,7 +2,7 @@
  * Dime.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,61 +22,94 @@
  *
  * @author      Marco Arguedas      <marguedas@ihmc.us>
  *
- * @version     $Revision: 1.11 $
- *              $Date: 2014/11/07 17:58:06 $
+ * @version     $Revision: 1.21 $
+ *              $Date: 2016/06/09 20:02:46 $
  */
 
 package us.ihmc.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Enumeration;
-import java.util.Vector;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- *
+ * Manages a list of <code>DimeRecord</code> instances
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
 public class Dime
 {
+    /**
+     * Constructor
+     */
     public Dime()
     {
-        _records = new Vector();
-    }
-
-    public Dime (byte[] dimeMsg)
-    {
-        this();
-        this.parseDime (dimeMsg);
-    }
-
-    public Dime (InputStream is) throws IOException
-    {
-        this();
-        this.parseDime (is);
+        _records = new ArrayList<DimeRecord>();
     }
 
     /**
-     *
+     * Creates a dime object by reading and parsing the byte array
+     * @param dimeMsg byte array representation of the dime
      */
-    public boolean addRecord (String payloadType,
-                              byte[] payload,
-                              String payloadIdentifier)
+    public Dime (byte[] dimeMsg)
     {
-        DimeRecord dr = new DimeRecord();
-        dr.setPayload (payload);
-        dr.setID (payloadIdentifier);
-        dr.setType (payloadType);
+        this();
+        parseDime (dimeMsg);
+    }
 
+    /**
+     * Creates a dime object by reading it from the input stream
+     * @param is input stream containing the dime object
+     * @throws IOException if problems occur while reading from the input stream
+     */
+    public Dime (InputStream is) throws IOException
+    {
+        this();
+        parseDime(is);
+    }
+
+    /**
+     * Adds a new record to the dime object
+     * @param payload byte array representation of the payload
+     * @return true if the record is correctly added
+     */
+    public boolean addRecord (byte[] payload)
+    {
+        return addRecord ("", payload, "");
+    }
+
+    /**
+     * Adds a new record to the dime object
+     * @param payloadType payload type
+     * @param payload byte array representation of the payload
+     * @param payloadIdentifier payload identifier
+     * @return true if the record is correctly added
+     */
+    public boolean addRecord (String payloadType, byte[] payload, String payloadIdentifier)
+    {
+        DimeRecord dr = new DimeRecord (payloadType, payload, payloadIdentifier);
         _records.add (dr);
 
         return true;
     }
 
     /**
-     *
+     * Adds a new record to the dime object
+     * @param payloadType payload type
+     * @param payload byte array representation of the payload
+     * @param payloadIdentifier payload identifier
+     * @return true if the record is correctly added
+     */
+    public boolean addRecord (DimeRecord.PayloadType payloadType, byte[] payload, String payloadIdentifier)
+    {
+        DimeRecord dr = new DimeRecord (payloadType, payload, payloadIdentifier);
+        _records.add (dr);
+
+        return true;
+    }
+
+    /**
+     * Writes the dime in the byte array
+     * @param buff byte array where the dime will be written into
+     * @return true if the dime is correctly written in the byte array
      */
     public boolean getDime (byte[] buff)
     {
@@ -84,27 +117,18 @@ public class Dime
             return false;
         }
 
-        DimeRecord dr;
         int index = 0;
 
         //reset the MB and ME flags in all the records.
-        Enumeration en = _records.elements();
-        while (en.hasMoreElements()) {
-            dr = (DimeRecord) en.nextElement();
+        for (DimeRecord dr :  _records) {
             dr.setMessageBeginFlag (false);
             dr.setMessageEndFlag (false);
         }
 
-        // ---
-        dr = (DimeRecord) _records.firstElement();
-        dr.setMessageBeginFlag (true);
+        _records.get (0).setMessageBeginFlag (true);
+        _records.get (_records.size()-1).setMessageEndFlag (true);
 
-        dr = (DimeRecord) _records.lastElement();
-        dr.setMessageEndFlag (true);
-
-        en = _records.elements();
-        while (en.hasMoreElements()) {
-            dr = (DimeRecord) en.nextElement();
+        for (DimeRecord dr :  _records) {
             dr.getRecord (buff, index);
             index += dr.getRecordLength();
         }
@@ -113,7 +137,8 @@ public class Dime
     }
 
     /**
-     *
+     * Gets the dime as byte array
+     * @return the dime as byte array
      */
     public byte[] getDime()
     {
@@ -122,68 +147,86 @@ public class Dime
         }
 
         byte[] buff = new byte[getDimeLength()];
-        this.getDime(buff);
+        getDime (buff);
+
         return buff;
     }
 
     /**
-     *
+     * Writes the dime in the output stream
+     * @param os output stream where the time is written into
+     * @throws IOException if problems occur in writing the dime
      */
-    public void getDime (OutputStream os)
-        throws IOException
+    public void getDime (OutputStream os) throws IOException
     {
         if (_records.isEmpty()) {
             return;
         }
 
-        DimeRecord dr;
-
         //reset the MB and ME flags in all the records.
-        Enumeration en = _records.elements();
-        while (en.hasMoreElements()) {
-            dr = (DimeRecord) en.nextElement();
+        for (DimeRecord dr :  _records) {
             dr.setMessageBeginFlag (false);
             dr.setMessageEndFlag (false);
         }
 
-        // ---
-        dr = (DimeRecord) _records.firstElement();
-        dr.setMessageBeginFlag (true);
+        _records.get (0).setMessageBeginFlag(true);
+        _records.get (_records.size()-1).setMessageEndFlag(true);
 
-        dr = (DimeRecord) _records.lastElement();
-        dr.setMessageEndFlag (true);
-
-        en = _records.elements();
-        while (en.hasMoreElements()) {
-            dr = (DimeRecord) en.nextElement();
+        for (DimeRecord dr :  _records) {
             dr.getRecord (os);
         }
     }
 
     /**
-     *
+     * Gets the dime size as sum of the single records length
+     * @return the dime length as sum of the single records length
      */
     public int getDimeLength()
     {
         int length = 0;
-        Enumeration en = _records.elements();
-        while (en.hasMoreElements()) {
-            DimeRecord dr = (DimeRecord) en.nextElement();
+        for (DimeRecord dr :  _records) {
             length += dr.getRecordLength();
         }
+
         return length;
     }
 
     /**
-     * @return  an Enumeration of DimeRecord objects.
+     * Retrieves all the <code>DimeRecord</code> instances
+     * @return the list of <code>DimeRecord</code>
      */
-    public Enumeration getRecords()
+    public List<DimeRecord> getRecords()
     {
-        return _records.elements();
+        return _records;
     }
 
     /**
-     *
+     * Retrieves the next <code>DimeRecord</code> and updates the records offset
+     * @return the next <code>DimeRecord</code> or null if no more records are present
+     */
+    public DimeRecord getNextRecord()
+    {
+        if (_recordsOffset >= _records.size()) {
+            return null;
+        }
+
+        DimeRecord dimeRecord = _records.get (_recordsOffset);
+        _recordsOffset++;
+
+        return dimeRecord;
+    }
+
+    /**
+     * Resets the records offset
+     */
+    public void resetRecordsOffset()
+    {
+        _recordsOffset = 0;
+    }
+
+    /**
+     * Returns the number of records in the dime
+     * @return the number of records in the dime
      */
     public int getRecordCount()
     {
@@ -191,90 +234,80 @@ public class Dime
     }
 
     /**
-     *
+     * Prints the dime on standard output
      */
     public void print()
     {
-        System.out.println("::: Start of DIME Message :::");
-        System.out.println("::: TotalDime size is " + getDimeLength() + " bytes :::");
+        System.out.println ("::: Start of DIME Message :::");
+        System.out.println ("::: TotalDime size is " + getDimeLength() + " bytes :::");
 
-        Enumeration en = _records.elements();
-        while (en.hasMoreElements()) {
-            DimeRecord dr = (DimeRecord) en.nextElement();
-            System.out.println("..............................................");
+        for (DimeRecord dr :  _records) {
+            System.out.println ("..............................................");
             dr.print();;
         }
 
-        System.out.println("::: End of DIME Message :::");
+        System.out.println ("::: End of DIME Message :::");
     }
 
-    // /////////////////////////////////////////////////////////////////////////
-    // PRIVATE METHODS /////////////////////////////////////////////////////////
-    // /////////////////////////////////////////////////////////////////////////
-
     /**
-     *
+     * Parses the dime contained in the byte array
+     * @param dimeMsg byte array containing the dime
      */
     private void parseDime (byte[] dimeMsg)
     {
-        boolean flagAux;
-        int index = 0;
-        short typeLength, idLength;
-        int dataLength;
-        String strAux;
+        if (dimeMsg == null) {
+            return;
+        }
 
+        int index = 0;
 
         while (true) {
-            DimeRecord dr = new DimeRecord();
-
             //get the MB, ME, CF flags
-            flagAux = (dimeMsg[index + 0] & 0x80) == 0x80;;
-            dr.setMessageBeginFlag (flagAux);
-
-            flagAux = (dimeMsg[index + 0] & 0x40) == 0x40;;
-            dr.setMessageEndFlag (flagAux);
-
-            flagAux = (dimeMsg[index + 0] & 0x20) == 0x20;;
-            dr.setChunkFlag (flagAux);
+            boolean messageBeginFlag = (dimeMsg[index] & 0x80) == 0x80;
+            boolean messageEndFlag = (dimeMsg[index] & 0x40) == 0x40;
+            boolean chunkFlag = (dimeMsg[index] & 0x20) == 0x20;
 
             //get the ID_LENGTH field
-            idLength = ByteArray.byteArrayToShort (dimeMsg, index + 0);
+            short idLength = ByteArray.byteArrayToShort (dimeMsg, index);
             idLength &= 0x1FFF;
 
             //get the TNF field
 
             //get the TYPE_LENGTH field
-            typeLength = ByteArray.byteArrayToShort (dimeMsg, index + 2);
+            short typeLength = ByteArray.byteArrayToShort (dimeMsg, index + 2);
             typeLength &= 0x1FFF;
 
             //get the DATA_LENGTH field
-            dataLength = ByteArray.byteArrayToInt (dimeMsg, index + 4);
+            int dataLength = ByteArray.byteArrayToInt (dimeMsg, index + 4);
 
             // ---
             index += 8;
             // ---
 
             //get the ID field
+            String id = "";
             if (idLength > 0) {
-                strAux = ByteArray.byteArrayToString (dimeMsg, index, idLength);
-                dr.setID (strAux);
+                id = ByteArray.byteArrayToString (dimeMsg, index, idLength);
             }
             index += (idLength % 4 == 0) ? idLength : (idLength + 4 - (idLength % 4));
 
             //get the TYPE field
+            String type = "";
             if (typeLength > 0) {
-                strAux = ByteArray.byteArrayToString (dimeMsg, index, typeLength);
-                dr.setType (strAux);
+                type = ByteArray.byteArrayToString (dimeMsg, index, typeLength);
             }
             index += (typeLength % 4 == 0) ? typeLength : (typeLength + 4 - (typeLength % 4));
 
             //get the PAYLOAD
             byte[] payload = new byte[dataLength];
             System.arraycopy (dimeMsg, index, payload, 0, dataLength);
-            dr.setPayload (payload);
 
             index += (dataLength % 4 == 0) ? dataLength : (dataLength + 4 - (dataLength % 4));
 
+            DimeRecord dr = new DimeRecord (type, payload, id);
+            dr.setMessageBeginFlag (messageBeginFlag);
+            dr.setMessageEndFlag (messageEndFlag);
+            dr.setChunkFlag (chunkFlag);
             _records.add (dr);
 
             if (dr.getMessageEndFlag()) {
@@ -284,72 +317,64 @@ public class Dime
     }
 
     /**
-     *
+     * Parses the dime contained in the byte array
+     * @param is input stream where the dime is read from
+     * @throws IOException if problems occur while reading from the input stream
      */
-    private void parseDime(InputStream is) throws IOException
+    private void parseDime (InputStream is) throws IOException
     {
-        boolean flagAux;
-        short typeLength, idLength;
-        int dataLength;
-        String strAux;
         byte[] buffAux;
-        int padding;
-
 
         while (true) {
-            DimeRecord dr = new DimeRecord();
-
             //read the header.
-            byte[] header = readBytes(is, 8);
+            byte[] header = readBytes (is, 8);
 
             //get the MB, ME, CF flags
-            flagAux = (header[0] & 0x80) == 0x80;
-            dr.setMessageBeginFlag (flagAux);
-
-            flagAux = (header[0] & 0x40) == 0x40;
-            dr.setMessageEndFlag (flagAux);
-
-            flagAux = (header[0] & 0x20) == 0x20;
-            dr.setChunkFlag (flagAux);
+            boolean messageBeginFlag = (header[0] & 0x80) == 0x80;
+            boolean messageEndFlag = (header[0] & 0x40) == 0x40;
+            boolean chunkFlag = (header[0] & 0x20) == 0x20;
 
             //get the ID_LENGTH field
-            idLength = ByteArray.byteArrayToShort (header, 0);
+            short idLength = ByteArray.byteArrayToShort (header, 0);
             idLength &= 0x1FFF;
 
             //get the TNF field
 
             //get the TYPE_LENGTH field
-            typeLength = ByteArray.byteArrayToShort (header, 2);
+            short typeLength = ByteArray.byteArrayToShort (header, 2);
             typeLength &= 0x1FFF;
 
             //get the DATA_LENGTH field
-            dataLength = ByteArray.byteArrayToInt (header, 4);
+            int dataLength = ByteArray.byteArrayToInt (header, 4);
 
             //get the ID field
+            String id = "";
             if (idLength > 0) {
-                buffAux = readBytes(is, idLength);
-                strAux = ByteArray.byteArrayToString (buffAux, 0, idLength);
-                dr.setID (strAux);
+                buffAux = readBytes (is, idLength);
+                id = ByteArray.byteArrayToString (buffAux, 0, idLength);
             }
-            padding = (4 - (idLength % 4)) % 4;
+            int padding = (4 - (idLength % 4)) % 4;
             skipBytes(is, padding);
 
             //get the TYPE field
+            String type = "";
             if (typeLength > 0) {
-                buffAux = readBytes(is, typeLength);
-                strAux = ByteArray.byteArrayToString (buffAux, 0, typeLength);
-                dr.setType (strAux);
+                buffAux = readBytes (is, typeLength);
+                type = ByteArray.byteArrayToString (buffAux, 0, typeLength);
             }
             padding = (4 - (typeLength % 4)) % 4;
-            skipBytes(is, padding);
+            skipBytes (is, padding);
 
             //get the PAYLOAD
-            buffAux = readBytes(is, dataLength);
-            dr.setPayload (buffAux);
+            byte[] payload = readBytes (is, dataLength);
 
             padding = (4 - (dataLength % 4)) % 4;
-            skipBytes(is, padding);
+            skipBytes (is, padding);
 
+            DimeRecord dr = new DimeRecord (type, payload, id);
+            dr.setMessageBeginFlag (messageBeginFlag);
+            dr.setMessageEndFlag (messageEndFlag);
+            dr.setChunkFlag (chunkFlag);
             _records.add (dr);
 
             if (dr.getMessageEndFlag()) {
@@ -359,61 +384,63 @@ public class Dime
     }
 
     /**
-     *
+     * Reads <code>nBytes</code> from the input stream and writes them inside a byte array
+     * @param is input stream where to read from
+     * @param nBytes number of bytes to read
+     * @return the byte array containing the byte read
+     * @throws IOException if problems occur in reading from the input stream
      */
-    private byte[] readBytes(InputStream is, int nBytes) throws IOException
+    private byte[] readBytes (InputStream is, int nBytes) throws IOException
     {
         byte[] res = new byte[nBytes];
         int index = 0;
         int read;
 
         while (index < nBytes) {
-            try {
-                read = is.read(res, index, nBytes - index);
-                if (read < 0) {
-                    throw new IOException("Error reading Dime from InputStream");
-                }
-                index += read;
+            read = is.read (res, index, nBytes - index);
+            if (read < 0) {
+                throw new IOException ("Error reading Dime from InputStream");
             }
-            catch (IOException ex) {
-                throw ex;
-            }
+            index += read;
         }
 
         return res;
     }
 
     /**
-     *
+     * Skips <code>nBytes</code> from the input stream
+     * @param is input stream where to skip the bytes
+     * @param nBytes number of bytes to skip
      */
-    private void skipBytes(InputStream is, int nBytes)
+    private void skipBytes (InputStream is, int nBytes)
     {
         if (nBytes <= 0) {
             return;
         }
 
         try {
-            is.skip(nBytes);
-        } catch (Exception ex) {
-            ex.printStackTrace();
+            is.skip (nBytes);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    // /////////////////////////////////////////////////////////////////////////
-    private Vector _records;
 
-    // /////////////////////////////////////////////////////////////////////////
-    // MAIN METHOD - for testing purposes //////////////////////////////////////
-    // /////////////////////////////////////////////////////////////////////////
+    private final List<DimeRecord> _records;
+    private int _recordsOffset = 0;
+
+
+
     public static void main(String[] args)
     {
         Dime dime = new Dime();
-        byte[] payload = new String("this is the payload").getBytes();
+        byte[] payload = "this is the payload".getBytes();
 
-        dime.addRecord("payloadType", payload, "-payloadID-)");
+        dime.addRecord ("payloadType", payload, "-payloadID-)");
 
-        payload = new String("---2this is the payload2---").getBytes();
-        dime.addRecord("payloadType2", payload, "-payloadID2-)");
+        payload = "---2this is the payload2---".getBytes();
+        dime.addRecord ("payloadType2", payload, "-payloadID2-)");
 
 //        System.out.println("Dime Length is : " + dime.getDimeLength());
         byte[] buff = dime.getDime();
@@ -423,8 +450,9 @@ public class Dime
 
 //        dime = new Dime(buff);
         try {
-            dime = new Dime(bais);
-        } catch (IOException e) {
+            dime = new Dime (bais);
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
         dime.print();

@@ -2,7 +2,7 @@
  * DisServiceMsg.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,18 +19,14 @@
 
 #include "DisServiceMsg.h"
 
-#include "DisseminationService.h"
 #include "DisServiceDataCacheQuery.h"
 #include "DisServiceDefs.h"
 #include "DisServiceMsgHelper.h"
 #include "Message.h"
 #include "MessageInfo.h"
 #include "MessageRequestScheduler.h"
-#include "NodeInfo.h"
-#include "SQLMessageHeaderStorage.h"
 #include "Subscription.h"
 #include "RangeDLList.h"
-#include "WorldState.h"
 
 #include "BufferReader.h"
 #include "InstrumentedWriter.h"
@@ -4122,27 +4118,25 @@ int SearchMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
 // SearchReplyMsg
 //==============================================================================
 
-SearchReplyMsg::SearchReplyMsg()
-    : DisServiceCtrlMsg (DSMT_SearchMsgReply)
+BaseSearchReplyMsg::BaseSearchReplyMsg (Type type)
+    : DisServiceCtrlMsg (type)
 {
     _pszQueryId = NULL;
     _pszQuerier = NULL;
     _pszQueryType = NULL;
-    _ppszMatchingIds = NULL;
     _pszMatchingNode = NULL;
 }
 
-SearchReplyMsg::SearchReplyMsg (const char *pszSenderNodeId, const char *pszTargetNodeId)
-    : DisServiceCtrlMsg (DSMT_SearchMsgReply, pszSenderNodeId, pszTargetNodeId)
+BaseSearchReplyMsg::BaseSearchReplyMsg (Type type, const char *pszSenderNodeId, const char *pszTargetNodeId)
+    : DisServiceCtrlMsg (type, pszSenderNodeId, pszTargetNodeId)
 {
     _pszQueryId = NULL;
     _pszQuerier = NULL;
     _pszQueryType = NULL;
-    _ppszMatchingIds = NULL;
     _pszMatchingNode = NULL;
 }
 
-SearchReplyMsg::~SearchReplyMsg (void)
+BaseSearchReplyMsg::~BaseSearchReplyMsg (void)
 {
     if (_pszQueryId != NULL) {
         free (_pszQueryId);
@@ -4156,47 +4150,33 @@ SearchReplyMsg::~SearchReplyMsg (void)
         free (_pszQueryType);
         _pszQueryType = NULL;
     }
-    if (_ppszMatchingIds != NULL) {
-        for (unsigned int i = 0; _ppszMatchingIds[i] != NULL; i++) {
-            char *psztmp = _ppszMatchingIds[i];
-            free (psztmp);
-            _ppszMatchingIds[i] = NULL;
-        }
-        free (_ppszMatchingIds);
-        _ppszMatchingIds = NULL;
-    }
     if (_pszMatchingNode != NULL) {
         free (_pszMatchingNode);
         _pszMatchingNode = NULL;
     }
 }
 
-const char * SearchReplyMsg::getQueryId (void) const
+const char * BaseSearchReplyMsg::getQueryId (void) const
 {
     return _pszQueryId;
 }
 
-const char * SearchReplyMsg::getQuerier (void) const
+const char * BaseSearchReplyMsg::getQuerier (void) const
 {
     return _pszQuerier;
 }
 
-const char * SearchReplyMsg::getQueryType (void) const
+const char * BaseSearchReplyMsg::getQueryType (void) const
 {
     return _pszQueryType;
 }
 
-const char ** SearchReplyMsg::getMatchingMsgIds (void) const
-{
-    return (const char **)_ppszMatchingIds;
-}
-
-const char * SearchReplyMsg::getMatchingNode (void) const
+const char * BaseSearchReplyMsg::getMatchingNode (void) const
 {
     return _pszMatchingNode;
 }
 
-int SearchReplyMsg::setQueryId (const char *pszQueryId)
+int BaseSearchReplyMsg::setQueryId (const char *pszQueryId)
 {
     if (pszQueryId == NULL) {
         return -1;
@@ -4205,7 +4185,7 @@ int SearchReplyMsg::setQueryId (const char *pszQueryId)
     return 0;
 }
 
-int SearchReplyMsg::setQuerier (const char *pszQuerier)
+int BaseSearchReplyMsg::setQuerier (const char *pszQuerier)
 {
     if (pszQuerier == NULL) {
         return -1;
@@ -4214,7 +4194,7 @@ int SearchReplyMsg::setQuerier (const char *pszQuerier)
     return 0;
 }
 
-int SearchReplyMsg::setQueryType (const char *pszQueryType)
+int BaseSearchReplyMsg::setQueryType (const char *pszQueryType)
 {
     if (pszQueryType == NULL) {
         return -1;
@@ -4223,25 +4203,7 @@ int SearchReplyMsg::setQueryType (const char *pszQueryType)
     return 0;
 }
 
-int SearchReplyMsg::setMatchingMsgIds (const char **ppszMatchingIds)
-{
-    if (ppszMatchingIds == NULL) {
-        return -1;
-    }
-
-    unsigned int i = 0;
-    for (; ppszMatchingIds[i] != NULL; i++);
-
-    _ppszMatchingIds = (char **) calloc (i+1, sizeof (char*));
-    for (unsigned int i = 0; ppszMatchingIds[i] != NULL; i++) {
-        _ppszMatchingIds[i] = strDup (ppszMatchingIds[i]);
-    }
-    _ppszMatchingIds[i] = NULL;
-
-    return 0;
-}
-
-int SearchReplyMsg::setMatchingNode (const char *pszMatchingNode)
+int BaseSearchReplyMsg::setMatchingNode (const char *pszMatchingNode)
 {
     if (pszMatchingNode == NULL) {
         return -1;
@@ -4250,7 +4212,7 @@ int SearchReplyMsg::setMatchingNode (const char *pszMatchingNode)
     return 0;
 }
 
-int SearchReplyMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
+int BaseSearchReplyMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
 {
     if (pReader == NULL) {
         return -1;
@@ -4309,30 +4271,6 @@ int SearchReplyMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
         return -11;
     }
 
-    unsigned int uiCount = 0;
-    pReader->read16 (&uiCount);
-    if (uiCount == 0) {
-        _ppszMatchingIds = NULL;
-    }
-    else {
-        _ppszMatchingIds = (char **) calloc (uiCount+1, sizeof (char*));
-        if (_ppszMatchingIds == NULL) {
-            return -12;
-        }
-        for (unsigned int i = 0; i < uiCount; i++) {
-            uint16 ui16 = 0;
-            pReader->read16 (&ui16);
-            if (ui16 > 0) {
-                _ppszMatchingIds[i] = (char *) calloc (ui16+1, sizeof (char));
-                if (_ppszMatchingIds[i] != NULL) {
-                    pReader->readBytes (_ppszMatchingIds[i], ui16);
-                    _ppszMatchingIds[i][ui16] = '\0';
-                }
-            }
-        }
-        _ppszMatchingIds[uiCount] = NULL;
-    }
-
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             _pszMatchingNode = (char *) calloc (ui16+1, sizeof (char));
@@ -4352,7 +4290,7 @@ int SearchReplyMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
     return 0;
 }
 
-int SearchReplyMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
+int BaseSearchReplyMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
 {
     if (pWriter == NULL) {
         return -1;
@@ -4386,6 +4324,114 @@ int SearchReplyMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
         return -8;
     }
 
+    ui16 = _pszMatchingNode == NULL ? 0 : strlen (_pszMatchingNode);
+    if (pWriter->write16 (&ui16) < 0) {
+        return -7;
+    }
+    if (ui16 > 0 && pWriter->writeBytes (_pszMatchingNode, ui16) < 0) {
+        return -8;
+    }
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+SearchReplyMsg::SearchReplyMsg (void)
+    : BaseSearchReplyMsg (DSMT_SearchMsgReply),
+      _ppszMatchingIds (NULL)
+{
+}
+
+SearchReplyMsg::SearchReplyMsg (const char *pszSenderNodeId, const char *pszTargetNodeId)
+    : BaseSearchReplyMsg (DSMT_SearchMsgReply, pszSenderNodeId, pszTargetNodeId),
+      _ppszMatchingIds (NULL)
+{
+}
+
+SearchReplyMsg::~SearchReplyMsg (void)
+{
+    if (_ppszMatchingIds != NULL) {
+        for (unsigned int i = 0; _ppszMatchingIds[i] != NULL; i++) {
+            char *psztmp = _ppszMatchingIds[i];
+            free (psztmp);
+            _ppszMatchingIds[i] = NULL;
+        }
+        free (_ppszMatchingIds);
+        _ppszMatchingIds = NULL;
+    }
+}
+
+const char ** SearchReplyMsg::getMatchingMsgIds (void) const
+{
+    return (const char **) _ppszMatchingIds;
+}
+
+int SearchReplyMsg::setMatchingMsgIds (const char **ppszMatchingIds)
+{
+    if (ppszMatchingIds == NULL) {
+        return -1;
+    }
+
+    unsigned int i = 0;
+    for (; ppszMatchingIds[i] != NULL; i++);
+
+    _ppszMatchingIds = static_cast<char **>(calloc (i + 1, sizeof (char*)));
+    for (i = 0; ppszMatchingIds[i] != NULL; i++) {
+        _ppszMatchingIds[i] = strDup (ppszMatchingIds[i]);
+    }
+    _ppszMatchingIds[i] = NULL;
+
+    return 0;
+}
+
+int SearchReplyMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
+{
+    if (pReader == NULL) {
+        return -1;
+    }
+
+    if (BaseSearchReplyMsg::read (pReader, ui32MaxSize) != 0) {
+        return -2;
+    }
+
+    unsigned int uiCount = 0;
+    pReader->read16 (&uiCount);
+    if (uiCount == 0) {
+        _ppszMatchingIds = NULL;
+    }
+    else {
+        _ppszMatchingIds = (char **) calloc (uiCount + 1, sizeof (char*));
+        if (_ppszMatchingIds == NULL) {
+            return -12;
+        }
+        for (unsigned int i = 0; i < uiCount; i++) {
+            uint16 ui16 = 0;
+            pReader->read16 (&ui16);
+            if (ui16 > 0) {
+                _ppszMatchingIds[i] = static_cast<char *>(calloc (ui16 + 1, sizeof (char)));
+                if (_ppszMatchingIds[i] != NULL) {
+                    pReader->readBytes (_ppszMatchingIds[i], ui16);
+                    _ppszMatchingIds[i][ui16] = '\0';
+                }
+            }
+        }
+        _ppszMatchingIds[uiCount] = NULL;
+    }
+
+    return 0;
+}
+
+int SearchReplyMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
+{
+    if (pWriter == NULL) {
+        return -1;
+    }
+
+    if (BaseSearchReplyMsg::write (pWriter, ui32MaxSize) != 0) {
+        return -2;
+    }
+
     if (_ppszMatchingIds != NULL) {
         unsigned int uiCount = 0;
         for (; _ppszMatchingIds[uiCount] != NULL; uiCount++);
@@ -4400,20 +4446,103 @@ int SearchReplyMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
         }
     }
     else {
-        ui16 = 0;
+        uint16 ui16 = 0;
         pWriter->write16 (&ui16);
-    }
-
-    ui16 = _pszMatchingNode == NULL ? 0 : strlen (_pszMatchingNode);
-    if (pWriter->write16 (&ui16) < 0) {
-        return -7;
-    }
-    if (ui16 > 0 && pWriter->writeBytes (_pszMatchingNode, ui16) < 0) {
-        return -8;
     }
 
     return 0;
 }
+
+//-----------------------------------------------------------------------------
+
+VolatileSearchReplyMsg::VolatileSearchReplyMsg (void)
+    : BaseSearchReplyMsg (DSMT_VolatileSearchMsgReply),
+      _ui16ReplyLen (0), _pReply (NULL)
+{
+}
+
+VolatileSearchReplyMsg::VolatileSearchReplyMsg (const char *pszSenderNodeId, const char *pszTargetNodeId)
+    : BaseSearchReplyMsg (DSMT_VolatileSearchMsgReply, pszSenderNodeId, pszTargetNodeId),
+      _ui16ReplyLen (0), _pReply (NULL)
+{
+}
+
+VolatileSearchReplyMsg::~VolatileSearchReplyMsg (void)
+{
+    if (_pReply != NULL) {
+        free (_pReply);
+        _pReply = NULL;
+    }
+    _ui16ReplyLen = 0;
+}
+
+const void * VolatileSearchReplyMsg::getReply (uint16 &ui16ReplyLen) const
+{
+    ui16ReplyLen = _ui16ReplyLen;
+    return _pReply;
+}
+
+int VolatileSearchReplyMsg::setReply (const void *pReply, uint16 ui16ReplyLen)
+{
+    if (pReply == NULL || ui16ReplyLen == 0) {
+        return -1;
+    }
+    _pReply = malloc (ui16ReplyLen);
+    if (_pReply == NULL) {
+        return -2;
+    }
+    _ui16ReplyLen = ui16ReplyLen;    
+    memcpy (_pReply, pReply, ui16ReplyLen);
+    return 0;
+}
+
+int VolatileSearchReplyMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
+{
+    if (pReader == NULL) {
+        return -1;
+    }
+
+    if (BaseSearchReplyMsg::read (pReader, ui32MaxSize) != 0) {
+        return -2;
+    }
+
+    if (pReader->read16 (&_ui16ReplyLen) < 0) {
+        return -3;
+    }
+    if (_ui16ReplyLen == 0) {
+        return 0;
+    }
+    _pReply = malloc (_ui16ReplyLen);
+    if (_pReply == NULL) {
+        return -2;
+    }
+    if ((_ui16ReplyLen > 0) && (pReader->readBytes (_pReply, _ui16ReplyLen) < 0)) {
+        return -4;
+    }
+
+    return 0;
+}
+
+int VolatileSearchReplyMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
+{
+    if (pWriter == NULL) {
+        return -1;
+    }
+
+    if (BaseSearchReplyMsg::write (pWriter, ui32MaxSize) != 0) {
+        return -2;
+    }
+
+    if (_ui16ReplyLen <= 0 || pWriter->write16 (&_ui16ReplyLen) < 0) {
+        return -3;
+    }
+    if (pWriter->writeBytes (_pReply, _ui16ReplyLen) < 0) {
+        return -4;
+    }
+
+    return 0;
+}
+
 
 //==============================================================================
 // DisServiceImprovedSubscriptionStateMsg 

@@ -1,0 +1,654 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Source Files\awareness">
+      <UniqueIdentifier>{894f6d94-175f-44fe-82ce-320012cda566}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\comm">
+      <UniqueIdentifier>{f56b89d4-9f82-4400-96ba-f0e0dcbef0e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\comm\disservice">
+      <UniqueIdentifier>{0b3b5da5-f701-4f89-b5bd-f940fc2e4cab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\comm">
+      <UniqueIdentifier>{71a24398-263a-4c5a-9c1f-c68cc090965b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\comm\disservice">
+      <UniqueIdentifier>{1a40386c-7f17-46d1-9c10-af781a0523c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\proxy">
+      <UniqueIdentifier>{79602cf7-c1d8-4bd1-baf2-89f966032b9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\proxy">
+      <UniqueIdentifier>{7ea47a31-235f-4f7d-a38b-abe327567c70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ranking">
+      <UniqueIdentifier>{5bdbf4bf-e4d0-42dc-ac92-4621c4765473}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ranking">
+      <UniqueIdentifier>{1f56f1c3-f561-4928-a204-0e48d9609363}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\scheduler">
+      <UniqueIdentifier>{5603896f-929a-46d4-8e68-e15b1738a679}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\scheduler">
+      <UniqueIdentifier>{989018aa-a930-467f-b0fe-ae347ba05d01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\storage">
+      <UniqueIdentifier>{72a13f60-1846-4a7b-b371-53ff5057fda5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\storage">
+      <UniqueIdentifier>{d734ee4a-c46f-4109-ab2f-fae338629342}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\comm\mockets">
+      <UniqueIdentifier>{175c7d51-2ef2-4d0a-b32e-3aeced6369ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\comm\mockets">
+      <UniqueIdentifier>{eac0d9a6-d8a0-44a3-81af-210e14452704}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\controllers">
+      <UniqueIdentifier>{bafc7a41-bfef-45f2-8bef-47124c83c385}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\controllers\query">
+      <UniqueIdentifier>{6e7f3276-0b9c-4b6c-9090-6c82c3916366}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\controllers">
+      <UniqueIdentifier>{c4300546-ab24-4365-97bf-38dd87ddace0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\controllers\query">
+      <UniqueIdentifier>{7e359912-8062-41ae-8310-b190a60702f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\controllers\forwarding">
+      <UniqueIdentifier>{55c57b77-8d87-49ad-8c8e-1185e5e0b4ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\controllers\forwarding">
+      <UniqueIdentifier>{b90eff9e-5ba2-47d7-b24e-ae0ad4dc52a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\comm\tcp">
+      <UniqueIdentifier>{592c4e2d-bd7e-4eaa-a90f-1c1bc415f130}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\awareness">
+      <UniqueIdentifier>{8b0d4d9d-3856-4878-b9b4-c362e3b75990}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\comm\tcp">
+      <UniqueIdentifier>{61e64ab1-e13c-4de2-ad8f-57ae2e31605f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\awareness\Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Classification.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CommAdaptorManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DSPro.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DSProListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\InformationPull.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\InformationPush.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\InformationPushPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Instrumentator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MatchmakingLogListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MessageHeaders.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MessageIdGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MetadataGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\UserRequests.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\C45LocalNodeContext.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\LocalNodeContext.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\NodeContextManager.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\NonClassifyingLocalNodeContext.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\PeerNodeContext.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\PositionUpdater.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\Targets.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\Topology.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\CommAdaptor.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\disservice\DisServiceAdaptor.h">
+      <Filter>Header Files\comm\disservice</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\disservice\DSProMessage.h">
+      <Filter>Header Files\comm\disservice</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\DSProProxy.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\DSProProxyAdaptor.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\DSProProxyServer.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\Defs.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\DSLib.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MatchmakingIntrumentation.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetaData.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetadataConfiguration.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetaDataRanker.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\NodeContext.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\NodePath.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\Path.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\Pedigree.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\SQLAVList.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scheduler\Scheduler.h">
+      <Filter>Header Files\scheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scheduler\SchedulerGeneratedMetadata.h">
+      <Filter>Header Files\scheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scheduler\SchedulerPolicies.h">
+      <Filter>Header Files\scheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\storage\DataStore.h">
+      <Filter>Header Files\storage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\storage\InformationStore.h">
+      <Filter>Header Files\storage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\WaypointMessageHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\mockets\MocketConnHandler.h">
+      <Filter>Header Files\comm\mockets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\mockets\MocketsAdaptor.h">
+      <Filter>Header Files\comm\mockets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\ConnHandler.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\mockets\MocketConnListener.h">
+      <Filter>Header Files\comm\mockets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scheduler\MessageRequestServer.h">
+      <Filter>Header Files\scheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ControlMessageListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ControlMessageNotifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\MessageProperties.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\storage\StorageController.h">
+      <Filter>Header Files\storage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\CommAdaptorListenerNotifier.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\CommAdaptorListener.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\SearchProperties.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\query\ApplicationQueryController.h">
+      <Filter>Header Files\controllers\query</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\query\DisServiceQueryController.h">
+      <Filter>Header Files\controllers\query</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\query\DSProQueryController.h">
+      <Filter>Header Files\controllers\query</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\query\QueryController.h">
+      <Filter>Header Files\controllers\query</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DSProServices.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\query\QueryQualifierBuilder.h">
+      <Filter>Header Files\controllers\query</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\mockets\TagGenerator.h">
+      <Filter>Header Files\comm\mockets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\AdaptorProperties.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MatchmakingQualifier.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MessageForwardingPolicy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetadataInterface.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MatchMakingPolicies.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetadataRankerConfiguration.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\Rank.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\RankFactory.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MatchmakingHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\SessionIdChecker.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\forwarding\MessageForwardingController.h">
+      <Filter>Header Files\controllers\forwarding</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scheduler\SchedulerCache.h">
+      <Filter>Header Files\scheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\mockets\MocketsEndPoint.h">
+      <Filter>Header Files\comm\mockets</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\tcp\TCPAdaptor.h">
+      <Filter>Header Files\comm\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\tcp\TCPConnHandler.h">
+      <Filter>Header Files\comm\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\tcp\TCPConnListener.h">
+      <Filter>Header Files\comm\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\tcp\TCPEndPoint.h">
+      <Filter>Header Files\comm\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\ConnCommAdaptor.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\ConnListener.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\ConnEndPoint.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DSProCmdProcessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\PreviousMessageIds.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\NodeIdSet.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\BoundingBox.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\CustumPolicy.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\Match.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\query\ChunkQuery.h">
+      <Filter>Header Files\controllers\query</Filter>
+    </ClInclude>
+    <ClInclude Include="..\controllers\query\ChunkQueryController.h">
+      <Filter>Header Files\controllers\query</Filter>
+    </ClInclude>
+    <ClInclude Include="..\storage\Publisher.h">
+      <Filter>Header Files\storage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\scheduler\IterableStringHashtable.h">
+      <Filter>Header Files\scheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DSProImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CallbackHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\RankByTargetMap.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DSProUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\CommAdaptorManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DSPro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\InformationPull.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\InformationPush.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\InformationPushPolicy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Instrumentator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MessageHeaders.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MessageIdGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MetadataGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\UserRequests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\C45LocalNodeContext.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\LocalNodeContext.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\NodeContextManager.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\NonClassifyingLocalNodeContext.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\PeerNodeContext.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\PositionUpdater.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\Topology.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\CommAdaptor.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\disservice\DisServiceAdaptor.cpp">
+      <Filter>Source Files\comm\disservice</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\disservice\DSProMessage.cpp">
+      <Filter>Source Files\comm\disservice</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\DSProProxy.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\DSProProxyAdaptor.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\DSProProxyServer.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\DSLib.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MatchmakingIntrumentation.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetaData.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetadataConfiguration.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetaDataRanker.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\NodeContext.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\NodePath.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\Path.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\Pedigree.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\SQLAVList.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scheduler\Scheduler.cpp">
+      <Filter>Source Files\scheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scheduler\SchedulerGeneratedMetadata.cpp">
+      <Filter>Source Files\scheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scheduler\SchedulerPolicies.cpp">
+      <Filter>Source Files\scheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\storage\DataStore.cpp">
+      <Filter>Source Files\storage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\storage\InformationStore.cpp">
+      <Filter>Source Files\storage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WaypointMessageHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\mockets\MocketConnHandler.cpp">
+      <Filter>Source Files\comm\mockets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\mockets\MocketsAdaptor.cpp">
+      <Filter>Source Files\comm\mockets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\ConnHandler.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\mockets\MocketConnListener.cpp">
+      <Filter>Source Files\comm\mockets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scheduler\MessageRequestServer.cpp">
+      <Filter>Source Files\scheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ControlMessageNotifier.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\Targets.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\storage\StorageController.cpp">
+      <Filter>Source Files\storage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\CommAdaptorListenerNotifier.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\SearchProperties.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\query\ApplicationQueryController.cpp">
+      <Filter>Source Files\controllers\query</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\query\DisServiceQueryController.cpp">
+      <Filter>Source Files\controllers\query</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\query\DSProQueryController.cpp">
+      <Filter>Source Files\controllers\query</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\query\QueryController.cpp">
+      <Filter>Source Files\controllers\query</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\query\QueryQualifierBuilder.cpp">
+      <Filter>Source Files\controllers\query</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\mockets\TagGenerator.cpp">
+      <Filter>Source Files\comm\mockets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MatchmakingQualifier.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MessageForwardingPolicy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetadataInterface.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MatchMakingPolicies.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetadataRankerConfiguration.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\RankFactory.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MatchmakingHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\SessionIdChecker.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\forwarding\MessageForwardingController.cpp">
+      <Filter>Source Files\controllers\forwarding</Filter>
+    </ClCompile>
+    <ClCompile Include="..\scheduler\SchedulerCache.cpp">
+      <Filter>Source Files\scheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\mockets\MocketsEndPoint.cpp">
+      <Filter>Source Files\comm\mockets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\ConnListener.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\tcp\TCPAdaptor.cpp">
+      <Filter>Source Files\comm\tcp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\tcp\TCPConnHandler.cpp">
+      <Filter>Source Files\comm\tcp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\tcp\TCPConnListener.cpp">
+      <Filter>Source Files\comm\tcp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\tcp\TCPEndPoint.cpp">
+      <Filter>Source Files\comm\tcp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\ConnCommAdaptor.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DSProCmdProcessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\NodeIdSet.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\Rank.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\BoundingBox.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\CustomPolicies.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\Match.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\query\ChunkQuery.cpp">
+      <Filter>Source Files\controllers\query</Filter>
+    </ClCompile>
+    <ClCompile Include="..\controllers\query\ChunkQueryController.cpp">
+      <Filter>Source Files\controllers\query</Filter>
+    </ClCompile>
+    <ClCompile Include="..\storage\Publisher.cpp">
+      <Filter>Source Files\storage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DSProImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CallbackHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DSProServices.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\RankByTargetMap.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DSProListener.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\AdaptorProperties.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DSProUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

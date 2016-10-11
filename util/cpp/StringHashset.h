@@ -2,7 +2,7 @@
  * StringHashset.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -137,8 +137,10 @@ namespace NOMADSUtil
             virtual bool remove (const char *pszKey);
 
             void removeAll (void);
+            void removeAll (StringHashset &set);
 
             bool containsKey (const char *pszKey) const;
+            bool containsKeyWild (const char *pszKey);
 
             // Returns the size of the hashset (not the number of elements in
             // the hashset)
@@ -273,6 +275,23 @@ namespace NOMADSUtil
                 if (keycomp (pszKey, pHTE->pszKey) == 0) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    inline bool StringHashset::containsKeyWild (const char *pszKey)
+    {
+        if (pszKey == NULL) {
+            return false;
+        }
+        if (containsKey (pszKey)) {
+            return true;
+        }
+        for (Iterator iter = getAllElements(); !iter.end(); iter.nextElement()) {
+            if (wildcardStringCompare (iter.getKey(), pszKey) ||
+                wildcardStringCompare (pszKey, iter.getKey())) {
+                return true;
             }
         }
         return false;

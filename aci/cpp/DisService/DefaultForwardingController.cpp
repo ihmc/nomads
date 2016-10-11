@@ -2,7 +2,7 @@
  * DefaultForwardingController.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -230,7 +230,7 @@ void DefaultForwardingController::doProbabilisticForwardingCtrlMsg (DisServiceCt
                         "getSenderNodeId() returned NULL - cannot handle\n");
         return;
     }
-    else if (0 != stricmp (pszOriginatorNodeId, _pDisService->getNodeId())) {
+    if (0 != stricmp (pszOriginatorNodeId, _pDisService->getNodeId())) {
         // This message did not originate here
         char *pszMsgId = (char*) calloc (strlen(pszOriginatorNodeId) + 1 + 10 + 1, sizeof (char));
         sprintf (pszMsgId, "%s:%u", pszOriginatorNodeId, pDSCtrlMsg->getCtrlMsgSeqNo());

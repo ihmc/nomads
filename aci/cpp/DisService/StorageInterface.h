@@ -2,7 +2,7 @@
  * StorageInterface.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,8 +44,7 @@ namespace IHMC_ACI
     class StorageInterface
     {
         public:
-            StorageInterface (void);
-            StorageInterface (const char *pszStorageFile);
+            explicit StorageInterface (const char *pszStorageFile);
             virtual ~StorageInterface (void);
 
             virtual int init (void) = 0;
@@ -72,6 +71,7 @@ namespace IHMC_ACI
             virtual NOMADSUtil::PtrLList<MessageHeader> * getMsgInfo (DisServiceDataCacheQuery *pQuery) = 0;
 
             virtual char ** getDisseminationServiceIds (const char *pszObjectId, const char *pszInstanceId) = 0;
+            virtual void * getAnnotationMetadata (const char *pszGroupName, const char *pszSenderNodeId, uint32 ui32MsgSeqId, uint32 &ui32Len) = 0;
 
             /**
              * Returns the list of messages that have not been previously replicated to the specified target
@@ -125,6 +125,7 @@ namespace IHMC_ACI
                                                                                 uint32 ui32StartOffset, uint32 ui32EndOffset)=0;
             virtual NOMADSUtil::PtrLList<MessageHeader> * getCompleteChunkMessageInfos (const char *pszGroupName, const char *pszPublisherNodeId,
                                                                                         uint32 ui32MsgSeqId) = 0;
+            virtual NOMADSUtil::PtrLList<MessageHeader> * getAnnotationsOnMsgMessageInfos (const char *pszAnnotatedObjMsgId) = 0;
 
             // Returns the message ids of those messages whose fragments are present in storage
             virtual NOMADSUtil::PtrLList<MessageId> * getMessageIdsForFragments (void) = 0;

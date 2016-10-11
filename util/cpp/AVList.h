@@ -13,11 +13,20 @@
  * first. For example, if it is known that 100 elements are to be inserted it is
  * possible to set the initial size to 100.
  *
- * This file is part of the IHMC Utility Library
- * Copyright (c) IHMC. All Rights Reserved.
+ * This file is part of the IHMC Util Library
+ * Copyright (c) 1993-2016 IHMC.
  *
- * Usage restricted to not-for-profit use only.
- * Contact IHMC for other types of licenses.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 3 (GPLv3) as published by the Free Software Foundation.
+ *
+ * U.S. Government agencies and organizations may redistribute
+ * and/or modify this program under terms equivalent to
+ * "Government Purpose Rights" as defined by DFARS 
+ * 252.227-7014(a)(12) (February 2014).
+ *
+ * Alternative licenses that allow for use within commercial products may be
+ * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
  * authors : Silvia Rota                 srota@ihmc.us
  *           Giacomo Benincasa           gbenincasa@ihmc.us
@@ -33,14 +42,12 @@ namespace NOMADSUtil
     class AVList
     {
         public:
-            AVList (void);
-
             /**
              * Allocate an initial size for the array.
              *
              * @param initialSize
              */
-            AVList (unsigned int uiInitialSize);
+            explicit AVList (unsigned int uiInitialSize = 0U);
             virtual ~AVList (void);
 
             /**

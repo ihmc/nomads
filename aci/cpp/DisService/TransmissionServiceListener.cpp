@@ -2,7 +2,7 @@
  * TransmissionServiceListener.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -49,64 +49,30 @@ extern Logger *pDataMsgLog;
 
 TransmissionServiceListener::TransmissionServiceListener (DisseminationService *pDisService, DataRequestHandler *pDataReqHandler,
                                                           LocalNodeInfo *pLocalNodeInfo, MessageReassembler *pMsgReassembler,
-                                                          SubscriptionState *pSubState, bool bTargetFilteringEnabled)
-    : _m (28)
-{
-    construct (pDisService, pDataReqHandler, pLocalNodeInfo, pMsgReassembler,
-               pSubState, NULL, bTargetFilteringEnabled);
-}
-
-TransmissionServiceListener::TransmissionServiceListener (DisseminationService *pDisService, DataRequestHandler *pDataReqHandler,
-                                                          LocalNodeInfo *pLocalNodeInfo, MessageReassembler *pMsgReassembler,
                                                           SubscriptionState *pSubState, NetworkTrafficMemory *pTrafficMemory,
-                                                          bool bTargetFilteringEnabled)
-    : _m (28)
+                                                          bool bOppListeningEnabled, bool bTargetFilteringEnabled)
+    : NetworkMessageServiceListener ((uint16)0),
+      _bOppListeningEnabled (bOppListeningEnabled),
+      _bTargetFilteringEnabled (bTargetFilteringEnabled),
+      _nodeId (pDisService->getNodeId()),
+      _pDCI (pDisService->getDataCacheInterface()),
+      _pDataReqHandler (pDataReqHandler),
+      _pDisService (pDisService),
+      _pLocalNodeInfo (pLocalNodeInfo),
+      _pMsgReassembler (pMsgReassembler),
+      _pNetTrafficMemory (pTrafficMemory),
+      _pSubState (pSubState),
+      _m (28)
 {
-    construct (pDisService, pDataReqHandler, pLocalNodeInfo, pMsgReassembler,
-               pSubState, pTrafficMemory, bTargetFilteringEnabled);
-}
-
-void TransmissionServiceListener::construct (DisseminationService *pDisService, DataRequestHandler *pDataReqHandler,
-                                             LocalNodeInfo *pLocalNodeInfo, MessageReassembler *pMsgReassembler,
-                                             SubscriptionState *pSubState, NetworkTrafficMemory *pTrafficMemory,
-                                             bool bTargetFilteringEnabled)
-{
-    const char *pszMethodName = "TransmissionServiceListener::construct";
-
-    if (pDisService == NULL || pDataReqHandler == NULL || pLocalNodeInfo == NULL ||
-        pMsgReassembler == NULL || pSubState == NULL) {
-        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                        "TransmissionServiceListener could not be initialized. Exiting.\n");
-        exit (1);
-    }
-
-    _pszLocalNodeId = strDup (pDisService->getNodeId());
-    if (_pszLocalNodeId == NULL) {
-        checkAndLogMsg ("TransmissionServiceListener::construct", Logger::L_SevereError,
-                        "_pszLocalNodeId could not be allocated, thus TransmissionServiceListener could not be initialized. Exiting.\n");
-        exit (1);
-    }
-
-    _pDisService = pDisService;
-    _pDataReqHandler = pDataReqHandler;
-    _pLocalNodeInfo = pLocalNodeInfo;
-    _pMsgReassembler = pMsgReassembler;
-    _pSubState = pSubState;
-    _bTargetFilteringEnabled = bTargetFilteringEnabled;
-    _pNetTrafficMemory = pTrafficMemory;
-    _pDCI = _pDisService->getDataCacheInterface();
-
-    srand ((uint32)getTimeInMilliseconds());
-
-    logMutexId ("TransmissionServiceListener", "_m", _m.getId());
+    const char *pszMethodName = "TransmissionServiceListener::TransmissionServiceListener";
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "opp listening enabled: %s.\n", (_bOppListeningEnabled ? "true" : "false"));
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "target filtering enabled: %s.\n", (_bTargetFilteringEnabled ? "true" : "false"));
+    srand((uint32)getTimeInMilliseconds());
+    logMutexId("TransmissionServiceListener", "_m", _m.getId());
 }
 
 TransmissionServiceListener::~TransmissionServiceListener()
 {
-    if (_pszLocalNodeId != NULL) {
-        free (_pszLocalNodeId);
-        _pszLocalNodeId = NULL;
-    }
 }
 
 int TransmissionServiceListener::deregisterAllMessageListeners()
@@ -123,16 +89,16 @@ int TransmissionServiceListener::registerMessageListener (MessageListener *pList
 {
     return _notifier.registerListener (pListener);
 }
-   
+
 int TransmissionServiceListener::messageArrived (const char *pszIncomingInterface, uint32 ui32SourceIPAddress, uint8 ui8MsgType,
                                                  uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL,
                                                  const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                                 const void *pMsg, uint16 ui16MsgLen)
+                                                 const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp)
 {
     _m.lock (260);
     int rc = messageArrivedInternal (pszIncomingInterface, ui32SourceIPAddress, ui8MsgType,
                                      ui16MsgId, ui8HopCount, ui8TTL, pMsgMetaData,
-                                     ui16MsgMetaDataLen, pMsg, ui16MsgLen);
+                                     ui16MsgMetaDataLen, pMsg, ui16MsgLen, i64Timestamp);
     _m.unlock (260);
     return rc;
 }
@@ -141,9 +107,13 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                                                          uint32 ui32SourceIPAddress, uint8 ui8MsgType,
                                                          uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL,
                                                          const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                                         const void *pMsg, uint16 ui16MsgLen)
+                                                         const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp)
 {
     const char *pszMethodName = "TransmissionServiceListener::messageArrived";
+
+    static uint64 ui64Bytes = 0;
+    ui64Bytes += ui16MsgLen;
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "bytes: %lld\n", ui64Bytes);
 
     if (!DisServiceMsgHelper::isDisServiceMessage (ui8MsgType)) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "this message is not for the Dissemination Service\n");
@@ -172,7 +142,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
         return -4;
     }
 
-    if (DisServiceMsgHelper::sentBy (_pszLocalNodeId, pDSMsg)) {
+    if (DisServiceMsgHelper::sentBy (_nodeId, pDSMsg)) {
         // Drop messages from itself
         DisServiceMsgHelper::deallocatedDisServiceMsg (pDSMsg);
         return 0;
@@ -180,7 +150,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
 
     if (!DisServiceMsgHelper::isInSession (_pDisService->getSessionId(), pDSMsg)) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "received message from peer %s "
-                        "with wrong session key: %s while it should have been %s.\n",
+                        "with wrong session key: %s while it should have been %s\n",
                         pDSMsg->getSenderNodeId(),
                         (pDSMsg->getSessionId() == NULL ? "NULL" : pDSMsg->getSessionId()),
                         (_pDisService->getSessionId() == NULL ? "NULL" : _pDisService->getSessionId()));
@@ -192,7 +162,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                                   ui32SourceIPAddress, pszIncomingInterface);
 
     bool bTargetSpecified = false;
-    bool bIsTarget = DisServiceMsgHelper::isTarget (_pszLocalNodeId, pDSMsg, bTargetSpecified);
+    bool bIsTarget = DisServiceMsgHelper::isTarget (_nodeId, pDSMsg, bTargetSpecified);
 
     switch (ui8DSMsgType) {
         //------------------------------------------------------------------
@@ -220,18 +190,42 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                                     pMH->getMsgId(), rc);
                 }
                 else {
-                    const char *pszAddr = NetUtils::ui32Inetoa (ui32SourceIPAddress);
-                    checkAndLogMsg (pszMethodName, Logger::L_Info,
-                                    "message %s received from %s added to history\n",
-                                    pMH->getMsgId(), pszAddr);
-                    delete pszAddr;
+                    char *pszAddr = NetUtils::ui32Inetoa (ui32SourceIPAddress);
+                    if (pszAddr != NULL) {
+                        checkAndLogMsg (pszMethodName, Logger::L_Info,
+                                        "message %s received from %s added to traffic memory\n",
+                                        pMH->getMsgId(), pszAddr);
+                        free (pszAddr);
+                    }
                 }
             }
 
+            const String ctrl ("DSProCtrl");
+            if ((ctrl != pMH->getGroupName()) && (!bTargetSpecified)) {
+                checkAndLogMsg (pszMethodName, Logger::L_Info, "target id not specified for message %s.\n", pMH->getMsgId());
+            }
+
+            static uint64 ui64TargetedBytes = 0;
+            static uint64 ui64TargetedToMeBytes = 0;
+            static uint64 ui64UntargetedBytes = 0;
+            if (bTargetSpecified) {
+                if (bIsTarget) {
+                    ui64TargetedToMeBytes += ui16MsgLen;
+                }
+                ui64TargetedBytes += ui16MsgLen;
+            }
+            else {
+                ui64UntargetedBytes += ui16MsgLen;
+            }
+            checkAndLogMsg (pszMethodName, Logger::L_Info, "targeted %llu (%llu to me)\t untargeted %llu.\n",
+                            ui64TargetedBytes, ui64TargetedToMeBytes, ui64UntargetedBytes);
+
             if ((_bTargetFilteringEnabled) && (bTargetSpecified) && (!bIsTarget)) {
-                bool bHasCompleteMsg = _pDCI->hasCompleteMessage (pMH);
-                if (!bHasCompleteMsg && !_pDCI->containsMessage (pMH)) {
-                    _pDisService->addDataToCache (pMH, pDSDMsg->getPayLoad());
+                if (_bOppListeningEnabled) {
+                    bool bHasCompleteMsg = _pDCI->hasCompleteMessage (pMH);
+                    if (!bHasCompleteMsg && !_pDCI->containsMessage (pMH)) {
+                        _pDisService->addDataToCache (pMH, pDSDMsg->getPayLoad());
+                    }
                 }
                 free ((void *) pMessage->getData());
                 delete pMessage->getMessageHeader();
@@ -240,7 +234,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                 break;
             }
 
-            if (0 == stricmp (pMH->getPublisherNodeId(), _pszLocalNodeId)) {
+            if (1 == (_nodeId == pMH->getPublisherNodeId())) {
                 // The message is from this node - ignore it
                 checkAndLogMsg (pszMethodName, Logger::L_Info, "The message is from this node - ignoring it\n");
                 free ((void *) pMessage->getData());
@@ -272,6 +266,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                 }
                 else if (_pLocalNodeInfo->isInAnyHistory (pMessage, _pSubState->getSubscriptionState (pMH->getGroupName(), pMH->getPublisherNodeId()))) {
                     // Even if this node is not the target - assume that it is since the message would be otherwise delivered to a client
+                    checkAndLogMsg ("WEIRD - trl", Logger::L_Info, "is in history.\n");
                     bIsTarget = true;
                 }
                 else {
@@ -287,6 +282,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                 // We are the target of this message - so do not drop it
                 // NOTE: This is important when harvesting data, as there may be no client with subscriptions
                 //       on this node, but the node must reassemble and acknowledge data that is received
+                checkAndLogMsg ("WEIRD - trl", Logger::L_Info, "so, no subsription??? (1).\n");
                 bDrop = false;
             }
             else if (!pMH->isCompleteMessage()) {
@@ -298,6 +294,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                 if (!_pMsgReassembler->requestOpportunisticallyReceivedMessages()) {
                     bDrop = true;
                 }
+                checkAndLogMsg ("WEIRD - trl", Logger::L_Info, "so, no subsription??? (2).\n");
             }
             else {
                 // The message is not of any interest for
@@ -305,7 +302,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
             }
 
             // Add to the data cache
-            bool bHasCompleteMsg = _pDCI->hasCompleteMessage (pMH);
+            const bool bHasCompleteMsg = _pDCI->hasCompleteMessage (pMH);
             if (!bHasCompleteMsg && !_pDCI->containsMessage (pMH)) {
                 _pDisService->addDataToCache (pMH, pDSDMsg->getPayLoad());
             }
@@ -344,8 +341,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
 
             // Set the initial subscription state for a certain group-client
             if (bHasSubscription && _pSubState->isSubscriptionBySenderEmpty (pMH->getGroupName(), pMH->getPublisherNodeId())) {
-                if (wildcardStringCompare (pMH->getGroupName(), "DisServiceProGroup.*") ||
-                    wildcardStringCompare (pMH->getGroupName(), "DSPro*")) {
+                if (wildcardStringCompare (pMH->getGroupName(), "DSPro*")) {
                     // THIS IS A HACK: messages transmitted using DisServicePro
                     // may not be in sequence, since they are ordered by predicted
                     // utility.
@@ -376,8 +372,8 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                     pCachedData = (void*) _pDCI->getData (completeMsgId);
                 }
                 if (pCachedData != NULL) {
-                    free ((void*)pMessage->getData());  // The message has not been inserted into the message
-                                                        // reassembler therefore pData can be safely deallocated
+                    free ((void*) pMessage->getData());  // The message has not been inserted into the message
+                                                         // reassembler therefore pData can be safely deallocated
                     void *pDataCopy = malloc (pMH->getTotalMessageLength());
                     memcpy (pDataCopy, pCachedData, pMH->getTotalMessageLength());
                     MessageHeader *pMHCompleteMessage = pMH->clone();
@@ -391,8 +387,8 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                     _pDCI->release (completeMsgId, pCachedData);
                 }
                 else if (MessageReassemblerUtils::loadOpportunisticallyCachedFragments (_pMsgReassembler, _pDCI, pMH, !bIsTarget)) {
-                    free ((void*)pMessage->getData());  // The message has not been inserted into the message
-                                                        // reassembler - therefore pData can be safely deallocated
+                    free ((void*) pMessage->getData());  // The message has not been inserted into the message
+                                                         // reassembler - therefore pData can be safely deallocated
                 }
                 else {
                     // The message that this fragment belongs to has not yet been delivered - so need to pass
@@ -404,9 +400,9 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
                                         pMH->getMsgId(), pMH->getFragmentLength(), pMH->getTotalMessageLength());
                     }
                     else {
-                        free ((void*)pMessage->getData());  // The message has not been inserted into the message
-                                                            // reassembler - therefore pData can be safely deallocated
-                        if ((rc >= 1) && (!pMH->isChunk() && ((MessageInfo *)pMH)->getAcknowledgment())) {
+                        free ((void*) pMessage->getData());  // The message has not been inserted into the message
+                                                             // reassembler - therefore pData can be safely deallocated
+                        if ((rc >= 1) && (!pMH->isChunk() && ((MessageInfo *) pMH)->getAcknowledgment())) {
                             // The message is not reassembled but needs to be acknowledged
                             pMH->setFragmentOffset (0);
                             pMH->setFragmentLength (pMH->getTotalMessageLength());
@@ -433,8 +429,10 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
         case DisServiceMsg::DSMT_DataReq:
         {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "case DSMT_DataReq\n");
-            _pDataReqHandler->dataRequestMessageArrived ((DisServiceDataReqMsg *)pDSMsg, pszIncomingInterface);
-            pDSMsg = NULL; //let the DatarequestHandler delete it
+            if ((_pNetTrafficMemory == NULL) || ((getTimeInMilliseconds() - i64Timestamp) < _pNetTrafficMemory->_ui16IgnoreRequestTime)) {
+                _pDataReqHandler->dataRequestMessageArrived ((DisServiceDataReqMsg *) pDSMsg, pszIncomingInterface);
+                pDSMsg = NULL; //let the DatarequestHandler delete it
+            }
             break;
         }
 
@@ -588,7 +586,7 @@ int TransmissionServiceListener::messageArrivedInternal (const char *pszIncoming
             _pDisService->handleImprovedSubscriptionStateMessage (pDSISMsg, ui32SourceIPAddress);
             break;
         }
-        
+
         case DisServiceMsg::DSMT_ProbabilitiesMsg:
         {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "case DSMT_ProbabilitiesMsg\n");
@@ -628,8 +626,8 @@ void TransmissionServiceListener::deliverCompleteMessage (Message *pMessage, boo
 
     checkAndLogMsg ("TransmissionServiceListener::deliverCompleteMessage", Logger::L_Info,
                     "passing complete message <%s> to SubscriptionState\n", pMH->getMsgId());
-    uint32 ui32CurrentSubState = _pSubState->getSubscriptionState (pMH->getGroupName(), pMH->getPublisherNodeId());
-    bool bIsInHistory = _pLocalNodeInfo->isInAnyHistory (pMessage, ui32CurrentSubState);
+    const uint32 ui32CurrentSubState = _pSubState->getSubscriptionState (pMH->getGroupName(), pMH->getPublisherNodeId());
+    const bool bIsInHistory = _pLocalNodeInfo->isInAnyHistory (pMessage, ui32CurrentSubState);
     if (!bIsNotTarget) {
         RequestDetails *pDetails = _pMsgReassembler->messageArrived (pMessage);
         _pSubState->messageArrived (pMessage, bIsInHistory, pDetails);

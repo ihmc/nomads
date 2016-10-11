@@ -2,7 +2,7 @@
  * ConfigLoader.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,9 +29,9 @@ import java.io.IOException;
  * ConfigLoader
  *
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.22 $
+ * @version $Revision: 1.23 $
  *          Created on Aug 4, 2004 at 8:29:01 AM
- *          $Date: 2014/11/07 17:58:06 $
+ *          $Date: 2016/06/09 20:02:46 $
  *          Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 

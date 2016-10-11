@@ -2,7 +2,7 @@
  * TCPConnTable.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -72,7 +72,8 @@ namespace ACMNetProxy
         return NULL;
     }
 
-    Entry * const TCPConnTable::getEntry (uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort)
+    Entry * const TCPConnTable::getEntry (uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort, 
+		uint32 uint32AssignedPriority)
     {
         Entry *pEntry = NULL;
 
@@ -105,6 +106,7 @@ namespace ACMNetProxy
                 pEntry->ui16LocalPort = ui16LocalPort;
                 pEntry->ui32RemoteIP = ui32RemoteIP;
                 pEntry->ui16RemotePort = ui16RemotePort;
+				pEntry->assignedPriority = uint32AssignedPriority;
                 pEntry->prepareNewConnection();
                 _m.unlock();
                 return pEntry;
@@ -259,7 +261,7 @@ namespace ACMNetProxy
             pEntry = &(_entries.get (_ui32NextIndex));
             ++_ui32NextIndex %= _entries.size();
             _bIsCounterReset = false;
-            if (pEntry && (pEntry->localStatus == TCTLS_TIME_WAIT) || (pEntry->localStatus == TCTLS_CLOSED)) {
+            if (pEntry && ((pEntry->localStatus == TCTLS_TIME_WAIT) || (pEntry->localStatus == TCTLS_CLOSED))) {
                 _m.unlock();
                 return pEntry;
             }
@@ -267,7 +269,7 @@ namespace ACMNetProxy
         while (_ui32NextIndex != _ui32FirstIndex) {
             pEntry = &(_entries.get (_ui32NextIndex));
             ++_ui32NextIndex %= _entries.size();
-            if (pEntry && (pEntry->localStatus == TCTLS_TIME_WAIT) || (pEntry->localStatus == TCTLS_CLOSED)) {
+            if (pEntry && ((pEntry->localStatus == TCTLS_TIME_WAIT) || (pEntry->localStatus == TCTLS_CLOSED))) {
                 _m.unlock();
                 return pEntry;
             }
@@ -315,7 +317,7 @@ namespace ACMNetProxy
         return returnVal;
     }
 
-    void TCPConnTable::cleanMemory (bool bCleanBuffer)
+    void TCPConnTable::cleanMemory (void)
     {
         _m.lock();
 

@@ -2,7 +2,7 @@
  * Connection.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -39,9 +39,9 @@ namespace ACMNetProxy
     void Connection::IncomingMessageHandler::run (void)
     {
         started();
+        
         int rc;
-        uint32 ui32BufLen = 0;
-        Connection *pOldConnection = NULL;
+        uint32 ui32MsgSize, ui32BufLen = 0;
 
         while (!terminationRequested()) {
             if ((rc = _pConnectorAdapter->receiveMessage (_ui8InBuf, sizeof (_ui8InBuf))) < 0) {
@@ -63,6 +63,7 @@ namespace ACMNetProxy
                 continue;
             }
 
+            ui32MsgSize = static_cast<uint32> (rc);
             if (_mMessageHandlingMutex.lock() != Mutex::RC_Ok) {
                 setTerminatingResultCode (-2);
                 break;
@@ -79,13 +80,13 @@ namespace ACMNetProxy
                 {
                     InitializeConnectionProxyMessage *pICPM = (InitializeConnectionProxyMessage*) _ui8InBuf;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
-                                    "received an InitializeConnectionProxyMessage via %s from the remote NetProxy with address %s\n",
-                                    _pConnection->getConnectorTypeAsString(), _pConnectorAdapter->getRemoteInetAddr()->getIPAsString());
+                                    "received an InitializeConnectionProxyMessage via %s from the remote NetProxy with address %s and ProxyUniqueID %u\n",
+                                    _pConnection->getConnectorTypeAsString(), _pConnectorAdapter->getRemoteInetAddr()->getIPAsString(), pICPM->_ui32ProxyUniqueID);
 
-                    _pConnection->updateRemoteProxyInformation (pICPM->ui32ProxyUniqueID, pICPM->ui16LocalMocketsServerPort, pICPM->ui16LocalTCPServerPort,
-                                                                pICPM->ui16LocalUDPServerPort, pMsg->getRemoteProxyReachability());
+                    _pConnection->updateRemoteProxyInformation (pICPM->_ui32ProxyUniqueID, pICPM->_ui16LocalMocketsServerPort, pICPM->_ui16LocalTCPServerPort,
+                                                                pICPM->_ui16LocalUDPServerPort, pMsg->getRemoteProxyReachability());
 
-                    _pPacketRouter->initializeRemoteConnection (pICPM->ui32ProxyUniqueID, _pConnection->getConnectorType());
+                    _pPacketRouter->initializeRemoteConnection (pICPM->_ui32ProxyUniqueID, _pConnection->getConnectorType());
                     break;
                 }
 
@@ -93,11 +94,11 @@ namespace ACMNetProxy
                 {
                     ConnectionInitializedProxyMessage *pCIPM = (ConnectionInitializedProxyMessage*) _ui8InBuf;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
-                                    "received a ConnectionInitializedProxyMessage via %s from the remote NetProxy with address %s\n",
-                                    _pConnection->getConnectorTypeAsString(), _pConnectorAdapter->getRemoteInetAddr()->getIPAsString());
+                                    "received a ConnectionInitializedProxyMessage via %s from the remote NetProxy with address %s and ProxyUniqueID %u\n",
+                                    _pConnection->getConnectorTypeAsString(), _pConnectorAdapter->getRemoteInetAddr()->getIPAsString(), pCIPM->_ui32ProxyUniqueID);
 
-                    _pConnection->updateRemoteProxyInformation (pCIPM->ui32ProxyUniqueID, pCIPM->ui16LocalMocketsServerPort, pCIPM->ui16LocalTCPServerPort,
-                                                                pCIPM->ui16LocalUDPServerPort, pCIPM->getRemoteProxyReachability());
+                    _pConnection->updateRemoteProxyInformation (pCIPM->_ui32ProxyUniqueID, pCIPM->_ui16LocalMocketsServerPort, pCIPM->_ui16LocalTCPServerPort,
+                                                                pCIPM->_ui16LocalUDPServerPort, pCIPM->getRemoteProxyReachability());
                     break;
                 }
 
@@ -105,18 +106,25 @@ namespace ACMNetProxy
                 {
                     ICMPProxyMessage *pICMPPM = (ICMPProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_HighDetailDebug,
-                                    "received an ICMP ProxyMessage via %s of type %hhu, code %hhu and %hu bytes of data from "
-                                    "the remote NetProxy with address %s\n", _pConnection->getConnectorTypeAsString(), pICMPPM->ui8Type,
-                                    pICMPPM->ui8Code, pICMPPM->ui16PayloadLen, _pConnection->getRemoteProxyInetAddr()->getIPAsString());
-
-                    _pConnection->updateRemoteProxyInformation (pICMPPM->ui32ProxyUniqueID, pICMPPM->ui16LocalMocketsServerPort, pICMPPM->ui16LocalTCPServerPort,
-                                                                pICMPPM->ui16LocalUDPServerPort, pICMPPM->getRemoteProxyReachability());
-                    Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pICMPPM->ui32LocalIP), pICMPPM->ui32ProxyUniqueID);
-
-                    if (0 != (rc = _pPacketRouter->forwardICMPMessageToHost (pICMPPM->ui32RemoteIP, pICMPPM->ui32LocalIP, _pConnectorAdapter->getRemoteIPAddr(),
-                                                                            static_cast<ICMPHeader::Type> (pICMPPM->ui8Type),
-                                                                            static_cast<ICMPHeader::Code_Destination_Unreachable> (pICMPPM->ui8Code),
-                                                                            pICMPPM->ui32RoH, pICMPPM->aui8Data, pICMPPM->ui16PayloadLen))) {
+                                    "received an ICMP ProxyMessage via %s of type %hhu, code %hhu, TTL %hhu, and %hu bytes of data from "
+                                    "the remote NetProxy with address %s and ProxyUniqueID %u\n", _pConnection->getConnectorTypeAsString(),
+                                    pICMPPM->_ui8Type, pICMPPM->_ui8Code, pICMPPM->_ui8PacketTTL, pICMPPM->getPayloadLen(),
+                                    _pConnection->getRemoteProxyInetAddr()->getIPAsString(), pICMPPM->_ui32ProxyUniqueID);
+                    _pConnection->updateRemoteProxyInformation (pICMPPM->_ui32ProxyUniqueID, pICMPPM->_ui16LocalMocketsServerPort, pICMPPM->_ui16LocalTCPServerPort,
+                                                                pICMPPM->_ui16LocalUDPServerPort, pICMPPM->getRemoteProxyReachability());
+                    //Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pICMPPM->_ui32LocalIP), pICMPPM->_ui32ProxyUniqueID);
+                    
+                    if ((pICMPPM->_ui8PacketTTL == 0) || ((pICMPPM->_ui8PacketTTL == 1) && !NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE)) {
+                        checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
+                                        "the ICMP message contained in the ICMP ProxyMessage has reached a TTL value of %hhu "
+                                        "and it needs to be discarded", pICMPPM->_ui8PacketTTL);
+                        break;
+                    }
+                    pICMPPM->_ui8PacketTTL = NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE ? pICMPPM->_ui8PacketTTL : pICMPPM->_ui8PacketTTL - 1;
+                    if (0 != (rc = _pPacketRouter->forwardICMPMessageToHost (pICMPPM->_ui32RemoteIP, pICMPPM->_ui32LocalIP, _pConnectorAdapter->getRemoteIPAddr(),
+                                                                             pICMPPM->_ui8PacketTTL, static_cast<ICMPHeader::Type> (pICMPPM->_ui8Type),
+                                                                             static_cast<ICMPHeader::Code_Destination_Unreachable> (pICMPPM->_ui8Code),
+                                                                             pICMPPM->_ui32RoH, pICMPPM->_aui8Data, pICMPPM->getPayloadLen()))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "forwardICMPMessageToHost() failed with rc = %d\n", rc);
                     }
@@ -127,16 +135,24 @@ namespace ACMNetProxy
                 {
                     UDPUnicastDataProxyMessage *pUDPUCDPM = (UDPUnicastDataProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_HighDetailDebug,
-                                    "received a UDPUnicastData ProxyMessage via %s with %hu bytes of data from the remote NetProxy with address %s\n",
-                                    _pConnection->getConnectorTypeAsString(), pUDPUCDPM->ui16PayloadLen, _pConnection->getRemoteProxyInetAddr()->getIPAsString());
+                                    "received a UDPUnicastData ProxyMessage via %s with TTL %hhu and %hu bytes of data from the remote NetProxy with "
+                                    "address %s and ProxyUniqueID %u\n", _pConnection->getConnectorTypeAsString(), pUDPUCDPM->_ui8PacketTTL,
+                                    pUDPUCDPM->getPayloadLen(), _pConnection->getRemoteProxyInetAddr()->getIPAsString(), pUDPUCDPM->_ui32ProxyUniqueID);
 
                     unsigned char *pucBuf[1];
-                    _pConnection->updateRemoteProxyID (pUDPUCDPM->ui32ProxyUniqueID);
-                    Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pUDPUCDPM->ui32LocalIP), pUDPUCDPM->ui32ProxyUniqueID);
-
-                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pUDPUCDPM->ui8CompressionTypeAndLevel);
-                    pConnectorReader->receiveTCPDataProxyMessage (pUDPUCDPM->aui8Data, pUDPUCDPM->ui16PayloadLen, pucBuf, ui32BufLen);
-                    if (0 != (rc = _pPacketRouter->sendUDPUniCastPacketToHost (pUDPUCDPM->ui32LocalIP, pUDPUCDPM->ui32RemoteIP, (UDPHeader*) pucBuf[0]))) {
+                    _pConnection->updateRemoteProxyID (pUDPUCDPM->_ui32ProxyUniqueID);
+                    //Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pUDPUCDPM->_ui32LocalIP), pUDPUCDPM->_ui32ProxyUniqueID);
+                    if ((pUDPUCDPM->_ui8PacketTTL == 0) || ((pUDPUCDPM->_ui8PacketTTL == 1) && !NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE)) {
+                        checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
+                                        "the UDP datagram contained in the UDPUnicastData ProxyMessage has reached a TTL value of %hhu "
+                                        "and it needs to be discarded", pUDPUCDPM->_ui8PacketTTL);
+                        break;
+                    }
+                    pUDPUCDPM->_ui8PacketTTL = NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE ? pUDPUCDPM->_ui8PacketTTL : pUDPUCDPM->_ui8PacketTTL - 1;
+                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pUDPUCDPM->_ui8CompressionTypeAndLevel);
+                    pConnectorReader->receiveTCPDataProxyMessage (pUDPUCDPM->_aui8Data, pUDPUCDPM->getPayloadLen(), pucBuf, ui32BufLen);
+                    if (0 != (rc = _pPacketRouter->sendUDPUniCastPacketToHost (pUDPUCDPM->_ui32LocalIP, pUDPUCDPM->_ui32RemoteIP,
+                                                                               pUDPUCDPM->_ui8PacketTTL, (UDPHeader*) pucBuf[0]))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "sendUDPUniCastPacketToHost() failed with rc = %d\n", rc);
                     }
@@ -148,30 +164,39 @@ namespace ACMNetProxy
                 {
                     MultipleUDPDatagramsProxyMessage *pMUDPDPM = (MultipleUDPDatagramsProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_HighDetailDebug,
-                                    "received a MultipleUDPDatagrams ProxyMessage via %s containing %hhu UDP packets for a total of %hu bytes of data from "
-                                    "the remote NetProxy with address %s\n", _pConnection->getConnectorTypeAsString(), pMUDPDPM->ui8WrappedUDPDatagramsNum,
-                                    pMUDPDPM->ui16PayloadLen, _pConnection->getRemoteProxyInetAddr()->getIPAsString());
+                                    "received a MultipleUDPDatagrams ProxyMessage via %s containing %hhu UDP packets for a total of %hu bytes of data from the remote "
+                                    "NetProxy with address %s and ProxyUniqueID %u\n", _pConnection->getConnectorTypeAsString(), pMUDPDPM->_ui8WrappedUDPDatagramsNum,
+                                    pMUDPDPM->getPayloadLen(), _pConnection->getRemoteProxyInetAddr()->getIPAsString(), pMUDPDPM->_ui32ProxyUniqueID);
 
-                    uint16 ui16UDPDatagramOffset = 0;
                     unsigned char *pucBuf[1];
                     const UDPHeader *pUDPHeader = NULL;
-                    _pConnection->updateRemoteProxyID (pMUDPDPM->ui32ProxyUniqueID);
-                    Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pMUDPDPM->ui32LocalIP), pMUDPDPM->ui32ProxyUniqueID);
+                    uint16 ui16UDPDatagramOffset = 0;
+                    _pConnection->updateRemoteProxyID (pMUDPDPM->_ui32ProxyUniqueID);
+                    //Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pMUDPDPM->_ui32LocalIP), pMUDPDPM->_ui32ProxyUniqueID);
 
-                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pMUDPDPM->ui8CompressionTypeAndLevel);
-                    pConnectorReader->receiveTCPDataProxyMessage (pMUDPDPM->aui8Data, pMUDPDPM->ui16PayloadLen, pucBuf, ui32BufLen);
-                    for (int i = 0; i < pMUDPDPM->ui8WrappedUDPDatagramsNum; i++) {
-                        pUDPHeader = (UDPHeader*) (pucBuf[0] + ui16UDPDatagramOffset);
-                        if (0 != (rc = _pPacketRouter->sendUDPUniCastPacketToHost (pMUDPDPM->ui32LocalIP, pMUDPDPM->ui32RemoteIP, pUDPHeader))) {
+                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pMUDPDPM->_ui8CompressionTypeAndLevel);
+                    pConnectorReader->receiveTCPDataProxyMessage (pMUDPDPM->_aui8Data, pMUDPDPM->getPayloadLen(), pucBuf, ui32BufLen);
+                    for (uint8 i = 0; i < pMUDPDPM->_ui8WrappedUDPDatagramsNum; ++i) {
+                        pUDPHeader = (UDPHeader*) (pucBuf[0] + pMUDPDPM->_ui8WrappedUDPDatagramsNum + ui16UDPDatagramOffset);
+                        ui16UDPDatagramOffset += pUDPHeader->ui16Len;
+
+                        if ((pucBuf[0][i] == 0) || ((pucBuf[0][i] == 1) && !NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE)) {
+                            checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
+                                            "the UDP datagram with index %hhu contained in the MultipleUDPDatagrams ProxyMessage has reached a "
+                                            "TTL value of %hhu and it needs to be discarded", i, pucBuf[0][i]);
+                            continue;
+                        }
+                        pucBuf[0][i] = NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE ? pucBuf[0][i] : pucBuf[0][i] - 1;
+
+                        if (0 != (rc = _pPacketRouter->sendUDPUniCastPacketToHost (pMUDPDPM->_ui32LocalIP, pMUDPDPM->_ui32RemoteIP, pucBuf[0][i], pUDPHeader))) {
                             checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                             "sendUDPUniCastPacketToHost() failed with rc = %d\n", rc);
                         }
-                        ui16UDPDatagramOffset += pUDPHeader->ui16Len;
                     }
                     pConnectorReader->resetAndUnlockConnectorReader();
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MediumDetailDebug,
                                     "%hhu UDP datagrams, for a total of %u bytes, have been sent to local host\n",
-                                    pMUDPDPM->ui8WrappedUDPDatagramsNum, ui32BufLen);
+                                    pMUDPDPM->_ui8WrappedUDPDatagramsNum, ui32BufLen);
                     break;
                 }
 
@@ -179,15 +204,15 @@ namespace ACMNetProxy
                 {
                     UDPBCastMCastDataProxyMessage *pUDPBCMCDPM = (UDPBCastMCastDataProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_HighDetailDebug,
-                                    "received a UDPBroadcastMulticastData ProxyMessage via %s with %hu bytes of data "
-                                    "from the remote NetProxy with address %s\n", _pConnection->getConnectorTypeAsString(),
-                                    pUDPBCMCDPM->ui16PayloadLen, _pConnection->getRemoteProxyInetAddr()->getIPAsString());
+                                    "received a UDPBroadcastMulticastData ProxyMessage via %s with %hu bytes of data from the remote NetProxy "
+                                    "with address %s and ProxyUniqueID %u\n", _pConnection->getConnectorTypeAsString(), pUDPBCMCDPM->getPayloadLen(),
+                                    _pConnection->getRemoteProxyInetAddr()->getIPAsString(), pUDPBCMCDPM->_ui32ProxyUniqueID);
 
-                    _pConnection->updateRemoteProxyID (pUDPBCMCDPM->ui32ProxyUniqueID);
+                    _pConnection->updateRemoteProxyID (pUDPBCMCDPM->_ui32ProxyUniqueID);
 
                     unsigned char *pucBuf[1];
-                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pUDPBCMCDPM->ui8CompressionTypeAndLevel);
-                    pConnectorReader->receiveTCPDataProxyMessage (pUDPBCMCDPM->aui8Data, pUDPBCMCDPM->ui16PayloadLen, pucBuf, ui32BufLen);
+                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pUDPBCMCDPM->_ui8CompressionTypeAndLevel);
+                    pConnectorReader->receiveTCPDataProxyMessage (pUDPBCMCDPM->_aui8Data, pUDPBCMCDPM->getPayloadLen(), pucBuf, ui32BufLen);
                     if (0 != (rc = _pPacketRouter->sendUDPBCastMCastPacketToHost (pucBuf[0], ui32BufLen))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "sendUDPBCastMCastPacketToHost() failed with rc = %d\n", rc);
@@ -200,21 +225,21 @@ namespace ACMNetProxy
                 {
                     OpenConnectionProxyMessage *pOCPM = (OpenConnectionProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
-                                    "L0-R%hu: received an OpenTCPConnection request via %s from the remote NetProxy with address %s; "
-                                    "compression type code is %hhu and compression level is %hhu\n", pOCPM->ui16LocalID,
-                                    _pConnection->getConnectorTypeAsString(), _pConnection->getRemoteProxyInetAddr()->getIPAsString(),
-                                    pOCPM->ui8CompressionTypeAndLevel & COMPRESSION_TYPE_FLAGS_MASK,
-                                    pOCPM->ui8CompressionTypeAndLevel & COMPRESSION_LEVEL_FLAGS_MASK);
+                                    "L0-R%hu: received an OpenTCPConnection request via %s from the remote NetProxy with address %s and ProxyUniqueID %u; compression "
+                                    "type code is %hhu and compression level is %hhu\n", pOCPM->_ui16LocalID, _pConnection->getConnectorTypeAsString(),
+                                    _pConnection->getRemoteProxyInetAddr()->getIPAsString(), pOCPM->_ui32ProxyUniqueID,
+                                    pOCPM->_ui8CompressionTypeAndLevel & COMPRESSION_TYPE_FLAGS_MASK,
+                                    pOCPM->_ui8CompressionTypeAndLevel & COMPRESSION_LEVEL_FLAGS_MASK);
 
-                    _pConnection->updateRemoteProxyInformation (pOCPM->ui32ProxyUniqueID, pOCPM->ui16LocalMocketsServerPort, pOCPM->ui16LocalTCPServerPort,
-                                                                pOCPM->ui16LocalUDPServerPort, pOCPM->getRemoteProxyReachability());
-                    Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pOCPM->ui32LocalIP, pOCPM->ui16LocalPort), pOCPM->ui32ProxyUniqueID);
+                    _pConnection->updateRemoteProxyInformation (pOCPM->_ui32ProxyUniqueID, pOCPM->_ui16LocalMocketsServerPort, pOCPM->_ui16LocalTCPServerPort,
+                                                                pOCPM->_ui16LocalUDPServerPort, pOCPM->getRemoteProxyReachability());
+                    //Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pOCPM->_ui32LocalIP, pOCPM->_ui16LocalPort), pOCPM->_ui32ProxyUniqueID);
 
-                    if (0 != (rc = TCPManager::openTCPConnectionToHost (_pConnectorAdapter->getRemoteIPAddr(), pOCPM->ui32ProxyUniqueID, pOCPM->ui16LocalID, pOCPM->ui32RemoteIP,
-                                                                        pOCPM->ui16RemotePort, pOCPM->ui32LocalIP, pOCPM->ui16LocalPort, pOCPM->ui8CompressionTypeAndLevel))) {
+                    if (0 != (rc = TCPManager::openTCPConnectionToHost (_pConnectorAdapter->getRemoteIPAddr(), pOCPM->_ui32ProxyUniqueID, pOCPM->_ui16LocalID, pOCPM->_ui32RemoteIP,
+                                                                        pOCPM->_ui16RemotePort, pOCPM->_ui32LocalIP, pOCPM->_ui16LocalPort, pOCPM->_ui8CompressionTypeAndLevel))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "L0-R%hu: openTCPConnectionToHost() failed with rc = %d\n",
-                                        pOCPM->ui16LocalID, rc);
+                                        pOCPM->_ui16LocalID, rc);
                     }
                     break;
                 }
@@ -223,19 +248,18 @@ namespace ACMNetProxy
                 {
                     ConnectionOpenedProxyMessage *pCOPM = (ConnectionOpenedProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
-                                    "L%hu-R%hu: received a TCPConnectionOpened response via %s from the remote NetProxy with address %s; "
-                                    "compression type code is %hhu and compression level is %hhu\n", pCOPM->ui16RemoteID, pCOPM->ui16LocalID,
-                                    _pConnection->getConnectorTypeAsString(), _pConnection->getRemoteProxyInetAddr()->getIPAsString(),
-                                    pCOPM->ui8CompressionTypeAndLevel & COMPRESSION_TYPE_FLAGS_MASK,
-                                    pCOPM->ui8CompressionTypeAndLevel & COMPRESSION_LEVEL_FLAGS_MASK);
+                                    "L%hu-R%hu: received a TCPConnectionOpened response via %s from the remote NetProxy with address %s and ProxyUniqueID %u; compression "
+                                    "type code is %hhu and compression level is %hhu\n", pCOPM->_ui16RemoteID, pCOPM->_ui16LocalID, _pConnection->getConnectorTypeAsString(),
+                                    _pConnection->getRemoteProxyInetAddr()->getIPAsString(), pCOPM->_ui32ProxyUniqueID, pCOPM->_ui8CompressionTypeAndLevel & COMPRESSION_TYPE_FLAGS_MASK,
+                                    pCOPM->_ui8CompressionTypeAndLevel & COMPRESSION_LEVEL_FLAGS_MASK);
 
-                    _pConnection->updateRemoteProxyInformation (pCOPM->ui32ProxyUniqueID, pCOPM->ui16LocalMocketsServerPort, pCOPM->ui16LocalTCPServerPort,
-                                                                pCOPM->ui16LocalUDPServerPort, pCOPM->getRemoteProxyReachability());
+                    _pConnection->updateRemoteProxyInformation (pCOPM->_ui32ProxyUniqueID, pCOPM->_ui16LocalMocketsServerPort, pCOPM->_ui16LocalTCPServerPort,
+                                                                pCOPM->_ui16LocalUDPServerPort, pCOPM->getRemoteProxyReachability());
 
-                    if (0 != (rc = TCPManager::tcpConnectionToHostOpened (pCOPM->ui16RemoteID, pCOPM->ui16LocalID, pCOPM->ui32ProxyUniqueID, pCOPM->ui8CompressionTypeAndLevel))) {
+                    if (0 != (rc = TCPManager::tcpConnectionToHostOpened (pCOPM->_ui16RemoteID, pCOPM->_ui16LocalID, pCOPM->_ui32ProxyUniqueID, pCOPM->_ui8CompressionTypeAndLevel))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "L%hu-R%hu: tcpConnectionToHostOpened() failed with rc = %d\n",
-                                        pCOPM->ui16RemoteID, pCOPM->ui16LocalID, rc);
+                                        pCOPM->_ui16RemoteID, pCOPM->_ui16LocalID, rc);
                     }
                     break;
                 }
@@ -243,7 +267,7 @@ namespace ACMNetProxy
                 case ProxyMessage::PMT_TCPData:
                 {
                     TCPDataProxyMessage *pTCPDPM = (TCPDataProxyMessage*) pMsg;
-                    if (rc <= sizeof (TCPDataProxyMessage)) {
+                    if (ui32MsgSize <= sizeof (TCPDataProxyMessage)) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_Warning,
                                         "received a TCPDataProxyMessage via %s that is too short or has no data\n",
                                         _pConnection->getConnectorTypeAsString());
@@ -251,13 +275,13 @@ namespace ACMNetProxy
                     }
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_HighDetailDebug,
                                     "L%hu-R%hu: received a TCPData ProxyMessage with %hu bytes of data\n",
-                                    pTCPDPM->ui16RemoteID, pTCPDPM->ui16LocalID, pTCPDPM->ui16PayloadLen);
+                                    pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, pTCPDPM->getPayloadLen());
 
-                    if (0 != (rc = TCPManager::sendTCPDataToHost (pTCPDPM->ui16RemoteID, pTCPDPM->ui16LocalID, pTCPDPM->aui8Data,
-                                                                  pTCPDPM->ui16PayloadLen, pTCPDPM->ui8TCPFlags))) {
+                    if (0 != (rc = TCPManager::sendTCPDataToHost (pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, pTCPDPM->_aui8Data,
+                                                                  pTCPDPM->getPayloadLen(), pTCPDPM->_ui8TCPFlags))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "L%hu-R%hu: sendTCPDataToHost() failed with rc = %d\n",
-                                        pTCPDPM->ui16RemoteID, pTCPDPM->ui16LocalID, rc);
+                                        pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, rc);
                     }
                     break;
                 }
@@ -267,9 +291,9 @@ namespace ACMNetProxy
                     CloseConnectionProxyMessage *pCCPM = (CloseConnectionProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
                                     "L%hu-R%hu: received a CloseTCPConnection request via %s from remote proxy\n",
-                                    pCCPM->ui16RemoteID, pCCPM->ui16LocalID, _pConnection->getConnectorTypeAsString());
+                                    pCCPM->_ui16RemoteID, pCCPM->_ui16LocalID, _pConnection->getConnectorTypeAsString());
 
-                    if (0 != (rc = TCPManager::closeTCPConnectionToHost (pCCPM->ui16RemoteID, pCCPM->ui16LocalID))) {
+                    if (0 != (rc = TCPManager::closeTCPConnectionToHost (pCCPM->_ui16RemoteID, pCCPM->_ui16LocalID))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "closeTCPConnectionToHost() failed with rc = %d\n", rc);
                     }
@@ -281,9 +305,9 @@ namespace ACMNetProxy
                     ResetConnectionProxyMessage *pRCPM = (ResetConnectionProxyMessage*) pMsg;
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
                                     "L%hu-R%hu: received a ResetTCPconnection request via %s from remote proxy\n",
-                                    pRCPM->ui16RemoteID, pRCPM->ui16LocalID, _pConnection->getConnectorTypeAsString());
+                                    pRCPM->_ui16RemoteID, pRCPM->_ui16LocalID, _pConnection->getConnectorTypeAsString());
 
-                    if (0 != (rc = TCPManager::resetTCPConnectionToHost (pRCPM->ui16RemoteID, pRCPM->ui16LocalID))) {
+                    if (0 != (rc = TCPManager::resetTCPConnectionToHost (pRCPM->_ui16RemoteID, pRCPM->_ui16LocalID))) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
                                         "resetTCPConnectionToHost() failed with rc = %d\n", rc);
                     }
@@ -442,7 +466,7 @@ namespace ACMNetProxy
         _mBCThread.lock();
         if ((_status == CS_Connecting) || (_status == CS_Connected)) {
             checkAndLogMsg ("Connection::connectSync", Logger::L_MildError,
-                            "cannot establish connection while in %d state\n", (int) _status);
+                            "cannot attempt to establish a new connection while already in status %d\n", (int) _status);
             _mBCThread.unlock();
             return -1;
         }
@@ -573,7 +597,7 @@ namespace ACMNetProxy
         }
         else if (!isConnected()) {
             checkAndLogMsg ("Connection::openConnectionWithRemoteProxy", Logger::L_MildError,
-                            "the connector of type %s used to reach the remote NetProxy at address %s:%hu "
+                            "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
                             "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
                             _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
             return -2;
@@ -584,7 +608,7 @@ namespace ACMNetProxy
                                                NetProxyApplicationParameters::TCP_SERVER_PORT, NetProxyApplicationParameters::UDP_SERVER_PORT, bLocalReachabilityFromRemote);
         if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, 0, true, true, &iCPM, sizeof (InitializeConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::openConnectionWithRemoteProxy", Logger::L_MildError,
-                            "send() of an InitializeConnection ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
+                            "send() of an InitializeConnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
             return -3;
         }
@@ -613,19 +637,19 @@ namespace ACMNetProxy
                                                 NetProxyApplicationParameters::TCP_SERVER_PORT, NetProxyApplicationParameters::UDP_SERVER_PORT, bLocalReachabilityFromRemote);
         if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, 0, true, true, &cIPM, sizeof (ConnectionInitializedProxyMessage)))) {
             checkAndLogMsg ("Connection::confirmOpenedConnectionWithRemoteProxy", Logger::L_MildError,
-                            "send() of a ConnectionInitialized ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
+                            "send() of a ConnectionInitialized ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
             return -3;
         }
         checkAndLogMsg ("Connection::confirmOpenedConnectionWithRemoteProxy", Logger::L_HighDetailDebug,
-                        "successfully sent a ConnectionInitializedProxyMessage via %s to the remote NetProxy with address <%s:%hu>\n",
+                        "successfully sent a ConnectionInitializedProxyMessage via %s to the remote NetProxy at address <%s:%hu>\n",
                         getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
 
         return 0;
     }
 
     int Connection::sendICMPProxyMessageToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalSourceIP,
-                                                      uint32 ui32RemoteDestinationIP, const uint8 * const pui8Buf, uint16 ui16BufLen, ProxyMessage::Protocol ui8PMProtocol,
+                                                      uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL, const uint8 * const pui8Buf, uint16 ui16BufLen, ProxyMessage::Protocol ui8PMProtocol,
                                                       bool bLocalReachabilityFromRemote)
     {
         if (!_pConnectorAdapter) {
@@ -642,32 +666,31 @@ namespace ACMNetProxy
         int rc;
         bool bReliable = isCommunicationReliable (ui8PMProtocol);
         bool bSequenced = isCommunicationSequenced (ui8PMProtocol);
-        ICMPProxyMessage iCMPPM (ui8Type, ui8Code, ui32RoH, ui32LocalSourceIP, ui32RemoteDestinationIP, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
+        ICMPProxyMessage iCMPPM (ui16BufLen, ui8Type, ui8Code, ui32RoH, ui32LocalSourceIP, ui32RemoteDestinationIP, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
                                  NetProxyApplicationParameters::MOCKET_SERVER_PORT, NetProxyApplicationParameters::TCP_SERVER_PORT,
-                                 NetProxyApplicationParameters::UDP_SERVER_PORT, ui16BufLen, bLocalReachabilityFromRemote);
+                                 NetProxyApplicationParameters::UDP_SERVER_PORT, ui8PacketTTL, bLocalReachabilityFromRemote);
         if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &iCMPPM, sizeof (ICMPProxyMessage),
-                                                  pui8Buf, iCMPPM.ui16PayloadLen, (const void * const) NULL))) {
+                                                  pui8Buf, iCMPPM._ui16PayloadLen, (const void * const) NULL))) {
             checkAndLogMsg ("Connection::sendICMPProxyMessageToRemoteHost", Logger::L_MildError,
-                            "gsend() of an ICMPProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
+                            "gsend() of an ICMPProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
             return -3;
         }
         checkAndLogMsg ("Connection::sendICMPProxyMessageToRemoteHost", Logger::L_MediumDetailDebug,
-                        "successfully sent an ICMPProxyMessage via %s addressed to host <%s:%hu> "
-                        "with parameters: bReliable = %s, bSequenced = %s\n", getConnectorTypeAsString(),
-                        _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(),
-                        bReliable ? "true" : "false", bSequenced ? "true" : "false");
+                        "successfully sent an ICMPProxyMessage via %s addressed to the remote NetProxy at address <%s:%hu> with parameters: "
+                        "bReliable = %s, bSequenced = %s\n", getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
+                        _remoteProxyInetAddr.getPort(), bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                               getRemoteProxyInetAddr()->getPort(), PT_ICMP, sizeof (ICMPHeader) + ui16BufLen);
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_ICMP, sizeof (ICMPProxyMessage) + iCMPPM.ui16PayloadLen);
+                                               getRemoteProxyInetAddr()->getPort(), PT_ICMP, sizeof (ICMPProxyMessage) + iCMPPM._ui16PayloadLen);
 
         return 0;
     }
 
     int Connection::sendUDPUnicastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP,
-                                                      const uint8 * const pPacket, uint16 ui16PacketLen, const CompressionSetting * const pCompressionSetting,
+                                                      uint8 ui8PacketTTL, const uint8 * const pPacket, uint16 ui16PacketLen, const CompressionSetting * const pCompressionSetting,
                                                       ProxyMessage::Protocol ui8PMProtocol)
     {
         if (!_pConnectorAdapter) {
@@ -684,8 +707,8 @@ namespace ACMNetProxy
         int rc;
         bool bReliable = isCommunicationReliable (ui8PMProtocol);
         bool bSequenced = isCommunicationSequenced (ui8PMProtocol);
-        UDPUnicastDataProxyMessage udpUDPM (ui32LocalSourceIP, ui32RemoteDestinationIP, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
-                                            ui16PacketLen, &CompressionSetting::DefaultNOCompressionSetting);
+        UDPUnicastDataProxyMessage udpUDPM (ui16PacketLen, ui32LocalSourceIP, ui32RemoteDestinationIP, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
+                                            ui8PacketTTL, &CompressionSetting::DefaultNOCompressionSetting);
 
         // Applying compression if convenient
         unsigned char *pucBuf[1];
@@ -693,14 +716,14 @@ namespace ACMNetProxy
         ConnectorWriter * const pConnectorWriter = ConnectorWriter::getAndLockUPDConnectorWriter (pCompressionSetting);
         if (0 == pConnectorWriter->writeDataAndResetWriter (pPacket, ui16PacketLen, pucBuf, uiBufLen)) {
             if ((uiBufLen > 0) && (uiBufLen < ui16PacketLen)) {
-                udpUDPM.ui16PayloadLen = uiBufLen;
-                udpUDPM.ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
+                udpUDPM._ui16PayloadLen = uiBufLen;
+                udpUDPM._ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
             }
         }
         if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &udpUDPM, sizeof (UDPUnicastDataProxyMessage),
-                                                  pucBuf[0], udpUDPM.ui16PayloadLen, (const void * const) NULL))) {
+                                                  pucBuf[0], udpUDPM._ui16PayloadLen, (const void * const) NULL))) {
             checkAndLogMsg ("Connection::sendUDPUnicastPacketToRemoteHost", Logger::L_MildError,
-                            "gsend() of a UDPUnicastData ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
+                            "gsend() of a UDPUnicastData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
             pConnectorWriter->unlockConnectorWriter();
             return -3;
@@ -708,14 +731,14 @@ namespace ACMNetProxy
         pConnectorWriter->unlockConnectorWriter();
         checkAndLogMsg ("Connection::sendUDPUnicastPacketToRemoteHost", Logger::L_MediumDetailDebug,
                         "successfully sent a UDPUnicastData ProxyMessage via %s with %hu bytes of data "
-                        "(%hu bytes before compression, if any) to host at address <%s:%hu>\n",
-                        getConnectorTypeAsString(), udpUDPM.ui16PayloadLen, ui16PacketLen,
+                        "(%hu bytes before compression, if any) to the remote NetProxy at address <%s:%hu>\n",
+                        getConnectorTypeAsString(), udpUDPM._ui16PayloadLen, ui16PacketLen,
                         _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
 
         _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, ui16PacketLen);
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (UDPUnicastDataProxyMessage) + udpUDPM.ui16PayloadLen);
+                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (UDPUnicastDataProxyMessage) + udpUDPM._ui16PayloadLen);
 
         return 0;
     }
@@ -734,29 +757,33 @@ namespace ACMNetProxy
             return -2;
         }
 
-        if ((sizeof (MultipleUDPDatagramsProxyMessage) + pUDPDatagramsQueue->getEnqueuedBytesCount()) > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
+        int rc;
+        const int iPacketsNum = pUDPDatagramsQueue->size();
+        if ((sizeof (MultipleUDPDatagramsProxyMessage) + iPacketsNum + pUDPDatagramsQueue->getEnqueuedBytesCount()) > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
             checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
                             "impossible to wrap together %d UDP Datagrams for a total of %u bytes; buffer is only %hu bytes long\n",
                             pUDPDatagramsQueue->size(), pUDPDatagramsQueue->getEnqueuedBytesCount(), NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
             return -3;
         }
 
-        int rc;
-        uint16 ui32CopiedBytes = 0;
         bool bReliable = isCommunicationReliable (ui8PMProtocol);
         bool bSequenced = isCommunicationSequenced (ui8PMProtocol);
-        MultipleUDPDatagramsProxyMessage mUDPDPM (ui32LocalSourceIP, ui32RemoteDestinationIP, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, pUDPDatagramsQueue->size(),
-                                                  pUDPDatagramsQueue->getEnqueuedBytesCount(), &CompressionSetting::DefaultNOCompressionSetting);
+        MultipleUDPDatagramsProxyMessage mUDPDPM (static_cast<uint16> (iPacketsNum + pUDPDatagramsQueue->getEnqueuedBytesCount()), ui32LocalSourceIP, ui32RemoteDestinationIP,
+                                                  NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, static_cast<uint8> (iPacketsNum), &CompressionSetting::DefaultNOCompressionSetting);
 
+        unsigned int iTTLIndex = 0;
+        uint32 ui32CopiedBytes = 0;
         pUDPDatagramsQueue->resetGet();
         while (const UDPDatagramPacket * const pUDPDatagramPacket = pUDPDatagramsQueue->getNext()) {
-            memcpy (_pucMultipleUDPDatagramsBuffer + ui32CopiedBytes, pUDPDatagramPacket->getUDPPacket(), pUDPDatagramPacket->getPacketLen());
+            _pucMultipleUDPDatagramsBuffer[iTTLIndex++] = pUDPDatagramPacket->getIPPacketTTL();
+            // Leave space for the TTL value of each consolidated packet
+            memcpy (_pucMultipleUDPDatagramsBuffer + iPacketsNum + ui32CopiedBytes, pUDPDatagramPacket->getUDPPacket(), pUDPDatagramPacket->getPacketLen());
             ui32CopiedBytes += pUDPDatagramPacket->getPacketLen();
         }
         if (ui32CopiedBytes != pUDPDatagramsQueue->getEnqueuedBytesCount()) {
             // Error copying data
             checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
-                            "the value of copied bytes (%hu) and bytes to be copied (%u) do not match\n",
+                            "the value of copied bytes (%u) and bytes to be copied (%u) do not match\n",
                             ui32CopiedBytes, pUDPDatagramsQueue->getEnqueuedBytesCount());
             return -4;
         }
@@ -767,14 +794,14 @@ namespace ACMNetProxy
         ConnectorWriter * const pConnectorWriter = ConnectorWriter::getAndLockUPDConnectorWriter (pCompressionSetting);
         if (0 == pConnectorWriter->writeDataAndResetWriter (_pucMultipleUDPDatagramsBuffer, ui32CopiedBytes, pucBuf, uiBufLen)) {
             if ((uiBufLen > 0) && (uiBufLen < mUDPDPM.getPayloadLen())) {
-                mUDPDPM.ui16PayloadLen = uiBufLen;
-                mUDPDPM.ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
+                mUDPDPM._ui16PayloadLen = uiBufLen;
+                mUDPDPM._ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
             }
         }
         if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &mUDPDPM, sizeof (MultipleUDPDatagramsProxyMessage),
-                                                  pucBuf[0], mUDPDPM.ui16PayloadLen, (const void * const) NULL))) {
+                                                  pucBuf[0], mUDPDPM.getPayloadLen(), (const void * const) NULL))) {
             checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
-                            "gsend() of a MultipleUDPDatagram ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
+                            "gsend() of a MultipleUDPDatagram ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
             pConnectorWriter->unlockConnectorWriter();
             return -5;
@@ -782,14 +809,14 @@ namespace ACMNetProxy
         pConnectorWriter->unlockConnectorWriter();
         checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MediumDetailDebug,
                         "successfully sent a MultipleUDPDatagram ProxyMessage via %s with %hu bytes of data "
-                        "(%hu bytes before compression, if any) to host at address %s\n",
-                        getConnectorTypeAsString(), mUDPDPM.ui16PayloadLen, pUDPDatagramsQueue->getEnqueuedBytesCount(),
-                        _remoteProxyInetAddr.getIPAsString());
+                        "(%hu bytes before compression, if any) to the remote NetProxy at address <%s:%hu>\n",
+                        getConnectorTypeAsString(), mUDPDPM.getPayloadLen(), pUDPDatagramsQueue->getEnqueuedBytesCount(),
+                        _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
 
         _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, pUDPDatagramsQueue->getEnqueuedBytesCount());
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (MultipleUDPDatagramsProxyMessage) + mUDPDPM.ui16PayloadLen);
+                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (MultipleUDPDatagramsProxyMessage) + mUDPDPM.getPayloadLen());
 
         return 0;
     }
@@ -812,21 +839,21 @@ namespace ACMNetProxy
         unsigned int uiBufLen = 0;
         bool bReliable = isCommunicationReliable (ui8PMProtocol);
         bool bSequenced = isCommunicationSequenced (ui8PMProtocol);
-        UDPBCastMCastDataProxyMessage udpBCMCPM (NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, ui16PacketLen, &CompressionSetting::DefaultNOCompressionSetting);
+        UDPBCastMCastDataProxyMessage udpBCMCPM (ui16PacketLen, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, &CompressionSetting::DefaultNOCompressionSetting);
 
         // Apply compression if convenient
         unsigned char *pucBuf[1];
         ConnectorWriter * const pConnectorWriter = ConnectorWriter::getAndLockUPDConnectorWriter (pCompressionSetting);
         if (0 == pConnectorWriter->writeDataAndResetWriter (pPacket, ui16PacketLen, pucBuf, uiBufLen)) {
             if ((uiBufLen > 0) && (uiBufLen < ui16PacketLen)) {
-                udpBCMCPM.ui16PayloadLen = uiBufLen;
-                udpBCMCPM.ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
+                udpBCMCPM._ui16PayloadLen = uiBufLen;
+                udpBCMCPM._ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
             }
         }
         if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &udpBCMCPM,
-                                                  sizeof (UDPBCastMCastDataProxyMessage), pucBuf[0], udpBCMCPM.ui16PayloadLen, (const void * const) NULL))) {
+                                                  sizeof (UDPBCastMCastDataProxyMessage), pucBuf[0], udpBCMCPM.getPayloadLen(), (const void * const) NULL))) {
             checkAndLogMsg ("Connection::sendUDPBCastMCastPacketToRemoteHost", Logger::L_MildError,
-                            "gsend() of a UDPBCastMCastData ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
+                            "gsend() of a UDPBCastMCastData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
             pConnectorWriter->unlockConnectorWriter();
             return -4;
@@ -834,14 +861,14 @@ namespace ACMNetProxy
         pConnectorWriter->unlockConnectorWriter();
         checkAndLogMsg ("Connection::sendUDPBCastMCastPacketToRemoteHost", Logger::L_MediumDetailDebug,
                         "successfully sent a UDPBCastMCastData ProxyMessage via %s with %hu bytes of data "
-                        "(%hu bytes before compression, if any) to host at address <%s:%hu>\n",
-                        getConnectorTypeAsString(), udpBCMCPM.ui16PayloadLen, ui16PacketLen,
+                        "(%hu bytes before compression, if any) to the remote NetProxy at address <%s:%hu>\n",
+                        getConnectorTypeAsString(), udpBCMCPM.getPayloadLen(), ui16PacketLen,
                         _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
 
         _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, ui16PacketLen);
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (UDPBCastMCastDataProxyMessage) + udpBCMCPM.ui16PayloadLen);
+                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (UDPBCastMCastDataProxyMessage) + udpBCMCPM.getPayloadLen());
 
         return 0;
     }
@@ -872,17 +899,17 @@ namespace ACMNetProxy
                                          pEntry->getConnectorWriter()->getCompressionSetting(), bLocalReachabilityFromRemote);
         if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &oCPM, sizeof (OpenConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::sendOpenTCPConnectionRequest", Logger::L_MildError,
-                            "L%hu-R0: send() of an OpenConnection ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
-                            oCPM.ui16LocalID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+                            "L%hu-R0: send() of an OpenConnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
+                            oCPM._ui16LocalID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
                             pEntry->remoteProxyAddr.getPort(), rc);
             return -5;
         }
         checkAndLogMsg ("Connection::sendOpenTCPConnectionRequest", Logger::L_LowDetailDebug,
-                        "L%hu-R0: successfully sent an OpenTCPConnection request via %s to proxy at address <%s:%hu> "
+                        "L%hu-R0: successfully sent an OpenTCPConnection request via %s to the remote NetProxy at address <%s:%hu> "
                         "for virtual connection <%s:%hu --> %s:%hu> with parameters: bReliable = %s, bSequenced = %s\n",
-                        oCPM.ui16LocalID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
-                        pEntry->remoteProxyAddr.getPort(), InetAddr(oCPM.ui32LocalIP).getIPAsString(), oCPM.ui16LocalPort,
-                        InetAddr(oCPM.ui32RemoteIP).getIPAsString(), oCPM.ui16RemotePort,
+                        oCPM._ui16LocalID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+                        pEntry->remoteProxyAddr.getPort(), InetAddr(oCPM._ui32LocalIP).getIPAsString(), oCPM._ui16LocalPort,
+                        InetAddr(oCPM._ui32RemoteIP).getIPAsString(), oCPM._ui16RemotePort,
                         bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), pEntry->ui32RemoteIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
@@ -916,14 +943,14 @@ namespace ACMNetProxy
                                            NetProxyApplicationParameters::UDP_SERVER_PORT, pEntry->getConnectorWriter()->getCompressionSetting(), bLocalReachabilityFromRemote);
         if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &cOPM, sizeof (ConnectionOpenedProxyMessage)))) {
             checkAndLogMsg ("Connection::sendTCPConnectionOpenedResponse", Logger::L_MildError,
-                            "L%hu-R%hu: send() of a TCPConnectionOpened ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
-                            cOPM.ui16LocalID, cOPM.ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+                            "L%hu-R%hu: send() of a TCPConnectionOpened ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
+                            cOPM._ui16LocalID, cOPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
                             pEntry->remoteProxyAddr.getPort(), rc);
             return -4;
         }
         checkAndLogMsg ("Connection::sendTCPConnectionOpenedResponse", Logger::L_LowDetailDebug,
-                        "L%hu-R%hu: successfully sent a TCPConnectionOpened response via %s to proxy at address <%s:%hu> with parameters: "
-                        "bReliable = %s, bSequenced = %s\n", cOPM.ui16LocalID, cOPM.ui16RemoteID, getConnectorTypeAsString(),
+                        "L%hu-R%hu: successfully sent a TCPConnectionOpened response via %s to the remote NetProxy at address <%s:%hu> with parameters: "
+                        "bReliable = %s, bSequenced = %s\n", cOPM._ui16LocalID, cOPM._ui16RemoteID, getConnectorTypeAsString(),
                         pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort(), bReliable ? "true":"false",
                         bSequenced ? "true" : "false");
 
@@ -952,23 +979,34 @@ namespace ACMNetProxy
         int rc;
         bool bReliable = isCommunicationReliable (pEntry->getProtocol());
         bool bSequenced = isCommunicationSequenced (pEntry->getProtocol());
-        TCPDataProxyMessage tDPM (pEntry->ui16ID, pEntry->ui16RemoteID, ui16BufLen, ui8TCPFlags);
+        TCPDataProxyMessage tDPM (ui16BufLen, pEntry->ui16ID, pEntry->ui16RemoteID, ui8TCPFlags);
+		
+		bool _bPriorityMechanismActive = true; //this value will be true when the priority mechanism is active
+		
+		if (_bPriorityMechanismActive && (_pConnectorAdapter->getOutgoingBufferSize() < sizeof(TCPDataProxyMessage))) {
+			checkAndLogMsg("Connection::sendTCPDataToRemoteHost", Logger::L_Info,
+				"L%hu-R%hu: blocking gsend() of a TCPData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> dropped\n", 
+				tDPM._ui16LocalID, tDPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+				pEntry->remoteProxyAddr.getPort());
+			return -4;
+		}
+
         if (0 != (rc = _pConnectorAdapter->gsend (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &tDPM, sizeof (TCPDataProxyMessage),
-                                                  pui8Buf, tDPM.ui16PayloadLen, (const void * const) NULL))) {
+                                                  pui8Buf, tDPM.getPayloadLen(), (const void * const) NULL))) {
             checkAndLogMsg ("Connection::sendTCPDataToRemoteHost", Logger::L_MildError,
-                            "L%hu-R%hu: gsend() of a TCPData ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
-                            tDPM.ui16LocalID, tDPM.ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+                            "L%hu-R%hu: gsend() of a TCPData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
+                            tDPM._ui16LocalID, tDPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
                             pEntry->remoteProxyAddr.getPort(), rc);
-            return -4;
+            return -5;
         }
         checkAndLogMsg ("Connection::sendTCPDataToRemoteHost", Logger::L_HighDetailDebug,
-                        "L%hu-R%hu: successfully sent a TCPData ProxyMessage with %hu bytes of data via %s to proxy at address "
-                        "<%s:%hu> with parameters: bReliable = %s, bSequenced = %s\n", tDPM.ui16LocalID, tDPM.ui16RemoteID,
-                        tDPM.ui16PayloadLen, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+                        "L%hu-R%hu: successfully sent a TCPData ProxyMessage with %hu bytes of data via %s to the remote NetProxy at address "
+                        "<%s:%hu> with parameters: bReliable = %s, bSequenced = %s\n", tDPM._ui16LocalID, tDPM._ui16RemoteID,
+                        tDPM._ui16PayloadLen, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
                         pEntry->remoteProxyAddr.getPort(), bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), pEntry->ui32RemoteIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (TCPDataProxyMessage) + ui16BufLen);
+                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (TCPDataProxyMessage) + tDPM.getPayloadLen());
 
         return 0;
     }
@@ -995,15 +1033,15 @@ namespace ACMNetProxy
         CloseConnectionProxyMessage cCPM (pEntry->ui16ID, pEntry->ui16RemoteID);
         if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &cCPM, sizeof (CloseConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::sendCloseTCPConnectionRequest", Logger::L_MildError,
-                            "L%hu-R%hu: send() of a CloseTCPConnection ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
-                            cCPM.ui16LocalID, cCPM.ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+                            "L%hu-R%hu: send() of a CloseTCPConnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
+                            cCPM._ui16LocalID, cCPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
                             pEntry->remoteProxyAddr.getPort(), rc);
             return -4;
         }
         checkAndLogMsg ("Connection::sendCloseTCPConnectionRequest", Logger::L_LowDetailDebug,
-                        "L%hu-R%hu: successfully sent a CloseTCPConnection request via %s to remote proxy at address <%s:%hu> "
-                        "with parameters: bReliable = %s, bSequenced = %s\n", cCPM.ui16LocalID, cCPM.ui16RemoteID,
-                        getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort(),
+                        "L%hu-R%hu: successfully sent a CloseTCPConnection request via %s to the remote NetProxy at address <%s:%hu> with parameters: "
+                        "bReliable = %s, bSequenced = %s\n", cCPM._ui16LocalID, cCPM._ui16RemoteID, getConnectorTypeAsString(),
+                        pEntry->remoteProxyAddr.getIPAsString(), pEntry->remoteProxyAddr.getPort(),
                         bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), pEntry->ui32RemoteIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
@@ -1020,9 +1058,8 @@ namespace ACMNetProxy
         }
         else if (!_pConnectorAdapter->isConnected()) {
             checkAndLogMsg ("Connection::sendResetTCPConnectionRequest", Logger::L_MildError,
-                            "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
-                            "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
-                            _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
+                            "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> with UniqueID %u is not connected\n",
+                            getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
 
             return -2;
         }
@@ -1033,16 +1070,15 @@ namespace ACMNetProxy
         ResetConnectionProxyMessage rCPM (ui16LocalID, ui16RemoteID);
         if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &rCPM, sizeof (ResetConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::sendResetTCPConnectionRequest", Logger::L_MildError,
-                            "L%hu-R%hu: send() of a ResetTCPconnection ProxyMessage via %s to proxy at address <%s:%hu> failed with rc = %d\n",
-                            rCPM.ui16LocalID, rCPM.ui16RemoteID, getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
+                            "L%hu-R%hu: send() of a ResetTCPconnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
+                            rCPM._ui16LocalID, rCPM._ui16RemoteID, getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
                             _remoteProxyInetAddr.getPort(), rc);
             return -3;
         }
         checkAndLogMsg ("Connection::sendResetTCPConnectionRequest", Logger::L_LowDetailDebug,
-                        "L%hu-R%hu: successfully sent a ResetTCPconnection request via %s to remote proxy at address <%s:%hu>"
-                        " with parameters: bReliable = %s, bSequenced = %s\n", rCPM.ui16LocalID, rCPM.ui16RemoteID,
-                        getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(),
-                        bReliable ? "true" : "false", bSequenced ? "true" : "false");
+                        "L%hu-R%hu: successfully sent a ResetTCPconnection request via %s to the remote NetProxy at address <%s:%hu> with parameters: "
+                        "bReliable = %s, bSequenced = %s\n", rCPM._ui16LocalID, rCPM._ui16RemoteID, getConnectorTypeAsString(),
+                        _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
                                                getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (ResetConnectionProxyMessage));
@@ -1098,7 +1134,7 @@ namespace ACMNetProxy
             }
             else {
                 // The remote NetProxy is the master --> on this side, we do nothing (connection instance will delete itself upon closure on the remote side)
-                checkAndLogMsg ("Connection::enforceConnectionConsistency", Logger::L_MediumDetailDebug,
+                checkAndLogMsg ("Connection::enforceConnectionConsistency", Logger::L_LowDetailDebug,
                                 "found a duplicated %s connection to the NetProxy with UniqueID %u, IP address %s, and status %hu; "
                                 "the remote NetProxy will take care of closing it down\n", pOldConnection->getConnectorTypeAsString(),
                                 ui32RemoteProxyID, pOldConnection->getRemoteProxyInetAddr()->getIPAsString(), pOldConnection->getStatus());

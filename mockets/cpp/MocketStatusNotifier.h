@@ -85,6 +85,10 @@ class MocketStatusNotifier
         struct EndPointsInfo _epi;
         NOMADSUtil::String _localEndPointInfo;
         NOMADSUtil::String _remoteEndPointInfo;
+
+
+
+
 };
 
 inline int MocketStatusNotifier::setLastContactTime (int64 i64LastContactTime)

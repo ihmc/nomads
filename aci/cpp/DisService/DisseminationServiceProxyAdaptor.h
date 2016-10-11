@@ -2,7 +2,7 @@
  * DisseminationServiceProxyAdaptor.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -89,9 +89,9 @@ namespace IHMC_ACI
             uint16 getClientID (void);
 
             bool dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId,
-                              const char *pszObjectId, const char *pszInstanceId, const char *pszMimeType, const void *pData,
-                              uint32 ui32Length, uint32 ui32MetadataLength, uint16 ui16Tag, uint8 ui8Priority,
-                              const char *pszQueryId);
+                              const char *pszObjectId, const char *pszInstanceId, const char *pszAnnotatedObjMsgId,
+                              const char *pszMimeType, const void *pData, uint32 ui32Length, uint32 ui32MetadataLength,
+                              uint16 ui16Tag, uint8 ui8Priority, const char *pszQueryId);
             bool chunkArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId,
                                const char *pszObjectId, const char *pszInstanceId, const char *pszMimeType, const void *pChunk,
                                uint32 ui32Length, uint8 ui8NChunks, uint8 ui8TotNChunks, const char *pszChunkedMsgId,
@@ -111,6 +111,7 @@ namespace IHMC_ACI
                                 const char *pszQueryQualifiers,
                                 const void *pszQuery, unsigned int uiQueryLen);
             void searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds, const char *pszMatchingNodeId);
+            void volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId);
 
         protected:
             bool doGetNodeId (CommHelperError &err);

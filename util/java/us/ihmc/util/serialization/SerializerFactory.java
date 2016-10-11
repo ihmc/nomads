@@ -2,7 +2,7 @@
  * SerializerFactory.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -41,11 +41,11 @@ public class SerializerFactory
 
         switch (type) {
             case JAVA:
-                return JavaSerializer.getInstance();
+                return new JavaSerializer();
             case EXTERNALIZABLE:
-                return ExternalizeSerializer.getInstance();
+                return new ExternalizeSerializer();
             case KRYO:
-                return KryoSerializer.getInstance();
+                return new KryoSerializer();
             default:
                 throw new SerializationException (SerializerType.class.getSimpleName() + ": " + type + " is wrong");
         }

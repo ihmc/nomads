@@ -5,7 +5,7 @@
  * PacketRouter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,6 +24,7 @@
  * and handles incoming and outgoing network packets.
  */
 
+#include "FTypes.h"
 #include "DArray.h"
 #include "UInt32Hashtable.h"
 #include "ManageableThread.h"
@@ -37,14 +38,17 @@
 #include "NPDArray2.h"
 #include "ProxyMessages.h"
 #include "PacketBufferManager.h"
+#include "Mutex.h"
 #include "MutexCounter.h"
 #include "MutexUDPQueue.h"
 #include "NetworkInterface.h"
 #include "TapInterface.h"
+#include "ARPCache.h"
 #include "MocketConnector.h"
 #include "SocketConnector.h"
 #include "UDPConnector.h"
 #include "GUIUpdateMessage.h"
+#include "NetProxyConfigManager.h"
 
 
 #if defined (USE_DISSERVICE)
@@ -62,15 +66,15 @@ namespace NOMADSUtil
     class InetAddr;
 }
 
+
 namespace ACMNetProxy
 {
     class ARPCache;
     class ConnectorReader;
     class EndpointConfigFileReader;
-    class NetProxyConfigManager;
     class TCPManager;
     class UDPDatagramPacket;
-
+    
     #if defined (USE_DISSERVICE)
         class PacketRouter : public IHMC_ACI::DisseminationServiceListener
     #else
@@ -80,7 +84,7 @@ namespace ACMNetProxy
         public:
             static PacketRouter *getPacketRouter (void);
             ~PacketRouter (void);
-
+           
             // Initialize the PacketRouter
             int init (NetworkInterface * const pInternalInterface, NetworkInterface * const pExternalInterface);
             int startThreads (void);
@@ -94,7 +98,7 @@ namespace ACMNetProxy
 
             // The following method is useful whenever a new Connection has been established, to reduce latency in case there are enqued packets/requests
             static void wakeUpAutoConnectionAndRemoteTransmitterThreads (void);
-
+            
             static void requestTermination (void);
             static bool isRunning (void);
             static bool isTerminationRequested (void);
@@ -103,6 +107,7 @@ namespace ACMNetProxy
             friend class Connection::IncomingMessageHandler;
             friend class UDPConnector;
             friend class TCPManager;
+            friend class NetProxyConfigManager::StaticARPTableConfigFileReader;
 
             // Receiver thread is responsible for receiving packets from the virtual ethernet interface
             class InternalReceiverThread : public NOMADSUtil::Thread
@@ -175,6 +180,8 @@ namespace ACMNetProxy
                     AutoConnectionManager (void);
                     void run (void);
 
+                    int getNumOfValidAutoConnectionEntries (void);
+
                 private:
                     static const uint32 ACM_TIME_BETWEEN_ITERATIONS = 10000;          // Time between each iterations for ACM
             };
@@ -221,19 +228,22 @@ namespace ACMNetProxy
             static int wrapEtherAndSendPacketToHost (NetworkInterface * const pNI, uint8 *ui8Buf, uint16 ui16PacketLen);
             // ARP
             static int sendARPRequest (NetworkInterface * const pNI, uint32 ui32OriginatingIPAddr, uint32 ui32TargetIPAddr);
-            static int sendARPReplyToHost (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket, const NOMADSUtil::EtherMACAddr &rTargetMACAddr);
+            static int sendARPReplyToHost (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
+                                           const NOMADSUtil::EtherMACAddr &rTargetMACAddr);
             static int sendARPAnnouncement (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
                                             uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rMACAddr);
+            static void addEntryToARPTable (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rTargetMACAddr);
             // ICMP
             static int buildAndSendICMPMessageToHost (NetworkInterface * const pNI, NOMADSUtil::ICMPHeader::Type ICMPType,
                                                       NOMADSUtil::ICMPHeader::Code_Destination_Unreachable ICMPCode, uint32 ui32SourceIP,
                                                       uint32 ui32DestinationIP, NOMADSUtil::IPHeader * const pRcvdIPPacket);
-            static int forwardICMPMessageToHost (uint32 ui32LocalTargetIP, uint32 ui32RemoteOriginationIP, uint32 ui32RemoteProxyIP,
+            static int forwardICMPMessageToHost (uint32 ui32LocalTargetIP, uint32 ui32RemoteOriginationIP, uint32 ui32RemoteProxyIP, uint8 ui8PacketTTL,
                                                  NOMADSUtil::ICMPHeader::Type ICMPType, NOMADSUtil::ICMPHeader::Code_Destination_Unreachable ICMPCode,
                                                  uint32 ui32RoH, const uint8 * const pICMPData, uint16 ui16PayloadLen);
 
             static int initializeRemoteConnection (uint32 ui32RemoteProxyID, ConnectorType connectorType);
-            static int sendUDPUniCastPacketToHost (uint32 ui32RemoteOriginationIP, uint32 ui32LocalTargetIP, const NOMADSUtil::UDPHeader * const pUDPPacket);
+            static int sendUDPUniCastPacketToHost (uint32 ui32RemoteOriginationIP, uint32 ui32LocalTargetIP, uint8 ui8PacketTTL,
+                                                   const NOMADSUtil::UDPHeader * const pUDPPacket);
             static int sendUDPBCastMCastPacketToHost (const uint8 * const pPacket, uint16 ui16PacketLen);
 
             static int sendRemoteResetRequestIfNeeded (Entry * const pEntry);
@@ -281,6 +291,8 @@ namespace ACMNetProxy
             static NOMADSUtil::DArray<NOMADSUtil::EtherMACAddr> _daExternalHosts;
             static NetworkInterface *_pInternalInterface;
             static NetworkInterface *_pExternalInterface;
+
+            
             static TCPConnTable * const _pTCPConnTable;
             static ConnectionManager * const _pConnectionManager;
             static NetProxyConfigManager * const _pConfigurationManager;
@@ -317,6 +329,7 @@ namespace ACMNetProxy
             static NOMADSUtil::ConditionVariable _cvAutoConnectionManager;
             static NOMADSUtil::ConditionVariable _cvCleaner;
             static NOMADSUtil::ConditionVariable _cvGUIUpdater;
+
     };
 
 
@@ -397,7 +410,12 @@ namespace ACMNetProxy
         return _bTerminationRequested;
     }
 
-    inline PacketRouter::PacketRouter (void) { }
+    inline PacketRouter::PacketRouter (void) {}
+
+    inline void PacketRouter::addEntryToARPTable (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rEtherMACAddr)
+    {
+        _pARPCache.insert (ui32IPAddr, rEtherMACAddr);
+    }
 
     inline bool PacketRouter::isMACAddrBroadcast (NOMADSUtil::EtherMACAddr macAddr)
     {

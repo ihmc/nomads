@@ -2,7 +2,7 @@
  * DisseminationServiceProxyAdaptor.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@ using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
 DisseminationServiceProxyAdaptor::DisseminationServiceProxyAdaptor (DisseminationServiceProxyServer *pDSProxyServer)
-    : _mutex (18)
+    : SearchListener ("DisseminationServiceProxyAdaptor"), _mutex (18)
 {
     _pDissSvc = pDSProxyServer->getDisseminationServiceRef();
     _pDissSvcProxyServer = pDSProxyServer;
@@ -1530,9 +1530,9 @@ CommHelperError DisseminationServiceProxyAdaptor::messageArrivedCallback (const 
 
 bool DisseminationServiceProxyAdaptor::dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName,
                                                     uint32 ui32SeqId, const char *pszObjectId, const char *pszInstanceId,
-                                                    const char *pszMimeType, const void *pData, uint32 ui32Length,
-                                                    uint32 ui32MetadataLength, uint16 ui16Tag, uint8 ui8Priority,
-                                                    const char *pszQueryId)
+                                                    const char *pszAnnotatedObjMsgId, const char *pszMimeType,
+                                                    const void *pData, uint32 ui32Length, uint32 ui32MetadataLength,
+                                                    uint16 ui16Tag, uint8 ui8Priority, const char *pszQueryId)
 {
     if (_pCallbackCommHelper == NULL) {
         return false;
@@ -1890,6 +1890,11 @@ void DisseminationServiceProxyAdaptor::searchArrived (const char *pszQueryId, co
 
 void DisseminationServiceProxyAdaptor::searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds,
                                                            const char *pszMatchingNodeId)
+{
+    // TODO: decide whether the application should be notified as well of this event, implement this method in case
+}
+
+void DisseminationServiceProxyAdaptor::volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId)
 {
     // TODO: decide whether the application should be notified as well of this event, implement this method in case
 }

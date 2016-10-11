@@ -2,7 +2,7 @@
  * AutoConnectionEntry.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,7 +29,8 @@ namespace ACMNetProxy
     AutoConnectionEntry::AutoConnectionEntry (const uint32 ui32RemoteProxyID, const ConnectorType connectorType, const uint32 ui32AutoReconnectTimeInMillis) :
         _ui32RemoteProxyID (ui32RemoteProxyID), _connectorType (connectorType),
         _pConnectivitySolutions (P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (ui32RemoteProxyID)),
-        _ui32AutoReconnectTimeInMillis (ui32AutoReconnectTimeInMillis), _ui64LastConnectionAttemptTime (0), _bSynchronized (false) { }
+        _ui32AutoReconnectTimeInMillis (ui32AutoReconnectTimeInMillis), _ui64LastConnectionAttemptTime (0), _bSynchronized (false),
+        _bValid (_pConnectivitySolutions != NULL) { }
 
     const AutoConnectionEntry & AutoConnectionEntry::operator = (const AutoConnectionEntry &rhs)
     {
@@ -39,6 +40,7 @@ namespace ACMNetProxy
         _ui32AutoReconnectTimeInMillis = rhs._ui32AutoReconnectTimeInMillis;
         _ui64LastConnectionAttemptTime = rhs._ui64LastConnectionAttemptTime;
         _bSynchronized = rhs._bSynchronized;
+        _bValid = _pConnectivitySolutions != NULL;
 
         return *this;
     }
@@ -102,4 +104,5 @@ namespace ACMNetProxy
 
         return 0;
     }
+
 }

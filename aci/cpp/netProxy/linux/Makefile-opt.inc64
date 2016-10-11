@@ -6,6 +6,7 @@ EXTERNALS = $(NOMADS_HOME)/externals
 EXTERNALS_LIB = $(EXTERNALS)/lib/linux-x86_64
 MOCKETS_HOME = $(NOMADS_HOME)/mockets
 UTIL_HOME = $(NOMADS_HOME)/util
+NETSENSOR_HOME = $(NOMADS_HOME)/misc/cpp/netsensor
 MSGPACK_HOME = $(EXTERNALS)/msgpack
 LIBZ_HOME = $(EXTERNALS)/zlib
 LZMA_HOME = $(EXTERNALS)/xz
@@ -19,9 +20,11 @@ CPPFLAGS = -O2 -DUNIX -DLINUX -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM \
 			-I$(EXTERNALS)/include/pcap \
 			-I$(EXTERNALS)/include \
 			-I$(UTIL_HOME)/cpp \
-			-I$(MOCKETS_HOME)/cpp
+			-I$(MOCKETS_HOME)/cpp \
+			-I$(NETSENSOR_HOME)
 
 LIB_LIST = $(MOCKETS_HOME)/cpp/$(LIB_FOLDER)/libmockets.a \
+			$(NETSENSOR_HOME)/linux/libnetsensor.a \
 			$(UTIL_HOME)/cpp/$(LIB_FOLDER)/libsecurity.a \
 			$(UTIL_HOME)/cpp/$(LIB_FOLDER)/libutil.a \
 			$(EXTERNALS_LIB)/libcrypto.a \

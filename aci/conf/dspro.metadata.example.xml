@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Metadata>
+	<Field>
+		<FieldName>Data_Content</FieldName>
+		<FieldValue>Map</FieldValue>
+	</Field>
+	<Field>
+		<FieldName>Data_Format</FieldName>
+		<FieldValue>JPG</FieldValue>
+	</Field>
+	<Field>
+		<FieldName>Classification</FieldName>
+		<FieldValue>Unclassified</FieldValue>
+	</Field>
+	<Field>
+		<FieldName>Node_Type</FieldName>
+		<FieldValue>Video_Sensor</FieldValue>
+	</Field>
+</Metadata>
+

@@ -2,7 +2,7 @@
  * Mutex.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -64,6 +64,24 @@ namespace NOMADSUtil
             #else
                 #error Must Define WIN32 or UNIX!
             #endif
+    };
+
+    class MutexUnlocker 
+    {
+        public:
+            MutexUnlocker (Mutex *pMux)
+                : _pMux (pMux)
+            {
+                _pMux->lock();
+            }
+
+            ~MutexUnlocker (void)
+            {
+                _pMux->unlock();        
+            }
+
+        private:
+            Mutex *_pMux;
     };
 
     #if defined (WIN32)

@@ -40,13 +40,17 @@ bool MocketPeerUnreachableHandler (void *pCallbackArg, unsigned long ulTimeSince
 
 MocketCtx * MocketCreate()
 {
-    //if (NOMADSUtil::pLogger == 0)
-    //    {
-    //    NOMADSUtil::pLogger = new NOMADSUtil::Logger();
-    //    NOMADSUtil::pLogger->enableScreenOutput();
-    //    }
-    //
-    //NOMADSUtil::pLogger->setDebugLevel(NOMADSUtil::Logger::L_HighDetailDebug);
+#ifdef ENABLE_MOCKETS_LOGGING
+    if (NOMADSUtil::pLogger == 0)
+        {
+        NOMADSUtil::pLogger = new NOMADSUtil::Logger();
+        //NOMADSUtil::pLogger->enableScreenOutput();
+		NOMADSUtil::pLogger->initLogFile("C:\\temp\\mockets.log", false);
+		NOMADSUtil::pLogger->enableFileOutput();
+        }
+    
+    NOMADSUtil::pLogger->setDebugLevel(NOMADSUtil::Logger::L_HighDetailDebug);
+#endif
 
     MocketCtx *pCtx = (MocketCtx *) malloc (sizeof (MocketCtx));
     pCtx->m = new Mocket();

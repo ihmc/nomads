@@ -34,7 +34,7 @@ using namespace NOMADSUtil;
 ServerMocket::ServerMocket (const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhenDone)
     : _cvInAccept (&_mInAccept)
 {
-	_configFile = pszConfigFile;
+    _configFile = pszConfigFile;
     _bAccepting = false;
     _bInAccept = false;
     _ui16Port = 0;

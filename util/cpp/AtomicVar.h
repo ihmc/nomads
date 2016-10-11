@@ -1,20 +1,28 @@
 /*
 * AtomicVar.h
 *
+* This file is part of the IHMC Util Library
+* Copyright (c) 1993-2016 IHMC.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License
+* version 3 (GPLv3) as published by the Free Software Foundation.
+*
+* U.S. Government agencies and organizations may redistribute
+* and/or modify this program under terms equivalent to
+* "Government Purpose Rights" as defined by DFARS 
+* 252.227-7014(a)(12) (February 2014).
+*
+* Alternative licenses that allow for use within commercial products may be
+* available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
+*
 * Implements an atomic variable.
 *
 * This class uses templates to specify both the type of variable
 * and the type of lock that is used to guarantee the mutually
 * exclusive access to the variable. The default lock is Mutex.
 *
-* This file is part of the IHMC Utility Library
-* Copyright (c) IHMC. All Rights Reserved.
-*
-* Usage restricted to not-for-profit use only.
-* Contact IHMC for other types of licenses.
-*
 * authors : Alessandro Morelli          amorelli@ihmc.us
-*
 */
 
 #ifndef INCL_ATOMIC_VAR_H

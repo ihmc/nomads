@@ -2,7 +2,7 @@
  * ExternalizeSerializer.java
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,22 +28,6 @@ import java.io.*;
  */
 public class ExternalizeSerializer implements Serializer
 {
-    private ExternalizeSerializer()
-    {
-    }
-
-    /**
-     * Gets the <code>ExternalizeSerializer</code> instance
-     * @return the <code>ExternalizeSerializer</code> instance
-     */
-    static synchronized ExternalizeSerializer getInstance()
-    {
-        if (INSTANCE == null) {
-            INSTANCE = new ExternalizeSerializer();
-        }
-        return INSTANCE;
-    }
-
     @Override
     public void register (Class c)
     {
@@ -89,8 +73,6 @@ public class ExternalizeSerializer implements Serializer
             throw new SerializationException (e);
         }
     }
-
-    private static ExternalizeSerializer INSTANCE;
 }
 
 

@@ -2,7 +2,7 @@
  * DisServiceMsg.h
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,19 +20,13 @@
 #ifndef INCL_DIS_SERVICE_MESSAGE_H
 #define INCL_DIS_SERVICE_MESSAGE_H
 
-#include "Subscription.h"
 #include "SubscriptionList.h"
 
 #include "BufferReader.h"
 #include "BufferWriter.h"
 #include "DArray2.h"
-#include "FTypes.h"
-#include "Mutex.h"
-#include "PtrLList.h"
 #include "PtrQueue.h"
 #include "ReceivedMessages.h"
-#include "StrClass.h"
-#include "StringHashtable.h"
 #include "StringFloatHashtable.h"
 
 namespace NOMADSUtil
@@ -89,9 +83,10 @@ namespace IHMC_ACI
 
                 DSMT_SearchMsg = 0x20,
                 DSMT_SearchMsgReply = 0x2A,
-                
-                DSMT_ImprovedSubStateMessage = 0x2B,
-                DSMT_ProbabilitiesMsg = 0x2C
+                DSMT_VolatileSearchMsgReply = 0x2B,
+
+                DSMT_ImprovedSubStateMessage = 0x2C,
+                DSMT_ProbabilitiesMsg = 0x2D
             };
 
             struct Range {
@@ -1041,36 +1036,72 @@ namespace IHMC_ACI
             char *_pszQueryQualifiers;
     };
 
-    class SearchReplyMsg : public DisServiceCtrlMsg
+    class BaseSearchReplyMsg : public DisServiceCtrlMsg
+    {
+        public:
+            virtual ~BaseSearchReplyMsg (void);
+
+            const char * getQueryId (void) const;
+            const char * getQuerier (void) const;
+            const char * getQueryType (void) const;
+            const char * getMatchingNode (void) const;
+
+            int setQueryId (const char *pszQueryId);
+            int setQueryType (const char *pszQueryType);
+            int setQuerier (const char *pszQuerier);
+            int setMatchingNode (const char *pszMatchingNode);
+
+            int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
+            int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
+
+        protected:
+            BaseSearchReplyMsg (Type type);
+            BaseSearchReplyMsg (Type type, const char *pszSenderNodeId, const char *pszTargetNodeId);
+
+        private:
+            char *_pszQueryId;
+            char *_pszQuerier;
+            char *_pszQueryType;
+            char *_pszMatchingNode;
+    };
+
+    class SearchReplyMsg : public BaseSearchReplyMsg
     {
         public:
             SearchReplyMsg (void);
             SearchReplyMsg (const char *pszSenderNodeId, const char *pszTargetNodeId);
             ~SearchReplyMsg (void);
 
-            const char * getQueryId (void) const;
-            const char * getQuerier (void) const;
-            const char * getQueryType (void) const;
             const char ** getMatchingMsgIds (void) const;
-            const char * getMatchingNode(void) const;
 
-            int setQueryId (const char *pszQueryId);
-            int setQueryType (const char *pszQueryType);
-            int setQuerier (const char *pszQuerier);
             int setMatchingMsgIds (const char **ppszMatchingIds);
-            int setMatchingNode (const char *pszMatchingNode);
 
             int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
             int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
 
         private:
-            char *_pszQueryId;
-            char *_pszQuerier;
-            char *_pszQueryType;
             char **_ppszMatchingIds;
-            char *_pszMatchingNode;
     };
-    
+
+    class VolatileSearchReplyMsg : public BaseSearchReplyMsg
+    {
+        public:
+            VolatileSearchReplyMsg (void);
+            VolatileSearchReplyMsg (const char *pszSenderNodeId, const char *pszTargetNodeId);
+            ~VolatileSearchReplyMsg (void);
+
+            const void * getReply (uint16 &ui16ReplyLen) const;
+
+            int setReply (const void *pReply, uint16 ui16ReplyLen);
+
+            int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
+            int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
+
+        private:
+            uint16 _ui16ReplyLen;
+            void *_pReply;
+    };
+
     //==========================================================================
     // DisServiceImprovedSubscriptionStateMsg CONTROL
     //==========================================================================

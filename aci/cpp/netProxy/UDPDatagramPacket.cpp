@@ -2,7 +2,7 @@
  * UDPDatagramPacket.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,8 +28,8 @@ namespace ACMNetProxy
                                           const CompressionSetting * const pCompressionSetting, const ProxyMessage::Protocol pmProtocol,
                                           const IPHeader * const pIPHeader, const UDPHeader * const pUDPHeader) :
         _pRemoteProxyAddr (pRemoteProxyAddr), _pConnection (pConnection), _pConnector (pConnector), _pCompressionSetting (pCompressionSetting),
-        _ui8PMProtocol (pmProtocol), _ui32IPSource (pIPHeader->srcAddr.ui32Addr), _ui32IPDestination (pIPHeader->destAddr.ui32Addr),
-        _ui16IPIdentification (pIPHeader->ui16Ident), _i64CreationTime (getTimeInMilliseconds())
+        _ui32IPSource (pIPHeader->srcAddr.ui32Addr), _ui32IPDestination (pIPHeader->destAddr.ui32Addr), _ui16IPIdentification(pIPHeader->ui16Ident),
+        _ui8PMProtocol(pmProtocol), _ui8IPPacketTTL (pIPHeader->ui8TTL), _i64CreationTime (getTimeInMilliseconds())
     {
         _bIsFragmented = (pIPHeader->ui16FlagsAndFragOff & IP_MF_FLAG_FILTER) != 0;
         if (!_bIsFragmented) {

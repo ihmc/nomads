@@ -16,8 +16,8 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * @version     $Revision: 1.8 $
- *              $Date: 2014/10/29 23:05:27 $
+ * @version     $Revision: 1.9 $
+ *              $Date: 2014/11/24 18:10:38 $
  */
 
 package us.ihmc.mockets;
@@ -83,10 +83,10 @@ public class MocketOutputStream extends OutputStream
     /**
      *
      */
-    protected void finalize()
-    {
-        dispose();
-    }
+//    protected void finalize()
+//    {
+//        dispose();
+//    }
 
     // /////////////////////////////////////////////////////////////////////////
     private StreamMocket _streamMocketRef = null;

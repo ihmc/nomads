@@ -2,7 +2,7 @@
  * PCapInterface.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,6 +22,7 @@
     #include <sys/types.h>
     #include <sys/ioctl.h>
     #include <sys/select.h>
+    #include <net/if.h>
     #include <linux/if_tun.h>
     #include <fcntl.h>
     #include <errno.h>
@@ -34,6 +35,9 @@
 #include "ConfigurationParameters.h"
 
 #if defined (WIN32)
+    #include <winsock2.h>
+    #include <iphlpapi.h>
+
     #define snprintf _snprintf
 #endif
 
@@ -46,8 +50,10 @@ namespace ACMNetProxy
 {
     PCapInterface::PCapInterface (const String &sDeviceName) : NetworkInterface (T_PCap)
     {
+		
         _sAdapterName = sDeviceName;
         _pPCapHandle = NULL;
+		
     }
 
     PCapInterface::~PCapInterface (void)
@@ -110,7 +116,18 @@ namespace ACMNetProxy
             _bMACAddrFound = true;
             delete[] pszMACAddr;
         }
+
         retrieveAndSetIPv4Addr();
+        
+        #if defined (WIN32)
+        _ui16MTU = retrieveMTUForInterface (_sAdapterName);
+        #elif defined (LINUX)
+        _ui16MTU = retrieveMTUForInterface (_sAdapterName, pcap_get_selectable_fd (_pPCapHandle));
+        #endif
+        if (_ui16MTU > 0) {
+            _bMTUFound = true;
+        }
+        
         IPv4Addr ipv4DefGW = NetworkInterface::getDefaultGatewayForInterface (_sAdapterName);
         if (ipv4DefGW.ui32Addr) {
             _bDefaultGatewayFound = true;
@@ -154,40 +171,72 @@ namespace ACMNetProxy
     int PCapInterface::readPacket (uint8 *pui8Buf, uint16 ui16BufSize)
     {
         struct pcap_pkthdr *pPacketHeader;
-        const u_char *pPacketData;
+		const u_char *pPacketData;
+		
+		while (!_bIsTerminationRequested) {
+			int rc = 0;
+			if (_pPCapHandle == NULL) {
+				_mWrite.lock();
+				checkAndLogMsg ("PCapInterface::readPacket", Logger::L_Info,
+					            "pcap handler is Null, restarting the handler\n");
+				sleepForMilliseconds (1000);
+				if (0 != (rc = init())) {
+					checkAndLogMsg ("PCapInterface::ReadPacket", Logger::L_SevereError,
+						            "Failed to restart pcap handler, will retry in the next cycle\n");
+				}
+				else {
+					checkAndLogMsg ("PCapInterface::writePacket", Logger::L_HighDetailDebug,
+						            "Handler restarted correctly\n");
+				}
+				_mWrite.unlock();
+			} 
+			else {
+				rc = pcap_next_ex (_pPCapHandle, &pPacketHeader, &pPacketData);
+				if (rc > 0) {
+					uint32 ui32PacketSize = ui16BufSize < pPacketHeader->caplen ? ui16BufSize : pPacketHeader->caplen;
+					memcpy (pui8Buf, pPacketData, ui32PacketSize);
+					return ui32PacketSize;
+				}
+				else if (rc < 0) {
+					checkAndLogMsg ("PCapInterface::readPacket", Logger::L_MildError,
+						            "pcap_next_ex() returned %d, closing the current handler, will be restarted in the next cycle\n", rc);
+					_mWrite.lock();
+					if (_pPCapHandle != NULL) {
+						pcap_close(_pPCapHandle);
+						_pPCapHandle = NULL;
+					}
+					_mWrite.unlock();
+				}
+			}
+		}
 
-        while (true) {
-            int rc = pcap_next_ex (_pPCapHandle, &pPacketHeader, &pPacketData);
-            if (rc > 0) {
-                uint32 ui32PacketSize = ui16BufSize < pPacketHeader->caplen ? ui16BufSize : pPacketHeader->caplen;
-                memcpy (pui8Buf, pPacketData, ui32PacketSize);
-                return ui32PacketSize;
-            }
-            else if (rc == 0) {
-                if (_bIsTerminationRequested) {
-                    return 0;
-                }
-            }
-            else if (rc < 0) {
-                checkAndLogMsg ("PCapInterface::readPacket", Logger::L_MildError,
-                                "pcap_next_ex() returned %d\n", rc);
-                return -1;
-            }
-        }
+		return 0;
     }
 
     int PCapInterface::writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen)
     {
         _mWrite.lock();
-        if (0 != pcap_sendpacket (_pPCapHandle, pui8Buf, ui16PacketLen)) {
-            checkAndLogMsg ("PCapInterface::writePacket", Logger::L_MildError,
-                            "pcap_sendpacket() failed writing a %hu bytes long packet: %s\n",
-                            ui16PacketLen, pcap_geterr (_pPCapHandle));
-            _mWrite.unlock();
-            return -1;
-        }
+		if (_pPCapHandle != NULL) {
+			for (int counter = 0; counter < 3; counter++) {
+				if (0 != pcap_sendpacket (_pPCapHandle, pui8Buf, ui16PacketLen)) {
+					checkAndLogMsg ("PCapInterface::writePacket", Logger::L_MildError,
+						            "pcap_sendpacket() failed writing a %hu bytes long packet: %s, retrying\n",
+						            ui16PacketLen, pcap_geterr(_pPCapHandle));
+					sleepForMilliseconds(100);
+				}
+				_mWrite.unlock();
+				return ui16PacketLen;
+			}
+		}
+		else {
+			checkAndLogMsg ("PCapInterface::writePacket", Logger::L_Info,
+				            "Handler is currently null, dropping the send for now");
+		}
         _mWrite.unlock();
-        return ui16PacketLen;
+
+		checkAndLogMsg ("PCapInterface::writePacket", Logger::L_Warning,
+			            "Currently impossible to send the packet, packet dropped\n");
+		return 0;  
     }
 
     void PCapInterface::retrieveAndSetIPv4Addr (void)

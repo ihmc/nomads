@@ -2,7 +2,7 @@
  * ProxyDatagramSocket.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -80,10 +80,14 @@ namespace NOMADSUtil
             ProxyDatagramSocket (void);
             virtual ~ProxyDatagramSocket (void);
 
+            SocketType getType (void);
+
             // Initialize the socket and port (port is applicable only to receive packets)
             // If port is 0, a random port is chosen
             // ui32ListenAddr can be useed to specify a particular address to listen to
             int init (const char *pszProxyServerAddr, uint16 ui16ProxyServerPort, uint16 ui16Port = 0);
+
+            bool connectedToProxyServer (void);
 
             // Close the socket
             int close (void);
@@ -153,6 +157,9 @@ namespace NOMADSUtil
             // Returns the error code for the last failure
             int getLastError (void);
 
+        public:
+            static const char * ADDRESS_PREFIX;
+
         protected:
             int connectToProxyServer (void);
 
@@ -194,6 +201,16 @@ namespace NOMADSUtil
         private:
             ProxyDatagramSocket *_pPDS;
     };
+
+    inline DatagramSocket::SocketType ProxyDatagramSocket::getType (void)
+    {
+        return DatagramSocket::ST_Proxy;
+    }
+
+    inline bool ProxyDatagramSocket::connectedToProxyServer (void)
+    {
+        return _bConnectedToServer;
+    }
 
 }
 

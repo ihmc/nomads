@@ -2,7 +2,7 @@
  * Listener.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -79,7 +79,8 @@ PeerStateListener::UInt32PeerStateUpdate::~UInt32PeerStateUpdate()
 {
 }
 
-SearchListener::SearchListener (void)
+SearchListener::SearchListener (const char *pszDescription)
+    : _description (pszDescription)
 {
 }
 

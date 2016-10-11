@@ -1,20 +1,25 @@
-## Android makefile
-## Run ./build_util_android in order to build this module with dependecies
+# Android makefile
 ## written by Enrico Casini
 
 LOCAL_PATH := $(call my-dir)/../..
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := ssl
-LOCAL_SRC_FILES := android/obj/local/armeabi/libssl.so
+#LOCAL_SRC_FILES := android/obj/local/$(TARGET_ARCH_ABI)/libihmcssl.so
+LOCAL_SRC_FILES := ../../android/externals/prebuilt/openssl/libssl.a
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/jni/include
-include $(PREBUILT_SHARED_LIBRARY)
+#LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.1g/libssl.a
+#LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.1g/include
+include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := crypto
-LOCAL_SRC_FILES := android/obj/local/armeabi/libcrypto.so
+#LOCAL_SRC_FILES := android/obj/local/$(TARGET_ARCH_ABI)/libihmccrypto.so
+LOCAL_SRC_FILES := ../../android/externals/prebuilt/openssl/libcrypto.a
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/jni/crypto
-include $(PREBUILT_SHARED_LIBRARY)
+#LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.1g/libcrypto.a
+#LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.1g/include
+include $(PREBUILT_STATIC_LIBRARY)
 
 ## android/sysinfo/sysinfo.S \
 
@@ -22,10 +27,12 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := AVList.cpp \
 	Base64.cpp \
 	Base64Transcoders.cpp \
+	BloomFilter.cpp \
 	BufferedReader.cpp \
 	BufferedWriter.cpp \
 	BufferReader.cpp \
 	BufferWriter.cpp \
+	CommandProcessor.cpp \
 	CommHelper.cpp \
 	CommHelper2.cpp \
 	comm/Serial.cpp \
@@ -65,22 +72,11 @@ LOCAL_SRC_FILES := AVList.cpp \
 	LoggingMutex.cpp \
 	ManageableThread.cpp \
 	MD5.cpp \
+	ManageableDatagramSocket.cpp \
 	MulticastUDPDatagramSocket.cpp \
 	Mutex.cpp \
-	media/BMPImage.cpp \
-	net/ManycastForwardingNetworkInterface.cpp \
-	net/ManycastNetworkMessageReceiver.cpp \
-	net/MessageFactory.cpp \
 	net/NetUtils.cpp \
 	net/NetworkHeaders.cpp \
-	net/NetworkInterface.cpp \
-	net/NetworkMessage.cpp \
-	net/NetworkMessageReceiver.cpp \
-	net/NetworkMessageService.cpp \
-	net/NetworkMessageV1.cpp \
-	net/NetworkMessageV2.cpp \
-	net/Reassembler.cpp \
-	net/TSNRangeHandler.cpp \
 	net/WakeOnLAN.cpp \
 	NLFLib.cpp \
 	NullWriter.cpp \
@@ -89,6 +85,9 @@ LOCAL_SRC_FILES := AVList.cpp \
 	OSThread.cpp \
 	Pipe.cpp \
 	ProcessExecutor.cpp \
+	proxy/Protocol.cpp \
+	proxy/StubCallbackHandler.cpp \
+	proxy/Stub.cpp \
 	ProxyDatagramSocket.cpp \
 	PushbackLineOrientedReader.cpp \
 	RangeDLList.cpp \
@@ -109,12 +108,14 @@ LOCAL_SRC_FILES := AVList.cpp \
 	StrClass.cpp \
 	StringHashset.cpp \
 	StringStringHashtable.cpp \
+	StringStringWildMultimap.cpp \
 	StringTokenizer.cpp \
 	TClass.cpp \
 	TCPSocket.cpp \
 	Thread.cpp \
 	ThreadPool.cpp \
 	TimeBoundedStringHashset.cpp \
+	TreeUtils.cpp \
 	UDPDatagramSocket.cpp \
 	URLParser.cpp \
 	UUID.cpp \
@@ -134,9 +135,15 @@ LOCAL_LDLIBS := -lz
 #	$(LOCAL_PATH)/../../android/externals/openssl/jni/include \
 #	$(LOCAL_PATH)/../../android/externals/openssl/jni/crypto
 
-LOCAL_SHARED_LIBRARIES := \
+#LOCAL_SHARED_LIBRARIES := \
+#	ssl \
+#	crypto 
+
+LOCAL_STATIC_LIBRARIES := \
 	ssl \
-	crypto 
+	crypto
+
+LOCAL_DISABLE_FORMAT_STRING_CHECKS := true
 
 include $(BUILD_SHARED_LIBRARY)
 #include $(BUILD_STATIC_LIBRARY)

@@ -2,7 +2,7 @@
  * Entry.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -101,13 +101,13 @@ namespace ACMNetProxy
         void clear (void);
         void reset (void);
 
-        void prepareNewConnection (void);                                               // Generates outgoing SEQ number and set local status to LISTEN
+        void prepareNewConnection (void);  // Generates outgoing SEQ number and set local status to LISTEN
         uint32 ackOutgoingDataUpto (uint32 ui32AckNum);
         void updateOutgoingWindow (const NOMADSUtil::TCPHeader *pTCPHeader);
         void calculateRTO (int64 rtt);
         const bool isRemoteConnectionFlushed (void) const;
         TCPSegment * const dequeueLocallyReceivedData (uint16 ui16RequestedBytesNum);
-
+		
         bool isOutgoingBufferEmpty (void) const;
         bool isOutgoingDataReady (void);
         bool areThereHolesInOutgoingDataBuffer (void) const;
@@ -116,7 +116,6 @@ namespace ACMNetProxy
         unsigned int getOutgoingBufferedBytesCount (void) const;
         unsigned int getOutgoingBufferRemainingSpace (void) const;
         double getOutgoingBufferRemainingSpacePercentage (void) const;
-
         void setNextExpectedInSeqNum (unsigned int uiNextExpectedInSeqNum);
         int insertTCPSegmentIntoOutgoingBuffer (TCPSegment *pTCPSegment);
         const TCPSegment * const getLastOutgoingQueuedPacket (void);
@@ -169,6 +168,10 @@ namespace ACMNetProxy
         int64 i64RemoteActionTime;                              // Time when a remote action, such as a request to connect, was taken
         int64 i64IdleTime;                                      // Last time the connection was detected as idle
 
+        uint32 assignedPriority;
+        uint32 currentPriority;
+        TCPSegment *pTCPSegment;
+
         NOMADSUtil::PtrQueue<ReceivedData> outBuf;              // Packets received from local host and outgoing to the network
 
     private:
@@ -207,7 +210,7 @@ namespace ACMNetProxy
     }
 
     inline Entry::Entry (void) :
-        _pMutexBuffer (NULL), _pAvailableData (NULL), _pTempTCPSegment (NULL), inQueue (ui32NextExpectedInSeqNum, NetProxyApplicationParameters::TCP_WINDOW_SIZE)
+		pTCPSegment(NULL), _pMutexBuffer(NULL), _pAvailableData(NULL), _pTempTCPSegment(NULL), inQueue(ui32NextExpectedInSeqNum, NetProxyApplicationParameters::TCP_WINDOW_SIZE)
     {
         clear();
     }

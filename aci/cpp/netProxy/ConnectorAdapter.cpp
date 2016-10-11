@@ -2,7 +2,7 @@
  * ConnectorAdapter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,6 +51,8 @@ namespace ACMNetProxy
                 return UDPConnector::getUDPConnection()->getConnectorAdapter();
             case CT_CSR:
                 return new CSRAdapter (pRemoteProxyInetAddr);
+            case CT_UNDEF:
+                return NULL;
         }
 
         return NULL;
@@ -64,9 +66,8 @@ namespace ACMNetProxy
         else if (connectorType == CT_CSR) {
             return new CSRAdapter (pMocket);
         }
-        else {
-            return NULL;
-        }
+        
+        return NULL;
     }
 
     ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (TCPSocket * const pTCPSocket)

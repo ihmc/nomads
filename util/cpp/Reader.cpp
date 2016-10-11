@@ -2,7 +2,7 @@
  * Reader.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,6 +18,8 @@
  */
 
 #include "Reader.h"
+
+#include <stdlib.h>
 
 using namespace NOMADSUtil;
 
@@ -129,7 +131,48 @@ int Reader::readBytes (void *pBuf, uint32 ui32Count)
     return 0;
 }
 
-int Reader::close()
+int Reader::readUI8 (void *pBuf)
+{
+    return read8 (pBuf);
+}
+
+int Reader::readUI16 (void *pBuf)
+{
+    return read16 (pBuf);
+}
+
+int Reader::readUI32 (void *pBuf)
+{
+    return read32 (pBuf);
+}
+
+int Reader::readUI64 (void *pBuf)
+{
+    return read64 (pBuf);
+}
+           
+int Reader::readString (char **pBuf)
+{
+    uint32 ui32Len = 0;
+    if (readUI32 (&ui32Len) < 0) {
+        return -1;
+    }
+    if (ui32Len > 0) {
+        *pBuf = static_cast<char *>(calloc (ui32Len + 1, sizeof (char)));
+        if (readBytes (*pBuf, ui32Len) < 0) {
+            free (*pBuf);
+            *pBuf = NULL;
+            return -2;
+        }
+        (*pBuf)[ui32Len] = '\0';
+    }
+    else {
+        *pBuf = NULL;
+    }
+    return 0;
+}
+
+int Reader::close (void)
 {
     return -1;
 }

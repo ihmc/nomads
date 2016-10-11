@@ -2,7 +2,7 @@
  * RateEstimator.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -207,7 +207,7 @@ void RateEstimator::run()
             ui32MyDropPercentage = (ui32TotalNeighbourSendRate>0) ? 10000 * (ui32MyDropRate)/ui32TotalNeighbourSendRate : 0;
 
             //calculate the estimate of the network capacity
-            ui32MyEstimatedNetCapapacity = estimateLinkCapacity(ui32MySendRate, ui32MyReceiveRate, ui32MyDropPercentage , pInterface->_ui32FixedDrop);
+            ui32MyEstimatedNetCapapacity = estimateLinkCapacity (ui32MySendRate, ui32MyReceiveRate, ui32MyDropPercentage , pInterface->_ui32FixedDrop);
 
             /*
              * the following part recognizes the trends of drop rate and estimated capacity, and sues them to differentiate the behaviour

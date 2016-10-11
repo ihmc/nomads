@@ -2,7 +2,7 @@
  * NetUtils.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,6 +20,7 @@
 #include "NetUtils.h"
 
 #include "Logger.h"
+#include "NLFLib.h"
 
 #if defined (WIN32)
     #define PATH_MAX _MAX_PATH
@@ -288,7 +289,7 @@ NICInfo ** NetUtils::getNICsInfo (const char *pszIPAddrWild)
 
     int j = 0;
     for (int i = 0; ppNICsInfo[i] != NULL; i++) {
-        if (wildcardStringCompare(inet_ntoa(ppNICsInfo[i]->ip), pszIPAddrWild)) {
+        if (wildcardStringCompare (inet_ntoa(ppNICsInfo[i]->ip), pszIPAddrWild)) {
             ppMatchingNICsInfo[j++] = new NICInfo (*ppNICsInfo[i]);
         }
     }

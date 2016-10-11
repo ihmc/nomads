@@ -2,7 +2,7 @@
  * DisServiceCommandProcessor.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -49,7 +49,8 @@ int DisServiceCommandProcessor::processCmd (const void *pToken, char *pszCmdLine
         // Should not happen, but return 0 anyways
         return 0;
     }
-    else if (0 == stricmp (pszCmd, "help")) {
+
+    if (0 == stricmp (pszCmd, "help")) {
         const char *pszHelpCmd = st.getNextToken();
         if (pszHelpCmd == NULL) {
             displayGeneralHelpMsg (pToken);
@@ -66,6 +67,9 @@ int DisServiceCommandProcessor::processCmd (const void *pToken, char *pszCmdLine
     }
     else if (0 == stricmp (pszCmd, "hasFragment")) {
         handleHasFragmentCmd (pToken, pszCmdLine);
+    }
+    else if (0 == stricmp (pszCmd, "trafficGen")) {
+        handleTrafficGenCmd (pToken, pszCmdLine);
     }
     else if (0 == stricmp (pszCmd, "screenOutput")) {
         handleScreenOutputCmd (pToken, pszCmdLine);
@@ -116,6 +120,10 @@ void DisServiceCommandProcessor::displayHelpMsgForCmd (const void *pToken, const
     else if (0 == stricmp (pszCmd, "hasFragment")) {
         print (pToken, "usage: hasFragment <GroupName> <SenderNodeId> <MsgSeqNo> <ChunkId> <FragmentOffset> <FragmentLength>\n");
         print (pToken, "     displays true if the specified fragment is present in the data cache / message reassembler or false otherwise\n");
+    }
+    else if (0 == stricmp (pszCmd, "trafficGen")) {
+        print (pToken, "usage: trafficGen <bytes> <GroupName>\n");
+        print (pToken, "     sends a message of n bytes\n");
     }
     else if (0 == stricmp (pszCmd, "screenOutput")) {
         print (pToken, "usage: screenOutput true|on|enable|false|off|disable\n");
@@ -289,6 +297,33 @@ void DisServiceCommandProcessor::handleHasFragmentCmd (const void *pToken, const
     }
     else {
         print (pToken, "    fragment not found in the MessageReassembler\n");
+    }
+}
+
+void DisServiceCommandProcessor::handleTrafficGenCmd (const void *pToken, const char *pszCmdLine)
+{
+    StringTokenizer st (pszCmdLine);
+    st.getNextToken ();  // This is the command itself - discard
+    const char *pszBytes = st.getNextToken();
+    if (pszBytes == NULL) {
+        print (pToken, "invalid params - try help trafficGen\n");
+        return;
+    }
+    const uint32 ui32Bytes = atoui32 (pszBytes);
+    void *pData = malloc (ui32Bytes);
+    const char *pszGroupName = st.getNextToken();
+    if (pszGroupName == NULL) {
+        pszGroupName = "gen";
+    }
+    static const unsigned int ID_LEN = 265;
+    char id[ID_LEN];
+    int rc = _pDisService->push (0, pszGroupName, NULL, NULL, NULL, NULL, 0, pData, ui32Bytes, 0, 0, 0, 0, id, ID_LEN);
+    free (pData);
+    if (rc == 0) {
+        print (pToken, "    generated %u bytes of data\n", ui32Bytes);
+    }
+    else {
+        print (pToken, "    error when generating data: %d\n", rc);
     }
 }
 

@@ -2,7 +2,7 @@
  * EventMonitor.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,7 +30,9 @@
 #include <string.h>
 
 #if defined (WIN32)
-    #define snprintf _snprintf
+    #if _MCS_VER<1900
+        #define snprintf _snprintf    
+    #endif
 #endif
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg

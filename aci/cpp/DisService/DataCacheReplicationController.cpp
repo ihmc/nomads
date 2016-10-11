@@ -2,7 +2,7 @@
  * DataCacheReplicationController.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -233,12 +233,6 @@ int DataCacheReplicationController::replicateMessage (MessageHeader *pMI, const 
         rc = broadcastDataMessage (pMI, pszReplicateOnNodeId, i64TimeOut, "Replicate Data Message", transmissionHints);
     }
 
-    if (rc == 0 && pNetLog != NULL) {
-        // Extra debugging
-        pNetLog->logMsg ("DataCacheReplicationController::replicateMessage", Logger::L_Info,
-                         "broadcasted message %s to node %s\n",
-                         pMI->getMsgId(), pszReplicateOnNodeId?pszReplicateOnNodeId : "<NULL>");
-    }
     checkAndLogMsg ("DataCacheReplicationController::replicateMessage", Logger::L_Info,
                     "broadcasted message %s to node %s\n",
                     pMI->getMsgId(), pszReplicateOnNodeId?pszReplicateOnNodeId : "<NULL>");

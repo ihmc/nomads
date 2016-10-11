@@ -2,7 +2,7 @@
  * TimeBoundedStringHashset.h
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2014 IHMC.
+ * Copyright (c) 1993-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -198,6 +198,7 @@ namespace NOMADSUtil
             virtual int hashCode (const char *pszKey);
             virtual int hashCode2 (const char *pszKey);
             void rehash (void);
+            void expireEntry (HashtableEntry *pHTE);
             void expireEntries (void);
             void deleteTable (HashtableEntry *pTable, unsigned short usSize);
 
@@ -224,7 +225,7 @@ namespace NOMADSUtil
     {
         return _usCount;
     }
-    
+
     inline bool TimeBoundedStringHashset::put (const char *pszKey)
     {
         return put (pszKey, getTimeInMilliseconds() + _ui32StorageDuration);
@@ -232,19 +233,21 @@ namespace NOMADSUtil
 
     inline bool TimeBoundedStringHashset::put (const char *pszKey, int64 i64ExpirationTime)
     {
-        expireEntries();     /*!!*/ // Change this to not be called every time to improve efficiency
         if (pszKey == NULL) {
             return false;
         }
         if (pszKey[0] == 0) {
             return false;    // Cannot have a key of length 0
-        }
+        }   
+        int hashValue = hashCode (pszKey);
+        HashtableEntry *pHTE = &_pHashtable[hashValue];
+        expireEntry (pHTE);
         float fThreshold = 0.75;
         if (_usCount >= _usTableSize*fThreshold) {
             rehash();
+            hashValue = hashCode (pszKey);
+            pHTE = &_pHashtable[hashValue];
         }
-        int hashValue = hashCode (pszKey);
-        HashtableEntry *pHTE = &_pHashtable[hashValue];
         if (pHTE->pszKey == NULL) {
             if (_bCloneKeys) {
                 pHTE->pszKey = new char[strlen(pszKey)+1];
@@ -311,7 +314,6 @@ namespace NOMADSUtil
 
     inline bool TimeBoundedStringHashset::containsKey (const char *pszKey)
     {
-        expireEntries();     /*!!*/ // Change this to not be called every time to improve efficiency
         if (pszKey == NULL) {
             return false;
         }
@@ -320,6 +322,10 @@ namespace NOMADSUtil
         for (pHTE = &_pHashtable[hashValue]; pHTE != NULL; pHTE = pHTE->pNext) {
             if (pHTE->pszKey != NULL) {
                 if (keycomp (pszKey, pHTE->pszKey) == 0) {
+                    if (pHTE->i64ExpirationTime < getTimeInMilliseconds()) {
+                        expireEntry (pHTE);
+                        return false;
+                    }
                     return true;
                 }
             }

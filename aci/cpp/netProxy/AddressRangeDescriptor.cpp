@@ -2,7 +2,7 @@
  * AddressRangeDescriptor.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2014 IHMC.
+ * Copyright (c) 2010-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,10 +31,11 @@ using namespace NOMADSUtil;
 namespace ACMNetProxy
 {
     AddressRangeDescriptor::AddressRangeDescriptor (uint32 ui32IPv4Address, uint16 ui16Port) :
-        ui8IPAddrOctet1Low (ui32IPv4Address & 0x000000FFUL), ui8IPAddrOctet2Low ((ui32IPv4Address >> 8) & 0x000000FFUL),
-        ui8IPAddrOctet3Low ((ui32IPv4Address >> 16) & 0x000000FFUL), ui8IPAddrOctet4Low ((ui32IPv4Address >> 24) & 0x000000FFUL),
-        ui8IPAddrOctet1High (ui8IPAddrOctet1Low), ui8IPAddrOctet2High (ui8IPAddrOctet2Low), ui8IPAddrOctet3High (ui8IPAddrOctet3Low),
-        ui8IPAddrOctet4High (ui8IPAddrOctet4Low), ui16PortLow (ui16Port), ui16PortHigh (ui16Port ? ui16Port : 65535)
+        ui8IPAddrOctet1Low (ui32IPv4Address & 0x000000FFUL), ui8IPAddrOctet1High (ui8IPAddrOctet1Low),
+        ui8IPAddrOctet2Low ((ui32IPv4Address >> 8) & 0x000000FFUL), ui8IPAddrOctet2High (ui8IPAddrOctet2Low),
+        ui8IPAddrOctet3Low ((ui32IPv4Address >> 16) & 0x000000FFUL), ui8IPAddrOctet3High (ui8IPAddrOctet3Low),
+        ui8IPAddrOctet4Low ((ui32IPv4Address >> 24) & 0x000000FFUL), ui8IPAddrOctet4High (ui8IPAddrOctet4Low),
+        ui16PortLow (ui16Port), ui16PortHigh (ui16Port ? ui16Port : 65535)
     {
         char szBuffer[50];
         sprintf (szBuffer, "%hhu.%hhu.%hhu.%hhu:%hu", ui8IPAddrOctet1Low, ui8IPAddrOctet2Low, ui8IPAddrOctet3Low, ui8IPAddrOctet4Low, ui16PortLow);

@@ -2,7 +2,7 @@
  * DisServiceJNIWrapper.cpp
  *
  * This file is part of the IHMC DisService Library/Component
- * Copyright (c) 2006-2014 IHMC.
+ * Copyright (c) 2006-2016 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,7 +51,7 @@ class DisServiceJNIWrapperListener : public DisseminationServiceListener
     public:
         bool dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName,
                           uint32 ui32SeqId, const char *pszObjectId, const char *pszInstanceId,
-                          const char *pszMimeType, const void *pData, uint32 ui32Length,
+                          const char *pszAnnotatedObjId, const char *pszMimeType, const void *pData, uint32 ui32Length,
                           uint32 ui32MetadataLength, uint16 ui16Tag, uint8 ui8Priority,
                           const char *pszQueryId);
 
@@ -191,7 +191,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad (JavaVM *pJVM, void *pReserved)
     return JNI_VERSION_1_2;
 }
 
-JNIEXPORT void JNICALL Java_us_ihmc_aci_disService_DisseminationService_init (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile)
+JNIEXPORT void JNICALL Java_us_ihmc_aci_disService_DisseminationService_init(JNIEnv *pEnv, jobject joThis, jstring jsConfigFile, jobjectArray joaOverrideAttrs, jobjectArray joaOverrideValues)
 {
     int rc;
     jclass jcDisService = pEnv->GetObjectClass (joThis);
@@ -213,6 +213,31 @@ JNIEXPORT void JNICALL Java_us_ihmc_aci_disService_DisseminationService_init (JN
                 pEnv->ReleaseStringUTFChars (jsConfigFile, pszConfigFile);
                 pEnv->ThrowNew (pEnv->FindClass ("java/lang/RuntimeException"), "failed to read config file");
                 return;
+            }
+        }
+    }
+
+    if ((joaOverrideAttrs != NULL) && (joaOverrideValues != NULL)) {
+        jsize jsLength = pEnv->GetArrayLength (joaOverrideAttrs);
+        if (jsLength != pEnv->GetArrayLength (joaOverrideValues)) {
+            checkAndLogMsg ("DisServiceJNIWrapper::init", Logger::L_MildError,
+                            "length of attributes and values not the same\n");
+            pEnv->ThrowNew (pEnv->FindClass ("java/lang/RuntimeException"), "internal error - mismatch in number of attributes and values for config overrides");
+            return;
+        }
+        for (int i = 0; i < jsLength; i++) {
+            jstring jsAttr = (jstring) pEnv->GetObjectArrayElement (joaOverrideAttrs, i);
+            jstring jsValue = (jstring) pEnv->GetObjectArrayElement (joaOverrideValues, i);
+            if ((jsAttr != NULL) && (jsValue != NULL)) {
+                const char *pszAttr = pEnv->GetStringUTFChars (jsAttr, NULL);
+                const char *pszValue = pEnv->GetStringUTFChars (jsValue, NULL);
+                if ((pszAttr != NULL) && (pszValue != NULL)) {
+                    pConfigManager->setValue(pszAttr, pszValue);
+                    checkAndLogMsg ("DisServiceJNIWrapper::init", Logger::L_Info,
+                                    "set config parameter <%s=%s> from overrides\n", pszAttr, pszValue);
+                }
+                pEnv->ReleaseStringUTFChars (jsAttr, pszAttr);
+                pEnv->ReleaseStringUTFChars (jsValue, pszValue);
             }
         }
     }
@@ -778,7 +803,7 @@ JNIEXPORT void JNICALL Java_us_ihmc_aci_disService_DisseminationService_register
         }
         joDisseminationServiceListenerGlobalRef = pEnv->NewWeakGlobalRef (joListener);
     #else
-        if (joDisServiceListenerGlobalRef != NULL) {
+        if (joDisseminationServiceListenerGlobalRef != NULL) {
             pEnv->DeleteGlobalRef (joDisseminationServiceListenerGlobalRef);
         }
         joDisseminationServiceListenerGlobalRef = pEnv->NewGlobalRef (joListener);
@@ -845,8 +870,8 @@ JNIEXPORT jstring JNICALL Java_us_ihmc_aci_disService_DisseminationService_getNe
 
 bool DisServiceJNIWrapperListener::dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName,
                                                 uint32 ui32SeqId, const char *pszObjectId, const char *pszInstanceId,
-                                                const char *pszMimeType, const void *pData, uint32 ui32Length,
-                                                uint32 ui32MetadataLength, uint16 ui16Tag, uint8 ui8Priority,
+                                                const char *pszAnnotatedObjId, const char *pszMimeType, const void *pData,
+                                                uint32 ui32Length, uint32 ui32MetadataLength, uint16 ui16Tag, uint8 ui8Priority,
                                                 const char *pszQueryId)
 {
     checkAndLogMsg ("DisServiceJNIWrapperListener::dataArrived", Logger::L_Info,

@@ -23,6 +23,7 @@
 #include "PacketMutators.h"
 
 #include "Logger.h"
+#include "NLFLib.h"
 
 
 using namespace NOMADSUtil;

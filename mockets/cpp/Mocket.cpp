@@ -106,13 +106,13 @@ Mocket::Mocket (const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhe
     _pszNotificationIPAddress = NULL;
     _pszLocalAddress = NULL;
 
-	if (pszConfigFile != NULL) {
-		int rc = initParamsFromConfigFile(pszConfigFile);
-		if (rc != 0) {
-			checkAndLogMsg ("Mocket::Mocket", Logger::L_Warning, "failed to read config file <%s>; rc = %d\n", pszConfigFile, rc);
-			// Should return an error code here, but cannot from the constructor
-		}
-	}
+    if (pszConfigFile != NULL) {
+        int rc = initParamsFromConfigFile(pszConfigFile);
+        if (rc != 0) {
+            checkAndLogMsg ("Mocket::Mocket", Logger::L_Warning, "failed to read config file <%s>; rc = %d\n", pszConfigFile, rc);
+            // Should return an error code here, but cannot from the constructor
+        }
+    }
     
     _pMocketStatusNotifier = new MocketStatusNotifier();
     _pMocketStatusNotifier->init ((_pszNotificationIPAddress ? _pszNotificationIPAddress : getStatsIP()), getStatsPort(), false);
@@ -181,13 +181,13 @@ Mocket::Mocket (StateCookie cookie, InetAddr *pRemoteAddr, const char *pszConfig
     _pszNotificationIPAddress = NULL;
     _pszLocalAddress = NULL;
 
-	if (pszConfigFile != NULL) {
-		int rc = initParamsFromConfigFile (pszConfigFile);
-		if (rc != 0) {
-			checkAndLogMsg ("Mocket::Mocket", Logger::L_Warning, "failed to read config file <%s>; rc = %d\n", pszConfigFile, rc);
-			// Should return an error code here, but cannot from the constructor
-		}
+    if (pszConfigFile != NULL) {
+        int rc = initParamsFromConfigFile (pszConfigFile);
+        if (rc != 0) {
+            checkAndLogMsg ("Mocket::Mocket", Logger::L_Warning, "failed to read config file <%s>; rc = %d\n", pszConfigFile, rc);
+            // Should return an error code here, but cannot from the constructor
 	}
+    }
 
     _pKeyPair = NULL;
     _pSecretKey = NULL;
@@ -518,7 +518,6 @@ int Mocket::finishConnect (void)
 
 int Mocket::connect (const char *pszRemoteHost, uint16 ui16RemotePort, bool bPreExchangeKeys, int64 i64Timeout)
 {
-
     if (_sm.getCurrentState() != StateMachine::S_CLOSED) {
         checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
                         "mocket must be in the closed state before attempting a connection; current state is %s\n",
@@ -562,6 +561,7 @@ int Mocket::connect (const char *pszRemoteHost, uint16 ui16RemotePort, bool bPre
 
     _ui32LocalAddress = _pCommInterface->getLocalAddr().getIPAddress();
     _ui16LocalPort = _pCommInterface->getLocalPort();
+    
     if (0 != (rc = _pCommInterface->setReceiveBufferSize (_ui16UDPBufferSize))) {
         checkAndLogMsg ("Mocket::connect", Logger::L_Warning,
                         "could not set UDP receive buffer size to %d; rc = %d\n", (int) _ui16UDPBufferSize, rc);
@@ -574,6 +574,7 @@ int Mocket::connect (const char *pszRemoteHost, uint16 ui16RemotePort, bool bPre
         checkAndLogMsg ("Mocket::connect", Logger::L_Info,
                         "set UDP timeout to %d\n", _ui32UDPReceiveConnectionTimeout);
     }
+
     StateCookie stateCookie;
 
     if (!_bUseTwoWayHandshake) {
