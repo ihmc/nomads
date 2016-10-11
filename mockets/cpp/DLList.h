@@ -33,7 +33,7 @@
 template <class T> class DLList
 {
     public:
-        DLList (uint32 ui32MaxNumNodes);
+        DLList (uint32 ui32MaxNumNodes = 0);
         ~DLList (void);
 
         uint32 getNumNodes (void);
@@ -73,7 +73,7 @@ template <class T> class DLList
         uint32 _ui32NumNodes;
 };
 
-template <class T> DLList<T>::DLList (uint32 ui32MaxNumNodes = 0)
+template <class T> DLList<T>::DLList (uint32 ui32MaxNumNodes)
 {
     _ui32MaxNumNodes = ui32MaxNumNodes;
     _pCurrent =_pHead = _pTail = NULL;
