@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">DSProClient</string>
+
+    <string name="app_dspro_service_name">us.ihmc.aci.dspro2app.DSPro2Service</string>
+    <string name="app_dspro_package">us.ihmc.aci.dspro2app</string>
+
+    <!-- Intents -->
+    <string name="intent_build_version">us.ihmc.android.aci.dspro.BUILD_VERSION</string>
+    <string name="intent_sender">us.ihmc.android.aci.dspro.SENDER</string>
+    <string name="intent_service_action">us.ihmc.android.aci.dspro.SERVICE_ACTION</string>
+    <string name="intent_session_key">us.ihmc.android.aci.dspro.SESSION_KEY</string>
+
+    <string name="intent_start_service">us.ihmc.android.aci.dspro.START_SERVICE</string>
+    <string name="intent_start_service_background">us.ihmc.android.aci.dspro.START_SERVICE_BACKGROUND</string>
+    <string name="intent_restart_service">us.ihmc.android.aci.dspro.RESTART_SERVICE</string>
+    <string name="intent_stop_service">us.ihmc.android.aci.dspro.STOP_SERVICE</string>
+
+    <string name="intent_service_started">us.ihmc.android.aci.dspro.SERVICE_STARTED</string>
+    <string name="intent_service_stopped">us.ihmc.android.aci.dspro.SERVICE_STOPPED</string>
+    <string name="intent_service_error">us.ihmc.android.aci.dspro.SERVICE_ERROR</string>
+
+    <string name="connection_not_connected">NOT CONNECTED</string>
+    <string name="connection_connected">CONNECTED</string>
+
+    <!-- routes -->
+    <string name="routes_0">Pensacola-CompanyA.dpr</string>
+    <string name="routes_1">Pensacola-CompanyB.dpr</string>
+    <string name="routes_2">Pensacola-CompanyC.dpr</string>
+
+    <string name="route_0_descr">Pensacola Company A</string>
+    <string name="route_1_descr">Pensacola Company B</string>
+    <string name="route_2_descr">Pensacola Company C</string>
+</resources>
