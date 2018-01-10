@@ -36,7 +36,6 @@ namespace ACMNetProxy
     {
         public:
             ARPCache (void);
-            virtual ~ARPCache (void);
 
             int insert (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &pMACAddr);
             const NOMADSUtil::EtherMACAddr * const lookup (uint32 ui32IPAddr) const;
@@ -47,8 +46,6 @@ namespace ACMNetProxy
 
 
     inline ARPCache::ARPCache (void) : _arpCache (true) {}
-
-    inline ARPCache::~ARPCache (void) {}
 
     inline const NOMADSUtil::EtherMACAddr * const ARPCache::lookup (uint32 ui32IPAddr) const
     {

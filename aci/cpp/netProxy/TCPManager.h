@@ -42,12 +42,16 @@ namespace ACMNetProxy
             ~TCPManager (void);
 
             static int handleTCPPacketFromHost (const uint8 *pPacket, uint16 ui16PacketLen);
-            static int sendTCPPacketToHost (Entry * const pEntry, uint8 ui8TCPFlags, uint32 ui32SeqNum, const uint8 * const pui8Payload = NULL, uint16 ui16PayloadLen = 0);
+            static int sendTCPPacketToHost (Entry * const pEntry, uint8 ui8TCPFlags, uint32 ui32SeqNum,
+                                            const uint8 * const pui8Payload = nullptr, uint16 ui16PayloadLen = 0);
 
-            static int openTCPConnectionToHost (uint32 ui32RemoteProxyIP, uint32 ui32RemoteProxyUniqueID, uint16 ui16RemoteID, uint32 ui32LocalIP, uint16 ui16LocalPort,
-                                                uint32 ui32RemoteIP, uint16 ui16RemotePort, uint8 ui8CompressionTypeAndLevel);
-            static int tcpConnectionToHostOpened (uint16 ui16LocalID, uint16 ui16RemoteID, uint32 ui32RemoteProxyUniqueID, uint8 ui8CompressionTypeAndLevel);
-            static int sendTCPDataToHost (uint16 ui16LocalID, uint16 ui16RemoteID, const uint8 * const pui8CompData, uint16 ui16CompDataLen, uint8 ui8Flags);
+            static int openTCPConnectionToHost (uint32 ui32RemoteProxyIP, uint32 ui32RemoteProxyUniqueID, uint16 ui16RemoteID,
+                                                uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP,
+                                                uint16 ui16RemotePort, uint8 ui8CompressionTypeAndLevel);
+            static int tcpConnectionToHostOpened (uint16 ui16LocalID, uint16 ui16RemoteID, uint32 ui32RemoteProxyUniqueID,
+                                                  uint8 ui8CompressionTypeAndLevel);
+            static int sendTCPDataToHost (uint16 ui16LocalID, uint16 ui16RemoteID, const uint8 * const pui8CompData,
+                                          uint16 ui16CompDataLen, uint8 ui8Flags);
             static int closeTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID);
             static int resetTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID);
 

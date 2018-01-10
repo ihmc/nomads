@@ -25,7 +25,7 @@
 #include "ConnectorReader.h"
 #include "TCPManager.h"
 #include "ConnectionManager.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 #include "PacketRouter.h"
 
 
@@ -35,7 +35,7 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    UDPConnector::UDPConnector (void) : Connector (CT_UDP), _i32BytesInBuffer (0)
+    UDPConnector::UDPConnector (void) : Connector (CT_UDPSOCKET), _i32BytesInBuffer (0)
     {
         memset (_pucInBuf, 0, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
     }
@@ -137,7 +137,7 @@ namespace ACMNetProxy
                                     "received an InitializeConnectionProxyMessage from remote NetProxy at address %s\n",
                                     remoteProxyAddress.getIPAsString());
 
-                    _pPacketRouter->initializeRemoteConnection (pICPM->_ui32ProxyUniqueID, pConnection->getConnectorType());
+                    _pPacketRouter->initializeRemoteConnection (pICPM->_ui32ProxyUniqueID, pConnection->getConnectorType(), _pUDPSocketAdapter->getEncryptionType());
                     break;
                 }
 
@@ -219,7 +219,7 @@ namespace ACMNetProxy
                                     pMUDPDPM->getPayloadLen(), pConnection->getRemoteProxyInetAddr()->getIPAsString());
 
                     unsigned char *pucBuf[1];
-                    const UDPHeader *pUDPHeader = NULL;
+                    const UDPHeader *pUDPHeader = nullptr;
                     uint16 ui16UDPDatagramOffset = 0;
                     //Connector::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pMUDPDPM->_ui32LocalIP), pMUDPDPM->_ui32ProxyUniqueID);
 
@@ -355,6 +355,19 @@ namespace ACMNetProxy
                     if (0 != (rc = TCPManager::resetTCPConnectionToHost (pRCPM->_ui16RemoteID, pRCPM->_ui16LocalID))) {
                         checkAndLogMsg ("UDPConnector::run", Logger::L_Warning,
                                         "resetTCPConnectionToHost() failed with rc = %d\n", rc);
+                    }
+                    break;
+                }
+
+                case ProxyMessage::PMT_TunnelPacket:
+                {
+                    TunnelPacketProxyMessage * pTPPM = (TunnelPacketProxyMessage *) _pucInBuf;
+                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
+                                    "received a TunnelPacketProxyMessage from remote proxy\n");
+
+                    if (0 != (rc = PacketRouter::sendTunneledPacketToHost (PacketRouter::_pInternalInterface, pTPPM->_aui8Data, pTPPM->getPayloadLen()))) {
+                        checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
+                                        "sendPacketToHost() failed with rc = %d\n", rc);
                     }
                     break;
                 }

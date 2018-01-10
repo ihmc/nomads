@@ -37,25 +37,27 @@ namespace ACMNetProxy
         ProtocolSetting (const char * const pProtocol, const CompressionSetting &compressionSetting);
         ProtocolSetting (const ProxyMessage::Protocol protocolFlag, const CompressionSetting &compressionSetting);
         ProtocolSetting (const ProtocolSetting &protocolSetting);
-        virtual ~ProtocolSetting (void);
+        ~ProtocolSetting (void);
 
         ProxyMessage::Protocol getProxyMessageProtocol (void) const;
         const char * const getProxyMessageProtocolAsString (void) const;
         static const char * const getProxyMessageProtocolAsString (ProxyMessage::Protocol protocol);
+        const uint8 getPriorityLevel (void) const;
+        const EncryptionType getEncryptionType (void) const;
         const CompressionSetting & getCompressionSetting (void) const;
 
-        const uint32 getPrioritySetting (void) const;
-
-        void setProxyMessageProtocol (const ProxyMessage::Protocol protocolFlag);
-        void setCompressionSetting (const CompressionSetting compressionSetting);
-		void setPrioritySetting(const int prioritySetting);
         const bool isDefinedProtocol (void) const;
         const bool isMocketsProtocol (void) const;
         const bool isTCPProtocol (void) const;
         const bool isUDPProtocol (void) const;
         const bool isSameProtocolFamily (const ProxyMessage::Protocol protocol) const;
         const bool isSameProtocolFamily (const ConnectorType connectorType) const;
-        ConnectorType protocolToConnectorType (void) const;
+        ConnectorType getConnectorTypeFromProtocol (void) const;
+
+        void setProxyMessageProtocol (const ProxyMessage::Protocol protocolFlag);
+        void setPriorityLevel (const uint8 priorityLevel);
+        void setEncryption (const EncryptionType encryptionType);
+        void setCompressionSetting (const CompressionSetting compressionSetting);
 
         static const bool isDefinedProtocol (const ProxyMessage::Protocol protocol);
         static const bool isMocketsProtocol (const ProxyMessage::Protocol protocol);
@@ -82,25 +84,26 @@ namespace ACMNetProxy
         static const ProtocolSetting DEFAULT_UDP_PROTOCOL_SETTING;
         static const ProtocolSetting DEFAULT_ICMP_PROTOCOL_SETTING;
 
-		uint32 _priority;
         ProxyMessage::Protocol _protocol;
+        uint8 _ui8Priority;
+        EncryptionType _encryptionType;
         CompressionSetting _compressionSetting;
     };
 
     inline ProtocolSetting::ProtocolSetting (const char * const pProtocol) :
-		_protocol(getProtocolFlagFromProtocolString(pProtocol)), _compressionSetting(), _priority(0) {}
+		_protocol(getProtocolFlagFromProtocolString (pProtocol)), _ui8Priority(0), _encryptionType(ET_PLAIN), _compressionSetting() {}
 
     inline ProtocolSetting::ProtocolSetting (const ProxyMessage::Protocol protocolFlag) :
-		_protocol(protocolFlag), _compressionSetting(), _priority(0) { }
+		_protocol(protocolFlag), _ui8Priority(0), _encryptionType(ET_PLAIN), _compressionSetting() { }
 
     inline ProtocolSetting::ProtocolSetting (const char * const pProtocol, const CompressionSetting &compressionSetting) :
-		_protocol(getProtocolFlagFromProtocolString(pProtocol)), _compressionSetting(compressionSetting), _priority(0) { }
+		_protocol(getProtocolFlagFromProtocolString (pProtocol)), _ui8Priority(0), _encryptionType(ET_PLAIN), _compressionSetting(compressionSetting) { }
 
     inline ProtocolSetting::ProtocolSetting (const ProxyMessage::Protocol protocolFlag, const CompressionSetting &compressionSetting) :
-		_protocol(protocolFlag), _compressionSetting(compressionSetting), _priority(0) { }
+		_protocol(protocolFlag), _ui8Priority(0), _encryptionType(ET_PLAIN), _compressionSetting(compressionSetting) { }
 
     inline ProtocolSetting::ProtocolSetting (const ProtocolSetting &protocolSetting) :
-		_protocol(protocolSetting._protocol), _compressionSetting(protocolSetting._compressionSetting), _priority(0) { }
+		_protocol(protocolSetting._protocol), _ui8Priority(0), _encryptionType(ET_PLAIN), _compressionSetting(protocolSetting._compressionSetting) { }
 
     inline ProtocolSetting::~ProtocolSetting (void) {}
 
@@ -114,32 +117,20 @@ namespace ACMNetProxy
         return ProtocolSetting::getProxyMessageProtocolAsString (_protocol);
     }
 
+    inline const uint8 ProtocolSetting::getPriorityLevel (void) const
+    {
+        return  _ui8Priority;
+    }
+
+    inline const EncryptionType ProtocolSetting::getEncryptionType (void) const
+    {
+        return _encryptionType;
+    }
+
     inline const CompressionSetting & ProtocolSetting::getCompressionSetting (void) const
     {
         return _compressionSetting;
     }
-
-	inline const uint32 ProtocolSetting::getPrioritySetting(void) const
-	{
-		return  _priority;
-	}
-
-
-    inline void ProtocolSetting::setProxyMessageProtocol (const ProxyMessage::Protocol protocolFlag)
-    {
-        _protocol = protocolFlag;
-    }
-
-    inline void ProtocolSetting::setCompressionSetting (const CompressionSetting compressionSetting)
-    {
-        _compressionSetting = compressionSetting;
-    }
-
-	inline void ProtocolSetting::setPrioritySetting(const int prioritySetting)
-	{
-		_priority = prioritySetting;
-	}
-
 
     inline const bool ProtocolSetting::isDefinedProtocol (void) const
     {
@@ -163,22 +154,42 @@ namespace ACMNetProxy
 
     inline const bool ProtocolSetting::isSameProtocolFamily (const ProxyMessage::Protocol protocol) const
     {
-        return ProtocolSetting::isSameProtocolFamily (this->_protocol, protocol);
+        return ProtocolSetting::isSameProtocolFamily (_protocol, protocol);
     }
 
     inline const bool ProtocolSetting::isSameProtocolFamily (const ConnectorType connectorType) const
     {
-        return ProtocolSetting::isSameProtocolFamily (this->_protocol, connectorType);
+        return ProtocolSetting::isSameProtocolFamily (_protocol, connectorType);
     }
 
-    inline ConnectorType ProtocolSetting::protocolToConnectorType (void) const
+    inline ConnectorType ProtocolSetting::getConnectorTypeFromProtocol (void) const
     {
-        return protocolToConnectorType (this->_protocol);
+        return protocolToConnectorType (_protocol);
+    }
+
+    inline void ProtocolSetting::setProxyMessageProtocol (const ProxyMessage::Protocol protocolFlag)
+    {
+        _protocol = protocolFlag;
+    }
+
+    inline void ProtocolSetting::setPriorityLevel (const uint8 priorityLevel)
+    {
+        _ui8Priority = priorityLevel;
+    }
+
+    inline void ProtocolSetting::setEncryption (const EncryptionType encryptionType)
+    {
+        _encryptionType = encryptionType;
+    }
+
+    inline void ProtocolSetting::setCompressionSetting (const CompressionSetting compressionSetting)
+    {
+        _compressionSetting = compressionSetting;
     }
 
     inline const bool ProtocolSetting::isDefinedProtocol (const ProxyMessage::Protocol protocol)
     {
-        return (protocol >= ProxyMessage::PMP_MocketsRS) && (protocol <= ProxyMessage::PMP_UDP);
+        return (protocol >= ProxyMessage::PMP_TCP) && (protocol <= ProxyMessage::PMP_UNDEF_CSR);
     }
 
     inline const bool ProtocolSetting::isMocketsProtocol (const ProxyMessage::Protocol protocol)
@@ -211,8 +222,8 @@ namespace ACMNetProxy
     inline const bool ProtocolSetting::isSameProtocolFamily (const ProxyMessage::Protocol protocol, const ConnectorType connectorType)
     {
         return (isMocketsProtocol (protocol) && (connectorType == CT_MOCKETS)) ||
-               (isTCPProtocol (protocol) && (connectorType == CT_SOCKET)) ||
-               (isUDPProtocol (protocol) && (connectorType == CT_UDP));
+               (isTCPProtocol (protocol) && (connectorType == CT_TCPSOCKET)) ||
+               (isUDPProtocol (protocol) && (connectorType == CT_UDPSOCKET));
     }
 
     inline const ProtocolSetting & ProtocolSetting::getInvalidProtocolSetting (void)

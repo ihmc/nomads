@@ -47,6 +47,7 @@ namespace ACMNetProxy
 
         uint32 getRemoteProxyUniqueID (void) const;
         const NOMADSUtil::InetAddr * const getRemoteProxyServerAddress (void) const;
+        const EncryptionType getQueryEncryptionType (void) const;
         Connection * const getActiveConnectionToRemoteProxy (void) const;
 
 
@@ -54,27 +55,33 @@ namespace ACMNetProxy
         friend class ConnectivitySolutions;
         friend class ConnectionManager;
 
-        QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr * const pRemoteProxyServerAddress, Connection * const pActiveConnectionToRemoteProxy);
+        QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr * const pRemoteProxyServerAddress,
+                     EncryptionType _encryptionType, Connection * const pActiveConnectionToRemoteProxy);
 
         static const QueryResult & getInvalidQueryResult (void);
 
         uint32 _ui32RemoteProxyUniqueID;
         const NOMADSUtil::InetAddr *_pRemoteProxyServerAddress;
+        EncryptionType _encryptionType;
         Connection *_pActiveConnectionToRemoteProxy;
     };
 
 
     inline QueryResult::QueryResult (void) :
-        _ui32RemoteProxyUniqueID (0), _pRemoteProxyServerAddress (NULL), _pActiveConnectionToRemoteProxy (NULL) { }
+        _ui32RemoteProxyUniqueID (0), _pRemoteProxyServerAddress (nullptr), _encryptionType(ET_UNDEF),
+        _pActiveConnectionToRemoteProxy (nullptr) { }
 
     inline QueryResult::QueryResult (const QueryResult &queryResult) :
-        _ui32RemoteProxyUniqueID (queryResult._ui32RemoteProxyUniqueID), _pRemoteProxyServerAddress (queryResult._pRemoteProxyServerAddress),
+        _ui32RemoteProxyUniqueID (queryResult._ui32RemoteProxyUniqueID),
+        _pRemoteProxyServerAddress (queryResult._pRemoteProxyServerAddress),
+        _encryptionType(queryResult._encryptionType),
         _pActiveConnectionToRemoteProxy (queryResult._pActiveConnectionToRemoteProxy) { }
 
     inline QueryResult & QueryResult::operator= (const QueryResult & rhs)
     {
         _ui32RemoteProxyUniqueID = rhs._ui32RemoteProxyUniqueID;
         _pRemoteProxyServerAddress = rhs._pRemoteProxyServerAddress;
+        _encryptionType = rhs._encryptionType;
         _pActiveConnectionToRemoteProxy = rhs._pActiveConnectionToRemoteProxy;
 
         return *this;
@@ -87,7 +94,8 @@ namespace ACMNetProxy
 
     inline const NOMADSUtil::InetAddr * const QueryResult::getBestConnectionSolution (void) const
     {
-        return _pActiveConnectionToRemoteProxy ? _pActiveConnectionToRemoteProxy->getRemoteProxyInetAddr() : _pRemoteProxyServerAddress;
+        return (_pActiveConnectionToRemoteProxy && (_pActiveConnectionToRemoteProxy->getConnectorType() != CT_UDPSOCKET)) ?
+            _pActiveConnectionToRemoteProxy->getRemoteProxyInetAddr() : _pRemoteProxyServerAddress;
     }
 
     inline uint32 QueryResult::getRemoteProxyUniqueID (void) const
@@ -100,17 +108,24 @@ namespace ACMNetProxy
         return _pRemoteProxyServerAddress;
     }
 
+    inline const EncryptionType QueryResult::getQueryEncryptionType (void) const
+    {
+        return _encryptionType;
+    }
+
     inline Connection * const QueryResult::getActiveConnectionToRemoteProxy (void) const
     {
         return _pActiveConnectionToRemoteProxy;
     }
 
-    inline QueryResult::QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr * const pRemoteProxyServerAddress, Connection * const pActiveConnectionToRemoteProxy) :
-        _ui32RemoteProxyUniqueID (ui32RemoteProxyUniqueID), _pRemoteProxyServerAddress (pRemoteProxyServerAddress), _pActiveConnectionToRemoteProxy (pActiveConnectionToRemoteProxy) { }
+    inline QueryResult::QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr * const pRemoteProxyServerAddress,
+                                     EncryptionType encryptionType, Connection * const pActiveConnectionToRemoteProxy) :
+        _ui32RemoteProxyUniqueID (ui32RemoteProxyUniqueID), _pRemoteProxyServerAddress (pRemoteProxyServerAddress),
+        _encryptionType (encryptionType), _pActiveConnectionToRemoteProxy (pActiveConnectionToRemoteProxy) { }
 
     inline const QueryResult & QueryResult::getInvalidQueryResult (void)
     {
-        static QueryResult invalidQueryResult (0, NULL, NULL);
+        static const QueryResult invalidQueryResult (0, nullptr, ET_UNDEF, nullptr);
 
         return invalidQueryResult;
     }

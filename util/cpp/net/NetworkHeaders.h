@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -36,6 +36,29 @@ namespace NOMADSUtil
     // Ethernet MAC Address
     struct EtherMACAddr
     {
+    #if defined BIG_ENDIAN_SYSTEM
+        union {
+            uint16 ui16Word1;
+            struct {
+                uint8 ui8Byte1;
+                uint8 ui8Byte2;
+            };
+        };
+        union {
+            uint16 ui16Word2;
+            struct {
+                uint8 ui8Byte3;
+                uint8 ui8Byte4;
+            };
+        };
+        union {
+            uint16 ui16Word3;
+            struct {
+                uint8 ui8Byte5;
+                uint8 ui8Byte6;
+            };
+        };
+    #elif defined LITTLE_ENDIAN_SYSTEM
         union {
             uint16 ui16Word1;
             struct {
@@ -57,10 +80,13 @@ namespace NOMADSUtil
                 uint8 ui8Byte5;
             };
         };
+    #else
+        #error "Either BIG_ENDIAN_SYSTEM or LITTLE_ENDIAN_SYSTEM must be defined."
+    #endif
 
         void ntoh (void);
         void hton (void);
-        
+
         bool operator == (const EtherMACAddr &rhs) const;
         bool operator != (const EtherMACAddr &rhs) const;
     };
@@ -76,10 +102,53 @@ namespace NOMADSUtil
         void hton (void);
     };
 
+    struct EtherFrameHeader802_1Q
+    {
+        EtherMACAddr dest;
+        EtherMACAddr src;
+        union {
+            uint32 ui32_802_1Q_header;
+            struct {
+                uint16 ui16_802_1Q_TPI;
+                uint16 ui16_802_1Q_TCI;
+            };
+        };
+        uint16 ui16EtherType;
+
+        void ntoh (void);
+        void hton (void);
+    };
+
+    struct EtherFrameHeader802_1AD
+    {
+        EtherMACAddr dest;
+        EtherMACAddr src;
+        union {
+            uint32 ui32_802_1AD_header;
+            struct {
+                uint16 ui16_802_1AD_TPI;
+                uint16 ui16_802_1AD_TCI;
+            };
+        };
+        union {
+            uint32 ui32_802_1Q_header;
+            struct {
+                uint16 ui16_802_1Q_TPI;
+                uint16 ui16_802_1Q_TCI;
+            };
+        };
+        uint16 ui16EtherType;
+
+        void ntoh (void);
+        void hton (void);
+    };
+
     enum EtherType
     {
         ET_IP = 0x0800,
         ET_ARP = 0x0806,
+        ET_802_1Q = 0x8100,
+        ET_802_1AD = 0x88A8,
         ET_IP_v6 = 0x86DD
     };
 
@@ -131,8 +200,8 @@ namespace NOMADSUtil
     struct IPHeader
     {
         uint8 ui8VerAndHdrLen;        // Version (4 bits) + Internet header length (4 bits)
-        uint8 ui8TOS;                 // Type of service 
-        uint16 ui16TLen;              // Total length 
+        uint8 ui8TOS;                 // Type of service
+        uint16 ui16TLen;              // Total length
         uint16 ui16Ident;             // Identification
         uint16 ui16FlagsAndFragOff;   // Flags (3 bits) + Fragment offset (13 bits)
         uint8 ui8TTL;                 // Time to live
@@ -157,14 +226,6 @@ namespace NOMADSUtil
         void ntoh (void);
         void hton (void);
     };
-    
-
-
-
-
-
-
-
 
     // ICMP header
     struct ICMPHeader
@@ -198,7 +259,7 @@ namespace NOMADSUtil
             CDU_Destination_Host_unknown,
             CDU_Source_Host_isolated,
             CDU_Communication_with_Destination_Network_Administratively_Prohibited,
-            CDU_Communication_with_Destination_Host_Administratively_Prohibited, 
+            CDU_Communication_with_Destination_Host_Administratively_Prohibited,
             CDU_Network_Unreachable_for_Type_Of_Service,
             CDU_Host_Unreachable_for_Type_Of_Service,
             CDU_Communication_Administratively_Prohibited_by_Filtering,
@@ -206,13 +267,12 @@ namespace NOMADSUtil
             CDU_Precedence_Cutoff_in_Effect
         };
 
-
         uint8 ui8Type;                  // ICMP Message Type
-        uint8 ui8Code;                  // ICMP Message code: meaning differs depending on Message Type 
+        uint8 ui8Code;                  // ICMP Message code: meaning differs depending on Message Type
         uint16 ui16Checksum;            // Checksum of the whole ICMP packet
         union {
             uint32 ui32RoH;             // Rest of Header
-            union
+            union                       // First word
             {
                 uint16 ui16RoHWord1;
                 struct {
@@ -220,7 +280,7 @@ namespace NOMADSUtil
                     uint8 ui8RoHByte1;
                 };
             };
-            union
+            union                       // Second word
             {
                 uint16 ui16RoHWord2;
                 struct {
@@ -229,8 +289,8 @@ namespace NOMADSUtil
                 };
             };
         };
-        
-        
+
+
         // Computes the checksum for this instance of the ICMP header and stores it in the ui16Checksum field
         void computeChecksum (uint16 ui16Len);
 

@@ -17,6 +17,9 @@
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
 */
 
+#include <iostream>
+#include <iomanip>
+
 #include "Utilities.h"
 #include "ConfigurationParameters.h"
 
@@ -50,17 +53,17 @@ namespace ACMNetProxy
     char connectorTypeToChar (ConnectorType connectorType)
     {
         switch (connectorType) {
-            case CT_MOCKETS:
-            {
-                return 'M';
-            }
-            case CT_SOCKET:
+            case CT_TCPSOCKET:
             {
                 return 'T';
             }
-            case CT_UDP:
+            case CT_UDPSOCKET:
             {
                 return 'U';
+            }
+            case CT_MOCKETS:
+            {
+                return 'M';
             }
             case CT_CSR:
             {
@@ -76,17 +79,17 @@ namespace ACMNetProxy
     const char * const connectorTypeToString (ConnectorType connectorType)
     {
         switch (connectorType) {
-            case CT_MOCKETS:
-            {
-                return sMocket;
-            }
-            case CT_SOCKET:
+            case CT_TCPSOCKET:
             {
                 return sTCPSocket;
             }
-            case CT_UDP:
+            case CT_UDPSOCKET:
             {
                 return sUDPSocket;
+            }
+            case CT_MOCKETS:
+            {
+                return sMocket;
             }
             case CT_CSR:
             {
@@ -99,16 +102,34 @@ namespace ACMNetProxy
         return sUNDEF;
     }
 
+    const char * const encryptionTypeToString (EncryptionType encryptionType)
+    {
+        switch (encryptionType) {
+            case ET_PLAIN:
+            {
+                return sET_PLAIN;
+            }
+            case ET_DTLS:
+            {
+                return sET_DTLS;
+            }
+            case ET_UNDEF:
+            {
+                return sET_UNDEF;
+            }
+        }
+    }
+
     ConnectorType connectorTypeFromString (const String &sConnTypeName)
     {
-        if ((sConnTypeName ^= sMocket) || (sConnTypeName ^= sMockets)){
-            return CT_MOCKETS;
-        }
         if (sConnTypeName ^= sTCP) {
-            return CT_SOCKET;
+            return CT_TCPSOCKET;
         }
         if (sConnTypeName ^= sUDP) {
-            return CT_UDP;
+            return CT_UDPSOCKET;
+        }
+        if ((sConnTypeName ^= sMocket) || (sConnTypeName ^= sMockets)) {
+            return CT_MOCKETS;
         }
         if (sConnTypeName ^= sCSR) {
             return CT_CSR;
@@ -117,47 +138,71 @@ namespace ACMNetProxy
         return CT_UNDEF;
     }
 
-    void buildEthernetMACAddressFromString (EtherMACAddr &eMACAddrToUpdate, const uint8 * const pszMACAddr)
+    const EtherMACAddr buildEthernetMACAddressFromString (const uint8 * const pszMACAddr)
     {
-        eMACAddrToUpdate.ui8Byte1 = pszMACAddr[0];
-        eMACAddrToUpdate.ui8Byte2 = pszMACAddr[1];
-        eMACAddrToUpdate.ui8Byte3 = pszMACAddr[2];
-        eMACAddrToUpdate.ui8Byte4 = pszMACAddr[3];
-        eMACAddrToUpdate.ui8Byte5 = pszMACAddr[4];
-        eMACAddrToUpdate.ui8Byte6 = pszMACAddr[5];
+        EtherMACAddr etherMACAddr;
+        etherMACAddr.ui8Byte1 = pszMACAddr[0];
+        etherMACAddr.ui8Byte2 = pszMACAddr[1];
+        etherMACAddr.ui8Byte3 = pszMACAddr[2];
+        etherMACAddr.ui8Byte4 = pszMACAddr[3];
+        etherMACAddr.ui8Byte5 = pszMACAddr[4];
+        etherMACAddr.ui8Byte6 = pszMACAddr[5];
+
+        return etherMACAddr;
     }
 
-    void buildVirtualNetProxyEthernetMACAddress (EtherMACAddr &virtualEtherMACAddr, const uint8 ui8Byte5, const uint8 ui8Byte6)
+    const EtherMACAddr buildVirtualNetProxyEthernetMACAddress (const uint8 ui8Byte5, const uint8 ui8Byte6)
     {
+        EtherMACAddr virtualEtherMACAddr;
         virtualEtherMACAddr.ui8Byte1 = NetProxyApplicationParameters::VIRT_MAC_ADDR_BYTE1;
         virtualEtherMACAddr.ui8Byte2 = NetProxyApplicationParameters::VIRT_MAC_ADDR_BYTE2;
         virtualEtherMACAddr.ui8Byte3 = NetProxyApplicationParameters::VIRT_MAC_ADDR_BYTE3;
         virtualEtherMACAddr.ui8Byte4 = NetProxyApplicationParameters::VIRT_MAC_ADDR_BYTE4;
         virtualEtherMACAddr.ui8Byte5 = ui8Byte5;
         virtualEtherMACAddr.ui8Byte6 = ui8Byte6;
+
+        return virtualEtherMACAddr;
     }
 
-
-    bool checkEtherMACAddressFormat (const char *pcEthernetMACAddress) {
-        unsigned int length = 0;
+    bool checkEtherMACAddressFormat (const char *pcEthernetMACAddress)
+    {
+        unsigned int uiByteLength = 0, uiMACLength = 0;
         while (*pcEthernetMACAddress) {
             if (*pcEthernetMACAddress == ':') {
+                if (++uiMACLength > 5) {
+                    return false;
+                }
                 ++pcEthernetMACAddress;
-                length = 0;
+                uiByteLength = 0;
                 continue;
             }
-            ++length;
-            if (length >= 3) {
+            ++uiByteLength;
+            if (uiByteLength > 2) {
                 return false;
             }
-            if (!checkCharRange(*pcEthernetMACAddress, '0', '9') && !checkCharRange(*pcEthernetMACAddress, 'a', 'f') &&
-                !checkCharRange(*pcEthernetMACAddress, 'A', 'F')) {
+            if (!checkCharRange (*pcEthernetMACAddress, '0', '9') && !checkCharRange (*pcEthernetMACAddress, 'a', 'f') &&
+                !checkCharRange (*pcEthernetMACAddress, 'A', 'F')) {
                 return false;
             }
             ++pcEthernetMACAddress;
         }
-        
+
+        if (uiMACLength != 5) {
+            return false;
+        }
         return true;
+    }
+
+    void printBytes (std::ostream& out, const unsigned char *data, size_t dataLen, bool format)
+    {
+        out << std::setfill('0');
+        for(size_t i = 0; i < dataLen; ++i) {
+            out << std::hex << std::setw(2) << static_cast<int> (data[i]);
+            if (format) {
+                out << (((i + 1) % 25 == 0) ? "\n" : " ");
+            }
+        }
+        out << std::endl;
     }
 
 }

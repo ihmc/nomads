@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -33,8 +33,11 @@ template <class T> class TimeIntervalAverage
         explicit TimeIntervalAverage (uint32 ui32TimeIntervalInMS);
         ~TimeIntervalAverage (void);
 
-        void add (T value);
-        void add (int64 i64Timestamp, T value);
+        void add (const T & value);
+        void add (int64 i64Timestamp, const T & value);
+
+        void expireOldEntries(void);
+
         T getSum (void);
         T getMin (void);
         double getAverage (void);
@@ -42,8 +45,8 @@ template <class T> class TimeIntervalAverage
         void setNewTimeInterval (uint32 ui32TimeIntervalInMS);
 
     private:
-        int insertEntry (int64 i64TimeStamp, T value);
-        void expireOldEntries (void);
+        int insertEntry (int64 i64TimeStamp, const T & value);
+
 
     private:
         struct Node
@@ -85,13 +88,13 @@ template <class T> TimeIntervalAverage<T>::~TimeIntervalAverage (void)
 }
 
 // Values are inserted in order, newer values are inserted at the end
-template <class T> void TimeIntervalAverage<T>::add (T value)
+template <class T> void TimeIntervalAverage<T>::add (const T & value)
 {
     insertEntry (NOMADSUtil::getTimeInMilliseconds(), value);
 }
 
 // Values are inserted in order, newer values are inserted at the end
-template <class T> void TimeIntervalAverage<T>::add (int64 i64Timestamp, T value)
+template <class T> void TimeIntervalAverage<T>::add (int64 i64Timestamp, const T & value)
 {
     // Check if this new entry isn't already too old before inserting it
     if ((NOMADSUtil::getTimeInMilliseconds() - (int64)_ui32TimeInterval) <= i64Timestamp) {
@@ -109,13 +112,13 @@ template <class T> T TimeIntervalAverage<T>::getMin (void)
 {
     expireOldEntries();
     T min;
-   
+
     // Find the minimum rather than store it because we expire entries
     if( _pHead == NULL )
         min = (T)-1; //TODO: temporary!
     else {
         min = _pHead->value;
-        Node *pTempNode = _pHead; 
+        Node *pTempNode = _pHead;
         while (pTempNode != NULL) {
            if (pTempNode->value < min) {
                min = pTempNode->value;
@@ -132,7 +135,6 @@ template <class T> double TimeIntervalAverage<T>::getAverage (void)
     return (double)_sum/_ui32TimeInterval*1000;
 }
 
-
 template <class T> uint32 TimeIntervalAverage<T>::getNumValues (void)
 {
     expireOldEntries();
@@ -145,18 +147,19 @@ template <class T> void TimeIntervalAverage<T>::setNewTimeInterval (uint32 ui32T
     _ui32TimeInterval = ui32TimeIntervalInMS;
 }
 
-template <class T> int TimeIntervalAverage<T>::insertEntry (int64 i64TimeStamp, T value)
+template <class T> int TimeIntervalAverage<T>::insertEntry (int64 i64TimeStamp, const T & value)
 {
     Node *pNewNode = new Node();
     pNewNode->i64TimeStamp = i64TimeStamp;
     pNewNode->value = value;
-    
+
     if (_pTail == NULL) {
         _pHead = _pTail = pNewNode;
         _sum += value;
         _ui32NumValues++;
         return 0;
     }
+
     // Insert at the tail of the queue if the node is the most recent
     if (_pTail->i64TimeStamp <= i64TimeStamp) {
         pNewNode->pPrev = _pTail;
@@ -166,6 +169,7 @@ template <class T> int TimeIntervalAverage<T>::insertEntry (int64 i64TimeStamp, 
         _ui32NumValues++;
         return 0;
     }
+
     // Insert at the correct point in the list
     Node *pTempNode = _pTail->pPrev;
     while (pTempNode != NULL) {
@@ -180,6 +184,7 @@ template <class T> int TimeIntervalAverage<T>::insertEntry (int64 i64TimeStamp, 
         }
         pTempNode = pTempNode->pPrev;
     }
+
     // Reached the head
     pNewNode->pNext = _pHead;
     _pHead->pPrev = pNewNode;
@@ -194,7 +199,8 @@ template <class T> void TimeIntervalAverage<T>::expireOldEntries (void)
     if (_pHead == NULL) {
         // Empty structure
         return;
-    } 
+    }
+
     int64 i64ExpireUntil = NOMADSUtil::getTimeInMilliseconds() - _ui32TimeInterval;
     //printf("Expire Until = %I64d\n", i64ExpireUntil);
     Node *pExpiredNode;
@@ -215,6 +221,7 @@ template <class T> void TimeIntervalAverage<T>::expireOldEntries (void)
             return;
         }
     }
+
     // All the nodes are expired
     _pHead = _pTail = NULL;
     return;

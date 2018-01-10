@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -100,14 +100,14 @@ namespace NOMADSUtil
         clear();
     }
 
-    inline InetAddr::InetAddr (unsigned long ulIPAddress) 
+    inline InetAddr::InetAddr (unsigned long ulIPAddress)
     {
         clear();
         _sa.sin_addr.s_addr = ulIPAddress;
         updateIPAddrString();
     }
 
-    inline InetAddr::InetAddr (unsigned long ulIPAddress, unsigned short usPort) 
+    inline InetAddr::InetAddr (unsigned long ulIPAddress, unsigned short usPort)
     {
         clear();
         _sa.sin_addr.s_addr = ulIPAddress;

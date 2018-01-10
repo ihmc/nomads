@@ -20,6 +20,7 @@
 #include "OSThread.h"
 
 #if defined (WIN32)
+#define NOMINMAX
 #include <winsock2.h>
     #include <windows.h>
 #elif defined (UNIX)

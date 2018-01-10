@@ -52,7 +52,8 @@ namespace ACMNetProxy
             PMT_TCPConnectionOpened,
             PMT_TCPData,
             PMT_TCPCloseConnection,
-            PMT_TCPResetConnection
+            PMT_TCPResetConnection,
+            PMT_TunnelPacket
         };
 
         enum HostReachability
@@ -70,13 +71,13 @@ namespace ACMNetProxy
 
         enum Protocol
         {
-            PMP_MocketsRS = 0xF0,
-            PMP_MocketsUU = 0xF1,
-            PMP_MocketsRU = 0xF2,
-            PMP_MocketsUS = 0xF3,
-            PMP_UNDEF_MOCKETS = 0xF4,
-            PMP_TCP = 0xF5,
-            PMP_UDP = 0xF6,
+            PMP_TCP = 0xF0,
+            PMP_UDP = 0xF1,
+            PMP_MocketsRS = 0xF2,
+            PMP_MocketsUU = 0xF3,
+            PMP_MocketsRU = 0xF4,
+            PMP_MocketsUS = 0xF5,
+            PMP_UNDEF_MOCKETS = 0xF6,
             PMP_CSRRS = 0xF7,
             PMP_CSRUU = 0xF8,
             PMP_CSRRU = 0xF9,
@@ -277,9 +278,20 @@ namespace ACMNetProxy
         uint16 _ui16RemoteID;
     };
 
+
+    struct TunnelPacketProxyMessage : public ProxyDataMessage
+    {
+        TunnelPacketProxyMessage (uint16 ui16PayloadLen);
+
+        #pragma warning (disable:4200)
+        uint8 _aui8Data[];
+        #pragma warning (default:4200)
+    };
+
+
     #pragma pack (pop)
 
-    inline ProxyMessage::ProxyMessage (uint8 ui8MsgTypeAndReachability) : 
+    inline ProxyMessage::ProxyMessage (uint8 ui8MsgTypeAndReachability) :
         _ui8MsgTypeAndReachability (ui8MsgTypeAndReachability) {}
 
     inline uint32 ProxyMessage::getMessageHeaderSize (void) const

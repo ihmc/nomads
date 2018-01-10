@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -40,7 +40,7 @@ namespace NOMADSUtil
     class ConfigManager
     {
         public:
-            ConfigManager (void);
+            ConfigManager (char chSeparator = '=');
             ~ConfigManager (void);
 
             /**
@@ -59,7 +59,7 @@ namespace NOMADSUtil
             int addProperties (ConfigManager &cfgMgr);
 
             /**
-             * - ui32Len is the length of the stream to be read 
+             * - ui32Len is the length of the stream to be read
              */
             int read (Reader *pReader, uint32 ui32Len, bool bBeTolerant=false);
             int readConfigFile (const char *pszFile, bool bBeTolerant = false);
@@ -125,6 +125,7 @@ namespace NOMADSUtil
             static bool parseBool (const char *pszValue);
 
         protected:
+            char _chSeparator;
             int _iMaxLineLen;
             char *_pszConfigFile;
             StringStringHashtable *_pSettings;

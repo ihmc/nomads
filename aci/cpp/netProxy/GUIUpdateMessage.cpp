@@ -129,10 +129,10 @@ namespace ACMNetProxy
         _mConnectorStatsTable.lock();
         uint16 ui16ConnectorsNum = static_cast<uint16> (_ConnectorStatsTable.getCount());
         UInt64Hashtable<ConnectorStats>::Iterator iterator = _ConnectorStatsTable.getAllElements();
-        ConnectorStats *connectorStat = NULL;
+        ConnectorStats *connectorStat = nullptr;
         while ((connectorStat = iterator.getValue())) {
             connectorStat->lock();
-            if ((connectorStat->getConnectorType() == CT_UDP) &&
+            if ((connectorStat->getConnectorType() == CT_UDPSOCKET) &&
                 ((i64CurrentTime - connectorStat->getLastUpdateTime()) > NetProxyApplicationParameters::DEFAULT_UDP_CONNECTOR_INACTIVITY_TIME)) {
                 ui16ConnectorsNum--;
             }
@@ -142,7 +142,7 @@ namespace ACMNetProxy
 
         // Packing header, IP address of the external network interface, and the summary statistics
         _MessagePacker.pack (std::string (NetProxyApplicationParameters::DEFAULT_GUI_UPDATE_MESSAGE_HEADER));
-        _MessagePacker.pack_uint32 (NetProxyApplicationParameters::NETPROXY_EXTERNAL_IP_ADDR);
+        _MessagePacker.pack_uint32 (NetProxyApplicationParameters::EXTERNAL_IP_ADDR);
         packSummaryStats (fElapsedTimeInSecs);
 
         // Packing connectors and relative detailed statistics
@@ -151,7 +151,7 @@ namespace ACMNetProxy
         while ((connectorStat = iterator.getValue())) {
             connectorStat->lock();
 
-            if ((connectorStat->getConnectorType() == CT_UDP) &&
+            if ((connectorStat->getConnectorType() == CT_UDPSOCKET) &&
                 ((i64CurrentTime - connectorStat->getLastUpdateTime()) > NetProxyApplicationParameters::DEFAULT_UDP_CONNECTOR_INACTIVITY_TIME)) {
                 connectorStat->resetRate();
                 connectorStat->unlock();
@@ -164,7 +164,7 @@ namespace ACMNetProxy
             _MessagePacker.pack_uint32 (connectorStat->getRemoteProxyIP());
             _MessagePacker.pack_uint16 (connectorStat->getRemoteProxyPort());
             _MessagePacker.pack_uint32 ((uint32) ((i64CurrentTime - connectorStat->getCreationTime()) / 1000));
-			
+
             // Packing detailed statistics for the selected connector
             packDetailedStats (connectorStat, connectorStat->_detailedTCPStats, fElapsedTimeInSecs);
             packDetailedStats (connectorStat, connectorStat->_detailedUDPStats, fElapsedTimeInSecs);
@@ -204,7 +204,7 @@ namespace ACMNetProxy
     ConnectorStats * const GUIStatsManager::registerStatisticsIfNecessary (ConnectorType connectorType, uint32 ui32RemoteHostIP, uint32 ui32RemoteProxyUniqueID,
                                                                            uint32 ui32RemoteProxyIP, uint16 ui16RemoteProxyPort)
     {
-        ConnectorStats *pConnectorStats = NULL;
+        ConnectorStats *pConnectorStats = nullptr;
         if (_mConnectorStatsTable.lock() == Mutex::RC_Ok) {
             if ((pConnectorStats = _ConnectorStatsTable.get (generateUInt64Key (ui32RemoteHostIP, connectorType))) &&
                 (pConnectorStats->getRemoteProxyUniqueID() == ui32RemoteProxyUniqueID)) {

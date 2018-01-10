@@ -29,6 +29,7 @@
 #include <string.h>
 
 #if defined (WIN32)
+	#define NOMINMAX
 	#include <winsock2.h>
     #include <windows.h>
 #elif defined (UNIX)
@@ -47,6 +48,7 @@ namespace NOMADSUtil
             ~CompressedWriter (void);
             int flush (void);
             int writeBytes (const void *pBuf, unsigned long  ulCount);
+
         protected:
             static void * alloc_mem (void* userdata, uInt items, uInt size);
             static void free_mem (void *userdata, void* data);

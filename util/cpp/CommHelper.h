@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -127,7 +127,7 @@ namespace NOMADSUtil
             const char ** receiveParsed (int* pCount = NULL) throw (CommException);
 
 		    // Same as receiveParsed, except that a custom delimiter can be be used
-		    const char ** receiveParsedDelimited (const char* pszDelimiters, int* pCount = NULL) throw (CommException);	
+		    const char ** receiveParsedDelimited (const char* pszDelimiters, int* pCount = NULL) throw (CommException);
 
             // Same as above except that the parsing is done according to the specified parse format string
             // The parse format string specifies the number of words that should be grouped into one

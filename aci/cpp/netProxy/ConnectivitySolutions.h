@@ -30,6 +30,7 @@
 #include "QueryResult.h"
 #include "RemoteProxyInfo.h"
 #include "ActiveConnection.h"
+#include "UDPConnector.h"
 
 
 namespace ACMNetProxy
@@ -59,31 +60,40 @@ namespace ACMNetProxy
         const uint32 getRemoteProxyID (void) const;
         const ActiveConnection & getActiveConnections (void) const;
         const RemoteProxyInfo & getRemoteProxyInfo (void) const;
-        Connection * const getActiveConnectionForConnectorType (ConnectorType connectorType) const;
-        const QueryResult getBestConnectionSolutionForConnectorType (ConnectorType connectorType) const;
+        const unsigned char getEncryptionDescription (ConnectorType connectorType) const;
+        Connection * const getActiveConnectionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const;
+        const QueryResult getBestConnectionSolutionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const;
 
         Connection * const setActiveConnection (Connection * const pConnection);
         Connection * const removeActiveConnection (const Connection * const pConnection);
+        void setEncryptionDescription (ConnectorType connectorType, EncryptionType encryptionType);
 
     private:
         friend class ConnectionManager;
 
         ConnectivitySolutions (void);
 
-        ActiveConnection _activeConnections;
+        ActiveConnection _activeConnections{UDPConnector::getUDPConnection()};
         RemoteProxyInfo _remoteProxyInfo;
+        unsigned char _connEncryptionDescriptor[CT_SIZE];
     };
 
 
-    inline ConnectivitySolutions::ConnectivitySolutions (void) { }
+    inline ConnectivitySolutions::ConnectivitySolutions (void)
+    {
+        memset (_connEncryptionDescriptor, 0, CT_SIZE);
+    }
 
-    inline ConnectivitySolutions::ConnectivitySolutions (const RemoteProxyInfo & remoteProxyInfo) :
-        _remoteProxyInfo (remoteProxyInfo) { }
+    inline ConnectivitySolutions::ConnectivitySolutions (const RemoteProxyInfo & remoteProxyInfo) : _remoteProxyInfo(remoteProxyInfo)
+    {
+        memset (_connEncryptionDescriptor, 0, CT_SIZE);
+    }
 
     inline ConnectivitySolutions::ConnectivitySolutions (Connection * const pActiveConnectionToRemoteProxy, const RemoteProxyInfo & remoteProxyInfo) :
-        _remoteProxyInfo (remoteProxyInfo)
+        _remoteProxyInfo(remoteProxyInfo)
     {
         _activeConnections.setNewActiveConnection (pActiveConnectionToRemoteProxy);
+        memset (_connEncryptionDescriptor, 0, CT_SIZE);
     }
 
     inline bool ConnectivitySolutions::operator== (const ConnectivitySolutions & rhs) const
@@ -118,16 +128,22 @@ namespace ACMNetProxy
         return _remoteProxyInfo;
     }
 
-    inline Connection * const ConnectivitySolutions::getActiveConnectionForConnectorType (ConnectorType connectorType) const
+    inline const unsigned char ConnectivitySolutions::getEncryptionDescription (ConnectorType connectorType) const
     {
-        return _activeConnections.getActiveConnection (connectorType);
+        return _connEncryptionDescriptor[connectorType];
     }
 
-    inline const QueryResult ConnectivitySolutions::getBestConnectionSolutionForConnectorType (ConnectorType connectorType) const
+    inline Connection * const ConnectivitySolutions::getActiveConnectionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const
+    {
+        return _activeConnections.getActiveConnection (connectorType, encryptionType);
+    }
+
+    inline const QueryResult ConnectivitySolutions::getBestConnectionSolutionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const
     {
         // The InetAddr of the remote NetProxy server is included only if the remote NetProxy is reachable from the local host
-        return QueryResult (_remoteProxyInfo.getRemoteProxyID(), _remoteProxyInfo.isRemoteProxyReachableFromLocalHost() ? _remoteProxyInfo.getRemoteProxyInetAddr (connectorType) : NULL,
-                            getActiveConnectionForConnectorType (connectorType));
+        return QueryResult (_remoteProxyInfo.getRemoteProxyID(),
+                            _remoteProxyInfo.isRemoteProxyReachableFromLocalHost() ? _remoteProxyInfo.getRemoteProxyInetAddr (connectorType) : nullptr,
+                            encryptionType, getActiveConnectionForConnectorType (connectorType, encryptionType));
     }
 
     inline Connection * const ConnectivitySolutions::setActiveConnection (Connection * const pConnection)
@@ -139,6 +155,12 @@ namespace ACMNetProxy
     {
         return _activeConnections.removeActiveConnection (pConnection);
     }
+
+    inline void ConnectivitySolutions::setEncryptionDescription (ConnectorType connectorType, EncryptionType encryptionType)
+    {
+        _connEncryptionDescriptor[connectorType] |= encryptionType;
+    }
+
 }
 
 #endif  // INCL_CONNECTION_INFO_H

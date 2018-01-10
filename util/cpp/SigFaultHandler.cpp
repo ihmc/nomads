@@ -154,10 +154,11 @@ void SigFaultHandler::handle (int sig_num, siginfo_t * info, void * ucontext)
     #elif defined(__x86_64__) // gcc specific
         caller_address = (void *) uc->uc_mcontext.rip; // RIP: x86_64 specific
     #else
-        #error Unsupported architecture. // TODO: Add support for other arch.
+//        #error Unsupported architecture. // TODO: Add support for other arch.
     #endif
 
     #if defined (UNIX)
+        #ifndef ARM
         fprintf (stderr, "signal %d (%s), address is %p from %p\n", sig_num,
                  strsignal(sig_num), info->si_addr, (void *) caller_address);
 
@@ -171,6 +172,7 @@ void SigFaultHandler::handle (int sig_num, siginfo_t * info, void * ucontext)
             printStackTrace (trace, ppszMessages, iSize);
             free (ppszMessages);
         }
+        #endif
     #endif
 
     exit (EXIT_FAILURE);

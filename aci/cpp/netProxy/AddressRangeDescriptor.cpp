@@ -83,21 +83,6 @@ namespace ACMNetProxy
             (ui16PortLow >= rhs.ui16PortLow) && (ui16PortHigh <= rhs.ui16PortHigh);
     }
 
-    bool AddressRangeDescriptor::overlaps (const AddressRangeDescriptor & rhs) const
-    {
-        // Two address range overlaps if both all their octet ranges and their port range overlap
-        return (((ui8IPAddrOctet1Low <= rhs.ui8IPAddrOctet1Low) && (ui8IPAddrOctet1High >= rhs.ui8IPAddrOctet1Low)) ||
-            ((ui8IPAddrOctet1Low <= rhs.ui8IPAddrOctet1High) && (ui8IPAddrOctet1High >= rhs.ui8IPAddrOctet1High))) &&
-            (((ui8IPAddrOctet2Low <= rhs.ui8IPAddrOctet2Low) && (ui8IPAddrOctet2High >= rhs.ui8IPAddrOctet2Low)) ||
-            ((ui8IPAddrOctet2Low <= rhs.ui8IPAddrOctet2High) && (ui8IPAddrOctet2High >= rhs.ui8IPAddrOctet2High))) &&
-            (((ui8IPAddrOctet3Low <= rhs.ui8IPAddrOctet3Low) && (ui8IPAddrOctet3High >= rhs.ui8IPAddrOctet3Low)) ||
-            ((ui8IPAddrOctet3Low <= rhs.ui8IPAddrOctet3High) && (ui8IPAddrOctet3High >= rhs.ui8IPAddrOctet3High))) &&
-            (((ui8IPAddrOctet4Low <= rhs.ui8IPAddrOctet4Low) && (ui8IPAddrOctet4High >= rhs.ui8IPAddrOctet4Low)) ||
-            ((ui8IPAddrOctet4Low <= rhs.ui8IPAddrOctet4High) && (ui8IPAddrOctet4High >= rhs.ui8IPAddrOctet4High))) &&
-            (((ui16PortLow <= rhs.ui16PortLow) && (ui16PortHigh >= rhs.ui16PortLow)) ||
-            ((ui16PortLow <= rhs.ui16PortHigh) && (ui16PortHigh >= rhs.ui16PortHigh)));
-    }
-
     bool AddressRangeDescriptor::matches (uint32 ui32IPAddr, uint16 ui16Port) const
     {
         // ui32IPAddr is in network byte order (big endian)
@@ -119,20 +104,20 @@ namespace ACMNetProxy
             *pui8OctetLow = 0;
             *pui8OctetHigh = 255;
         }
-        else if (NULL == strchr (pszOctet, '-')) {
+        else if (nullptr == strchr (pszOctet, '-')) {
             *pui8OctetLow = *pui8OctetHigh = (uint8) atoi (pszOctet);
         }
         else {
             char *pszTemp, *pszDupOctet = strdup (pszOctet);
             const char *pszToken;
             pszToken = strtok_mt (pszDupOctet, "-", &pszTemp);
-            if (pszToken == NULL) {
+            if (pszToken == nullptr) {
                 free (pszDupOctet);
                 return -1;
             }
             *pui8OctetLow = (uint8) atoi (pszToken);
-            pszToken = strtok_mt (NULL, "", &pszTemp);
-            if (pszToken == NULL) {
+            pszToken = strtok_mt (nullptr, "", &pszTemp);
+            if (pszToken == nullptr) {
                 free (pszDupOctet);
                 return -2;
             }
@@ -145,7 +130,7 @@ namespace ACMNetProxy
 
     int AddressRangeDescriptor::parse (char const * const pszDescriptor)
     {
-        if (pszDescriptor == NULL) {
+        if (pszDescriptor == nullptr) {
             return -1;
         }
 
@@ -153,23 +138,23 @@ namespace ACMNetProxy
         char *pszTemp, *pszDupDescriptor = strdup (pszDescriptor);
         const char *pszOctet1, *pszOctet2, *pszOctet3, *pszOctet4, *pszPort;
         pszOctet1 = strtok_mt (pszDupDescriptor, ".", &pszTemp);
-        pszOctet2 = strtok_mt (NULL, ".", &pszTemp);
-        pszOctet3 = strtok_mt (NULL, ".", &pszTemp);
-        pszOctet4 = strtok_mt (NULL, ".:", &pszTemp);
-        pszPort = strtok_mt (NULL, "", &pszTemp);
-        if ((pszOctet1 == NULL) || (parseOctet (pszOctet1, &ui8IPAddrOctet1Low, &ui8IPAddrOctet1High))) {
+        pszOctet2 = strtok_mt (nullptr, ".", &pszTemp);
+        pszOctet3 = strtok_mt (nullptr, ".", &pszTemp);
+        pszOctet4 = strtok_mt (nullptr, ".:", &pszTemp);
+        pszPort = strtok_mt (nullptr, "", &pszTemp);
+        if ((pszOctet1 == nullptr) || (parseOctet (pszOctet1, &ui8IPAddrOctet1Low, &ui8IPAddrOctet1High))) {
             free (pszDupDescriptor);
             return -2;
         }
-        if ((pszOctet2 == NULL) || (parseOctet (pszOctet2, &ui8IPAddrOctet2Low, &ui8IPAddrOctet2High))) {
+        if ((pszOctet2 == nullptr) || (parseOctet (pszOctet2, &ui8IPAddrOctet2Low, &ui8IPAddrOctet2High))) {
             free (pszDupDescriptor);
             return -3;
         }
-        if ((pszOctet3 == NULL) || (parseOctet (pszOctet3, &ui8IPAddrOctet3Low, &ui8IPAddrOctet3High))) {
+        if ((pszOctet3 == nullptr) || (parseOctet (pszOctet3, &ui8IPAddrOctet3Low, &ui8IPAddrOctet3High))) {
             free (pszDupDescriptor);
             return -4;
         }
-        if ((pszOctet4 == NULL) || (parseOctet (pszOctet4, &ui8IPAddrOctet4Low, &ui8IPAddrOctet4High))) {
+        if ((pszOctet4 == nullptr) || (parseOctet (pszOctet4, &ui8IPAddrOctet4Low, &ui8IPAddrOctet4High))) {
             free (pszDupDescriptor);
             return -5;
         }
@@ -179,21 +164,21 @@ namespace ACMNetProxy
             ui16PortLow = 0;
             ui16PortHigh = 65535;
         }
-        else if (NULL == strchr (pszPort, '-')) {
+        else if (nullptr == strchr (pszPort, '-')) {
             ui16PortLow = ui16PortHigh = (uint16) atoi (pszPort);
         }
         else {
             char *pszTemp2, *pszDupPort = strdup (pszPort);;
             const char *pszToken2;
             pszToken2 = strtok_mt (pszDupPort, "-", &pszTemp2);
-            if (pszToken2 == NULL) {
+            if (pszToken2 == nullptr) {
                 free (pszDupDescriptor);
                 free (pszDupPort);
                 return -7;
             }
             ui16PortLow = (uint16) atoi (pszToken2);
-            pszToken2 = strtok_mt (NULL, "-", &pszTemp2);
-            if (pszToken2 == NULL) {
+            pszToken2 = strtok_mt (nullptr, "-", &pszTemp2);
+            if (pszToken2 == nullptr) {
                 free (pszDupDescriptor);
                 free (pszDupPort);
                 return -8;

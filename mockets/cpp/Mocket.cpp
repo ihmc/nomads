@@ -1,18 +1,18 @@
 /*
  * Mocket.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -27,6 +27,7 @@
 #include "Receiver.h"
 #include "Transmitter.h"
 #include "UDPCommInterface.h"
+#include "DTLSCommInterface.h"
 
 #include "ConfigManager.h"
 #include "UDPDatagramSocket.h"
@@ -36,14 +37,20 @@
 
 
 #ifndef MOCKETS_NO_CRYPTO
-using namespace CryptoUtils;
+	using namespace CryptoUtils;
 #endif
 
 using namespace NOMADSUtil;
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
-Mocket::Mocket (const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhenDone)
+Mocket::Mocket(
+    const char *pszConfigFile, 
+    CommInterface *pCI, 
+    bool bDeleteCIWhenDone, 
+    bool bEnableDtls, 
+    const char* pathToCertificate, 
+    const char* pathToPrivateKey)
     : _termSync (this)
 {
     _bEnableCrossSequencing = false;
@@ -51,16 +58,16 @@ Mocket::Mocket (const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhe
     _ui16UDPBufferSize = DEFAULT_UDP_BUFFER_SIZE;
     _ui32RemoteAddress = 0;
     _ui16RemotePort = 0;
-    if (pCI == NULL) {
-        _pCommInterface = new UDPCommInterface (new UDPDatagramSocket(), true);
-        _bLocallyCreatedCI = true;
-        _bDeleteCIWhenDone = true;
-    }
-    else {
-        _pCommInterface = pCI;
-        _bLocallyCreatedCI = false;
-        _bDeleteCIWhenDone = bDeleteCIWhenDone;
-    }
+
+
+    _bEnableCrossSequencing = false;
+    _bOriginator = true;
+    _ui16UDPBufferSize = DEFAULT_UDP_BUFFER_SIZE;
+    _ui32RemoteAddress = 0;
+    _ui16RemotePort = 0;
+	_bEnableDtls = bEnableDtls;
+
+
     _pPacketProcessor = NULL;
     _pReceiver = NULL;
     _pTransmitter = NULL;
@@ -113,10 +120,36 @@ Mocket::Mocket (const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhe
             // Should return an error code here, but cannot from the constructor
         }
     }
-    
-    _pMocketStatusNotifier = new MocketStatusNotifier();
-    _pMocketStatusNotifier->init ((_pszNotificationIPAddress ? _pszNotificationIPAddress : getStatsIP()), getStatsPort(), false);
-    
+
+	if (_bEnableDtls) {
+		if (pCI == NULL) {
+			_pCommInterface = new DTLSCommInterface(new UDPCommInterface(new UDPDatagramSocket(), true), false, _ui32UDPReceiveTimeout, pathToCertificate, pathToPrivateKey);
+			_bLocallyCreatedCI = true;
+			_bDeleteCIWhenDone = true;
+
+		}
+		else {
+			_pCommInterface = new DTLSCommInterface(pCI, false, _ui32UDPReceiveTimeout, pathToCertificate, pathToPrivateKey);
+			_bLocallyCreatedCI = false;
+			_bDeleteCIWhenDone = bDeleteCIWhenDone;
+		}
+	}
+	else {
+		if (pCI == NULL) {
+			_pCommInterface = new UDPCommInterface(new UDPDatagramSocket(), true);
+			_bLocallyCreatedCI = true;
+			_bDeleteCIWhenDone = true;
+		}
+		else {
+			_pCommInterface = pCI;
+			_bLocallyCreatedCI = false;
+			_bDeleteCIWhenDone = bDeleteCIWhenDone;
+		}
+	}
+
+	_pMocketStatusNotifier = new MocketStatusNotifier();
+	_pMocketStatusNotifier->init((_pszNotificationIPAddress ? _pszNotificationIPAddress : getStatsIP()), getStatsPort(), false);
+
     _pKeyPair = NULL;
     _pSecretKey = NULL;
     _pszPassword = NULL;
@@ -126,7 +159,15 @@ Mocket::Mocket (const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhe
     _bSendOnlyEvenPackets = false;
 }
 
-Mocket::Mocket (StateCookie cookie, InetAddr *pRemoteAddr, const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhenDone)
+Mocket::Mocket (
+    StateCookie cookie, 
+    InetAddr *pRemoteAddr, 
+    const char *pszConfigFile, 
+    CommInterface *pCI, 
+    bool bDeleteCIWhenDone, 
+    bool bEnableDtls, 
+    const char* pathToCertificate, 
+    const char* pathToPrivateKey)
     : _termSync (this)
 {
     _bEnableCrossSequencing = false;
@@ -151,6 +192,9 @@ Mocket::Mocket (StateCookie cookie, InetAddr *pRemoteAddr, const char *pszConfig
     _ui32InitialAssumedRTT = DEFAULT_INITIAL_ASSUMED_RTT;
     _ui32MaximumRTO = DEFAULT_MAXIMUM_RTO;
     _ui32MinimumRTO = DEFAULT_MINIMUM_RTO;
+
+	_bEnableDtls = bEnableDtls;
+
     if (_ui32MinimumRTO < DEFAULT_SACK_TRANSMIT_TIMEOUT) {
         // Avoid retransmission before the Ack can arrive
         _ui32MinimumRTO = DEFAULT_SACK_TRANSMIT_TIMEOUT;
@@ -186,7 +230,7 @@ Mocket::Mocket (StateCookie cookie, InetAddr *pRemoteAddr, const char *pszConfig
         if (rc != 0) {
             checkAndLogMsg ("Mocket::Mocket", Logger::L_Warning, "failed to read config file <%s>; rc = %d\n", pszConfigFile, rc);
             // Should return an error code here, but cannot from the constructor
-	}
+		}
     }
 
     _pKeyPair = NULL;
@@ -204,14 +248,14 @@ Mocket::Mocket (StateCookie cookie, InetAddr *pRemoteAddr, const char *pszConfig
                       cookie.getReliableSequencedTSNA(),
                       cookie.getReliableUnsequencedIDA());
 
-    _pPacketProcessor = new PacketProcessor (this);      // Construct this before Receiver
-    _pReceiver = new Receiver (this, _bEnableRecvLogging);
-    _pTransmitter = new Transmitter (this, _bEnableXMitLogging);
-    _pTransmitter->setTransmitRateLimit (_ui32TransmitRateLimit);
-    _pMocketStatusNotifier = new MocketStatusNotifier();
-    _pPacketProcessor->init();
+    _pPacketProcessor   = new PacketProcessor   (this);      // Construct this before Receiver
+    _pReceiver          = new Receiver          (this, _bEnableRecvLogging);
+    _pTransmitter       = new Transmitter       (this, _bEnableXMitLogging);
+    _pTransmitter->setTransmitRateLimit         (_ui32TransmitRateLimit);
+	_pMocketStatusNotifier = new MocketStatusNotifier();
+	_pPacketProcessor->init();
     _pMocketStatusNotifier->init ((_pszNotificationIPAddress ? _pszNotificationIPAddress : getStatsIP()), getStatsPort(), false);
-    
+
     InetAddr localAddr;
     if (_pszLocalAddress != NULL) {
         localAddr.setIPAddress (_pszLocalAddress);
@@ -219,6 +263,7 @@ Mocket::Mocket (StateCookie cookie, InetAddr *pRemoteAddr, const char *pszConfig
     else {
         localAddr = _pCommInterface->getLocalAddr();
     }
+
     _pMocketStatusNotifier->connectionReceived (getIdentifier(), &localAddr, _ui16LocalPort, pRemoteAddr, _ui16RemotePort);
 
     int rc = 0;
@@ -266,36 +311,6 @@ Mocket::~Mocket (void)
     if (_pszPassword) {
         delete[] _pszPassword;
         _pszPassword = NULL;
-    }
-}
-
-void Mocket::startThreads (void)
-{
-    int res = 0;
-    _pPacketProcessor->start();
-    res = _pPacketProcessor->setPriority (10);
-    if (res < 0) {
-        checkAndLogMsg ("Mocket::startThreads", Logger::L_MildError,
-                        "failed to set PacketProcessor thread priority; res = %d\n", res);
-    }
-    _pReceiver->start();
-    res = _pReceiver->setPriority (10);
-    if (res < 0) {
-        checkAndLogMsg ("Mocket::startThreads", Logger::L_MildError,
-                        "failed to set Receiver thread priority; res = %d\n", res);
-    }
-    _pTransmitter->start();
-    res = _pTransmitter->setPriority (8);
-    if (res < 0) {
-        checkAndLogMsg ("Mocket::startThreads", Logger::L_MildError,
-                        "failed to set Transmitter thread priority; res = %d\n", res);
-    }
-    if (_bUseBandwidthEstimation) {
-        activateBandwidthEstimation();
-    }
-    if (_pszCongestionControl != NULL) {
-        // Instantiate the correct subclass of CongestionControl
-        activateCongestionControl();
     }
 }
 
@@ -356,7 +371,8 @@ int Mocket::initParamsFromConfigFile (const char *pszConfigFile)
         _ui32MaximumRTO = (uint32) cm.getValueAsInt ("MaximumRTO");
         checkAndLogMsg ("Mocket::initParamsFromConfigFile", Logger::L_LowDetailDebug,
                         "set maximum RTO to %d\n", (int) _ui32MaximumRTO);
-    }if (cm.hasValue ("MinimumRTO")) {
+    }
+	if (cm.hasValue ("MinimumRTO")) {
         _ui32MinimumRTO = (uint32) cm.getValueAsInt ("MinimumRTO");
         checkAndLogMsg ("Mocket::initParamsFromConfigFile", Logger::L_LowDetailDebug,
                         "set minimum RTO to %d\n", (int) _ui32MinimumRTO);
@@ -450,22 +466,40 @@ int Mocket::initParamsFromConfigFile (const char *pszConfigFile)
         checkAndLogMsg ("Mocket::initParamsFromConfigFile", Logger::L_LowDetailDebug,
                         "set RTO constant to %d\n", (int) _ui16RTOConstant);
     }
-    if (cm.hasValue ("StatusNotificationAddress")) {
-        _pszNotificationIPAddress = strDup (cm.getValue("StatusNotificationAddress"));       
+
+	if (cm.hasValue("LocalAddress")) {
+		_pszLocalAddress = strDup(cm.getValue("LocalAddress"));
+		checkAndLogMsg("Mocket::initParamsFromConfigFile", Logger::L_LowDetailDebug,
+			"Local address %s\n", (_pszLocalAddress ? _pszLocalAddress : " NULL"));
+		_pMocketStatusNotifier->init((_pszNotificationIPAddress ? _pszNotificationIPAddress : getStatsIP()), getStatsPort(), false);
+	}
+
+	if (cm.hasValue ("StatusNotificationAddress")) {
+        _pszNotificationIPAddress = strDup (cm.getValue("StatusNotificationAddress"));
         checkAndLogMsg ("Mocket::initParamsFromConfigFile", Logger::L_LowDetailDebug,
                         "Status notification address %s\n", (_pszNotificationIPAddress ? _pszNotificationIPAddress : " NULL"));
+		_pMocketStatusNotifier->init((_pszNotificationIPAddress ? _pszNotificationIPAddress : getStatsIP()), getStatsPort(), false);
+		checkAndLogMsg("Mocket::initParamsFromConfigFile", Logger::L_Warning,
+			"Local Address has been ovverided by Status Notification Address (there is only one Status Notifier)\n");
     }
-    if (cm.hasValue ("LocalAddress")) {
-        _pszLocalAddress = strDup (cm.getValue("LocalAddress"));       
-        checkAndLogMsg ("Mocket::initParamsFromConfigFile", Logger::L_LowDetailDebug,
-                        "Local address %s\n", (_pszLocalAddress ? _pszLocalAddress : " NULL"));
-    }
-    
+
     if (_ui32MinimumRTO < _ui16SAckTransmitTimeout) {
         _ui32MinimumRTO = _ui16SAckTransmitTimeout;
         checkAndLogMsg ("Mocket::initParamsFromConfigFile", Logger::L_MildError,
                         "minimum RTO was set to a valuer than the SAck transmit timeout, reset to %d\n", _ui32MinimumRTO);
     }
+
+	if (cm.hasValue("DTLS")) {
+		_bEnableDtls = cm.getValueAsBool("DTLS");
+		if (_bEnableDtls) {
+			checkAndLogMsg("Mocket::initParamsFromConfigFile", Logger::L_Info,
+				"Dtls mechanism active, this will override constructor call\n");
+		}
+		else {
+			checkAndLogMsg("Mocket::initParamsFromConfigFile", Logger::L_Info,
+				"Dtls mechanism not active, this will override constructor call\n");
+		}
+	}
 
     return 0;
 }
@@ -496,6 +530,454 @@ int Mocket::connect (const char *pszRemoteHost, uint16 ui16RemotePort, int64 i64
     return connect (pszRemoteHost, ui16RemotePort, false, i64Timeout);
 }
 
+int Mocket::connect(const char *pszRemoteHost, uint16 ui16RemotePort, bool bPreExchangeKeys, int64 i64Timeout)
+{
+    const char *pszMethodName = "Mocket::connect";
+    if (_sm.getCurrentState() != StateMachine::S_CLOSED) {
+        checkAndLogMsg(pszMethodName, Logger::L_MildError,
+            "mocket must be in the closed state before attempting a connection; current state is %s\n",
+            _sm.getCurrentStateAsString());
+        return -1;
+    }
+    if (pszRemoteHost == NULL) {
+        return -2;
+    }
+    uint16 ui16ConnectPort = ui16RemotePort;
+    uint32 ui32ConnectAddress = NetUtils::getHostByName(pszRemoteHost);
+    if (ui32ConnectAddress == 0) {
+        checkAndLogMsg(pszMethodName, Logger::L_MildError,
+            "could not lookup IP address for host <%s>\n", pszRemoteHost);
+        return -3;
+    }
+
+    checkAndLogMsg(pszMethodName, Logger::L_LowDetailDebug,
+        "attempting to open a connection to <%s>:%d\n", 
+        pszRemoteHost, ui16RemotePort);
+
+    int64 i64AttemptEndTime = getTimeInMilliseconds();
+    if (i64Timeout > 0) {
+        i64AttemptEndTime += i64Timeout;
+    }
+    else {
+        i64AttemptEndTime += _ui32ConnectTimeout;
+        checkAndLogMsg(pszMethodName, Logger::L_LowDetailDebug,
+            "set connection timeout to default value of %d\n", _ui32ConnectTimeout);
+    }
+
+    int rc;
+    if (!_bMocketAlreadyBound) {
+        InetAddr bindAddr;
+        if (0 != (rc = _pCommInterface->bind(&bindAddr))) {
+            checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                "could not initialize UDPDatagramSocket; rc = %d\n", rc);
+            return -4;
+        }
+    }
+
+    _ui32LocalAddress   = _pCommInterface->getLocalAddr().getIPAddress();
+    _ui16LocalPort      = _pCommInterface->getLocalPort();
+
+    if (0 != (rc = _pCommInterface->setReceiveBufferSize(_ui16UDPBufferSize))) {
+        checkAndLogMsg(pszMethodName, Logger::L_Warning,
+            "could not set UDP receive buffer size to %d; rc = %d\n", (int)_ui16UDPBufferSize, rc);
+    }
+    if (0 != (rc = _pCommInterface->setReceiveTimeout(_ui32UDPReceiveConnectionTimeout))) {
+        checkAndLogMsg(pszMethodName, Logger::L_Warning,
+            "could not set UDP timeout to %d; rc = %d\n", _ui32UDPReceiveConnectionTimeout, rc);
+    }
+    else {
+        checkAndLogMsg(pszMethodName, Logger::L_Info,
+            "set UDP timeout to %d\n", _ui32UDPReceiveConnectionTimeout);
+    }
+
+    if (_bEnableDtls) {
+        checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug, "Launching DTLS connect\n");
+        InetAddr sendToAddr(ui32ConnectAddress, ui16ConnectPort);
+
+        DTLSCommInterface *pDTLSCI = static_cast<DTLSCommInterface *>(_pCommInterface);
+        pDTLSCI->setTimeout(i64AttemptEndTime);
+        if (_pCommInterface->sendTo(&sendToAddr, NULL, DEFAULT_MTU) < 0) {
+            pDTLSCI = static_cast<DTLSCommInterface *>(_pCommInterface);
+            pDTLSCI->deleteDtlsObject();
+            pDTLSCI->resetDtlsObject();
+            sleepForMilliseconds(500);
+            return -100;
+        }
+        checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug, "DTLS Connect completed\n");
+    }
+
+    //Giving some time to the server to decrypt the last HS message
+    //sleepForMilliseconds(500);
+    StateCookie stateCookie;
+    if (!_bUseTwoWayHandshake) {
+        // Create the Init packet
+        uint32 ui32OutgoingValidation = (uint32)rand();
+        Packet initPacket(this);
+        initPacket.setValidation(ui32OutgoingValidation);
+        initPacket.setWindowSize(getMaximumWindowSize());
+        initPacket.setSequenceNum(0);
+        initPacket.addInitChunk(ui32OutgoingValidation, 0, 0, 0, 0, 0);
+        // Advance state machine
+        _sm.associate();
+
+        // Send the Init packet and wait for InitAck
+        char achReplyBuf[MAXIMUM_MTU];
+        while (true) {
+            int rc;
+            InetAddr remoteAddr;
+            InetAddr sendToAddr(ui32ConnectAddress, ui16ConnectPort);
+            rc = _pCommInterface->sendTo(&sendToAddr, initPacket.getPacket(), initPacket.getPacketSize());
+            checkAndLogMsg(pszMethodName, Logger::L_LowDetailDebug, "sent init packet\n");
+            if (rc < 0) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError, "sending packet failed with rc = %d; os error = %d\n",
+                    rc, _pCommInterface->getLastError());
+            }
+            else {
+                rc = _pCommInterface->receive(achReplyBuf, MAXIMUM_MTU, &remoteAddr);
+                if (rc < 0) {
+                    checkAndLogMsg(pszMethodName, Logger::L_MildError, "receive failed with rc = %d; os error = %d\n",
+                        rc, _pCommInterface->getLastError());
+                }
+                else if (rc == 0) {
+                    checkAndLogMsg(pszMethodName, Logger::L_MildError, "timed out waiting for reply on Init packet from: %s:%d\n",
+                        pszRemoteHost, ui16ConnectPort);
+                }
+                else if (rc <= Packet::HEADER_SIZE) {
+                    checkAndLogMsg("Mocket::connect", Logger::L_MildError,
+                        "received a short packet; rc = %d\n", rc);
+                }
+                else if ((remoteAddr.getIPAddress() != ui32ConnectAddress) || (remoteAddr.getPort() != ui16ConnectPort)) {
+                    checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                        "received a packet from a different endpoint %s:%d; expecting one from %s:%d\n",
+                        (char*)remoteAddr.getIPAsString(), (int)remoteAddr.getPort(),
+                        (char*)InetAddr(ui32ConnectAddress).getIPAsString(), (int)ui16ConnectPort);
+                }
+                else {
+                    // Parse the packet and look for the InitAck chunk
+                    Packet replyPacket(achReplyBuf, rc);
+                    if (replyPacket.getChunkType() != Packet::CT_InitAck) {
+                        checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                            "received a reply packet without the InitAck chunk (type %d) as the first chunk; chunk type is %d\n",
+                            (int)Packet::CT_InitAck, (int)replyPacket.getChunkType());
+                    }
+                    else {
+                        checkAndLogMsg(pszMethodName, Logger::L_MediumDetailDebug,
+                            "Received packet with init_ack\n");
+                        // Found the InitAck chunk
+                        InitAckChunkAccessor accessor = replyPacket.getInitAckChunk();
+                        stateCookie = accessor.getStateCookie();
+                        if (!_sm.receivedInitAck()) {
+                            checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                                "mocket state machine in illegal state\n");
+                            _sm.abort();
+                            return -7;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (getTimeInMilliseconds() > i64AttemptEndTime) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "connection timeout while waiting for InitAck\n");
+                _sm.abort();
+
+                InetAddr localAddr;
+                if (_pszLocalAddress != NULL) {
+                    localAddr.setIPAddress(_pszLocalAddress);
+                }
+                else {
+                    localAddr = _pCommInterface->getLocalAddr();
+                }
+
+                InetAddr connectToAddr(ui32ConnectAddress);
+                _pMocketStatusNotifier->connectionFailed(getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &connectToAddr, ui16ConnectPort);
+                return -8;
+            }
+
+            // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
+            sleepForMilliseconds(500);
+        }
+
+        // Create the CookieEcho packet
+        Packet mpCookieEcho(this);
+        mpCookieEcho.setValidation(ui32OutgoingValidation);
+        mpCookieEcho.setWindowSize(getMaximumWindowSize());
+        mpCookieEcho.setSequenceNum(0);
+        mpCookieEcho.addCookieEchoChunk(&stateCookie);
+
+        if (bPreExchangeKeys) {
+#ifdef MOCKETS_NO_CRYPTO
+            checkAndLogMsg("Mocket::connect", Logger::L_SevereError,
+                "crypto disabled at build time\n");
+            _mSuspend.unlock();
+            return -9;
+#else
+            // Insert the public key in the packet to support end-to-end connectivity
+            // Create a new pair of keys
+            _pKeyPair = new PublicKeyPair();
+            if (0 != _pKeyPair->generateNewKeyPair()) {
+                // Error while creating publicKeyPair
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "error while creating publicKeyPair\n");
+                _mSuspend.unlock();
+                return -3;
+            }
+            PublicKey::KeyData *pKeyData = _pKeyPair->getPublicKey()->getKeyAsDEREncodedX509Data();
+            mpCookieEcho.addPublicKey(pKeyData->getData(), pKeyData->getLength());
+            delete pKeyData;
+#endif
+        }
+        else {
+            mpCookieEcho.addPublicKey(NULL, (uint32)0);
+        }
+
+        // Send the CookieEcho packet and wait for CookieAck
+        while (true) {
+            int rc;
+            InetAddr remoteAddr;
+            InetAddr sendToAddr(ui32ConnectAddress, ui16ConnectPort);
+            rc = _pCommInterface->sendTo(&sendToAddr, mpCookieEcho.getPacket(), mpCookieEcho.getPacketSize());
+            checkAndLogMsg(pszMethodName, Logger::L_MediumDetailDebug,
+                "sent cookie_echo packet\n");
+            if (rc < 0) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "send on datagram socket failed with rc = %d; os error = %d\n",
+                    rc, _pCommInterface->getLastError());
+                // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
+                sleepForMilliseconds(1000);
+            }
+            if (bPreExchangeKeys) {
+                // Pre-exchanging keys adds ovehead to connect operation
+                // The time it takes to create the keys and perform cryptation
+                // and decryptation of the data is highly dependent on the system
+                // performance and the system load. A higher timeout for the socket
+                // receive operation needs to be set to avoid repeated send of the
+                // cookie-echo
+                // NOTE: no need to restore the socket timeout once the keys have
+                // been exchanged, since it will be set in receiver.
+                _pCommInterface->setReceiveTimeout(DEFAULT_PRE_EXCHANGE_KEYS_CONNECT_RECEIVE_TIMEOUT);
+            }
+            rc = _pCommInterface->receive(achReplyBuf, MAXIMUM_MTU, &remoteAddr);
+            if (rc < 0) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "receive on datagram socket failed with rc = %d; os error = %d\n",
+                    rc, _pCommInterface->getLastError());
+            }
+            else if (rc == 0) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "timed out waiting for reply on CookieAck packet\n");
+            }
+            else if (rc <= Packet::HEADER_SIZE) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "received a short packet; rc = %d\n", rc);
+            }
+            else if ((remoteAddr.getIPAddress() != ui32ConnectAddress) || (remoteAddr.getPort() != ui16ConnectPort)) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "received a packet from a different endpoint %s:%d; expecting one from %s:%d\n",
+                    (char*)remoteAddr.getIPAsString(), (int)remoteAddr.getPort(),
+                    (char*)InetAddr(ui32ConnectAddress).getIPAsString(), (int)ui16ConnectPort);
+            }
+            else {
+                // Parse the packet and look for the CookieAck chunk
+                Packet replyPacket(achReplyBuf, rc);
+                if (replyPacket.getChunkType() != Packet::CT_CookieAck) {
+                    checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                        "received a reply packet without the CookieAck chunk as the first chunk; chunk type is %d\n",
+                        (int)replyPacket.getChunkType());
+                }
+                else {
+                    checkAndLogMsg(pszMethodName, Logger::L_Info,
+                        "received a valid CookieAck packet from %s:%d - proceeding with the connection\n",
+                        (char*)remoteAddr.getIPAsString(), (int)remoteAddr.getPort());
+
+                    // Found the CookieAck chunk
+                    CookieAckChunkAccessor accessor = replyPacket.getCookieAckChunk();
+                    uint16 ui16RemotePort = accessor.getPort();
+                    if (!_sm.receivedCookieAck()) {
+                        checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                            "mocket state machine in illegal state\n");
+                        _sm.abort();
+                        return -10;
+                    }
+                    if (bPreExchangeKeys) {
+                    #ifdef MOCKETS_NO_CRYPTO
+                        checkAndLogMsg("Mocket::connect", Logger::L_SevereError,
+                            "crypto disabled at build time\n");
+                    #else
+                        //**// Extract, decrypt and save UUID and password to create Ks
+                        // Extract
+                        uint32 ui32EncryptedDataLength = accessor.getEncryptedDataLength();
+                        const char *pDataBuff = accessor.getEncryptedData();
+
+                        // Decrypt
+                        uint32 ui32ReceivedDataLength;
+                        void *pReceivedData;
+                        pReceivedData = CryptoUtils::decryptDataUsingPrivateKey(_pKeyPair->getPrivateKey(), pDataBuff, ui32EncryptedDataLength, &ui32ReceivedDataLength);
+
+                        // Extract and save the password
+                        uint32 ui32BuffPos = 0;
+                        char pwd[9];
+                        memcpy(pwd, pReceivedData, 9);
+                        setPassword(pwd);
+                        ui32BuffPos += 9;
+                        // Reconstuct the secret key from the password
+                        newSecretKey(_pszPassword);
+
+                        // Extract and save the UUID
+                        uint32 ui32UUID = *((uint32*)(((char*)pReceivedData) + ui32BuffPos));
+                        setMocketUUID(ui32UUID);
+                        // security information exchanged, save the information so we don't need to exchange new values for a suspension
+                        // and we can support reEstablishConn
+                        setKeysExchanged(true);
+                        // Set that Ks and the UUID have been set so this side of the mocket supports abrupt disconnections
+                        setSupportReEstablish(true);
+
+                        free(pReceivedData);
+                    #endif
+                    }
+                    _ui32RemoteAddress = ui32ConnectAddress;
+                    _ui16RemotePort = ui16RemotePort;
+                    break;
+                }
+            }
+            if (getTimeInMilliseconds() > i64AttemptEndTime) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "connection timeout while waiting for CookieAck\n");
+                _sm.abort();
+                InetAddr localAddr;
+                if (_pszLocalAddress != NULL) {
+                    localAddr.setIPAddress(_pszLocalAddress);
+                }
+                else {
+                    localAddr = _pCommInterface->getLocalAddr();
+                }
+                InetAddr connectToAddr(ui32ConnectAddress);
+                _pMocketStatusNotifier->connectionFailed(getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &connectToAddr, ui16ConnectPort);
+                return -11;
+            }
+
+            // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
+            sleepForMilliseconds(1000);
+        }
+    }
+    // Use two way handshake connection mechanism
+    else {
+        // Create the SimpleConnect packet
+        uint32 ui32OutgoingValidation = (uint32)rand();
+        Packet simpleConnectPacket(this);
+        simpleConnectPacket.setValidation(ui32OutgoingValidation);
+        simpleConnectPacket.setWindowSize(getMaximumWindowSize());
+        simpleConnectPacket.setSequenceNum(0);
+        simpleConnectPacket.addSimpleConnectChunk(ui32OutgoingValidation, 0, 0, 0, 0, 0);
+        // Advance state machine
+        _sm.simpleConnect();
+
+        // Send the SimpleConnect packet and wait for SimpleConnectAck
+        char achReplyBuf[MAXIMUM_MTU];
+        while (true) {
+            int rc;
+            InetAddr remoteAddr;
+            InetAddr sendToAddr(ui32ConnectAddress, ui16ConnectPort);
+            rc = _pCommInterface->sendTo(&sendToAddr, simpleConnectPacket.getPacket(), simpleConnectPacket.getPacketSize());
+            if (rc < 0) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "send on datagram socket failed with rc = %d; os error = %d\n",
+                    rc, _pCommInterface->getLastError());
+            }
+            rc = _pCommInterface->receive(achReplyBuf, MAXIMUM_MTU, &remoteAddr);
+            if (rc < 0) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "receive on datagram socket failed with rc = %d; os error = %d\n",
+                    rc, _pCommInterface->getLastError());
+            }
+            else if (rc == 0) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "timed out waiting for reply on simpleConnect packet from: %s:%d\n",
+                    pszRemoteHost, ui16ConnectPort);
+            }
+            else if (rc <= Packet::HEADER_SIZE) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "received a short packet; rc = %d\n", rc);
+            }
+            else if ((remoteAddr.getIPAddress() != ui32ConnectAddress) || (remoteAddr.getPort() != ui16ConnectPort)) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "received a packet from a different endpoint %s:%d; expecting one from %s:%d\n",
+                    (char*)remoteAddr.getIPAsString(), (int)remoteAddr.getPort(),
+                    (char*)InetAddr(ui32ConnectAddress).getIPAsString(), (int)ui16ConnectPort);
+            }
+            else {
+                // Parse the packet and look for the simpleConnectAck chunk
+                Packet replyPacket(achReplyBuf, rc);
+                if (replyPacket.getChunkType() != Packet::CT_SimpleConnectAck) {
+                    checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                        "received a reply packet without the SimpleConnectAck chunk (type %d) as the first chunk; chunk type is %d\n",
+                        (int)Packet::CT_SimpleConnectAck, (int)replyPacket.getChunkType());
+                }
+                else {
+                    // Found the SimpleConnectAck chunk
+                    SimpleConnectAckChunkAccessor accessor = replyPacket.getSimpleConnectAckChunk();
+                    stateCookie = accessor.getStateCookie();
+                    _ui32RemoteAddress = ui32ConnectAddress;
+                    _ui16RemotePort = accessor.getRemotePort();
+                    if (!_sm.receivedSimpleConnectAck()) {
+                        checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                            "mocket state machine in illegal state\n");
+                        _sm.abort();
+                        return -12;
+                    }
+                    break;
+                }
+            }
+            if (getTimeInMilliseconds() > i64AttemptEndTime) {
+                checkAndLogMsg(pszMethodName, Logger::L_MildError,
+                    "connection timeout while waiting for SimpleConnectAck\n");
+                _sm.abort();
+                InetAddr localAddr;
+                if (_pszLocalAddress != NULL) {
+                    localAddr.setIPAddress(_pszLocalAddress);
+                }
+                else {
+                    localAddr = _pCommInterface->getLocalAddr();
+                }
+                InetAddr connectToAddr(ui32ConnectAddress);
+                _pMocketStatusNotifier->connectionFailed(getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &connectToAddr, ui16ConnectPort);
+                return -13;
+            }
+
+            // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
+            sleepForMilliseconds(1000);
+        }
+    }
+
+    // If the client is behind NAT send a message to punch a hole for the peer Mocket opened on the server side
+    //TODO
+
+    // Connected - Call the Status Notifier
+    InetAddr localAddr;
+    if (_pszLocalAddress != NULL) {
+        localAddr.setIPAddress(_pszLocalAddress);
+    }
+    else {
+        localAddr = _pCommInterface->getLocalAddr();
+    }
+    InetAddr remoteAddr(_ui32RemoteAddress);
+    _pMocketStatusNotifier->connected(getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &remoteAddr, _ui16RemotePort);
+
+    // Initialize the mocket
+    _stateCookie = stateCookie;
+    _ackManager.init(stateCookie.getControlTSNA(),
+        stateCookie.getReliableSequencedTSNA(),
+        stateCookie.getReliableUnsequencedIDA());
+    _pPacketProcessor = new PacketProcessor(this);      // Construct this before Receiver
+    _pTransmitter = new Transmitter(this, _bEnableXMitLogging);
+    _pTransmitter->setTransmitRateLimit(_ui32TransmitRateLimit);
+    _pReceiver = new Receiver(this, _bEnableRecvLogging);
+    _pPacketProcessor->init();
+    startThreads();
+    return 0;
+}
+
+
 int Mocket::connectAsync (const char *pszRemoteHost, uint16 ui16RemotePort)
 {
     _pAsyncConnector = new AsynchronousConnector (this, pszRemoteHost, ui16RemotePort);
@@ -513,439 +995,6 @@ int Mocket::finishConnect (void)
         // and if the mocket is not in the established state it means that the connection attempt failed
         return _pAsyncConnector->connectionRes();
     }
-    return 0;
-}
-
-int Mocket::connect (const char *pszRemoteHost, uint16 ui16RemotePort, bool bPreExchangeKeys, int64 i64Timeout)
-{
-    if (_sm.getCurrentState() != StateMachine::S_CLOSED) {
-        checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                        "mocket must be in the closed state before attempting a connection; current state is %s\n",
-                        _sm.getCurrentStateAsString());
-        return -1;
-    }
-    if (pszRemoteHost == NULL) {
-        return -2;
-    }
-    uint16 ui16ConnectPort = ui16RemotePort;
-    uint32 ui32ConnectAddress = NetUtils::getHostByName (pszRemoteHost);
-    if (ui32ConnectAddress == 0) {
-        checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                        "could not lookup IP address for host <%s>\n", pszRemoteHost);
-        return -3;
-    }
-
-    checkAndLogMsg ("Mocket::connect", Logger::L_LowDetailDebug,
-                    "attempting to open a connection to <%s>:%d\n", pszRemoteHost, ui16RemotePort);
-
-    int64 i64AttemptEndTime = getTimeInMilliseconds();
-    if (i64Timeout > 0) {
-        i64AttemptEndTime += i64Timeout;
-    }
-    else {
-        i64AttemptEndTime += _ui32ConnectTimeout;
-        checkAndLogMsg ("Mocket::connect", Logger::L_LowDetailDebug,
-                        "set connection timeout to default value of %d\n", _ui32ConnectTimeout);
-    }
-
-    int rc;
-    
-    if (!_bMocketAlreadyBound) {
-        InetAddr bindAddr;
-        if (0 != (rc = _pCommInterface->bind (&bindAddr))) {
-            checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                            "could not initialize UDPDatagramSocket; rc = %d\n", rc);
-            return -4;
-        }
-    }
-
-    _ui32LocalAddress = _pCommInterface->getLocalAddr().getIPAddress();
-    _ui16LocalPort = _pCommInterface->getLocalPort();
-    
-    if (0 != (rc = _pCommInterface->setReceiveBufferSize (_ui16UDPBufferSize))) {
-        checkAndLogMsg ("Mocket::connect", Logger::L_Warning,
-                        "could not set UDP receive buffer size to %d; rc = %d\n", (int) _ui16UDPBufferSize, rc);
-    }
-    if (0 != (rc = _pCommInterface->setReceiveTimeout (_ui32UDPReceiveConnectionTimeout))) {
-        checkAndLogMsg ("Mocket::connect", Logger::L_Warning,
-                        "could not set UDP timeout to %d; rc = %d\n", _ui32UDPReceiveConnectionTimeout, rc);
-    }
-    else {
-        checkAndLogMsg ("Mocket::connect", Logger::L_Info,
-                        "set UDP timeout to %d\n", _ui32UDPReceiveConnectionTimeout);
-    }
-
-    StateCookie stateCookie;
-
-    if (!_bUseTwoWayHandshake) {
-        // Create the Init packet
-        uint32 ui32OutgoingValidation = (uint32) rand();
-        Packet initPacket (this);
-        initPacket.setValidation (ui32OutgoingValidation);
-        initPacket.setWindowSize (getMaximumWindowSize());
-        initPacket.setSequenceNum (0);
-        initPacket.addInitChunk (ui32OutgoingValidation, 0, 0, 0, 0, 0);
-        // Advance state machine
-        _sm.associate();
-
-        // Send the Init packet and wait for InitAck
-        char achReplyBuf [MAXIMUM_MTU];
-        while (true) {
-            int rc;
-            InetAddr remoteAddr;
-            InetAddr sendToAddr (ui32ConnectAddress, ui16ConnectPort);
-            rc = _pCommInterface->sendTo (&sendToAddr, initPacket.getPacket(), initPacket.getPacketSize());
-            checkAndLogMsg ("Mocket::connect", Logger::L_LowDetailDebug,
-                            "sent init packet\n");
-            if (rc < 0) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "sending packet failed with rc = %d; os error = %d\n",
-                                rc, _pCommInterface->getLastError());
-            }
-            else {
-                rc = _pCommInterface->receive (achReplyBuf, MAXIMUM_MTU, &remoteAddr);
-                if (rc < 0) {
-                    checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                    "receive failed with rc = %d; os error = %d\n",
-                                    rc, _pCommInterface->getLastError());
-                }
-                else if (rc == 0) {
-                    checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                    "timed out waiting for reply on Init packet from: %s:%d\n",
-                                    pszRemoteHost, ui16ConnectPort);
-                }
-                else if (rc <= Packet::HEADER_SIZE) {
-                    checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                    "received a short packet; rc = %d\n", rc);
-                }
-                else if ((remoteAddr.getIPAddress() != ui32ConnectAddress) || (remoteAddr.getPort() != ui16ConnectPort)) {
-                    checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                    "received a packet from a different endpoint %s:%d; expecting one from %s:%d\n",
-                                    (char*)remoteAddr.getIPAsString(), (int) remoteAddr.getPort(),
-                                    (char*)InetAddr(ui32ConnectAddress).getIPAsString(), (int) ui16ConnectPort);
-                }
-                else {
-                    // Parse the packet and look for the InitAck chunk
-                    Packet replyPacket (achReplyBuf, rc);
-                    if (replyPacket.getChunkType() != Packet::CT_InitAck) {
-                        checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                        "received a reply packet without the InitAck chunk (type %d) as the first chunk; chunk type is %d\n",
-                                        (int) Packet::CT_InitAck, (int) replyPacket.getChunkType());
-                    }
-                    else {
-                        checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                        "Received packet with init_ack\n");
-                        // Found the InitAck chunk
-                        InitAckChunkAccessor accessor = replyPacket.getInitAckChunk();
-                        stateCookie = accessor.getStateCookie();
-                        if (!_sm.receivedInitAck()) {
-                            checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                            "mocket state machine in illegal state\n");
-                            _sm.abort();
-                            return -7;
-                        }
-                        break;
-                    }
-                }
-            }
-            if (getTimeInMilliseconds() > i64AttemptEndTime) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "connection timeout while waiting for InitAck\n");
-                _sm.abort();
-
-                InetAddr localAddr;
-                if (_pszLocalAddress != NULL) {
-                    localAddr.setIPAddress (_pszLocalAddress);
-                }
-                else {
-                    localAddr = _pCommInterface->getLocalAddr();
-                }
-
-                InetAddr connectToAddr (ui32ConnectAddress);
-                _pMocketStatusNotifier->connectionFailed (getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &connectToAddr, ui16ConnectPort);
-                return -8;
-            }
-
-            // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
-            sleepForMilliseconds (1000);
-        }
-
-        // Create the CookieEcho packet
-        Packet mpCookieEcho (this);
-        mpCookieEcho.setValidation (ui32OutgoingValidation);
-        mpCookieEcho.setWindowSize (getMaximumWindowSize());
-        mpCookieEcho.setSequenceNum (0);
-        mpCookieEcho.addCookieEchoChunk (&stateCookie);
-
-        if (bPreExchangeKeys) {
-            #ifdef MOCKETS_NO_CRYPTO
-                checkAndLogMsg ("Mocket::connect", Logger::L_SevereError,
-                                "crypto disabled at build time\n");
-                _mSuspend.unlock();
-                return -9;
-            #else
-                // Insert the public key in the packet to support end-to-end connectivity
-                // Create a new pair of keys
-                _pKeyPair = new PublicKeyPair();
-                if (0 != _pKeyPair->generateNewKeyPair()) {
-                    // Error while creating publicKeyPair
-                    checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                    "error while creating publicKeyPair\n");
-                    _mSuspend.unlock();
-                    return -3;
-                }
-                PublicKey::KeyData *pKeyData = _pKeyPair->getPublicKey()->getKeyAsDEREncodedX509Data();
-                mpCookieEcho.addPublicKey (pKeyData->getData(), pKeyData->getLength());
-                delete pKeyData;
-            #endif
-        }
-        else {
-            mpCookieEcho.addPublicKey (NULL, (uint32) 0);
-        }
-
-        // Send the CookieEcho packet and wait for CookieAck
-        while (true) {
-            int rc;
-            InetAddr remoteAddr;
-            InetAddr sendToAddr (ui32ConnectAddress, ui16ConnectPort);
-            rc = _pCommInterface->sendTo (&sendToAddr, mpCookieEcho.getPacket(), mpCookieEcho.getPacketSize());
-            checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                            "sent cookie_echo packet\n");
-            if (rc < 0) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "send on datagram socket failed with rc = %d; os error = %d\n",
-                                rc, _pCommInterface->getLastError());
-                // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
-                sleepForMilliseconds (1000);
-            }
-            if (bPreExchangeKeys) {
-                // Pre-exchanging keys adds ovehead to connect operation
-                // The time it takes to create the keys and perform cryptation
-                // and decryptation of the data is highly dependent on the system
-                // performance and the system load. A higher timeout for the socket
-                // receive operation needs to be set to avoid repeated send of the
-                // cookie-echo
-                // NOTE: no need to restore the socket timeout once the keys have
-                // been exchanged, since it will be set in receiver.
-                _pCommInterface->setReceiveTimeout (DEFAULT_PRE_EXCHANGE_KEYS_CONNECT_RECEIVE_TIMEOUT);
-            }
-            rc = _pCommInterface->receive (achReplyBuf, MAXIMUM_MTU, &remoteAddr);
-            if (rc < 0) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "receive on datagram socket failed with rc = %d; os error = %d\n",
-                                rc, _pCommInterface->getLastError());
-            }
-            else if (rc == 0) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "timed out waiting for reply on CookieAck packet\n");
-            }
-            else if (rc <= Packet::HEADER_SIZE) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "received a short packet; rc = %d\n", rc);
-            }
-            else if ((remoteAddr.getIPAddress() != ui32ConnectAddress) || (remoteAddr.getPort() != ui16ConnectPort)) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "received a packet from a different endpoint %s:%d; expecting one from %s:%d\n",
-                                (char*)remoteAddr.getIPAsString(), (int) remoteAddr.getPort(),
-                                (char*)InetAddr(ui32ConnectAddress).getIPAsString(), (int) ui16ConnectPort);
-            }
-            else {
-                // Parse the packet and look for the CookieAck chunk
-                Packet replyPacket (achReplyBuf, rc);
-                if (replyPacket.getChunkType() != Packet::CT_CookieAck) {
-                    checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                    "received a reply packet without the CookieAck chunk as the first chunk; chunk type is %d\n",
-                                    (int) replyPacket.getChunkType());
-                }
-                else {
-                    checkAndLogMsg ("Mocket::connect", Logger::L_Info,
-                                    "received a valid CookieAck packet from %s:%d - proceeding with the connection\n",
-                    (char*)remoteAddr.getIPAsString(), (int) remoteAddr.getPort());
-
-                    // Found the CookieAck chunk
-                    CookieAckChunkAccessor accessor = replyPacket.getCookieAckChunk();
-                    uint16 ui16RemotePort = accessor.getPort();
-                    if (!_sm.receivedCookieAck()) {
-                        checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                        "mocket state machine in illegal state\n");
-                        _sm.abort();
-                        return -10;
-                    }
-                    if (bPreExchangeKeys) {
-                        #ifdef MOCKETS_NO_CRYPTO
-                            checkAndLogMsg ("Mocket::connect", Logger::L_SevereError,
-                                            "crypto disabled at build time\n");
-                        #else
-                            //**// Extract, decrypt and save UUID and password to create Ks
-                            // Extract
-                            uint32 ui32EncryptedDataLength = accessor.getEncryptedDataLength();
-                            const char *pDataBuff = accessor.getEncryptedData();
-
-                            // Decrypt
-                            uint32 ui32ReceivedDataLength;
-                            void *pReceivedData;
-                            pReceivedData = CryptoUtils::decryptDataUsingPrivateKey (_pKeyPair->getPrivateKey(), pDataBuff, ui32EncryptedDataLength, &ui32ReceivedDataLength);
-
-                            // Extract and save the password
-                            uint32 ui32BuffPos = 0;
-                            char pwd[9];
-                            memcpy (pwd, pReceivedData, 9);
-                            setPassword (pwd);
-                            ui32BuffPos += 9;
-                            // Reconstuct the secret key from the password
-                            newSecretKey(_pszPassword);
-
-                            // Extract and save the UUID
-                            uint32 ui32UUID = *((uint32*)(((char*)pReceivedData) + ui32BuffPos));
-                            setMocketUUID (ui32UUID);
-                            // security information exchanged, save the information so we don't need to exchange new values for a suspension
-                            // and we can support reEstablishConn
-                            setKeysExchanged (true);
-                            // Set that Ks and the UUID have been set so this side of the mocket supports abrupt disconnections
-                            setSupportReEstablish (true);
-
-                            free (pReceivedData);
-                        #endif
-                    }
-                    _ui32RemoteAddress = ui32ConnectAddress;
-                    _ui16RemotePort = ui16RemotePort;
-                    break;
-                }
-            }
-            if (getTimeInMilliseconds() > i64AttemptEndTime) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "connection timeout while waiting for CookieAck\n");
-                _sm.abort();
-                InetAddr localAddr;
-                if (_pszLocalAddress != NULL) {
-                    localAddr.setIPAddress (_pszLocalAddress);
-                }
-                else {
-                    localAddr = _pCommInterface->getLocalAddr();
-                }
-                InetAddr connectToAddr (ui32ConnectAddress);
-                _pMocketStatusNotifier->connectionFailed (getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &connectToAddr, ui16ConnectPort);
-                return -11;
-            }
-
-            // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
-            sleepForMilliseconds (1000);
-        }
-    }
-    // Use two way handshake connection mechanism
-    else {
-        // Create the SimpleConnect packet
-        uint32 ui32OutgoingValidation = (uint32) rand();
-        Packet simpleConnectPacket (this);
-        simpleConnectPacket.setValidation (ui32OutgoingValidation);
-        simpleConnectPacket.setWindowSize (getMaximumWindowSize());
-        simpleConnectPacket.setSequenceNum (0);
-        simpleConnectPacket.addSimpleConnectChunk (ui32OutgoingValidation, 0, 0, 0, 0, 0);
-        // Advance state machine
-        _sm.simpleConnect();
-
-        // Send the SimpleConnect packet and wait for SimpleConnectAck
-        char achReplyBuf [MAXIMUM_MTU];
-        while (true) {
-            int rc;
-            InetAddr remoteAddr;
-            InetAddr sendToAddr (ui32ConnectAddress, ui16ConnectPort);
-            rc = _pCommInterface->sendTo (&sendToAddr, simpleConnectPacket.getPacket(), simpleConnectPacket.getPacketSize());
-            if (rc < 0) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "send on datagram socket failed with rc = %d; os error = %d\n",
-                                rc, _pCommInterface->getLastError());
-            }
-            rc = _pCommInterface->receive (achReplyBuf, MAXIMUM_MTU, &remoteAddr);
-            if (rc < 0) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "receive on datagram socket failed with rc = %d; os error = %d\n",
-                                rc, _pCommInterface->getLastError());
-            }
-            else if (rc == 0) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "timed out waiting for reply on simpleConnect packet from: %s:%d\n",
-                                pszRemoteHost, ui16ConnectPort);
-            }
-            else if (rc <= Packet::HEADER_SIZE) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "received a short packet; rc = %d\n", rc);
-            }
-            else if ((remoteAddr.getIPAddress() != ui32ConnectAddress) || (remoteAddr.getPort() != ui16ConnectPort)) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "received a packet from a different endpoint %s:%d; expecting one from %s:%d\n",
-                                (char*)remoteAddr.getIPAsString(), (int) remoteAddr.getPort(),
-                                (char*)InetAddr(ui32ConnectAddress).getIPAsString(), (int) ui16ConnectPort);
-            }
-            else {
-                // Parse the packet and look for the simpleConnectAck chunk
-                Packet replyPacket (achReplyBuf, rc);
-                if (replyPacket.getChunkType() != Packet::CT_SimpleConnectAck) {
-                    checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                    "received a reply packet without the SimpleConnectAck chunk (type %d) as the first chunk; chunk type is %d\n",
-                                    (int) Packet::CT_SimpleConnectAck, (int) replyPacket.getChunkType());
-                }
-                else {
-                    // Found the SimpleConnectAck chunk
-                    SimpleConnectAckChunkAccessor accessor = replyPacket.getSimpleConnectAckChunk();
-                    stateCookie = accessor.getStateCookie();
-                    _ui32RemoteAddress = ui32ConnectAddress;
-                    _ui16RemotePort = accessor.getRemotePort();
-                    if (!_sm.receivedSimpleConnectAck()) {
-                        checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                        "mocket state machine in illegal state\n");
-                        _sm.abort();
-                        return -12;
-                    }
-                    break;
-                }
-            }
-            if (getTimeInMilliseconds() > i64AttemptEndTime) {
-                checkAndLogMsg ("Mocket::connect", Logger::L_MildError,
-                                "connection timeout while waiting for SimpleConnectAck\n");
-                _sm.abort();
-                InetAddr localAddr;
-                if (_pszLocalAddress != NULL) {
-                    localAddr.setIPAddress (_pszLocalAddress);
-                }
-                else {
-                    localAddr = _pCommInterface->getLocalAddr();
-                }
-                InetAddr connectToAddr (ui32ConnectAddress);
-                _pMocketStatusNotifier->connectionFailed (getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &connectToAddr, ui16ConnectPort);
-                return -13;
-            }
-
-            // Keep trying until the timeout, but sleep for a short interval to make sure we don't hog the CPU
-            sleepForMilliseconds (1000);
-        }
-    }
-    
-    // If the client is behind NAT send a message to punch a hole for the peer Mocket opened on the server side
-    //TODO
-
-    // Connected - Call the Status Notifier
-    InetAddr localAddr;
-    if (_pszLocalAddress != NULL) {
-        localAddr.setIPAddress (_pszLocalAddress);
-    }
-    else {
-        localAddr = _pCommInterface->getLocalAddr();
-    }
-    InetAddr remoteAddr (_ui32RemoteAddress);
-    _pMocketStatusNotifier->connected (getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &remoteAddr, _ui16RemotePort);
-    
-    // Initialize the mocket
-    _stateCookie = stateCookie;
-    _ackManager.init (stateCookie.getControlTSNA(),
-                      stateCookie.getReliableSequencedTSNA(),
-                      stateCookie.getReliableUnsequencedIDA());
-    _pPacketProcessor = new PacketProcessor (this);      // Construct this before Receiver
-    _pTransmitter = new Transmitter (this, _bEnableXMitLogging);
-    _pTransmitter->setTransmitRateLimit (_ui32TransmitRateLimit);
-    _pReceiver = new Receiver (this, _bEnableRecvLogging);
-    _pPacketProcessor->init();
-    startThreads();
     return 0;
 }
 
@@ -977,7 +1026,7 @@ int Mocket::reEstablishConn (uint32 ui32ReEstablishTimeout)
         //The time to wait is too short TODO: new state???
         ui32ReEstablishTimeout = DEFAULT_MIN_RESUME_TIMEOUT;
     }
-    
+
     int rc;
     InetAddr bindAddr;
     if (0 != (rc = _pCommInterface->bind (&bindAddr))) {
@@ -987,7 +1036,9 @@ int Mocket::reEstablishConn (uint32 ui32ReEstablishTimeout)
     }
     _ui32LocalAddress = _pCommInterface->getLocalAddr().getIPAddress();
     _ui16LocalPort = _pCommInterface->getLocalPort();
-    //printf ("Mocket::reEstablishConn * LOCAL during resume ip %lu * port %d *\n", _ui32LocalAddress, _ui16LocalPort);
+    //
+
+	("Mocket::reEstablishConn * LOCAL during resume ip %lu * port %d *\n", _ui32LocalAddress, _ui16LocalPort);
 
     if (0 != (rc = _pCommInterface->setReceiveBufferSize (_ui16UDPBufferSize))) {
         checkAndLogMsg ("Mocket::reEstablishConn", Logger::L_MildError,
@@ -999,7 +1050,7 @@ int Mocket::reEstablishConn (uint32 ui32ReEstablishTimeout)
                         "could not set UDP timeout to %d; rc = %d\n", _ui32UDPReceiveConnectionTimeout, rc);
         return -5;
     }
-    
+
     // Create the reEstablish packet
     Packet reestablishPacket (this);
     reestablishPacket.setValidation (getOutgoingValidation());
@@ -1017,19 +1068,19 @@ int Mocket::reEstablishConn (uint32 ui32ReEstablishTimeout)
     // Insert the local port
     *((uint16*)(pchBuff+ui32BuffSize)) = _ui16LocalPort;
     ui32BuffSize += 2;
-    
+
     // Encrypt
     uint32 ui32EncryptedDataLen = 0;
     void *pEncryptedData = encryptDataUsingSecretKey (_pSecretKey, pchBuff, ui32BuffSize, &ui32EncryptedDataLen);
     if (pEncryptedData == NULL) {
-        checkAndLogMsg ("Mocket::reEstablishConn", Logger::L_MildError, 
+        checkAndLogMsg ("Mocket::reEstablishConn", Logger::L_MildError,
                          "unable to encrypt nonce with secret key\n");
         return -6;
     }
     if (reestablishPacket.addReEstablishChunk (pEncryptedData, ui32EncryptedDataLen)) {
         return -7;
     }
-    
+
     // Send reEstablish and wait for reEstablish_ack
     uint64 ui64ReEstablishSent = 0;
     char achReplyBuf [MAXIMUM_MTU];
@@ -1059,7 +1110,7 @@ int Mocket::reEstablishConn (uint32 ui32ReEstablishTimeout)
         }
         else if (rc == 0) {
             checkAndLogMsg ("Mocket::reEstablishConn", Logger::L_MildError,
-                            "timed out waiting for reply on Resume packet from: %s:%d\n", 
+                            "timed out waiting for reply on Resume packet from: %s:%d\n",
                             (const char*) remoteAddr.getIPAsString(), remoteAddr.getPort());
         }
         else if (rc <= Packet::HEADER_SIZE) {
@@ -1106,7 +1157,7 @@ int Mocket::reEstablishConn (uint32 ui32ReEstablishTimeout)
             return -10;
         }
     }
-    
+
     return 0;
 #endif
 }
@@ -1120,17 +1171,17 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
 #else
     // Set the start time
     uint64 ui64StartTime = getTimeInMilliseconds();
-    
+
     // Set the state in S_SUSPENDED
     if (! _sm.resumeFromSuspension ()) {
         return -1;
     }
-    
+
     int rc;
-    
+
     ObjectDefroster objectDefroster;
     objectDefroster.init (pr);
-    
+
     // Extract Mocket variables to start the resume process
     objectDefroster.beginNewObject ("Mocket");
     // Variables in Mocket
@@ -1156,13 +1207,13 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
     if (0 != (rc = objectDefroster.endObject())) {
         return -2;
     }
- 
+
     // Check the parameter ResumeTimeout
     if (ui32ResumeTimeout < DEFAULT_MIN_RESUME_TIMEOUT) {
         //The time to wait in RESUME_SEND state is too short
         ui32ResumeTimeout = DEFAULT_MIN_RESUME_TIMEOUT;
     }
-    
+
     // _bMocketAlreadyBound is not carried over after migration, its value is true only if
     // a new bind was performed before the call to resumeAndRestoreState
     if (!_bMocketAlreadyBound) {
@@ -1188,7 +1239,7 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
                         "could not set UDP timeout to %d; rc = %d\n", _ui32UDPReceiveConnectionTimeout, rc);
         return -5;
     }
-    
+
     // Create the resume packet
     Packet resumePacket (this);
     resumePacket.setValidation (ui32OutgoingValidation);
@@ -1215,14 +1266,14 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
     uint32 ui32EncryptedDataLen = 0;
     void *pEncryptedData = encryptDataUsingSecretKey (_pSecretKey, pchBuff, ui32BuffSize, &ui32EncryptedDataLen);
     if (pEncryptedData == NULL) {
-        checkAndLogMsg ("Mocket::resumeFromSuspension", Logger::L_MildError, 
+        checkAndLogMsg ("Mocket::resumeFromSuspension", Logger::L_MildError,
                          "unable to encrypt nonce with secret key\n");
         return -6;
     }
     if (resumePacket.addResumeChunk(pEncryptedData, ui32EncryptedDataLen)) {
         return -7;
     }
-    
+
     // Send resume and wait for resume_ack
     uint64 ui64ResumeSent = 0;
     char achReplyBuf [MAXIMUM_MTU];
@@ -1257,7 +1308,7 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
         }
         else if (rc == 0) {
             checkAndLogMsg ("Mocket::resumeFromSuspension", Logger::L_MildError,
-                            "timed out waiting for reply on Resume packet from: %s:%d\n", 
+                            "timed out waiting for reply on Resume packet from: %s:%d\n",
                             (const char*) remoteAddr.getIPAsString(), remoteAddr.getPort());
         }
         else if (rc <= Packet::HEADER_SIZE) {
@@ -1305,7 +1356,7 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
             return -10;
         }
     }
-    
+
     // Initialize the Mocket extracting the other frozen objects from objectDefroster
     if (0 != defrost (objectDefroster)) {
         return -11;
@@ -1314,7 +1365,7 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
     if (objectDefroster.endObject()) {
         return -12;
     }
-    
+
     // Connection restored - Call MocketStatusNotifier
     InetAddr localAddr;
     if (_pszLocalAddress != NULL) {
@@ -1325,7 +1376,7 @@ int Mocket::resumeAndRestoreState (Reader *pr, uint32 ui32ResumeTimeout)
     }
     InetAddr remoteAddr (_ui32RemoteAddress);
     _pMocketStatusNotifier->connectionRestored (getIdentifier(), &localAddr, _pCommInterface->getLocalPort(), &remoteAddr, _ui16RemotePort);
-    
+
     _pPacketProcessor->reinitAfterDefrost();
     startThreads();
 
@@ -1471,9 +1522,9 @@ int Mocket::replace (bool bReliable, bool bSequenced, const void *pBuf, uint32 u
     if (_pTransmitter == NULL) {
         return -1;
     }
-    
+
     uint8 ui8HigherPriority = 0;
-    
+
     if (_pTransmitter->cancel (bReliable, bSequenced, ui16OldTag, &ui8HigherPriority) < 0) {
         return -2;
     }
@@ -1481,7 +1532,7 @@ int Mocket::replace (bool bReliable, bool bSequenced, const void *pBuf, uint32 u
     if (ui8HigherPriority > ui8Priority) {
         ui8Priority = ui8HigherPriority;
     }
-    
+
     /*!!*/ // See if the comment in send() above applies here also
     if (_pTransmitter->send (bReliable, bSequenced, pBuf, ui32BufSize, ui16NewTag, ui8Priority, ui32EnqueueTimeout, ui32RetryTimeout) < 0) {
         return -3;
@@ -1577,7 +1628,7 @@ int Mocket::suspend (uint32 ui32FlushDataTimeout, uint32 ui32SuspendTimeout)
         //The time to wait in SUSPEND_SEND state is too short
         ui32SuspendTimeout = DEFAULT_MIN_SUSPEND_TIMEOUT;
     }
-    
+
     if (!areKeysExchanged()) {
         // Create a new pair of keys
         _pKeyPair = new PublicKeyPair();
@@ -1605,7 +1656,7 @@ int Mocket::suspend (uint32 ui32FlushDataTimeout, uint32 ui32SuspendTimeout)
         checkAndLogMsg ("Mocket::suspend", Logger::L_MildError,
                         "error while suspending\n");
         // If the current state is suspend_sent we need to change it otherwise we will continue to send suspend msg.
-        // We can simply set the state to ESTABLISHED and so the application can try to send msg or to close 
+        // We can simply set the state to ESTABLISHED and so the application can try to send msg or to close
         // (eventually the close will cause an abort).
         // This method change the state to established only if the current state is suspend_sent
         _sm.suspendTimeoutExpired();
@@ -1624,11 +1675,11 @@ int Mocket::getState (Writer *pw)
     if (_sm.getCurrentState() != StateMachine::S_SUSPENDED) {
         return -1;
     }
-    
+
     // Create ObjectFreezer
     ObjectFreezer objectFreezer;
     objectFreezer.init (pw);
-    
+
     // Call Mocket::freeze, this will create a super object containing all the state variables
     int rc;
     if (0 != (rc = freeze (objectFreezer))) {
@@ -1685,7 +1736,7 @@ int Mocket::freeze (ObjectFreezer &objectFreezer)
     //_pCallbackArg how?
     //_pSuspendReceivedWarningCallbackFn how?
     //_pSuspendReceivedCallbackArg how?
-    
+
     // do not freeze _sm
     objectFreezer.putBool (_bEnableCrossSequencing);
     objectFreezer.putBool (_bOriginator);
@@ -1711,7 +1762,7 @@ int Mocket::freeze (ObjectFreezer &objectFreezer)
     // Outgoing validation comes from StateCookie but we need it to restore the connection
     objectFreezer.putUInt32(getOutgoingValidation());
     objectFreezer.endObject();
-    
+
     // StateCookie
     if (0 != _stateCookie.freeze (objectFreezer)) {
         // return -1 is if objectFreezer.endObject() don't end with success
@@ -1742,7 +1793,7 @@ int Mocket::freeze (ObjectFreezer &objectFreezer)
     if (0 != _cancelledTSNManager.freeze (objectFreezer)) {
         return -8;
     }
-    
+
     return objectFreezer.endObject();
 }
 
@@ -1770,7 +1821,7 @@ int Mocket::defrost (ObjectDefroster &objectDefroster)
     _pTransmitter = new Transmitter (this, _bEnableXMitLogging);
     if (0 != _pTransmitter->defrost (objectDefroster)) {
         return -6;
-    }    
+    }
     // ACKManager
     if (0 != _ackManager.defrost (objectDefroster)) {
         return -7;
@@ -1779,7 +1830,7 @@ int Mocket::defrost (ObjectDefroster &objectDefroster)
     if (0 != _cancelledTSNManager.defrost (objectDefroster)) {
         return -8;
     }
-    
+
     return objectDefroster.endObject();
 }
 
@@ -1804,19 +1855,19 @@ void Mocket::newSecretKey (void)
     uint16 passwordLength = DEFAULT_PASSWORD_LENGTH;
     _pszPassword = new char [passwordLength + 1];
     _pszPassword[passwordLength] = 0;
-    
+
     for (int i = 0; i < passwordLength; i++) {
         // generate a random value between 'a' and 'z', 'A' and 'Z', 0 and 9
         _pszPassword[i] = (char) (rand() % ('z' - '0' + 1) + '0');
     }
     //printf ("Mocket::newSecretKey PASSWORD = [%s]\n", _pszPassword);
-    
+
     // Create a new secret key from the password
     if (0 != _pSecretKey->initKey(_pszPassword)) {
         // Error while creating secretKey
         checkAndLogMsg ("Mocket::newSecretKey", Logger::L_MildError,
                         "error while creating secretKey\n");
-    }    
+    }
 #endif
 }
 
@@ -1940,3 +1991,41 @@ void Mocket::enableTransmitLogging (bool bEnableXMitLogging)
         _pTransmitter->enableTransmitLogging (bEnableXMitLogging);
     }
 }
+
+void Mocket::setLocalAddr(const char *pszLocalAddr)
+{
+    delete[] _pszLocalAddress;
+    _pszLocalAddress = strDup(pszLocalAddr);
+    _pMocketStatusNotifier->setLocalAddress(_pszLocalAddress);
+}
+
+void Mocket::startThreads(void)
+{
+    int res = 0;
+    _pPacketProcessor->start();
+    res = _pPacketProcessor->setPriority(10);
+    if (res < 0) {
+        checkAndLogMsg("Mocket::startThreads", Logger::L_MildError,
+            "failed to set PacketProcessor thread priority; res = %d\n", res);
+    }
+    _pReceiver->start();
+    res = _pReceiver->setPriority(10);
+    if (res < 0) {
+        checkAndLogMsg("Mocket::startThreads", Logger::L_MildError,
+            "failed to set Receiver thread priority; res = %d\n", res);
+    }
+    _pTransmitter->start();
+    res = _pTransmitter->setPriority(8);
+    if (res < 0) {
+        checkAndLogMsg("Mocket::startThreads", Logger::L_MildError,
+            "failed to set Transmitter thread priority; res = %d\n", res);
+    }
+    if (_bUseBandwidthEstimation) {
+        activateBandwidthEstimation();
+    }
+    if (_pszCongestionControl != NULL) {
+        // Instantiate the correct subclass of CongestionControl
+        activateCongestionControl();
+    }
+}
+

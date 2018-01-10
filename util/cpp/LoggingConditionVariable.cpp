@@ -25,7 +25,8 @@
     #ifndef _WIN32_WINNT
         #define _WIN32_WINNT 0x0400
     #endif
-#include <winsock2.h>
+	#define NOMINMAX
+	#include <winsock2.h>
     #include <windows.h>
 #elif defined (UNIX)
     #include <pthread.h>

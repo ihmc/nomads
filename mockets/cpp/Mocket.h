@@ -1,18 +1,18 @@
 /*
  * Mocket.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -70,7 +70,7 @@ typedef bool (*PeerReachableCallbackFnPtr) (void *pCallbackArg, unsigned long ul
 class Mocket
 {
     public:
-        Mocket (const char *pszConfigFile = NULL, CommInterface *pCI = NULL, bool bDeleteCIWhenDone = false);
+		Mocket(const char *pszConfigFile = NULL, CommInterface *pCI = NULL, bool bDeleteCIWhenDone = false, bool bEnableDtls = false, const char* pathToCertificate = NULL, const char* pathToPrivateKey = NULL);
         ~Mocket (void);
 
         // Sets a string to use as the application or user friendly identifier for this mocket instance
@@ -107,7 +107,7 @@ class Mocket
 
         // Binds the local end point to a particular address (interface) and port.
         // Calls to this method will work if invoked before calling 'connect()'.
-        // Otherwise, it will return an error code. 
+        // Otherwise, it will return an error code.
         int bind (const char *pszBindAddr, uint16 ui16BindPort);
 
         // Attempt to connect to a ServerMocket at the specified remote host on the specified remote port
@@ -127,11 +127,11 @@ class Mocket
         // both for client and server side as well as simpleSuspend for client side.
         // A default value can be used for the timeout parameter.
         int connect (const char *pszRemoteHost, uint16 ui16RemotePort, bool bPreExchangeKeys, int64 i64Timeout = 0);
-        
+
         // Connect to the remote host after a change of the machine's IP address and/or port due to a change in the network attachment
         // Returns 0 if successful or a negative value in case of failure
         int reEstablishConn (uint32 ui32ReEstablishTimeout = DEFAULT_RESUME_TIMEOUT);
-        
+
         // Initialize a new Mocket after a suspension
         // Create an objectDefroster to extract values from the previous node
         // Connect to the remote host and exchange the messages resume, resume_ack
@@ -166,11 +166,14 @@ class Mocket
         // Returns true if the mocket is currently connected
         bool isConnected (void);
 
+        // Returns true if the mocket connection is encrypted via DTLS
+        bool isEncrypted (void) const;
+
         // Closes the current open connection to a remote endpoint
         // Returns 0 if successful, 0 in case of the connection
         // being closed, and negative value in case of error
         int close (void);
-        
+
         // Invoked by the application to suspend the mocket
         // Returns 0 in case of success and negative values in case of error
         int suspend (uint32 ui32FlushDataTimeout = DEFAULT_FLUSH_DATA_TIMEOUT, uint32 ui32SuspendTimeout = DEFAULT_SUSPEND_TIMEOUT);
@@ -204,6 +207,7 @@ class Mocket
         // Returns 0 if successful or a negative value in case of error
         int send (bool bReliable, bool bSequenced, const void *pBuf, uint32 ui32BufSize, uint16 ui16Tag, uint8 ui8Priority,
                   uint32 ui32EnqueueTimeout, uint32 ui32RetryTimeout);
+
 
         // Variable argument version of send (to handle a gather write)
         // Caller can pass in any number of buffer and buffer size pairs
@@ -270,6 +274,8 @@ class Mocket
         int replace (bool bReliable, bool bSequenced, const void *pBuf, uint32 ui32BufSize, uint16 ui16OldTag, uint16 ui16NewTag, uint8 ui8Priority,
                      uint32 ui32EnqueueTimeout, uint32 ui32RetryTimeout);
 
+        void setLocalAddr(const char *pszLocalAddr);
+
         // Cancels (deletes) previously enqueued messages that have been tagged with the specified tag
         // Note that the messages may be pending transmission (which applies to all flows)
         // or may have already been transmitted but not yet acknowledged (which only applies to
@@ -309,7 +315,7 @@ class Mocket
         // Activate a mechanism similar to slow-start to adjust the sending rate
         // to the channel bandwidth and the channel capacity
         //void useTransmissionRateModulation (void);
-        
+
         // Set a bandwidth limit on the outgoing flow of data. ui32TransmitRateLimit
         // is specified in bytes per second. A value of 0 indicates no limit
         int setTransmitRateLimit (uint32 ui32TransmitRateLimit);
@@ -391,7 +397,7 @@ class Mocket
         static const uint32 DEFAULT_SEND_NEW_SUSPEND_RESUME_MSG_TIMEOUT = 1000;
         //static const uint16 DEFAULT_UUID_LENGTH = 8;
         static const uint16 DEFAULT_PASSWORD_LENGTH = 8;
-        
+
         // Default values to create a new bandwidth estimator
         static const uint32 DEFAULT_BAND_EST_MAX_SAMPLES_NUMBER = 1005;
         static const uint32 DEFAULT_BAND_EST_TIME_INTERVAL = 1000; // milliseconds
@@ -402,7 +408,7 @@ class Mocket
 
         // Default interval used when evaluating bytes to send for bandwidth limitation
         static const uint32 DEFAULT_BANDWIDTH_LIMITATION_DEFAULT_INTERVAL = 1000;
-        
+
         // Default interval used when evaluating bytes sent (for bandwidth limitation)
         static const uint16 BANDWIDTH_LIMITATION_DEFAULT_INTERVAL = 100;
 
@@ -423,7 +429,7 @@ class Mocket
         friend class CongestionController;
         friend class TransmissionRateModulation;
 
-        Mocket (StateCookie cookie, NOMADSUtil::InetAddr *pRemoteAddr, const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhenDone=false);
+		Mocket(StateCookie cookie, NOMADSUtil::InetAddr *pRemoteAddr, const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhenDone = false, bool bEnableDtls = false, const char* pathToCertificate = NULL, const char* pathToPrivateKey = NULL);
         void startThreads (void);
         int initParamsFromConfigFile (const char *pszConfigFile);
         StateMachine * getStateMachine (void);
@@ -488,7 +494,7 @@ class Mocket
 
         // Invoked by TermSync after the packet processor, receiver, and transmitter have all terminated
         void closed (void);
-        
+
         // Invoked in case of simultaneous suspension
         // Return 0 if the local node is selected for suspension, 1 if it is not
         // Return -1 if it is not possible to resolve the conflict
@@ -514,10 +520,10 @@ class Mocket
 
         // Resets the remote address after a successful reEstablishConn
         void resetRemoteAddress (uint32 ui32NewRemoteAddress, uint16 ui16NewRemotePort);
-        
+
         void notifyTransmitter (void);
         void notifyPacketProcessor (void);
-        
+
         // Method to insert in the objectFreezer the frozen mocket variables
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
         // Method to extract the frozen mocket variables
@@ -543,6 +549,7 @@ class Mocket
         CommInterface *_pCommInterface;
         bool _bLocallyCreatedCI;
         bool _bDeleteCIWhenDone;
+        bool _bEnableDtls;
         PacketProcessor *_pPacketProcessor;
         Receiver *_pReceiver;
         Transmitter *_pTransmitter;
@@ -583,15 +590,16 @@ class Mocket
         const char *_pszCongestionControl;
         const char *_pszNotificationIPAddress;
         const char *_pszLocalAddress;
-        
+
         bool _bUseTwoWayHandshake;
         bool _bUsingFastRetransmit;
         bool _bUseReceiverSideBandwidthEstimation;
+        bool _bIsServer;
 
         // These three variables are for the suspend/resume timeout
         uint32 _ui32SuspendTimeout;
         uint32 _ui32FlushDataTimeout;
-        
+
         #ifdef MOCKETS_NO_CRYPTO
             // Dummy placeholder values
             void *_pKeyPair;
@@ -621,7 +629,7 @@ class Mocket
         NOMADSUtil::Mutex _mSuspend;
 
         bool _bMocketAlreadyBound;
-        
+
         // Variable used to debug the state capture process
         bool _bSendOnlyEvenPackets;
 
@@ -800,6 +808,11 @@ inline void Mocket::debugStateCapture (void)
 inline bool Mocket::isDebugStateCapture (void)
 {
     return _bSendOnlyEvenPackets;
+}
+
+inline bool Mocket::isEncrypted(void) const
+{
+    return _bEnableDtls;
 }
 
 inline void Mocket::useTwoWayHandshake (void)

@@ -45,7 +45,7 @@ class Packet;
 class ServerMocket
 {
     public:
-        ServerMocket (const char *pszConfigFile = NULL, CommInterface *pCI = NULL, bool bDeleteCIWhenDone = false);
+        ServerMocket (const char *pszConfigFile = NULL, CommInterface *pCI = NULL, bool bDeleteCIWhenDone = false, bool enableDtls = false, const char* pathToCertificate = NULL, const char* pathToPrivateKey = NULL);
         ~ServerMocket (void);
 
         // Initialize the server mocket to accept incoming connections
@@ -55,7 +55,7 @@ class ServerMocket
 
         int listen (uint16 ui16Port, const char *pszListenAddr);
 
-        Mocket * accept (uint16 ui16PortForNewConnection = 0);
+        Mocket *accept (uint16 ui16PortForNewConnection = 0);
 
         int close (void);
 
@@ -95,7 +95,13 @@ class ServerMocket
         NOMADSUtil::Mutex _mInAccept;
         NOMADSUtil::ConditionVariable _cvInAccept;
         bool _bInAccept;
+        bool _bEnableDtls;
         NOMADSUtil::DArray<CookieRec> _cookieHistory;
+
+        char *_cpPathToCertificate;
+        char* _cpPathToPrivateKey;
+
+
 };
 
 inline void ServerMocket::setIdentifier (const char *pszIdentifier)

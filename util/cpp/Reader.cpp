@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -150,24 +150,24 @@ int Reader::readUI64 (void *pBuf)
 {
     return read64 (pBuf);
 }
-           
+
 int Reader::readString (char **pBuf)
 {
+    *pBuf = NULL;
     uint32 ui32Len = 0;
     if (readUI32 (&ui32Len) < 0) {
         return -1;
     }
     if (ui32Len > 0) {
         *pBuf = static_cast<char *>(calloc (ui32Len + 1, sizeof (char)));
-        if (readBytes (*pBuf, ui32Len) < 0) {
-            free (*pBuf);
-            *pBuf = NULL;
-            return -2;
+        if ((*pBuf) != NULL) {
+            if (readBytes (*pBuf, ui32Len) < 0) {
+                free (*pBuf);
+                *pBuf = NULL;
+                return -2;
+            }
+            (*pBuf)[ui32Len] = '\0';
         }
-        (*pBuf)[ui32Len] = '\0';
-    }
-    else {
-        *pBuf = NULL;
     }
     return 0;
 }

@@ -26,7 +26,8 @@
 #include <stdlib.h>
 
 #if defined (WIN32)
-#include <winsock2.h>
+	#define NOMINMAX
+	#include <winsock2.h>
     #include <windows.h>
 #elif defined (LINUX)
     #include <sys/sysinfo.h>

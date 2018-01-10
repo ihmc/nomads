@@ -40,7 +40,7 @@ namespace ACMNetProxy
     {
     public:
         TCPSegment (uint32 ui32DataSeqNum, uint32 ui32DataLen, const uint8 *pui8Data, uint8 ui8Flags = 0);
-        explicit TCPSegment (const TCPSegment& rTCPSegment);
+        explicit TCPSegment (const TCPSegment& rTCPSegment) = delete;
         virtual ~TCPSegment (void) {};
 
         uint8 getTCPFlags (void) const;
@@ -59,7 +59,7 @@ namespace ACMNetProxy
     {
     public:
         ReceivedData (uint32 ui32DataSeqNum, uint32 ui32DataLen, const uint8 *pui8Data, uint8 ui8Flags = 0);
-        explicit ReceivedData (const ReceivedData& rReceivedData);
+        explicit ReceivedData (const ReceivedData& rReceivedData) = delete;
         virtual ~ReceivedData (void);
 
         virtual int incrementValues (unsigned int uiValue);
@@ -113,7 +113,7 @@ namespace ACMNetProxy
     inline ReceivedData::~ReceivedData (void)
     {
         delete[] _pData;
-        _pData = NULL;
+        _pData = nullptr;
     }
 
     inline int ReceivedData::incrementValues (unsigned int uiValue)
@@ -132,7 +132,7 @@ namespace ACMNetProxy
     {
         unsigned int uiOffset = NOMADSUtil::SequentialArithmetic::delta (_uiSequenceNumber, _uiBeginningSequenceNumber);
         if (uiOffset >= _uiBufSize) {
-            return NULL;
+            return nullptr;
         }
 
         return &(_pData[uiOffset]);

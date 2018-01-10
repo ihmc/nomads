@@ -49,16 +49,20 @@ namespace ACMNetProxy
             void requestTermination (void);
             bool checkMACAddress (void);
 
-            int readPacket (uint8 *pui8Buf, uint16 ui16BufSize);
+            int readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen);
             int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen);
 
         private:
-            PCapInterface (const NOMADSUtil::String &sDeviceName);
+            PCapInterface (const NOMADSUtil::String &sAdapterName);
             explicit PCapInterface (const PCapInterface &rCopy);
+
+            static pcap_t * const createAndActivateReadHandler (const NOMADSUtil::String &sAdapterName);
+            static pcap_t * const createAndActivateWriteHandler (const NOMADSUtil::String &sAdapterName);
 
             void retrieveAndSetIPv4Addr (void);
 
-            pcap_t *_pPCapHandle;
+            pcap_t * _pPCapReadHandler;
+            pcap_t * _pPCapWriteHandler;
 
             NOMADSUtil::Mutex _mWrite;
     };

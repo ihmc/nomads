@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -48,7 +48,7 @@ namespace NOMADSUtil
     template <class T> class UInt32Hashtable
     {
         public:
-            UInt32Hashtable (bool bDelValues);
+            explicit UInt32Hashtable (bool bDelValues);
             UInt32Hashtable (const unsigned long ulInitSize = US_INITSIZE, bool bDelValues = false);
 
             virtual ~UInt32Hashtable (void);
@@ -213,14 +213,14 @@ namespace NOMADSUtil
         unsigned long ulThreshold = (unsigned long) (_ulTableSize * F_THRESHOLD);
         if (_ulCount >= ulThreshold) {
             if (pLogger) {
-                pLogger->logMsg ("UInt32Hashtable<T>::put", Logger::L_MediumDetailDebug, 
+                pLogger->logMsg ("UInt32Hashtable<T>::put", Logger::L_MediumDetailDebug,
                                  "this uint32table has %lu elems with table size: %lu and threshold %lu\n", _ulCount, _ulTableSize, ulThreshold);
             }
             if (_ulTableSize > MAXTABLESIZE) {
                 // HERE WE RUN INTO AN OUT OF MEMORY ERROR
                 // We can't have a larger table
                 if (pLogger) {
-                    pLogger->logMsg ("UInt32Hashtable<T>::put", Logger::L_SevereError, 
+                    pLogger->logMsg ("UInt32Hashtable<T>::put", Logger::L_SevereError,
                                      "this is too large a table, with %lu\n", _ulTableSize);
                 }
             }
@@ -246,7 +246,7 @@ namespace NOMADSUtil
             //     that value gets returned
             return pOldValue;
         }
-        // Search the bucket for an entry with that key 
+        // Search the bucket for an entry with that key
         while (pHTE->pNext) {
             pHTE = pHTE->pNext;
             if (pHTE->ui32Key == ui32Key) {
@@ -325,7 +325,7 @@ namespace NOMADSUtil
             //     the value is returned
             return pOldValue;
         }
-        // Search the bucket for an entry with that key 
+        // Search the bucket for an entry with that key
         HashtableEntry *pPrev = pHTE;
         pHTE = pHTE->pNext;
         while (pHTE) {

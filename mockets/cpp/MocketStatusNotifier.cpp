@@ -210,6 +210,14 @@ int MocketStatusNotifier::sendConnectionRestoredASCII (const char *pszLocalIdent
     return sendPacket();
 }
 
+void MocketStatusNotifier::setLocalAddress(const char *pszLocalAddr)
+{
+    char szBuf[80];
+    sprintf(szBuf, "LocalIP=%s\r\n", pszLocalAddr);
+    _localEndPointInfo = szBuf;
+    _epi.ui32LocalAddr = InetAddr(pszLocalAddr).getIPAddress();
+}
+
 int MocketStatusNotifier::sendStatsASCII (const char *pszLocalIdentifier, MocketStats *pStats)
 {
     char szBuf[80];
@@ -343,8 +351,8 @@ int MocketStatusNotifier::sendStatsBinary (const char *pszLocalIdentifier, Mocke
     _bufWriter.writeBytes (&ui32PID, sizeof (ui32PID));    // Don't use write32 since it will do Endian conversion
     writeLocalIdentifierBinary (pszLocalIdentifier);
     _bufWriter.writeBytes (&_epi, sizeof (_epi));
-
     StatisticsInfo si;
+    
     si.i64LastContactTime = _i64LastContactTime;
     si.ui32SentBytes = pStats->getSentByteCount();
     si.ui32SentPackets = pStats->getSentPacketCount();

@@ -1,11 +1,10 @@
-#ifndef INCL_NETWORK_INTERFACE_H
-#define INCL_NETWORK_INTERFACE_H
-
+#ifndef NETSENSOR_NetworkInterface__INCLUDED
+#define NETSENSOR_NetworkInterface__INCLUDED
 /*
 * NetworkInterface.h
-*
-* This file is part of the IHMC NetProxy Library/Component
-* Copyright (c) 2010-2016 IHMC.
+* Author: rfronteddu@ihmc.us
+* This file is part of the IHMC NetSensor Library/Component
+* Copyright (c) 2010-2017 IHMC.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -18,134 +17,118 @@
 *
 * Alternative licenses that allow for use within commercial products may be
 * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
+*
+* Network interface wrapper
+*
 */
 
-#ifndef NULL
-#define NULL 0
-#endif
+#include <cstring>
 
 #include "FTypes.h"
-#include "net/NetworkHeaders.h"
 #include "StrClass.h"
+#include "NetworkHeaders.h"
 
 
-namespace IHMC_MISC
+namespace IHMC_NETSENSOR
 {
-	class NetworkInterface
-	{
-	public:
-		enum Type {
-			T_Unknown = 0x00,
-			T_Tap = 0x01,
-			T_PCap = 0x02
-		};
+class NetworkInterface
+{
+public:
+    NetworkInterface();
+    NetworkInterface(uint32 ui32IPAddr, uint32 ui32Netmask, uint32 ui32GwIPAddr,
+                     NOMADSUtil::EtherMACAddr emacInterfaceMAC);
+    virtual ~NetworkInterface(void);
+    virtual void requestTermination(void);
+    virtual bool terminationRequested(void) const;
 
-		virtual ~NetworkInterface(void);
-		virtual void requestTermination(void) = 0;
+    static NOMADSUtil::IPv4Addr getDefaultGatewayForInterface(
+        const char *const pszUserFriendlyInterfaceName);
+    virtual const NOMADSUtil::IPv4Addr * const getIPv4Addr(void) const;
+    // Returns the Default Gateway address as a IPv4Addr*
+    virtual const NOMADSUtil::IPv4Addr * const getDefaultGateway(void) const;
+    static NOMADSUtil::String getDeviceNameFromUserFriendlyName(
+        const char * const pszUserFriendlyInterfaceName);
+    static const uint8 * const getMACAddrForDevice(
+        const char * const pszUserFriendlyInterfaceName);
+    virtual const uint8 * const getMACAddr(void) const;
+    virtual const NOMADSUtil::IPv4Addr * const getNetmask(void) const;
+    virtual int readPacket(uint8 *pui8Buf, uint16 ui16BufSize, int64 *tus) = 0;
 
-		//Returns the type of Network Interface
-		Type getType(void) const;
-		//Returns the name of Network Adapter
-		const NOMADSUtil::String & getAdapterName(void) const;
-		/* Returns the MAC address for the Tap Interface, if available, or NULL
-		* otherwise. The MAC address is returned as a pointer to a 6-byte array. */
-		virtual const uint8 * const getMACAddr(void) const;
-		// Returns the IPv4 address as a IPv4Addr*
-		virtual const NOMADSUtil::IPv4Addr * const getIPv4Addr(void) const;
-		// Returns the Netmask as a IPv4Addr*
-		virtual const NOMADSUtil::IPv4Addr * const getNetmask(void) const;
-		// Returns the Default Gateway address as a IPv4Addr*
-		virtual const NOMADSUtil::IPv4Addr * const getDefaultGateway(void) const;
-		// Returns the size of the MTU as a uint16
-		virtual uint16 getMTUSize(void) const;
+//<--------------------------------------------------------------------------->
+protected:
+    NOMADSUtil::String _sAdapterName;
 
-        virtual int readPacket(uint8 *pui8Buf, uint16 ui16BufSize, int64 *tus) = 0;
-		virtual int writePacket(const uint8 * const pui8Buf, uint16 ui16PacketLen) = 0;
+    uint8 _aui8MACAddr[6];
 
-		static NOMADSUtil::String getDeviceNameFromUserFriendlyName(const char * const pszUserFriendlyInterfaceName);
+    NOMADSUtil::IPv4Addr _ipv4Addr;
+    NOMADSUtil::IPv4Addr _ipv4Netmask;
+    NOMADSUtil::IPv4Addr _ipv4DefaultGateway;
+    uint16 _ui16MTU;
 
-	protected:
-		NetworkInterface(Type tType);
-
-		NOMADSUtil::String _sAdapterName;
-		const Type _tType;
-		uint8 _aui8MACAddr[6];
-		NOMADSUtil::IPv4Addr _ipv4Addr;
-		NOMADSUtil::IPv4Addr _ipv4Netmask;
-		NOMADSUtil::IPv4Addr _ipv4DefaultGateway;
-		uint16 _ui16MTU;
-		bool _bMACAddrFound;
-		bool _bIPAddrFound;
-		bool _bNetmaskFound;
-		bool _bDefaultGatewayFound;
-		bool _bMTUFound;
-		bool _bIsTerminationRequested;
-
-		static const uint8 * const getMACAddrForDevice(const char * const pszUserFriendlyInterfaceName);
-		static NOMADSUtil::IPv4Addr getDefaultGatewayForInterface(const char *const pszUserFriendlyInterfaceName);
-
-	private:
-		explicit NetworkInterface(const NetworkInterface& rCopy);
-	};
+    bool _bMACAddrFound;
+    bool _bIPAddrFound;
+    bool _bNetmaskFound;
+    bool _bDefaultGatewayFound;
+    bool _bMTUFound;
+    bool _bTerminationRequested;
+};
 
 
-	inline NetworkInterface::~NetworkInterface(void) {}
-
-	inline void NetworkInterface::requestTermination(void)
-	{
-		_bIsTerminationRequested = true;
-	}
-
-	inline const NOMADSUtil::String & NetworkInterface::getAdapterName(void) const
-	{
-		return _sAdapterName;
-	}
-
-	inline const uint8 * const NetworkInterface::getMACAddr(void) const
-	{
-		if (_bMACAddrFound) {
-			return _aui8MACAddr;
-		}
-		else {
-			return NULL;
-		}
-	}
-
-	inline const NOMADSUtil::IPv4Addr * const NetworkInterface::getIPv4Addr(void) const
-	{
-		if (_bIPAddrFound) {
-			return &_ipv4Addr;
-		}
-
-		return NULL;
-	}
-
-	inline const NOMADSUtil::IPv4Addr * const NetworkInterface::getNetmask(void) const
-	{
-		if (_bNetmaskFound) {
-			return &_ipv4Netmask;
-		}
-
-		return NULL;
-	}
-
-	inline const NOMADSUtil::IPv4Addr * const NetworkInterface::getDefaultGateway(void) const
-	{
-		if (_bDefaultGatewayFound) {
-			return &_ipv4DefaultGateway;
-		}
-
-		return NULL;
-	}
-
-	inline uint16 NetworkInterface::getMTUSize(void) const
-	{
-		if (_bMTUFound) {
-			return _ui16MTU;
-		}
-
-		return 0;
-	}
+inline NetworkInterface::NetworkInterface() :
+    _ipv4Addr{0}, _ipv4Netmask{0}, _ipv4DefaultGateway{0},
+    _ui16MTU(0), _bMACAddrFound(false), _bIPAddrFound(false),
+    _bNetmaskFound(false), _bDefaultGatewayFound(false),
+    _bMTUFound(false), _bTerminationRequested(false)
+{
+    memset(_aui8MACAddr, 0, 6);
 }
 
-#endif   // #ifndef INCL_NETWORK_INTERFACE_H
+inline NetworkInterface::NetworkInterface(uint32 ui32IPAddr, uint32 ui32Netmask,
+                                          uint32 ui32GwIPAddr,
+                                          NOMADSUtil::EtherMACAddr emacInterfaceMAC) :
+    _ipv4Addr{ui32IPAddr}, _ipv4Netmask{ui32Netmask},
+    _ipv4DefaultGateway{ui32GwIPAddr}, _ui16MTU(1500),
+    _bMACAddrFound(true), _bIPAddrFound(true),
+    _bNetmaskFound(true), _bDefaultGatewayFound(true),
+    _bMTUFound(true), _bTerminationRequested(false)
+{
+    memcpy(static_cast<void *>(_aui8MACAddr), static_cast<void *> (&emacInterfaceMAC), 6);
+}
+
+inline NetworkInterface::~NetworkInterface(void) { }
+
+inline void NetworkInterface::requestTermination(void)
+{
+    _bTerminationRequested = true;
+}
+
+inline bool NetworkInterface::terminationRequested(void) const
+{
+    return _bTerminationRequested;
+}
+
+inline const NOMADSUtil::IPv4Addr * const
+    NetworkInterface::getNetmask(void) const
+{
+    return _bNetmaskFound ? &_ipv4Netmask : NULL;
+}
+
+inline const NOMADSUtil::IPv4Addr * const
+    NetworkInterface::getIPv4Addr(void) const
+{
+    return _bIPAddrFound ? &_ipv4Addr : NULL;
+}
+
+inline const uint8 * const NetworkInterface::getMACAddr(void) const
+{
+    return _bMACAddrFound ? _aui8MACAddr : NULL;
+}
+
+inline const NOMADSUtil::IPv4Addr * const
+    NetworkInterface::getDefaultGateway(void) const
+{
+    return _bDefaultGatewayFound ? &_ipv4DefaultGateway : NULL;
+}
+
+}
+#endif

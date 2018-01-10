@@ -38,7 +38,7 @@ namespace ACMNetProxy
     {
         public:
             CSRAdapter (Mocket * const pMocket);
-            CSRAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr);
+            CSRAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, EncryptionType encryptionType);
             ~CSRAdapter (void);
 
             virtual int bufferingMode (int iMode);
@@ -46,15 +46,15 @@ namespace ACMNetProxy
             virtual int registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg);
 
             virtual bool isConnected (void) const;
-            virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort);
-            virtual int shutdown (bool bReadMode, bool bWriteMode);
-            virtual int close (void);
-
+            virtual EncryptionType getEncryptionType (void) const;
             virtual uint32 getOutgoingBufferSize (void);
 
+            virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort);
             virtual int send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
                               bool bSequenced, const void *pBuf, uint32 ui32BufSize);
             virtual int receiveMessage (void * const pBuf, uint32 ui32BufSize);
+            virtual int shutdown (bool bReadMode, bool bWriteMode);
+            virtual int close (void);
 
 
         protected:
@@ -69,11 +69,12 @@ namespace ACMNetProxy
 
 
     inline CSRAdapter::CSRAdapter (Mocket * const pMocket) :
-        ConnectorAdapter (CT_CSR, pMocket->getRemoteAddress(), pMocket->getRemotePort(), NULL, 0), _pMocket (pMocket) { }
+        ConnectorAdapter (CT_CSR, pMocket->getRemoteAddress(), pMocket->getRemotePort(), nullptr, 0), _pMocket (pMocket) { }
 
-    inline CSRAdapter::CSRAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr) :
-        ConnectorAdapter (CT_CSR, pRemoteProxyInetAddr->getIPAddress(), pRemoteProxyInetAddr->getPort(), NULL, 0),
-        _pMocket (new Mocket (NULL, new ProxyCommInterface ("127.0.0.1", NetProxyApplicationParameters::CSR_PROXY_SERVER_PORT))) { }
+    inline CSRAdapter::CSRAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, EncryptionType encryptionType) :
+        ConnectorAdapter (CT_CSR, pRemoteProxyInetAddr->getIPAddress(), pRemoteProxyInetAddr->getPort(), nullptr, 0),
+        _pMocket ((encryptionType == ET_DTLS) ? new Mocket (nullptr, new ProxyCommInterface ("127.0.0.1", NetProxyApplicationParameters::CSR_PROXY_SERVER_PORT), false, true) :
+                  new Mocket (nullptr, new ProxyCommInterface ("127.0.0.1", NetProxyApplicationParameters::CSR_PROXY_SERVER_PORT))) { }
 
     inline CSRAdapter::~CSRAdapter (void)
     {
@@ -101,22 +102,15 @@ namespace ACMNetProxy
         return _pMocket->isConnected();
     }
 
+    inline EncryptionType CSRAdapter::getEncryptionType (void) const
+    {
+        return _pMocket->isEncrypted() ? ET_DTLS : ET_PLAIN;
+    }
+
     inline int CSRAdapter::connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort)
     {
+        _pMocket->setLocalAddr(InetAddr(NetProxyApplicationParameters::EXTERNAL_IP_ADDR).getIPAsString());
         return _pMocket->connect (pcRemoteProxyIP, ui16RemoteProxyPort);
-    }
-
-    inline int CSRAdapter::shutdown (bool bReadMode, bool bWriteMode)
-    {
-        (void) bReadMode;
-        (void) bWriteMode;
-        
-        return _pMocket->close();
-    }
-
-    inline int CSRAdapter::close (void)
-    {
-        return _pMocket->close();
     }
 
     inline uint32 CSRAdapter::getOutgoingBufferSize (void)
@@ -129,7 +123,7 @@ namespace ACMNetProxy
     {
         (void) pInetAddr;
         (void) ui32DestVirtualIPAddr;
-        
+
         return _pMocket->send (bReliable, bSequenced, pBuf, ui32BufSize, 0, 0, 0, 0);
     }
 
@@ -138,9 +132,17 @@ namespace ACMNetProxy
         return _pMocket->receive (pBuf, ui32BufSize);
     }
 
-    inline int CSRAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)
+    inline int CSRAdapter::shutdown (bool bReadMode, bool bWriteMode)
     {
-        return _pMocket->receive (pBuf, ui32BufSize, i64Timeout);
+        (void) bReadMode;
+        (void) bWriteMode;
+
+        return _pMocket->close();
+    }
+
+    inline int CSRAdapter::close (void)
+    {
+        return _pMocket->close();
     }
 
     inline int CSRAdapter::gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
@@ -148,8 +150,13 @@ namespace ACMNetProxy
     {
         (void) pInetAddr;
         (void) ui32DestVirtualIPAddr;
-        
+
         return _pMocket->gsend (bReliable, bSequenced, 0, 0, 0, 0, pBuf1, ui32BufSize1, valist1, valist2);
+    }
+
+    inline int CSRAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)
+    {
+        return _pMocket->receive (pBuf, ui32BufSize, i64Timeout);
     }
 }
 

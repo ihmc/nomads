@@ -23,7 +23,7 @@
 #include "ConnectorAdapter.h"
 #include "Connection.h"
 #include "ConnectionManager.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 
 
 using namespace NOMADSUtil;
@@ -32,7 +32,8 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    MocketConnector::MocketConnector (void) : Connector (CT_MOCKETS), _pServerMocket (NULL) { }
+    MocketConnector::MocketConnector (void) :
+        Connector (CT_MOCKETS), _pServerMocket (nullptr) { }
 
     MocketConnector::~MocketConnector (void)
     {
@@ -43,7 +44,7 @@ namespace ACMNetProxy
                 _pServerMocket->close();
 
                 delete _pServerMocket;
-                _pServerMocket = NULL;
+                _pServerMocket = nullptr;
             }
             _mConnector.unlock();
         }
@@ -53,13 +54,17 @@ namespace ACMNetProxy
     {
         int rc;
 
-        _pServerMocket = new ServerMocket();
+        _pServerMocket = new ServerMocket (nullptr, nullptr, false,
+                                           NetProxyApplicationParameters::MOCKETS_DTLS_ENABLED);
         if ((rc = _pServerMocket->listen (ui16MocketPort)) < 0) {
             checkAndLogMsg ("MocketConnector::init", Logger::L_MildError,
-                            "listen() on ServerMocket failed - could not initialize to use port %d; rc = %d\n",
-                            (int) ui16MocketPort, rc);
+                            "listen() on ServerMocket failed - could not initialize to use port %hu; rc = %d\n",
+                            ui16MocketPort, rc);
             return -1;
         }
+        checkAndLogMsg ("MocketConnector::init", Logger::L_HighDetailDebug,
+                        "successfully initialized a server Mocket listening on port %hu that uses %s encryption\n",
+                        ui16MocketPort, NetProxyApplicationParameters::MOCKETS_DTLS_ENABLED ? "DTLS" : "PLAIN");
 
         return 0;
     }
@@ -91,20 +96,21 @@ namespace ACMNetProxy
                 }
                 break;
             }
-
-            ConnectorAdapter * const pConnectorAdapter = ConnectorAdapter::ConnectorAdapterFactory (pMocket, CT_MOCKETS);
+            pMocket->setLocalAddr (InetAddr(NetProxyApplicationParameters::EXTERNAL_IP_ADDR).getIPAsString());
+            ConnectorAdapter * const pConnectorAdapter = ConnectorAdapter::ConnectorAdapterFactory (pMocket, _connectorType);
             Connection * const pConnection = new Connection (pConnectorAdapter, this);
 
-            _mConnectionsTable.lock();
+            lockConnectionTable();
             pConnection->lock();
-            Connection *pOldConnection = _connectionsTable.put (generateUInt64Key (pMocket->getRemoteAddress(), pMocket->getRemotePort()), pConnection);
-            _mConnectionsTable.unlock();
 
+            Connection * const pOldConnection = _connectionsTable.put (
+                generateUInt64Key (pMocket->getRemoteAddress(), pMocket->getRemotePort(), pConnection->getEncryptionType()), pConnection);
             if (pOldConnection) {
                 // There was already a connection from this node to the remote node - close that one
                 checkAndLogMsg ("MocketConnector::run", Logger::L_Info,
-                                "replaced an old MocketConnection to <%s:%hu> in status %hu with a new one\n",
-                                pConnection->getRemoteProxyInetAddr()->getIPAsString(), pConnection->getRemoteProxyInetAddr()->getPort(),
+                                "replaced an existing MocketConnection to <%s:%hu> in status %hu with a new instance\n",
+                                pConnection->getRemoteProxyInetAddr()->getIPAsString(),
+                                pConnection->getRemoteProxyInetAddr()->getPort(),
                                 pOldConnection->getStatus());
                 delete pOldConnection;
             }
@@ -114,9 +120,10 @@ namespace ACMNetProxy
                                 pConnection->getRemoteProxyInetAddr()->getIPAsString(),
                                 pConnection->getRemoteProxyInetAddr()->getPort());
             }
-
             pConnection->startMessageHandler();
+
             pConnection->unlock();
+            unlockConnectionTable();
         }
         checkAndLogMsg ("MocketConnector::run", Logger::L_Info,
                         "MocketConnector terminated; termination code is %d\n", getTerminatingResultCode());

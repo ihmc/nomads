@@ -21,7 +21,7 @@
 #define INCL_PTR_QUEUE_H
 
 #include <stddef.h>
-
+#include<stdio.h>
 namespace NOMADSUtil
 {
     template <class T> class PtrQueue

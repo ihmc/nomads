@@ -56,6 +56,7 @@ namespace ACMNetProxy
         unsigned int getAvailableBytesCount (void) const;
         unsigned int getTotalBytesCount (void) const;
         unsigned int getRemainingSpace (void) const;
+        unsigned int getCurrentBufferSize (void) const;
         double getFreeSpacePercentage (void) const;
         const TCPSegment * const getLastSegment (void);
 
@@ -132,6 +133,11 @@ namespace ACMNetProxy
     inline unsigned int CircularOrderedBuffer::getRemainingSpace (void) const
     {
         return (_uiBufMaxSize - (unsigned int) _iTotalBytesInBuffer);
+    }
+
+    inline unsigned int CircularOrderedBuffer::getCurrentBufferSize (void) const
+    {
+        return _uiBufCurrentSize;
     }
 
     inline double CircularOrderedBuffer::getFreeSpacePercentage (void) const

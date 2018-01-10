@@ -34,8 +34,8 @@ namespace ACMNetProxy
     LzmaConnectorReader::LzmaConnectorReader (const CompressionSetting * const pCompressionSetting, unsigned int ulInBufSize, unsigned int ulOutBufSize) : ConnectorReader (pCompressionSetting)
     {
          if ((ulOutBufSize == 0) || (ulInBufSize == 0) ||
-             (NULL == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
-             (NULL == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
+             (nullptr == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
+             (nullptr == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
             // throw a c++ exception here
         }
         _ulInBufSize = ulInBufSize;
@@ -54,11 +54,11 @@ namespace ACMNetProxy
         if (_pOutputBuffer) {
             delete[] _pOutputBuffer;
         }
-        _pOutputBuffer = NULL;
+        _pOutputBuffer = nullptr;
         if (_pInputBuffer) {
             delete[] _pInputBuffer;
         }
-        _pInputBuffer = NULL;
+        _pInputBuffer = nullptr;
     }
 
     int LzmaConnectorReader::receiveTCPDataProxyMessage (const uint8 *const ui8SrcData, uint16 ui16SrcLen, uint8 **pDest, uint32 &ui32DestLen)
@@ -71,7 +71,7 @@ namespace ACMNetProxy
             while ((uiIncreaseRate * _ulInBufSize) < (_lzmaDecompStream.avail_in + ui16SrcLen)) {
                 uiIncreaseRate *= 2;
             }
-            if (NULL == (_pInputBuffer = (unsigned char*) realloc (_pInputBuffer, uiIncreaseRate * _ulInBufSize))) {
+            if (nullptr == (_pInputBuffer = (unsigned char*) realloc (_pInputBuffer, uiIncreaseRate * _ulInBufSize))) {
                 checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", Logger::L_MildError,
                                 "error reallocating memory for _pInputBuffer; impossible to increase size from %u to %u bytes\n",
                                 _ulInBufSize, uiIncreaseRate*_ulInBufSize);
@@ -136,7 +136,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
             ui32DestLen = 0;
         }
 
@@ -153,19 +153,19 @@ namespace ACMNetProxy
 
     void LzmaConnectorReader::resetDecompStream (void)
     {
-        _lzmaDecompStream.allocator = NULL;
+        _lzmaDecompStream.allocator = nullptr;
         _lzmaDecompStream.next_in = _pInputBuffer;
         _lzmaDecompStream.avail_in = 0;
         _lzmaDecompStream.total_in = 0;
         _lzmaDecompStream.next_out = _pOutputBuffer;
         _lzmaDecompStream.avail_out = _ulOutBufSize;
         _lzmaDecompStream.total_out = 0;
-        _lzmaDecompStream.allocator = NULL;
-        _lzmaDecompStream.internal = NULL;
-        _lzmaDecompStream.reserved_ptr1 = NULL;
-        _lzmaDecompStream.reserved_ptr2 = NULL;
-        _lzmaDecompStream.reserved_ptr3 = NULL;
-        _lzmaDecompStream.reserved_ptr4 = NULL;
+        _lzmaDecompStream.allocator = nullptr;
+        _lzmaDecompStream.internal = nullptr;
+        _lzmaDecompStream.reserved_ptr1 = nullptr;
+        _lzmaDecompStream.reserved_ptr2 = nullptr;
+        _lzmaDecompStream.reserved_ptr3 = nullptr;
+        _lzmaDecompStream.reserved_ptr4 = nullptr;
         _lzmaDecompStream.reserved_int1 = 0;
         _lzmaDecompStream.reserved_int2 = 0;
         _lzmaDecompStream.reserved_int3 = 0;

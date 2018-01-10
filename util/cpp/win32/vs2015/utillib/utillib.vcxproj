@@ -1,0 +1,367 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{89793E30-2F85-4D87-B317-1E71333087D7}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>utillib</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_MBCS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\;..\..\..\..\..\externals\include;..\..\..\net;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MinimalRebuild>false</MinimalRebuild>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\;..\..\..\..\..\externals\include;..\..\..\net</AdditionalIncludeDirectories>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\AVList.cpp" />
+    <ClCompile Include="..\..\..\Base64.cpp" />
+    <ClCompile Include="..\..\..\Base64Transcoders.cpp" />
+    <ClCompile Include="..\..\..\BloomFilter.cpp" />
+    <ClCompile Include="..\..\..\BoyerMooreHorspool.cpp" />
+    <ClCompile Include="..\..\..\BufferedReader.cpp" />
+    <ClCompile Include="..\..\..\BufferedWriter.cpp" />
+    <ClCompile Include="..\..\..\BufferReader.cpp" />
+    <ClCompile Include="..\..\..\BufferWriter.cpp" />
+    <ClCompile Include="..\..\..\CommandProcessor.cpp" />
+    <ClCompile Include="..\..\..\CommHelper.cpp" />
+    <ClCompile Include="..\..\..\CommHelper2.cpp" />
+    <ClCompile Include="..\..\..\CompressedReader.cpp" />
+    <ClCompile Include="..\..\..\CompressedWriter.cpp" />
+    <ClCompile Include="..\..\..\ConditionVariable.cpp" />
+    <ClCompile Include="..\..\..\ConfigManager.cpp" />
+    <ClCompile Include="..\..\..\CRC.cpp" />
+    <ClCompile Include="..\..\..\Cron.cpp" />
+    <ClCompile Include="..\..\..\DatagramSocket.cpp" />
+    <ClCompile Include="..\..\..\DataRelayer.cpp" />
+    <ClCompile Include="..\..\..\Dime.cpp" />
+    <ClCompile Include="..\..\..\EndianHelper.cpp" />
+    <ClCompile Include="..\..\..\EventMonitor.cpp" />
+    <ClCompile Include="..\..\..\EventNotifier.cpp" />
+    <ClCompile Include="..\..\..\FastMutex.cpp" />
+    <ClCompile Include="..\..\..\FIFOQueue.cpp" />
+    <ClCompile Include="..\..\..\File.cpp" />
+    <ClCompile Include="..\..\..\FileReader.cpp" />
+    <ClCompile Include="..\..\..\FileUtils.cpp" />
+    <ClCompile Include="..\..\..\FileWriter.cpp" />
+    <ClCompile Include="..\..\..\GeoUtils.cpp" />
+    <ClCompile Include="..\..\..\HTTPClient.cpp" />
+    <ClCompile Include="..\..\..\HTTPHelper.cpp" />
+    <ClCompile Include="..\..\..\InetAddr.cpp" />
+    <ClCompile Include="..\..\..\ISAACRand.cpp" />
+    <ClCompile Include="..\..\..\LineOrientedReader.cpp" />
+    <ClCompile Include="..\..\..\Logger.cpp" />
+    <ClCompile Include="..\..\..\LoggingConditionVariable.cpp" />
+    <ClCompile Include="..\..\..\LoggingMutex.cpp" />
+    <ClCompile Include="..\..\..\ManageableDatagramSocket.cpp" />
+    <ClCompile Include="..\..\..\ManageableThread.cpp" />
+    <ClCompile Include="..\..\..\MD5.cpp" />
+    <ClCompile Include="..\..\..\MulticastUDPDatagramSocket.cpp" />
+    <ClCompile Include="..\..\..\Mutex.cpp" />
+    <ClCompile Include="..\..\..\net\NetUtils.cpp" />
+    <ClCompile Include="..\..\..\NLFLib.cpp" />
+    <ClCompile Include="..\..\..\NullWriter.cpp" />
+    <ClCompile Include="..\..\..\ObjectDefroster.cpp" />
+    <ClCompile Include="..\..\..\ObjectFreezer.cpp" />
+    <ClCompile Include="..\..\..\OSThread.cpp" />
+    <ClCompile Include="..\..\..\Pipe.cpp" />
+    <ClCompile Include="..\..\..\ProcessExecutor.cpp" />
+    <ClCompile Include="..\..\..\ProxyDatagramSocket.cpp" />
+    <ClCompile Include="..\..\..\PushbackLineOrientedReader.cpp" />
+    <ClCompile Include="..\..\..\RangeDLList.cpp" />
+    <ClCompile Include="..\..\..\Reader.cpp" />
+    <ClCompile Include="..\..\..\RollingBoundedBitmap.cpp" />
+    <ClCompile Include="..\..\..\SemClass.cpp" />
+    <ClCompile Include="..\..\..\SettingsFileManager.cpp" />
+    <ClCompile Include="..\..\..\SimpleCommHelper2.cpp" />
+    <ClCompile Include="..\..\..\SoapMessage.cpp" />
+    <ClCompile Include="..\..\..\Socket.cpp" />
+    <ClCompile Include="..\..\..\SocketHelper.cpp" />
+    <ClCompile Include="..\..\..\SocketReader.cpp" />
+    <ClCompile Include="..\..\..\SocketWriter.cpp" />
+    <ClCompile Include="..\..\..\StackAllocator.cpp" />
+    <ClCompile Include="..\..\..\Statistics.cpp" />
+    <ClCompile Include="..\..\..\StrClass.cpp" />
+    <ClCompile Include="..\..\..\StringHashset.cpp" />
+    <ClCompile Include="..\..\..\StringStringHashtable.cpp" />
+    <ClCompile Include="..\..\..\StringStringWildMultimap.cpp" />
+    <ClCompile Include="..\..\..\StringTokenizer.cpp" />
+    <ClCompile Include="..\..\..\TClass.cpp" />
+    <ClCompile Include="..\..\..\TCPSocket.cpp" />
+    <ClCompile Include="..\..\..\Thread.cpp" />
+    <ClCompile Include="..\..\..\ThreadPool.cpp" />
+    <ClCompile Include="..\..\..\TimeBoundedStringHashset.cpp" />
+    <ClCompile Include="..\..\..\Timestamp.cpp" />
+    <ClCompile Include="..\..\..\TreeUtils.cpp" />
+    <ClCompile Include="..\..\..\UDPDatagramSocket.cpp" />
+    <ClCompile Include="..\..\..\UDPRawDatagramSocket.cpp" />
+    <ClCompile Include="..\..\..\URLParser.cpp" />
+    <ClCompile Include="..\..\..\UUID.cpp" />
+    <ClCompile Include="..\..\..\UUIDGenerator.cpp" />
+    <ClCompile Include="..\..\..\Writer.cpp" />
+    <ClCompile Include="..\..\..\ZipFileReader.cpp" />
+    <ClCompile Include="..\..\..\ZipFileUtils.cpp" />
+    <ClCompile Include="..\..\..\ZlibBufferCompressionInterface.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\AtomicVar.h" />
+    <ClInclude Include="..\..\..\AVList.h" />
+    <ClInclude Include="..\..\..\Base64.h" />
+    <ClInclude Include="..\..\..\Base64Transcoders.h" />
+    <ClInclude Include="..\..\..\BloomFilter.h" />
+    <ClInclude Include="..\..\..\BoyerMooreHorspool.h" />
+    <ClInclude Include="..\..\..\BufferedReader.h" />
+    <ClInclude Include="..\..\..\BufferedWriter.h" />
+    <ClInclude Include="..\..\..\BufferReader.h" />
+    <ClInclude Include="..\..\..\BufferWriter.h" />
+    <ClInclude Include="..\..\..\CircularBuffer.h" />
+    <ClInclude Include="..\..\..\CircularPtrLList.h" />
+    <ClInclude Include="..\..\..\CircularQueue.h" />
+    <ClInclude Include="..\..\..\CommandProcessor.h" />
+    <ClInclude Include="..\..\..\CommHelper.h" />
+    <ClInclude Include="..\..\..\CommHelper2.h" />
+    <ClInclude Include="..\..\..\CompressedReader.h" />
+    <ClInclude Include="..\..\..\CompressedWriter.h" />
+    <ClInclude Include="..\..\..\ConditionVariable.h" />
+    <ClInclude Include="..\..\..\ConfigManager.h" />
+    <ClInclude Include="..\..\..\CRC.h" />
+    <ClInclude Include="..\..\..\Cron.h" />
+    <ClInclude Include="..\..\..\DArray.h" />
+    <ClInclude Include="..\..\..\DArray2.h" />
+    <ClInclude Include="..\..\..\DArray3.h" />
+    <ClInclude Include="..\..\..\DatagramSocket.h" />
+    <ClInclude Include="..\..\..\DataRelayer.h" />
+    <ClInclude Include="..\..\..\Dime.h" />
+    <ClInclude Include="..\..\..\EndianHelper.h" />
+    <ClInclude Include="..\..\..\EventMonitor.h" />
+    <ClInclude Include="..\..\..\EventNotifier.h" />
+    <ClInclude Include="..\..\..\Exceptions.h" />
+    <ClInclude Include="..\..\..\ExponentialAverage.h" />
+    <ClInclude Include="..\..\..\FastMutex.h" />
+    <ClInclude Include="..\..\..\FIFOBuffer.h" />
+    <ClInclude Include="..\..\..\FIFOQueue.h" />
+    <ClInclude Include="..\..\..\File.h" />
+    <ClInclude Include="..\..\..\FileReader.h" />
+    <ClInclude Include="..\..\..\FileUtils.h" />
+    <ClInclude Include="..\..\..\FileWriter.h" />
+    <ClInclude Include="..\..\..\FourStringHashtable.h" />
+    <ClInclude Include="..\..\..\FTypes.h" />
+    <ClInclude Include="..\..\..\GeoUtils.h" />
+    <ClInclude Include="..\..\..\HTTPClient.h" />
+    <ClInclude Include="..\..\..\HTTPHelper.h" />
+    <ClInclude Include="..\..\..\InetAddr.h" />
+    <ClInclude Include="..\..\..\InstrumentedReader.h" />
+    <ClInclude Include="..\..\..\InstrumentedWriter.h" />
+    <ClInclude Include="..\..\..\IntervalTree.h" />
+    <ClInclude Include="..\..\..\ISAACRand.h" />
+    <ClInclude Include="..\..\..\LineOrientedReader.h" />
+    <ClInclude Include="..\..\..\LList.h" />
+    <ClInclude Include="..\..\..\Logger.h" />
+    <ClInclude Include="..\..\..\LoggingConditionVariable.h" />
+    <ClInclude Include="..\..\..\LoggingMutex.h" />
+    <ClInclude Include="..\..\..\ManageableDatagramSocket.h" />
+    <ClInclude Include="..\..\..\ManageableThread.h" />
+    <ClInclude Include="..\..\..\MD5.h" />
+    <ClInclude Include="..\..\..\MovingAverage.h" />
+    <ClInclude Include="..\..\..\MulticastUDPDatagramSocket.h" />
+    <ClInclude Include="..\..\..\Mutex.h" />
+    <ClInclude Include="..\..\..\NLFLib.h" />
+    <ClInclude Include="..\..\..\NullWriter.h" />
+    <ClInclude Include="..\..\..\ObjectDefroster.h" />
+    <ClInclude Include="..\..\..\ObjectFreezer.h" />
+    <ClInclude Include="..\..\..\OSThread.h" />
+    <ClInclude Include="..\..\..\Pipe.h" />
+    <ClInclude Include="..\..\..\ProcessExecutor.h" />
+    <ClInclude Include="..\..\..\ProxyDatagramSocket.h" />
+    <ClInclude Include="..\..\..\PtrLList.h" />
+    <ClInclude Include="..\..\..\PtrQueue.h" />
+    <ClInclude Include="..\..\..\PtrStack.h" />
+    <ClInclude Include="..\..\..\PushbackLineOrientedReader.h" />
+    <ClInclude Include="..\..\..\Queue.h" />
+    <ClInclude Include="..\..\..\RangeDLList.h" />
+    <ClInclude Include="..\..\..\Reader.h" />
+    <ClInclude Include="..\..\..\RollingBoundedBitmap.h" />
+    <ClInclude Include="..\..\..\Runnable.h" />
+    <ClInclude Include="..\..\..\SemClass.h" />
+    <ClInclude Include="..\..\..\SequentialArithmetic.h" />
+    <ClInclude Include="..\..\..\SettingsFileManager.h" />
+    <ClInclude Include="..\..\..\SetUniquePtrLList.h" />
+    <ClInclude Include="..\..\..\SimpleCommHelper2.h" />
+    <ClInclude Include="..\..\..\SoapMessage.h" />
+    <ClInclude Include="..\..\..\Socket.h" />
+    <ClInclude Include="..\..\..\SocketHelper.h" />
+    <ClInclude Include="..\..\..\SocketReader.h" />
+    <ClInclude Include="..\..\..\SocketWriter.h" />
+    <ClInclude Include="..\..\..\SortedLList.h" />
+    <ClInclude Include="..\..\..\StackAllocator.h" />
+    <ClInclude Include="..\..\..\Statistics.h" />
+    <ClInclude Include="..\..\..\StrClass.h" />
+    <ClInclude Include="..\..\..\StringFloatHashtable.h" />
+    <ClInclude Include="..\..\..\StringHashset.h" />
+    <ClInclude Include="..\..\..\StringHashtable.h" />
+    <ClInclude Include="..\..\..\StringStringHashtable.h" />
+    <ClInclude Include="..\..\..\StringStringMap.h" />
+    <ClInclude Include="..\..\..\StringStringMultiMap.h" />
+    <ClInclude Include="..\..\..\StringStringWildMultimap.h" />
+    <ClInclude Include="..\..\..\StringTokenizer.h" />
+    <ClInclude Include="..\..\..\StringVoidPtrMap.h" />
+    <ClInclude Include="..\..\..\TClass.h" />
+    <ClInclude Include="..\..\..\TCPSocket.h" />
+    <ClInclude Include="..\..\..\Thread.h" />
+    <ClInclude Include="..\..\..\ThreadPool.h" />
+    <ClInclude Include="..\..\..\ThreeStringHashtable.h" />
+    <ClInclude Include="..\..\..\TimeBoundedStringHashset.h" />
+    <ClInclude Include="..\..\..\TimeIntervalAverage.h" />
+    <ClInclude Include="..\..\..\Timestamp.h" />
+    <ClInclude Include="..\..\..\TreeUtils.h" />
+    <ClInclude Include="..\..\..\UDPDatagramSocket.h" />
+    <ClInclude Include="..\..\..\UDPRawDatagramSocket.h" />
+    <ClInclude Include="..\..\..\UInt32Hashset.h" />
+    <ClInclude Include="..\..\..\UInt32Hashtable.h" />
+    <ClInclude Include="..\..\..\UInt64Hashtable.h" />
+    <ClInclude Include="..\..\..\URLParser.h" />
+    <ClInclude Include="..\..\..\UUID.h" />
+    <ClInclude Include="..\..\..\UUIDGenerator.h" />
+    <ClInclude Include="..\..\..\Writer.h" />
+    <ClInclude Include="..\..\..\ZipFileReader.h" />
+    <ClInclude Include="..\..\..\ZipFileUtils.h" />
+    <ClInclude Include="..\..\..\ZlibBufferCompressionInterface.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

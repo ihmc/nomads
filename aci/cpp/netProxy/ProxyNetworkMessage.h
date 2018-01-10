@@ -34,7 +34,7 @@ namespace ACMNetProxy
     {
     public:
         ProxyNetworkMessage (const NOMADSUtil::InetAddr * const pProxyAddr, const ProxyMessage * const pProxyMessage, uint32 ui32DestVirtualIPAddr,
-                             const uint8 * const pui8MessagePayload = NULL, const uint16 ui16PayloadLen = 0);
+                             const uint8 * const pui8MessagePayload = nullptr, const uint16 ui16PayloadLen = 0);
         ~ProxyNetworkMessage (void);
 
         bool operator == (const ProxyNetworkMessage &rProxyNetworkMessage) const;
@@ -73,7 +73,7 @@ namespace ACMNetProxy
             delete[] _pBuf;
         }
 
-        _pui8MessagePayload = NULL;
+        _pui8MessagePayload = nullptr;
         _ui16PayloadLen = 0;
     }
 

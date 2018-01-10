@@ -24,8 +24,12 @@
  * and handles incoming and outgoing network packets.
  */
 
+#include <unordered_set>
+
 #include "FTypes.h"
 #include "DArray.h"
+#include "ISAACRand.h"
+#include "StringHashset.h"
 #include "UInt32Hashtable.h"
 #include "ManageableThread.h"
 #include "net/NetworkHeaders.h"
@@ -44,12 +48,13 @@
 #include "NetworkInterface.h"
 #include "TapInterface.h"
 #include "ARPCache.h"
+#include "ARPTableMissCache.h"
 #include "MocketConnector.h"
 #include "SocketConnector.h"
 #include "UDPConnector.h"
 #include "GUIUpdateMessage.h"
-#include "NetProxyConfigManager.h"
-
+#include "ConfigurationManager.h"
+#include "NetSensor.h"
 
 #if defined (USE_DISSERVICE)
 namespace IHMC_ACI
@@ -74,7 +79,7 @@ namespace ACMNetProxy
     class EndpointConfigFileReader;
     class TCPManager;
     class UDPDatagramPacket;
-    
+
     #if defined (USE_DISSERVICE)
         class PacketRouter : public IHMC_ACI::DisseminationServiceListener
     #else
@@ -82,11 +87,12 @@ namespace ACMNetProxy
     #endif
     {
         public:
+
             static PacketRouter *getPacketRouter (void);
             ~PacketRouter (void);
-           
+
             // Initialize the PacketRouter
-            int init (NetworkInterface * const pInternalInterface, NetworkInterface * const pExternalInterface);
+			int init (NetworkInterface * const pInternalInterface, NetworkInterface * const pExternalInterface);
             int startThreads (void);
             int joinThreads (void);
 
@@ -98,7 +104,7 @@ namespace ACMNetProxy
 
             // The following method is useful whenever a new Connection has been established, to reduce latency in case there are enqued packets/requests
             static void wakeUpAutoConnectionAndRemoteTransmitterThreads (void);
-            
+
             static void requestTermination (void);
             static bool isRunning (void);
             static bool isTerminationRequested (void);
@@ -107,7 +113,8 @@ namespace ACMNetProxy
             friend class Connection::IncomingMessageHandler;
             friend class UDPConnector;
             friend class TCPManager;
-            friend class NetProxyConfigManager::StaticARPTableConfigFileReader;
+            friend int NetProxyConfigManager::StaticARPTableConfigFileReader::parseAndAddEntry (const char * const pszEntry) const;
+            friend int NetProxyConfigManager::processNetProxyConfigFile (void);
 
             // Receiver thread is responsible for receiving packets from the virtual ethernet interface
             class InternalReceiverThread : public NOMADSUtil::Thread
@@ -146,7 +153,7 @@ namespace ACMNetProxy
                     NOMADSUtil::UInt32Hashtable<MutexUDPQueue> _ui32UDPDatagramsQueueHashTable;
                     NOMADSUtil::Mutex _mUDPDatagramsQueueHashTable;
 
-                    static const uint32 LDMT_TIME_BETWEEN_ITERATIONS = 500;          // Time between each iterations for LTT
+                    static const uint32 LDMT_TIME_BETWEEN_ITERATIONS = 500;          // Time between each iterations for LDMT
             };
 
 
@@ -217,19 +224,35 @@ namespace ACMNetProxy
                     NPDArray2<std::pair<NOMADSUtil::String, uint16> > _notificationAddressList;
             };
 
+
+            class EtherMACAddrHasher final
+            {
+                public:
+                    constexpr size_t operator() (const EtherMACAddr& etherMACAddr) const;
+            };
+
+
             PacketRouter (void);
             explicit PacketRouter (const PacketRouter& rPacketRouter);
 
             static int handlePacketFromInternalInterface (const uint8 * const pPacket, uint16 ui16PacketLen);
             static int handlePacketFromExternalInterface (const uint8 * const pPacket, uint16 ui16PacketLen);
 
+            static int sendCachedPacketsToDestination (uint32 ui32DestinationIPAddress);
+
+            static int sendPacketOverTheTunnel (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32DestinationIP);
+            static int sendPacketOverTheTunnelImpl (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32DestinationIP,
+                                                    const QueryResult query, ConnectorType ct, EncryptionType et);
+
             // Ethernet
             static int sendPacketToHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize);
-            static int wrapEtherAndSendPacketToHost (NetworkInterface * const pNI, uint8 *ui8Buf, uint16 ui16PacketLen);
+            static int sendTunneledPacketToHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize);
+            static int wrapEthernetFrameAndSendToHost (NetworkInterface * const pNI, uint8 *ui8Buf, uint16 ui16PacketLen,
+                                                       EtherFrameHeader const * const pEtherFrameHeaderPckt = nullptr);
             // ARP
-            static int sendARPRequest (NetworkInterface * const pNI, uint32 ui32OriginatingIPAddr, uint32 ui32TargetIPAddr);
+            static int sendARPRequest (NetworkInterface * const pNI, uint32 ui32TargetProtocolAddress);
             static int sendARPReplyToHost (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
-                                           const NOMADSUtil::EtherMACAddr &rTargetMACAddr);
+                                           const NOMADSUtil::EtherMACAddr &rSourceHardwreAddress);
             static int sendARPAnnouncement (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
                                             uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rMACAddr);
             static void addEntryToARPTable (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rTargetMACAddr);
@@ -241,9 +264,10 @@ namespace ACMNetProxy
                                                  NOMADSUtil::ICMPHeader::Type ICMPType, NOMADSUtil::ICMPHeader::Code_Destination_Unreachable ICMPCode,
                                                  uint32 ui32RoH, const uint8 * const pICMPData, uint16 ui16PayloadLen);
 
-            static int initializeRemoteConnection (uint32 ui32RemoteProxyID, ConnectorType connectorType);
+            static int initializeRemoteConnection (uint32 ui32RemoteProxyID, ConnectorType connectorType, EncryptionType encryptionType);
             static int sendUDPUniCastPacketToHost (uint32 ui32RemoteOriginationIP, uint32 ui32LocalTargetIP, uint8 ui8PacketTTL,
-                                                   const NOMADSUtil::UDPHeader * const pUDPPacket);
+                                                   const NOMADSUtil::UDPHeader * const pUDPPacket, const IPHeader * const pIPHeaderPckt = nullptr,
+                                                   EtherFrameHeader const * const pEtherFrameHeaderPckt = nullptr);
             static int sendUDPBCastMCastPacketToHost (const uint8 * const pPacket, uint16 ui16PacketLen);
 
             static int sendRemoteResetRequestIfNeeded (Entry * const pEntry);
@@ -274,6 +298,12 @@ namespace ACMNetProxy
             static bool hostBelongsToTheExternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost);
             static bool isKnownHost (const NOMADSUtil::EtherMACAddr & emaHost);
 
+            static void hton (EtherFrameHeader * const pEtherFrame);
+            static void ntoh (EtherFrameHeader * const pEtherFrame);
+            static uint16 getEthernetHeaderLength (EtherFrameHeader * const pEtherFrame);
+            static uint16 getEtherTypeFromEthernetFrame (EtherFrameHeader * const pEtherFrame);
+            static void * getPacketWithinEthernetFrame (EtherFrameHeader * const pEtherFrame);
+
             static PacketBufferManager * const _pPBM;
 
             static bool _bTerminationRequested;
@@ -286,13 +316,15 @@ namespace ACMNetProxy
             static bool _bAutoConnectionManagerThreadRunning;
             static bool _bCleanerThreadRunning;
             static bool _bUpdateGUIThreadRunning;
-            static ARPCache _pARPCache;
+            static ARPCache _ARPCache;
+            static ARPTableMissCache _ARPTableMissCache;
             static NOMADSUtil::DArray<NOMADSUtil::EtherMACAddr> _daInternalHosts;
             static NOMADSUtil::DArray<NOMADSUtil::EtherMACAddr> _daExternalHosts;
             static NetworkInterface *_pInternalInterface;
             static NetworkInterface *_pExternalInterface;
 
-            
+
+            static IHMC_NETSENSOR::NetSensor *_pnsNetSensor;
             static TCPConnTable * const _pTCPConnTable;
             static ConnectionManager * const _pConnectionManager;
             static NetProxyConfigManager * const _pConfigurationManager;
@@ -329,7 +361,6 @@ namespace ACMNetProxy
             static NOMADSUtil::ConditionVariable _cvAutoConnectionManager;
             static NOMADSUtil::ConditionVariable _cvCleaner;
             static NOMADSUtil::ConditionVariable _cvGUIUpdater;
-
     };
 
 
@@ -342,12 +373,19 @@ namespace ACMNetProxy
 
     inline PacketRouter::~PacketRouter (void)
     {
-        requestTermination();
-
         if (NetProxyApplicationParameters::GATEWAY_MODE) {
+            if (NetProxyApplicationParameters::ACTIVATE_NETSENSOR) {
+                if (_pnsNetSensor) {
+                    _pnsNetSensor->requestTerminationAndWait();
+			        delete _pnsNetSensor;
+                }
+            }
+
             delete _pInternalInterface;
             delete _pExternalInterface;
         }
+
+        requestTermination();
     }
 
     inline PacketRouter::InternalReceiverThread::InternalReceiverThread (void) {}
@@ -381,9 +419,19 @@ namespace ACMNetProxy
         _udpSocket.init();
     }
 
+    inline constexpr size_t PacketRouter::EtherMACAddrHasher::operator() (const EtherMACAddr& etherMACAddr) const
+    {
+        return (sizeof(size_t) < sizeof(EtherMACAddr)) ?
+            static_cast<size_t> (etherMACAddr.ui16Word3) +
+                (static_cast<size_t> (etherMACAddr.ui16Word2 & 0xFF) << 16) + (etherMACAddr.ui16Word2 >> 8) +
+                (static_cast<size_t> (etherMACAddr.ui16Word1) << 8) :
+            static_cast<size_t> (etherMACAddr.ui16Word3) + (static_cast<size_t> (etherMACAddr.ui16Word2) << 16) +
+                (static_cast<size_t> (etherMACAddr.ui16Word1) << 32);
+    }
+
     inline MutexCounter<uint16> * const PacketRouter::getMutexCounter (void)
     {
-        static MutexCounter<uint16> gIPIdentProvider (0);
+        static MutexCounter<uint16> gIPIdentProvider (ISAACRand::getRnd ((uint32) getTimeInMilliseconds()));
 
         return &gIPIdentProvider;
     }
@@ -414,7 +462,7 @@ namespace ACMNetProxy
 
     inline void PacketRouter::addEntryToARPTable (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rEtherMACAddr)
     {
-        _pARPCache.insert (ui32IPAddr, rEtherMACAddr);
+        _ARPCache.insert (ui32IPAddr, rEtherMACAddr);
     }
 
     inline bool PacketRouter::isMACAddrBroadcast (NOMADSUtil::EtherMACAddr macAddr)
@@ -422,6 +470,7 @@ namespace ACMNetProxy
         if ((macAddr.ui16Word1 == 0xFFFF) && (macAddr.ui16Word2 == 0xFFFF) && (macAddr.ui16Word3 == 0xFFFF)) {
             return true;
         }
+
         return false;
     }
 
@@ -430,12 +479,74 @@ namespace ACMNetProxy
         if ((macAddr.ui8Byte1 == 0x01) && (macAddr.ui8Byte2 == 0x00) && (macAddr.ui8Byte3 == 0x5E)) {
             return true;
         }
+
         return false;
     }
 
     inline bool PacketRouter::isKnownHost (const NOMADSUtil::EtherMACAddr & emaHost)
     {
         return hostBelongsToTheInternalNetwork (emaHost) || hostBelongsToTheExternalNetwork (emaHost);
+    }
+
+    inline void PacketRouter::hton (EtherFrameHeader * const pEtherFrame)
+    {
+        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
+            return reinterpret_cast<EtherFrameHeader802_1Q * const> (pEtherFrame)->hton();
+        }
+        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
+            return reinterpret_cast<EtherFrameHeader802_1AD * const> (pEtherFrame)->hton();
+        }
+
+        return pEtherFrame->hton();
+    }
+
+    inline void PacketRouter::ntoh (EtherFrameHeader * const pEtherFrame)
+    {
+        if (ntohs (pEtherFrame->ui16EtherType) == ET_802_1Q) {
+            return reinterpret_cast<EtherFrameHeader802_1Q * const> (pEtherFrame)->ntoh();
+        }
+        if (ntohs (pEtherFrame->ui16EtherType) == ET_802_1AD) {
+            return reinterpret_cast<EtherFrameHeader802_1AD * const> (pEtherFrame)->ntoh();
+        }
+
+        return pEtherFrame->ntoh();
+    }
+
+    inline uint16 PacketRouter::getEthernetHeaderLength (EtherFrameHeader * const pEtherFrame)
+    {
+        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
+            return sizeof(EtherFrameHeader802_1Q);
+        }
+        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
+            return sizeof(EtherFrameHeader802_1AD);
+        }
+
+        return sizeof(EtherFrameHeader);
+    }
+
+    inline uint16 PacketRouter::getEtherTypeFromEthernetFrame (EtherFrameHeader * const pEtherFrame)
+    {
+        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
+            return reinterpret_cast<EtherFrameHeader802_1Q * const> (pEtherFrame)->ui16EtherType;
+        }
+        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
+            return reinterpret_cast<EtherFrameHeader802_1AD * const> (pEtherFrame)->ui16EtherType;
+        }
+
+        return pEtherFrame->ui16EtherType;
+    }
+
+    inline void * PacketRouter::getPacketWithinEthernetFrame (EtherFrameHeader * const pEtherFrame)
+    {
+        char * pPacket = reinterpret_cast<char *> (pEtherFrame);
+        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
+            return pPacket + sizeof(EtherFrameHeader802_1Q);
+        }
+        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
+            return pPacket + sizeof(EtherFrameHeader802_1AD);
+        }
+
+        return pPacket + sizeof(EtherFrameHeader);
     }
 }
 

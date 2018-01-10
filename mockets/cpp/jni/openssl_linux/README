@@ -1,0 +1,9 @@
+This static version of libssl and libcrypto have been built using the -fPIC flag.
+In order to do that, I changed the Configure script of openssl before compiling.
+I would like to keep this directory and the library separeted from the rest of repository.
+
+Now It is possible to build the wrapper linking openssl. The openssl version on the repository was not compiled using the -fPIC flag and it was impossible to link.
+
+
+Thanks
+Filippo

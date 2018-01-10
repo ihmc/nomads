@@ -26,6 +26,7 @@
  * information to send messages to a specific remote host.
  */
 
+#include <mutex>
 #include <utility>
 
 #include "UInt32Hashtable.h"
@@ -45,6 +46,8 @@
 
 namespace ACMNetProxy
 {
+    class PacketRouter;
+
     class ConnectionManager
     {
     public:
@@ -66,14 +69,19 @@ namespace ACMNetProxy
 
         Connection * const addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy);
         Connection * const addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy, uint32 ui32RemoteProxyID);
+        Connection * const addNewActiveConnectionToRemoteProxyIfNone (Connection * const pConnectionToRemoteProxy);
+        Connection * const addNewActiveConnectionToRemoteProxyIfNone (Connection * const pConnectionToRemoteProxy, uint32 ui32RemoteProxyID);
         Connection * const removeActiveConnectionFromTable (const Connection * const pClosedConnection);
 
         bool isRemoteHostIPMapped (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort = 0) const;
-        const QueryResult queryConnectionToRemoteHostForConnectorType (ConnectorType connectorType, uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
-        const NPDArray2<QueryResult> queryAllConnectionsToRemoteHostForConnectorType (ConnectorType connectorType, uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
-        const QueryResult queryConnectionToRemoteProxyIDForConnectorType (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
-        const bool isConnectionToRemoteProxyOpenedForConnector (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
-        const bool isConnectionToRemoteProxyOpeningForConnector (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
+        const QueryResult queryConnectionToRemoteHostForConnectorType (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort,
+                                                                       ConnectorType connectorType, EncryptionType encryptionType) const;
+        const NPDArray2<QueryResult> queryAllConnectionsToRemoteHostForConnectorType (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort,
+                                                                                      ConnectorType connectorType, EncryptionType encryptionType) const;
+        const QueryResult queryConnectionToRemoteProxyIDForConnectorTypeAndEncryptionType (uint32 ui32RemoteProxyID, ConnectorType connectorType,
+                                                                                           EncryptionType encryptionType) const;
+        const bool isConnectionToRemoteProxyOpenedForConnector (uint32 ui32RemoteProxyID, ConnectorType connectorType, EncryptionType encryptionType) const;
+        const bool isConnectionToRemoteProxyOpeningForConnector (uint32 ui32RemoteProxyID, ConnectorType connectorType, EncryptionType encryptionType) const;
 
         const uint32 getIPAddressForRemoteProxyWithID (uint32 ui32RemoteProxyID) const;
         const char * const getIPAddressAsStringForProxyWithID (uint32 ui32RemoteProxyID) const;
@@ -86,11 +94,18 @@ namespace ACMNetProxy
         const NPDArray2<AutoConnectionEntry> * const getAutoConnectionTable (void) const;
         AutoConnectionEntry * const getAutoConnectionEntryToRemoteProxyID (uint32 ui32RemoteProxyID) const;
         void clearAutoConnectionTable (void);
-		NOMADSUtil::LList<uint32> *getRemoteProxyAddrList();
+
+        int getNumberOfOpenConnections (void);
+
+        /*
+        * This method returns a list containing the statically configured remote NetProxies IPs
+        */
+		NOMADSUtil::LList<uint32> getRemoteProxyAddrList (void) const;
 
     private:
         friend class NetProxyConfigManager;
         friend class AutoConnectionEntry;
+        friend class PacketRouter;
 
         ConnectionManager (void);
         explicit ConnectionManager (const ConnectionManager & connectionManager);
@@ -102,8 +117,10 @@ namespace ACMNetProxy
         bool isAddressAMatchInTheMappingBook (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
         ConnectivitySolutions * const findConnectivitySolutionsToProxyWithID (uint32 ui32RemoteProxyID) const;
         ConnectivitySolutions * const findConnectivitySolutionsToRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
+        /*ConnectivitySolutions * const findConnectivitySolutionsFromTableWithConnection (const Connection * const pConnection) const;*/
         const NOMADSUtil::DArray<const ConnectivitySolutions *> findAllConnectivitySolutionsToRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
         std::pair<AddressRangeDescriptor, ConnectivitySolutions *> * const findConnectivitySolutionsInTheMappingBook (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
+        NPDArray2<std::pair<AddressRangeDescriptor, ConnectivitySolutions *> > const * const getRemoteHostAddressMappingBook (void) const;
 
         RemoteProxyInfo * const getRemoteProxyInfoForProxyWithID (uint32 ui32RemoteProxyID) const;
         AutoConnectionEntry * const getAutoConnectionEntryForProxyWithID (uint32 ui32RemoteProxyID) const;
@@ -120,7 +137,7 @@ namespace ACMNetProxy
             _remoteHostAddressMappingCache;                                                                     // The Key is the 32-bits encoding of the IP address of remote hosts
         NPDArray2<AutoConnectionEntry> _autoConnectionList;                                                     // A list of all AutoConnection instances
 
-        mutable NOMADSUtil::Mutex _m;
+        mutable std::mutex _m;
     };
 
 
@@ -133,7 +150,8 @@ namespace ACMNetProxy
 
     inline Connector * const ConnectionManager::getConnectorForType (ConnectorType connectorType) const
     {
-        return (static_cast<int> (connectorType) <= _connectorsTable.getHighestIndex()) ? _connectorsTable.get (static_cast<int> (connectorType)) : NULL;
+        return (static_cast<int> (connectorType) <= _connectorsTable.getHighestIndex()) ?
+            _connectorsTable.get (static_cast<int> (connectorType)) : nullptr;
     }
 
     inline int ConnectionManager::registerConnector (Connector * const pConnector)
@@ -150,7 +168,7 @@ namespace ACMNetProxy
     {
         Connector * const pConnector = getConnectorForType (connectorType);
         if (pConnector) {
-            _connectorsTable[static_cast<int> (connectorType)] = NULL;
+            _connectorsTable[static_cast<int> (connectorType)] = nullptr;
         }
 
         return pConnector;
@@ -161,23 +179,28 @@ namespace ACMNetProxy
         return addNewActiveConnectionToRemoteProxy (pConnectionToRemoteProxy, pConnectionToRemoteProxy->getRemoteProxyID());
     }
 
+    inline Connection * const ConnectionManager::addNewActiveConnectionToRemoteProxyIfNone (Connection * const pConnectionToRemoteProxy)
+    {
+        return addNewActiveConnectionToRemoteProxyIfNone (pConnectionToRemoteProxy, pConnectionToRemoteProxy->getRemoteProxyID());
+    }
+
     inline const NOMADSUtil::InetAddr * ConnectionManager::getInetAddressForProtocolAndProxyWithID (ConnectorType connectorType, uint32 ui32RemoteProxyID) const
     {
-        const ConnectivitySolutions *pConnectivitySolutions = NULL;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
+        {
+            std::lock_guard<std::mutex> lg (_m);
             pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-            _m.unlock();
         }
 
-        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (connectorType) : NULL;
+        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (connectorType) : nullptr;
     }
 
     inline const uint32 ConnectionManager::getIPAddressForRemoteProxyWithID (uint32 ui32RemoteProxyID) const
     {
-        const ConnectivitySolutions *pConnectivitySolutions = NULL;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
+        {
+            std::lock_guard<std::mutex> lg (_m);
             pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-            _m.unlock();
         }
 
         return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (CT_MOCKETS)->getIPAddress() : 0;
@@ -185,10 +208,10 @@ namespace ACMNetProxy
 
     inline const char * const ConnectionManager::getIPAddressAsStringForProxyWithID (uint32 ui32RemoteProxyID) const
     {
-        const ConnectivitySolutions *pConnectivitySolutions = NULL;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
+        {
+            std::lock_guard<std::mutex> lg (_m);
             pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-            _m.unlock();
         }
 
         return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (CT_MOCKETS)->getIPAsString() : "";
@@ -204,10 +227,10 @@ namespace ACMNetProxy
 
     inline const bool ConnectionManager::getReachabilityFromRemoteProxyWithID (uint32 ui32RemoteProxyID) const
     {
-        const ConnectivitySolutions *pConnectivitySolutions = NULL;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
+        {
+            std::lock_guard<std::mutex> lg (_m);
             pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-            _m.unlock();
         }
 
         return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().isLocalProxyReachableFromRemote() :
@@ -216,10 +239,10 @@ namespace ACMNetProxy
 
     inline const char * const ConnectionManager::getMocketsConfigFileForProxyWithID (uint32 ui32RemoteProxyID) const
     {
-        const ConnectivitySolutions *pConnectivitySolutions = NULL;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
+        {
+            std::lock_guard<std::mutex> lg (_m);
             pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-            _m.unlock();
         }
 
         return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getMocketsConfFileName() : "";
@@ -251,15 +274,20 @@ namespace ACMNetProxy
 
     inline bool ConnectionManager::isAddressAMatchInTheMappingBook (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
     {
-        return findConnectivitySolutionsInTheMappingBook (ui32RemoteHostIP, ui16RemoteHostPort) != NULL;
+        return findConnectivitySolutionsInTheMappingBook (ui32RemoteHostIP, ui16RemoteHostPort) != nullptr;
+    }
+
+    inline NPDArray2<std::pair<AddressRangeDescriptor, ConnectivitySolutions*> > const * const ConnectionManager::getRemoteHostAddressMappingBook (void) const
+    {
+        return &_remoteHostAddressMappingBook;
     }
 
     inline ConnectivitySolutions * const ConnectionManager::findConnectivitySolutionsToProxyWithID (uint32 ui32RemoteProxyID) const
     {
-        ConnectivitySolutions *pConnectivitySolutions = NULL;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+        ConnectivitySolutions *pConnectivitySolutions = nullptr;
+        {
+            std::lock_guard<std::mutex> lg (_m);
             pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-            _m.unlock();
         }
 
         return pConnectivitySolutions;
@@ -267,13 +295,13 @@ namespace ACMNetProxy
 
     inline RemoteProxyInfo * const ConnectionManager::getRemoteProxyInfoForProxyWithID (uint32 ui32RemoteProxyID) const
     {
-        ConnectivitySolutions *pConnectivitySolutions = NULL;
-        if (_m.lock() == NOMADSUtil::Mutex::RC_Ok) {
+        ConnectivitySolutions *pConnectivitySolutions = nullptr;
+        {
+            std::lock_guard<std::mutex> lg (_m);
             pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-            _m.unlock();
         }
 
-        return pConnectivitySolutions ? &(pConnectivitySolutions->_remoteProxyInfo) : NULL;
+        return pConnectivitySolutions ? &(pConnectivitySolutions->_remoteProxyInfo) : nullptr;
     }
 
 }

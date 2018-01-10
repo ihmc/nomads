@@ -2,7 +2,7 @@
  * ACKManager.cpp
  * 
  * This file is part of the IHMC Mockets Library/Component
- * Copyright (c) 2002-2014 IHMC.
+ * Copyright (c) 2002-2016 IHMC.
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,13 +18,10 @@
  */
 
 #include "ACKManager.h"
-
 #include "Packet.h"
 #include "PacketMutators.h"
-
 #include "Logger.h"
 #include "NLFLib.h"
-
 
 using namespace NOMADSUtil;
 
@@ -95,13 +92,18 @@ int ACKManager::appendACKInformation (Packet *pPacket)
     // But partial SAck info will still be in the piggyback chunk
     int rc;
     _m.lock();
-    SAckChunkMutator scm = pPacket->addSAckChunk (_controlTSNHandler.getCumulativeTSN(), _reliableSequencedTSNHandler.getCumulativeTSN(), _reliableUnsequencedTSNHandler.getCumulativeTSN());
+
+    SAckChunkMutator scm = pPacket->addSAckChunk (
+		_controlTSNHandler.getCumulativeTSN(), 
+		_reliableSequencedTSNHandler.getCumulativeTSN(), 
+		_reliableUnsequencedTSNHandler.getCumulativeTSN());
     if (!scm.initializedWithoutErrors()) {
         checkAndLogMsg ("ACKManager::appendSAckInformation", Logger::L_MediumDetailDebug,
                         "failed to add SAckChunk to packet\n");
         _m.unlock();
         return -1;
     }
+
     scm.selectControlFlow();
     if (0 != (rc = _controlTSNHandler.appendTSNInformation (&scm))) {
         checkAndLogMsg ("ACKManager::appendACKInformation", Logger::L_MildError,
@@ -109,6 +111,7 @@ int ACKManager::appendACKInformation (Packet *pPacket)
         _m.unlock();
         return -2;
     }
+
     scm.selectReliableSequencedFlow();
     if (0 != (rc = _reliableSequencedTSNHandler.appendTSNInformation (&scm))) {
         checkAndLogMsg ("ACKManager::appendACKInformation", Logger::L_MildError,
@@ -116,6 +119,7 @@ int ACKManager::appendACKInformation (Packet *pPacket)
         _m.unlock();
         return -3;
     }
+
     scm.selectReliableUnsequencedFlow();
     if (0 != (rc = _reliableUnsequencedTSNHandler.appendTSNInformation (&scm))) {
         checkAndLogMsg ("ACKManager::appendACKInformation", Logger::L_MildError,
@@ -124,6 +128,7 @@ int ACKManager::appendACKInformation (Packet *pPacket)
         return -4;
     }
     _m.unlock();
+
     return 0;
 }
 
@@ -134,13 +139,18 @@ int ACKManager::appendACKInformation (Packet *pPacket, int64 i64Timestamp, uint3
     // But partial SAck info will still be in the piggyback chunk
     int rc;
     _m.lock();
-    SAckChunkMutator scm = pPacket->addSAckChunk (_controlTSNHandler.getCumulativeTSN(), _reliableSequencedTSNHandler.getCumulativeTSN(), _reliableUnsequencedTSNHandler.getCumulativeTSN(), i64Timestamp, ui32BytesReceived);
+
+    SAckChunkMutator scm = pPacket->addSAckChunk (
+		_controlTSNHandler.getCumulativeTSN(), 
+		_reliableSequencedTSNHandler.getCumulativeTSN(), 
+		_reliableUnsequencedTSNHandler.getCumulativeTSN(), i64Timestamp, ui32BytesReceived);
     if (!scm.initializedWithoutErrors()) {
         checkAndLogMsg ("ACKManager::appendSAckInformation", Logger::L_MediumDetailDebug,
                         "failed to add SAckChunk to packet\n");
         _m.unlock();
         return -1;
     }
+
     scm.selectControlFlow();
     if (0 != (rc = _controlTSNHandler.appendTSNInformation (&scm))) {
         checkAndLogMsg ("ACKManager::appendACKInformation", Logger::L_MildError,
@@ -148,6 +158,7 @@ int ACKManager::appendACKInformation (Packet *pPacket, int64 i64Timestamp, uint3
         _m.unlock();
         return -2;
     }
+
     scm.selectReliableSequencedFlow();
     if (0 != (rc = _reliableSequencedTSNHandler.appendTSNInformation (&scm))) {
         checkAndLogMsg ("ACKManager::appendACKInformation", Logger::L_MildError,
@@ -155,6 +166,7 @@ int ACKManager::appendACKInformation (Packet *pPacket, int64 i64Timestamp, uint3
         _m.unlock();
         return -3;
     }
+
     scm.selectReliableUnsequencedFlow();
     if (0 != (rc = _reliableUnsequencedTSNHandler.appendTSNInformation (&scm))) {
         checkAndLogMsg ("ACKManager::appendACKInformation", Logger::L_MildError,
@@ -162,6 +174,7 @@ int ACKManager::appendACKInformation (Packet *pPacket, int64 i64Timestamp, uint3
         _m.unlock();
         return -4;
     }
+
     _m.unlock();
     return 0;
 }
@@ -172,12 +185,15 @@ int ACKManager::freeze (ObjectFreezer &objectFreezer)
         // return -1 is if objectFreezer.endObject() don't end with success
         return -2;
     }
+
     if (0 != _reliableSequencedTSNHandler.freeze (objectFreezer)) {
         return -3;
     }
+
     if (0 != _reliableUnsequencedTSNHandler.freeze (objectFreezer)) {
         return -4;
     }
+
     return 0;
 }
 
@@ -186,11 +202,14 @@ int ACKManager::defrost (ObjectDefroster &objectDefroster)
     if (0 != _controlTSNHandler.defrost (objectDefroster)) {
         return -2;
     }
+
     if (0 != _reliableSequencedTSNHandler.defrost (objectDefroster)) {
         return -3;
     }
+
     if (0 != _reliableUnsequencedTSNHandler.defrost (objectDefroster)) {
         return -4;
     }
+
     return 0;
 }

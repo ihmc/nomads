@@ -9,7 +9,7 @@
  * the memory block to grow, it is automatically moved, thereby preserving
  * existing data.
  *
- * To use the class more efficiently is to let it expand to the required size at
+ * To use the class more efficiently expand the array to the required size
  * first. For example, if it is known that 100 elements are to be inserted it is
  * possible to set the initial size to 100.
  *
@@ -51,7 +51,7 @@ namespace NOMADSUtil
             virtual ~AVList (void);
 
             /**
-             * Add methods, the return value is
+             * Add methods
              * @param pszAttrName
              * @param pszValue
              * @return 1 if there is an error, 0 otherwise
@@ -63,7 +63,7 @@ namespace NOMADSUtil
             int addPair (const char *pszAttrName, double dValue);
 
             /**
-             *
+             * Delete method
              * @param index
              * @return -1 if "index" is out of bounds, 0 otherwise
              */
@@ -75,7 +75,7 @@ namespace NOMADSUtil
             unsigned int getLength (void) const;
 
             /**
-             *
+             * Get methods
              * @param index
              * @return NULL if "index" is out of bounds.
              */
@@ -83,18 +83,20 @@ namespace NOMADSUtil
             const char * getValueByIndex (unsigned int uiIndex) const;
             const char * getValue (const char *pszAttrName) const;
 
+            /**
+               @returntrue if the vector is empty, false otherwise
+             */
             bool isEmpty (void) const;
 
             /**
              * Add the "second" list at the end of the first.
-             *
              * @param first
              * @param second
              */
             void concatLists (AVList *pFirst, AVList *pSecond);
 
             /**
-             *
+             * Add the "second" list at the end of a newly allocated one.
              * @param first
              * @param second
              * @return a new AVList created by the concatenation of the two

@@ -31,17 +31,17 @@ namespace ACMNetProxy
     InetAddr * const RemoteProxyInfo::getRemoteProxyInetAddr (ConnectorType connectorType) const
     {
         switch (connectorType) {
+        case CT_TCPSOCKET:
+            return const_cast<InetAddr * const> (&_remoteTCPServerAddr);
+        case CT_UDPSOCKET:
+            return const_cast<InetAddr * const> (&_remoteUDPServerAddr);
         case CT_MOCKETS:
             return const_cast<InetAddr * const> (&_remoteMocketsServerAddr);
-        case CT_SOCKET:
-            return const_cast<InetAddr * const> (&_remoteTCPServerAddr);
-        case CT_UDP:
-            return const_cast<InetAddr * const> (&_remoteUDPServerAddr);
         case CT_CSR:
             return const_cast<InetAddr * const> (&_remoteMocketsServerAddr);
         }
 
-        return NULL;
+        return nullptr;
     }
 
     const RemoteProxyInfo & RemoteProxyInfo::operator = (const RemoteProxyInfo &rhs)

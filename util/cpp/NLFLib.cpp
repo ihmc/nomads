@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -31,6 +31,7 @@
 #if defined (WIN32)
 	#include <sys/timeb.h>
     #include <io.h>
+#define NOMINMAX
 #include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX _MAX_PATH
@@ -238,7 +239,7 @@ bool NOMADSUtil::strNotNullAndEqual (const char *pszStringA, const char *pszStri
 {
     if ((pszStringA == NULL) || (pszStringB == NULL)) {
         return false;
-    }   
+    }
     int iLen = (int) strlen (pszStringA);
     if (iLen != ((int) strlen (pszStringB))) {
         // The strings have different lengths, they can not be equal
@@ -286,7 +287,7 @@ bool NOMADSUtil::wildcardStringCompare (const char *pszString, const char *pszTe
             pszTmp1--;
             while (*pszTmp2 != '\0') {
                 pszTmp2++;
-            }        
+            }
             pszTmp2--;
             for (; (pszTmp1 >= pszString) && (pszTmp2 >= pszTemplate); pszTmp1--, pszTmp2--) {
                 // Returns true if the template contains a wild card
@@ -317,7 +318,7 @@ bool NOMADSUtil::wildcardStringCompare (const char *pszString, const char *pszTe
                 return false;
             }
         }
-        // If the characters of the template are the same but the template's length is 
+        // If the characters of the template are the same but the template's length is
         // less than the string, it returns false.
         if (*pszTemplate != *pszString) {
             return false;
@@ -477,7 +478,7 @@ const char * NOMADSUtil::generateTimestamp (char *pszBuf, uint32 ui32BufSize)
     return pszBuf;
 }
 
-/** Expect a pointer to an empty string of PATH_MAX. If the dir exists, make sure that you can create a 
+/** Expect a pointer to an empty string of PATH_MAX. If the dir exists, make sure that you can create a
  *  temporary file in it, and return a unique temp file name, with prefix defined by pszPrefix.
  */
 const char * NOMADSUtil::getTempFilePath (char *pszBuf, const char *pszDirectory, const char *pszPrefix)
@@ -580,7 +581,7 @@ void NOMADSUtil::stripCRLF (char *pszBuf)
             pszBuf[i] = '\0';
         }
         i--;
-    } 
+    }
 }
 
 const char * NOMADSUtil::getLastOSErrorAsString (int iErrNum)
@@ -637,22 +638,22 @@ int NOMADSUtil::getline (char *s, int n, FILE *f) {
     }
 }
 
-/** 
- * 
+/**
+ *
  */
-void NOMADSUtil::printByteArray (const char *name, unsigned char *puc, int iLen) 
-{ 
+void NOMADSUtil::printByteArray (const char *name, unsigned char *puc, int iLen)
+{
     fprintf (stderr, "\n%s of length: %d\n", name, iLen);
     for (int i = 0; i < iLen;i++) {
         fprintf (stderr, "0x%x ", puc[i]);
-        if (i != 0 && (i + 1) % 12 == 0) { 
-            fprintf (stderr, "\n\n"); 
+        if (i != 0 && (i + 1) % 12 == 0) {
+            fprintf (stderr, "\n\n");
         }
-    }            
-    fprintf (stderr, "\n"); 
+    }
+    fprintf (stderr, "\n");
 }
 
-int NOMADSUtil::copyFile (const char *pszSrcFile, const char *pszDestFile) 
+int NOMADSUtil::copyFile (const char *pszSrcFile, const char *pszDestFile)
 {
     FILE *pSrcFile, *pDestFile;
     char szLine[512];
@@ -661,16 +662,16 @@ int NOMADSUtil::copyFile (const char *pszSrcFile, const char *pszDestFile)
     if ((pSrcFile = fopen (pszSrcFile, "r")) == NULL) {
         return -1;
     }
-    
+
     if ((pDestFile = fopen (pszDestFile, "w")) == NULL) {
         fclose (pSrcFile);
         return -2;
     }
-    
+
     while ((pszReturn = fgets (szLine, sizeof (szLine), pSrcFile)) != NULL) {
         fprintf (pDestFile, "%s", szLine);
     }
-        
+
     fclose (pSrcFile);
     fclose (pDestFile);
     return 0;
@@ -687,17 +688,17 @@ char * NOMADSUtil::strsub (char *pszSearchString, char *pszSearchPattern, char *
     char *pszTmpInitial = (char *)NULL;
     char *pszTempReplacePattern;
     char *pszTmpFinal;
-    
+
     int iSearchPatternLen = (int) strlen (pszSearchPattern);
     int iReplacePatternLen = (int) strlen (pszReplacePattern);
-    pszTmpInitial = (char *) malloc (3 * strlen (pszSearchString) + 
-        (((iReplacePatternLen - iSearchPatternLen) > 0)? 10 * (iReplacePatternLen - iSearchPatternLen):0));            
+    pszTmpInitial = (char *) malloc (3 * strlen (pszSearchString) +
+        (((iReplacePatternLen - iSearchPatternLen) > 0)? 10 * (iReplacePatternLen - iSearchPatternLen):0));
     for (i = 0; pszSearchString[i]; ) {
         if (bReplace && strncmp (pszSearchString + i, pszSearchPattern, iSearchPatternLen) == 0) {
             for (pszTempReplacePattern = pszReplacePattern; *pszTempReplacePattern; ) {
                 pszTmpInitial[iTempLen++] = *pszTempReplacePattern++;
             }
-            
+
             i += iSearchPatternLen ? iSearchPatternLen : 1;	/* avoid infinite recursion */
             if (bGlobal) {
                 bReplace = true;
@@ -715,10 +716,10 @@ char * NOMADSUtil::strsub (char *pszSearchString, char *pszSearchPattern, char *
 }
 
 int NOMADSUtil::minimum (int iFirstVal, int iSecondVal)
-{    	
+{
     if (iFirstVal < iSecondVal) {
         return iFirstVal;
-    } 
+    }
     return iSecondVal;
 }
 

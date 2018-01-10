@@ -22,7 +22,7 @@
 #include "Logger.h"
 
 #include "TCPConnTable.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 
 
 using namespace NOMADSUtil;
@@ -34,7 +34,7 @@ namespace ACMNetProxy
     Entry * const TCPConnTable::getEntry (uint16 ui16LocalID) const
     {
         if (ui16LocalID == 0) {
-            return NULL;
+            return nullptr;
         }
 
         _m.lock();
@@ -48,13 +48,13 @@ namespace ACMNetProxy
         }
         _m.unlock();
 
-        return NULL;
+        return nullptr;
     }
 
     Entry * const TCPConnTable::getEntry (uint16 ui16LocalID, uint16 ui16RemoteID) const
     {
         if ((ui16LocalID == 0) || (ui16RemoteID == 0)) {
-            return NULL;
+            return nullptr;
         }
 
         _m.lock();
@@ -69,13 +69,13 @@ namespace ACMNetProxy
         }
         _m.unlock();
 
-        return NULL;
+        return nullptr;
     }
 
-    Entry * const TCPConnTable::getEntry (uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort, 
+    Entry * const TCPConnTable::getEntry (uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort,
 		uint32 uint32AssignedPriority)
     {
-        Entry *pEntry = NULL;
+        Entry *pEntry = nullptr;
 
         _m.lock();
         // See if there is an entry for the specified parameters
@@ -120,7 +120,7 @@ namespace ACMNetProxy
             checkAndLogMsg ("TCPConnTable::getEntry", Logger::L_MildError,
                             "no slots available in the TCP Connection Table\n");
             _m.unlock();
-            return NULL;
+            return nullptr;
         }
         pEntry = &_entries[lNewIndex];
         pEntry->ui16ID = static_cast<uint16> (lNewIndex + 1);
@@ -151,10 +151,10 @@ namespace ACMNetProxy
 
         if (_entries.getHighestIndex() < 0) {
             _m.unlock();
-            return NULL;
+            return nullptr;
         }
 
-        Entry *pEntry = NULL;
+        Entry *pEntry = nullptr;
         if (_bIsCounterReset) {
             pEntry = &(_entries.get (_ui32NextIndex));
             ++_ui32NextIndex %= _entries.size();
@@ -176,7 +176,7 @@ namespace ACMNetProxy
         }
 
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
 
     Entry * const TCPConnTable::getNextActiveLocalEntry (void)
@@ -185,10 +185,10 @@ namespace ACMNetProxy
 
         if (_entries.getHighestIndex() < 0) {
             _m.unlock();
-            return NULL;
+            return nullptr;
         }
 
-        Entry *pEntry = NULL;
+        Entry *pEntry = nullptr;
         if (_bIsCounterReset) {
             pEntry = &(_entries.get (_ui32NextIndex));
             ++_ui32NextIndex %= _entries.size();
@@ -210,7 +210,7 @@ namespace ACMNetProxy
         }
 
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
 
     Entry * const TCPConnTable::getNextActiveRemoteEntry (void)
@@ -219,10 +219,10 @@ namespace ACMNetProxy
 
         if (_entries.getHighestIndex() < 0) {
             _m.unlock();
-            return NULL;
+            return nullptr;
         }
 
-        Entry *pEntry = NULL;
+        Entry *pEntry = nullptr;
         if (_bIsCounterReset) {
             pEntry = &(_entries.get (_ui32NextIndex));
             ++_ui32NextIndex %= _entries.size();
@@ -244,7 +244,7 @@ namespace ACMNetProxy
         }
 
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
 
     Entry * const TCPConnTable::getNextClosedLocalEntry (void)
@@ -253,10 +253,10 @@ namespace ACMNetProxy
 
         if (_entries.getHighestIndex() < 0) {
             _m.unlock();
-            return NULL;
+            return nullptr;
         }
 
-        Entry *pEntry = NULL;
+        Entry *pEntry = nullptr;
         if (_bIsCounterReset) {
             pEntry = &(_entries.get (_ui32NextIndex));
             ++_ui32NextIndex %= _entries.size();
@@ -276,7 +276,7 @@ namespace ACMNetProxy
         }
 
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
 
     uint16 TCPConnTable::getActiveLocalConnectionsCount (void) const
@@ -321,7 +321,7 @@ namespace ACMNetProxy
     {
         _m.lock();
 
-        const Entry *pEntry = NULL;
+        const Entry *pEntry = nullptr;
         uint32 ui32ActiveEntries = 0;
         long i = NetProxyApplicationParameters::ENTRIES_POOL_SIZE + 1;
         while (i <= _entries.getHighestIndex()) {

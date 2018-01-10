@@ -21,6 +21,9 @@
 JNIEXPORT jint JNICALL JNI_OnLoad (JavaVM *pJvm, void * pReserved);
         
 JNIEXPORT void JNICALL Java_us_ihmc_mockets_Mocket_init (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile);
+
+JNIEXPORT void JNICALL Java_us_ihmc_mockets_Mocket_initDtls (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile, jstring jsCertificatePath, jstring jsPrivateKeyPath);
+
 JNIEXPORT void JNICALL Java_us_ihmc_mockets_Mocket_dispose (JNIEnv *pEnv, jobject joThis);
 JNIEXPORT jint JNICALL Java_us_ihmc_mockets_Mocket_connectNative (JNIEnv *pEnv, jobject joThis, jstring jsRemoteHost,
                                                                    jint jiRemotePort);

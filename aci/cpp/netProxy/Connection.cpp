@@ -25,7 +25,7 @@
 #include "ConnectorReader.h"
 #include "ConnectionManager.h"
 #include "AutoConnectionEntry.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 #include "TCPManager.h"
 #include "PacketRouter.h"
 
@@ -36,15 +36,23 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
+    Connection::IncomingMessageHandler::~IncomingMessageHandler (void)
+    {
+        // Assuming Connector::_mConnectionsTable is locked
+        _pConnector->lockConnectionTable();
+        delete _pConnection;
+        _pConnector->unlockConnectionTable();
+    }
+
     void Connection::IncomingMessageHandler::run (void)
     {
         started();
-        
+
         int rc;
         uint32 ui32MsgSize, ui32BufLen = 0;
 
         while (!terminationRequested()) {
-            if ((rc = _pConnectorAdapter->receiveMessage (_ui8InBuf, sizeof (_ui8InBuf))) < 0) {
+            if ((rc = _pConnectorAdapter->receiveMessage (_ui8InBuf, sizeof(_ui8InBuf))) < 0) {
                 if (!terminationRequested()) {
                     if (_pConnectorAdapter->isConnected()) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
@@ -54,7 +62,7 @@ namespace ACMNetProxy
                     }
                     else {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_Info,
-                                        "connection closed by remote host; rc = %d\n", rc);
+                                        "connection closed by the remote host; rc = %d\n", rc);
                     }
                 }
                 break;
@@ -63,17 +71,13 @@ namespace ACMNetProxy
                 continue;
             }
 
-            ui32MsgSize = static_cast<uint32> (rc);
-            if (_mMessageHandlingMutex.lock() != Mutex::RC_Ok) {
-                setTerminatingResultCode (-2);
-                break;
-            }
             if (terminationRequested()) {
                 checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_Info,
-                                "connection closed by remote host; avoid processing received packet\n");
+                                "received termination request; avoid processing any received packet\n");
                 break;
             }
 
+            ui32MsgSize = static_cast<uint32> (rc);
             ProxyMessage *pMsg = (ProxyMessage*) _ui8InBuf;
             switch (pMsg->getMessageType()) {
                 case ProxyMessage::PMT_InitializeConnection:
@@ -86,7 +90,7 @@ namespace ACMNetProxy
                     _pConnection->updateRemoteProxyInformation (pICPM->_ui32ProxyUniqueID, pICPM->_ui16LocalMocketsServerPort, pICPM->_ui16LocalTCPServerPort,
                                                                 pICPM->_ui16LocalUDPServerPort, pMsg->getRemoteProxyReachability());
 
-                    _pPacketRouter->initializeRemoteConnection (pICPM->_ui32ProxyUniqueID, _pConnection->getConnectorType());
+                    _pPacketRouter->initializeRemoteConnection (pICPM->_ui32ProxyUniqueID, _pConnection->getConnectorType(), _pConnectorAdapter->getEncryptionType());
                     break;
                 }
 
@@ -113,7 +117,7 @@ namespace ACMNetProxy
                     _pConnection->updateRemoteProxyInformation (pICMPPM->_ui32ProxyUniqueID, pICMPPM->_ui16LocalMocketsServerPort, pICMPPM->_ui16LocalTCPServerPort,
                                                                 pICMPPM->_ui16LocalUDPServerPort, pICMPPM->getRemoteProxyReachability());
                     //Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pICMPPM->_ui32LocalIP), pICMPPM->_ui32ProxyUniqueID);
-                    
+
                     if ((pICMPPM->_ui8PacketTTL == 0) || ((pICMPPM->_ui8PacketTTL == 1) && !NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE)) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
                                         "the ICMP message contained in the ICMP ProxyMessage has reached a TTL value of %hhu "
@@ -169,7 +173,7 @@ namespace ACMNetProxy
                                     pMUDPDPM->getPayloadLen(), _pConnection->getRemoteProxyInetAddr()->getIPAsString(), pMUDPDPM->_ui32ProxyUniqueID);
 
                     unsigned char *pucBuf[1];
-                    const UDPHeader *pUDPHeader = NULL;
+                    const UDPHeader *pUDPHeader = nullptr;
                     uint16 ui16UDPDatagramOffset = 0;
                     _pConnection->updateRemoteProxyID (pMUDPDPM->_ui32ProxyUniqueID);
                     //Connection::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pMUDPDPM->_ui32LocalIP), pMUDPDPM->_ui32ProxyUniqueID);
@@ -267,7 +271,7 @@ namespace ACMNetProxy
                 case ProxyMessage::PMT_TCPData:
                 {
                     TCPDataProxyMessage *pTCPDPM = (TCPDataProxyMessage*) pMsg;
-                    if (ui32MsgSize <= sizeof (TCPDataProxyMessage)) {
+                    if (ui32MsgSize <= sizeof(TCPDataProxyMessage)) {
                         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_Warning,
                                         "received a TCPDataProxyMessage via %s that is too short or has no data\n",
                                         _pConnection->getConnectorTypeAsString());
@@ -314,6 +318,20 @@ namespace ACMNetProxy
                     break;
                 }
 
+                case ProxyMessage::PMT_TunnelPacket:
+                {
+                    TunnelPacketProxyMessage * pTPPM = (TunnelPacketProxyMessage *) pMsg;
+                    checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_LowDetailDebug,
+                                    "received a TunnelPacketProxyMessage via %s from remote proxy\n",
+                                    _pConnection->getConnectorTypeAsString());
+
+                    if (0 != (rc = PacketRouter::sendTunneledPacketToHost (PacketRouter::_pInternalInterface, pTPPM->_aui8Data, pTPPM->getPayloadLen()))) {
+                        checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
+                                        "sendPacketToHost() failed with rc = %d\n", rc);
+                    }
+                    break;
+                }
+
                 default:
                 {
                     checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_Warning,
@@ -321,7 +339,6 @@ namespace ACMNetProxy
                                     _pConnection->getConnectorTypeAsString(), (int) pMsg->getMessageType(), rc);
                 }
             }
-            _mMessageHandlingMutex.unlock();
         }
         checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_Info,
                         "Incoming Message Handler terminated; termination code is %d\n",
@@ -331,75 +348,70 @@ namespace ACMNetProxy
         delete this;
     }
 
-    Connection::BackgroundConnectionThread::~BackgroundConnectionThread (void)
-    {
-        if (_pConnection) {
-            _pConnection->connectionThreadTerminating();
-            _pConnection = NULL;
-        }
-
-        if (_bDeleteConnectorAdapter) {
-            delete _pConnectorAdapter;
-        }
-        _pConnectorAdapter = NULL;
-    }
-
     void Connection::BackgroundConnectionThread::run (void)
     {
         int rc;
-        if (0 != (rc = _pConnection->connectSync())) {
+
+        _pConnection->_mBCThread.lock();
+        if (0 != (rc = _pConnection->doConnect())) {
             checkAndLogMsg ("MocketConnection::BackgroundConnectionThread::run", Logger::L_MildError,
-                            "connectSync() failed with rc = %d\n", rc);
+                            "doConnect() failed with rc = %d\n", rc);
         }
+        _pConnection->connectionThreadTerminating();
+        _pConnection->_mBCThread.unlock();
 
         delete this;
     }
 
     Connection::Connection (ConnectorAdapter * const pConnectorAdapter, Connector * const pConnector) :
-        _connectorType (pConnectorAdapter->getConnectorType()), _localHostRole (CHR_Server), _status ((_connectorType == CT_UDP) ? CS_Connected : CS_NotConnected),
-        _ui32RemoteProxyID (0), _remoteProxyInetAddr (*(pConnectorAdapter->getRemoteInetAddr())), _pConnectorAdapter (pConnectorAdapter), _pConnector (pConnector),
-        _pIncomingMessageHandler (new IncomingMessageHandler (this, pConnectorAdapter)), _pBCThread (NULL), _cvBCThread (&_mBCThread), _bDeleteRequested (false)
+        _connectorType (pConnectorAdapter->getConnectorType()), _encryptionType (pConnectorAdapter->getEncryptionType()), _localHostRole (CHR_Server),
+        _status ((_connectorType == CT_UDPSOCKET) ? CS_Connected : CS_NotConnected), _ui32RemoteProxyID (0), _remoteProxyInetAddr (*(pConnectorAdapter->getRemoteInetAddr())),
+        _pConnectorAdapter (pConnectorAdapter), _pConnector (pConnector), _pIncomingMessageHandler (new IncomingMessageHandler (this, pConnectorAdapter, pConnector)),
+        _pBCThread (nullptr), _cvBCThread (&_mBCThread), _bDeleteRequested (false)
     {
         memset (_pucMultipleUDPDatagramsBuffer, 0, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
         pConnectorAdapter->registerPeerUnreachableWarningCallback (peerUnreachableWarning, this);
     }
 
-    Connection::Connection (ConnectorType connectorType, uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, Connector * const pConnector) :
-        _connectorType (connectorType), _localHostRole (CHR_Client), _status ((_connectorType == CT_UDP) ? CS_Connected : CS_NotConnected), _ui32RemoteProxyID (ui32RemoteProxyID),
-        _remoteProxyInetAddr (*pRemoteProxyInetAddr), _pConnectorAdapter (ConnectorAdapter::ConnectorAdapterFactory (connectorType, pRemoteProxyInetAddr)),
-        _pConnector (pConnector), _pIncomingMessageHandler ((_connectorType == CT_UDP) ? NULL : new IncomingMessageHandler (this, NULL)),
-        _pBCThread (NULL), _cvBCThread (&_mBCThread), _bDeleteRequested (false) { }
+    Connection::Connection (ConnectorType connectorType, EncryptionType encryptionType, uint32 ui32RemoteProxyID,
+                            const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, Connector * const pConnector) :
+        _connectorType (connectorType), _encryptionType (encryptionType), _localHostRole (CHR_Client),
+        _status ((_connectorType == CT_UDPSOCKET) ? CS_Connected : CS_NotConnected),
+        _ui32RemoteProxyID (ui32RemoteProxyID), _remoteProxyInetAddr (*pRemoteProxyInetAddr),
+        _pConnectorAdapter (ConnectorAdapter::ConnectorAdapterFactory (connectorType, encryptionType, pRemoteProxyInetAddr)), _pConnector (pConnector),
+        _pIncomingMessageHandler ((_connectorType == CT_UDPSOCKET) ? nullptr : new IncomingMessageHandler (this, nullptr, pConnector)),
+        _pBCThread (nullptr), _cvBCThread (&_mBCThread), _bDeleteRequested (false) { }
 
     Connection::~Connection (void)
     {
-        _mConnection.lock();
+        // Assuming Connector::_mConnectionsTable is locked
+        std::lock_guard<std::mutex> lg (_mConnection);
 
         _bDeleteRequested = true;
         setStatusAsDisconnected();
-        if (getConnectorType() != CT_UDP) {
+        if (getConnectorType() != CT_UDPSOCKET) {
             _pIncomingMessageHandler->requestTermination();
-            _pIncomingMessageHandler->lockMessageHandlingMutex();
             if (_pConnectorAdapter) {
                 _pConnectorAdapter->shutdown (true, true);
                 _pConnectorAdapter->close();
+                _mBCThread.lock();
                 if (_pBCThread) {
-                    _pBCThread->_pConnection = NULL;
+                    _pBCThread->_pConnection = nullptr;
                     _pBCThread->_bDeleteConnectorAdapter = true;
-                    _pConnectorAdapter = NULL;      // This prevents the delete below to have any effect
+                    _pConnectorAdapter = nullptr;      // This prevents the delete below to have any effect
                 }
+                _mBCThread.unlock();
                 delete _pConnectorAdapter;
             }
-            _pIncomingMessageHandler->executionTerminated();
-            _pIncomingMessageHandler->unlockMessageHandlingMutex();
+            _pIncomingMessageHandler->executionTerminated();        // Avoids that ~IncomingMessageHandler invokes delete on this Connection instance
 
-            if (_pConnector) {
-                const Connection * const pOldConnection = _pConnector->removeFromConnectionsTable (this);
-                if (pOldConnection && (pOldConnection != this)) {
-                    checkAndLogMsg ("Connection::~Connection", Logger::L_Warning,
-                                    "found a different Connection instance to the remote NetProxy with address %s:%hu in the ConnectionsTable of the %sConnector "
-                                    "(a new instance to try and open a new connection to the remote NetProxy was created and added to the table)\n",
-                                    getRemoteProxyInetAddr()->getIPAsString(), getRemoteProxyInetAddr()->getPort(), getConnectorTypeAsString());
-                }
+            const Connection * const pOldConnection = _pConnector->removeFromConnectionsTable (this);
+            if (pOldConnection && (pOldConnection != this)) {
+                checkAndLogMsg ("Connection::~Connection", Logger::L_MildError,
+                                "found a different Connection instance to the remote NetProxy with address %s:%hu in the ConnectionsTable "
+                                "of the %sConnector (a new instance to try and open a new connection to the remote NetProxy was created "
+                                "and added to the table); this should NEVER happen\n", getRemoteProxyInetAddr()->getIPAsString(),
+                                getRemoteProxyInetAddr()->getPort(), getConnectorTypeAsString());
             }
             if (!_pConnectionManager->removeActiveConnectionFromTable (this)) {
                 checkAndLogMsg ("Connection::~Connection", Logger::L_LowDetailDebug,
@@ -407,10 +419,10 @@ namespace ACMNetProxy
                                 "ActiveConnectionTable; removeActiveConnectionFromTable() failed\n", getRemoteProxyID(),
                                 getRemoteProxyInetAddr()->getIPAsString(), getRemoteProxyInetAddr()->getPort());
             }
-
             AutoConnectionEntry * const pAutoConnectionEntry = _pConnectionManager->getAutoConnectionEntryToRemoteProxyID (getRemoteProxyID());
-            if (pAutoConnectionEntry && (pAutoConnectionEntry->getConnectorType() == getConnectorType())) {
-                pAutoConnectionEntry->resetSynch();
+            if (pAutoConnectionEntry && (pAutoConnectionEntry->getConnectorType() == getConnectorType()) &&
+                isEncryptionTypeInDescriptor (pAutoConnectionEntry->getConnectionEncryptionDescriptor(), getEncryptionType())) {
+                pAutoConnectionEntry->resetSynch (getEncryptionType());
                 checkAndLogMsg ("Connection::~Connection", Logger::L_MediumDetailDebug,
                                 "successfully reset synchronization of the AutoConnectionEntry instance for the remote NetProxy with UniqueID %u and address "
                                 "%s:%hu\n", getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAsString(), getRemoteProxyInetAddr()->getPort());
@@ -426,7 +438,7 @@ namespace ACMNetProxy
         while (pEntry) {
             if (pEntry->getConnection() == this) {
                 pEntry->lock();
-                pEntry->setConnection (NULL);
+                pEntry->setConnection (nullptr);
                 checkAndLogMsg ("Connection::~Connection", Logger::L_MediumDetailDebug,
                                 "L%hu-R%hu: removed reference to connection instance with remote proxy at address %s from the entry in the TCPConnTable\n",
                                 pEntry->ui16ID, pEntry->ui16RemoteID, getRemoteProxyInetAddr()->getIPAsString());
@@ -436,13 +448,12 @@ namespace ACMNetProxy
         }
         _pGUIStatsManager->deleteStatistics (_connectorType, getRemoteProxyID());
 
-        if (_connectorType != CT_UDP) {
+        if (_connectorType != CT_UDPSOCKET) {
             checkAndLogMsg ("Connection::~Connection", Logger::L_Info,
                             "%sConnection to remote proxy at address %s:%hu terminated\n",
                             getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
                             _remoteProxyInetAddr.getPort());
         }
-        _mConnection.unlock();
     }
 
     int Connection::startMessageHandler (void)
@@ -464,95 +475,20 @@ namespace ACMNetProxy
     int Connection::connectSync (void)
     {
         _mBCThread.lock();
+
         if ((_status == CS_Connecting) || (_status == CS_Connected)) {
             checkAndLogMsg ("Connection::connectSync", Logger::L_MildError,
-                            "cannot attempt to establish a new connection while already in status %d\n", (int) _status);
+                            "cannot attempt to establish a new connection while already in status %d\n",
+                            (int) _status);
             _mBCThread.unlock();
             return -1;
         }
-        if (!_pConnectorAdapter) {
-            checkAndLogMsg ("Connection::connectSync", Logger::L_MildError,
-                            "cannot establish connection: Connector not initialized\n");
-            _mBCThread.unlock();
-            return -2;
-        }
-
-        int rc;
         _status = CS_Connecting;
-        const String sConfigFile (_pConnectionManager->getMocketsConfigFileForProxyWithID (getRemoteProxyID()));
-        if (sConfigFile.length() > 0) {
-            _pConnectorAdapter->readConfigFile (sConfigFile);
-        }
+        int res = doConnect();
 
-        if (!_pConnectorAdapter->isConnected()) {
-            InetAddr remoteProxyInetAddress (_remoteProxyInetAddr.getIPAddress(), _remoteProxyInetAddr.getPort());
-            if (0 != (rc = _pConnectorAdapter->connect (remoteProxyInetAddress.getIPAsString(), remoteProxyInetAddress.getPort()))) {
-                checkAndLogMsg ("Connection::connectSync", Logger::L_MildError,
-                                "failed to connect to host at address %s:%hu; rc = %d\n",
-                                remoteProxyInetAddress.getIPAsString(), remoteProxyInetAddress.getPort(), rc);
-                if (_bDeleteRequested) {
-                    // Upon return from connect(), regardless it was successful or not, check if deletion was requested
-                    _mBCThread.unlock();
-                    return 0;
-                }
-                _status = CS_ConnectionFailed;
-                _pConnectionManager->removeActiveConnectionFromTable (this);        // Just to ensure consistency
-                _mBCThread.unlock();
-                return -3;
-            }
-            if (_bDeleteRequested) {
-                // Upon return from connect(), regardless it was successful or not, check if deletion was requested
-                _mBCThread.unlock();
-                return 0;
-            }
-        }
-        else {
-            checkAndLogMsg ("Connection::connectSync", Logger::L_Warning,
-                            "%s connection to remote NetProxy on host %s:%hu was found to be already established\n",
-                            _pConnectorAdapter->getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
-                            _remoteProxyInetAddr.getPort());
-            _status = CS_Connected;
-            _pConnectionManager->addNewActiveConnectionToRemoteProxy (this);
-            _mBCThread.unlock();
-            return 0;
-        }
-
-        _status = CS_Connected;
-        _pConnectorAdapter->registerPeerUnreachableWarningCallback (peerUnreachableWarning, this);
-        _pIncomingMessageHandler->setConnectorAdapter (_pConnectorAdapter);
-        if (0 != startMessageHandler()) {
-            checkAndLogMsg ("Connection::connectSync", Logger::L_MildError,
-                            "impossible to start the IncomingMessageHandler thread for opened "
-                            "connection via %s to the remote NetProxy at address %s:%hu\n",
-                            _pConnectorAdapter->getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
-                            _remoteProxyInetAddr.getPort());
-            _mBCThread.unlock();
-            return -4;
-        }
         _mBCThread.unlock();
 
-        /*!!*/// Here there is a short amount of time during which the new Connection would be the actual active Connection used to reach the remote NetProxy
-        Connection * const pOldConnection = _pConnectionManager->addNewActiveConnectionToRemoteProxy (this);
-        if (pOldConnection) {
-            /* The remote NetProxy had already established a connection itself, and we also have already received at least one message from it
-             * --> add back the old connection and delete the new one to maintain only one connection to each NetProxy. Note that if we close
-             * the new connection without sending any packets, there is no risk that the remote NetProxy will also attempt to terminate it. */
-            _pConnectionManager->addNewActiveConnectionToRemoteProxy (pOldConnection);
-            _pIncomingMessageHandler->requestTermination();
-            checkAndLogMsg ("Connection::connectSync", Logger::L_Warning,
-                            "a new connection to the remote NetProxy with UniqueID %u and address %s:%hu was established via %s, but the remote "
-                            "NetProxy had already established and sent data over another connection; closing the newly established connection\n",
-                            getRemoteProxyID(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(),
-                            _pConnectorAdapter->getConnectorTypeAsString());
-            return -5;
-        }
-        checkAndLogMsg ("Connection::connectSync", Logger::L_Info,
-                        "established a new connection via %s to the remote NetProxy at address %s:%hu\n",
-                        _pConnectorAdapter->getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
-                        _remoteProxyInetAddr.getPort());
-        PacketRouter::wakeUpAutoConnectionAndRemoteTransmitterThreads();
-
-        return 0;
+        return res;
     }
 
     int Connection::connectAsync (void)
@@ -570,9 +506,89 @@ namespace ACMNetProxy
             _mBCThread.unlock();
             return -2;
         }
+
         _pBCThread = new BackgroundConnectionThread (this);
+        _pBCThread->setName ("BackgroundConnection Thread");
+        _status = CS_Connecting;
         _pBCThread->start();
         _mBCThread.unlock();
+
+        return 0;
+    }
+
+    // Assume lock is already acquired by caller!
+    int Connection::doConnect (void)
+    {
+        if (!_pConnectorAdapter) {
+            checkAndLogMsg ("Connection::doConnect", Logger::L_MildError,
+                            "cannot establish connection: Connector not initialized\n");
+            return -1;
+        }
+
+        int rc;
+        const String sConfigFile (_pConnectionManager->getMocketsConfigFileForProxyWithID (getRemoteProxyID()));
+        if (sConfigFile.length() > 0) {
+            _pConnectorAdapter->readConfigFile (sConfigFile);
+        }
+
+        if (!_pConnectorAdapter->isConnected()) {
+            InetAddr remoteProxyInetAddress (_remoteProxyInetAddr.getIPAddress(), _remoteProxyInetAddr.getPort());
+            if (0 != (rc = _pConnectorAdapter->connect (remoteProxyInetAddress.getIPAsString(), remoteProxyInetAddress.getPort()))) {
+                checkAndLogMsg ("Connection::doConnect", Logger::L_MildError,
+                                "failed to connect to host at address %s:%hu; rc = %d\n",
+                                remoteProxyInetAddress.getIPAsString(), remoteProxyInetAddress.getPort(), rc);
+                if (_bDeleteRequested) {
+                    // Upon return from connect(), regardless it was successful or not, check if deletion was requested
+                    return 0;
+                }
+                _status = CS_ConnectionFailed;
+                _pConnectionManager->removeActiveConnectionFromTable (this);        // Just to ensure consistency
+                return -2;
+            }
+            if (_bDeleteRequested) {
+                // Upon return from connect(), regardless it was successful or not, check if deletion was requested
+                return 0;
+            }
+        }
+        else {
+            checkAndLogMsg ("Connection::doConnect", Logger::L_Warning,
+                            "%s connection to remote NetProxy on host %s:%hu was found to be already established\n",
+                            _pConnectorAdapter->getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
+                            _remoteProxyInetAddr.getPort());
+            _status = CS_Connected;
+            _pConnectionManager->addNewActiveConnectionToRemoteProxy (this);
+            return 0;
+        }
+
+        _status = CS_Connected;
+        _pConnectorAdapter->registerPeerUnreachableWarningCallback (peerUnreachableWarning, this);
+        _pIncomingMessageHandler->setConnectorAdapter (_pConnectorAdapter);
+        if (0 != startMessageHandler()) {
+            checkAndLogMsg ("Connection::doConnect", Logger::L_MildError,
+                            "impossible to start the IncomingMessageHandler thread for opened "
+                            "connection via %s to the remote NetProxy at address %s:%hu\n",
+                            _pConnectorAdapter->getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
+                            _remoteProxyInetAddr.getPort());
+            return -3;
+        }
+
+        if (_pConnectionManager->addNewActiveConnectionToRemoteProxyIfNone (this) == this) {
+            /* The remote NetProxy had already established a connection itself, and we also have already received at least one message from it
+            * --> delete the new one to maintain only one connection to each NetProxy. Note that if we close the new connection without
+            * sending any packets, there is no risk that the remote NetProxy will also attempt to terminate it. */
+            _pIncomingMessageHandler->requestTermination();
+            checkAndLogMsg ("Connection::doConnect", Logger::L_Warning,
+                            "a new connection to the remote NetProxy with UniqueID %u and address %s:%hu was established via %s, but the remote "
+                            "NetProxy had already established and sent data over another connection; closing the newly established connection\n",
+                            getRemoteProxyID(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(),
+                            _pConnectorAdapter->getConnectorTypeAsString());
+            return -4;
+        }
+        checkAndLogMsg ("Connection::doConnect", Logger::L_Info,
+                        "established a new connection via %s to the remote NetProxy at address %s:%hu\n",
+                        _pConnectorAdapter->getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
+                        _remoteProxyInetAddr.getPort());
+        PacketRouter::wakeUpAutoConnectionAndRemoteTransmitterThreads();
 
         return 0;
     }
@@ -584,8 +600,10 @@ namespace ACMNetProxy
         }
 
         // Synchronize with the BackgroundConnectionThread
-        _mBCThread.lock();
-        _mBCThread.unlock();
+        while (_status == CS_Connecting) {
+            _mBCThread.lock();
+            _mBCThread.unlock();
+        }
 
         return isConnected() ? 0 : -1;
     }
@@ -595,26 +613,32 @@ namespace ACMNetProxy
         if (!_pConnectorAdapter) {
             return -1;
         }
+        if (!pRemoteProxyInetAddr) {
+            checkAndLogMsg ("Connection::openConnectionWithRemoteProxy", Logger::L_MildError,
+                            "remoteProxyInetAddress is NULL when trying to send an InitializeConnection ProxyMessage via %s\n",
+                            getConnectorTypeAsString());
+            return -2;
+        }
         else if (!isConnected()) {
             checkAndLogMsg ("Connection::openConnectionWithRemoteProxy", Logger::L_MildError,
                             "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
                             "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
-                            _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
-            return -2;
+                            pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), getRemoteProxyID());
+            return -3;
         }
 
         int rc;
         InitializeConnectionProxyMessage iCPM (NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, NetProxyApplicationParameters::MOCKET_SERVER_PORT,
                                                NetProxyApplicationParameters::TCP_SERVER_PORT, NetProxyApplicationParameters::UDP_SERVER_PORT, bLocalReachabilityFromRemote);
-        if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, 0, true, true, &iCPM, sizeof (InitializeConnectionProxyMessage)))) {
+        if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, 0, true, true, &iCPM, sizeof(InitializeConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::openConnectionWithRemoteProxy", Logger::L_MildError,
                             "send() of an InitializeConnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
-                            getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
-            return -3;
+                            getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), rc);
+            return -4;
         }
         checkAndLogMsg ("Connection::openConnectionWithRemoteProxy", Logger::L_HighDetailDebug,
-                        "successfully sent an InitializeConnectionProxyMessage via %s to the remote NetProxy with address <%s:%hu>\n",
-                        getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
+                        "successfully sent an InitializeConnection ProxyMessage via %s to the remote NetProxy with address <%s:%hu>\n",
+                        getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort());
 
         return 0;
     }
@@ -624,43 +648,92 @@ namespace ACMNetProxy
         if (!_pConnectorAdapter) {
             return -1;
         }
+        if (!pRemoteProxyInetAddr) {
+            checkAndLogMsg ("Connection::confirmOpenedConnectionWithRemoteProxy", Logger::L_MildError,
+                            "remoteProxyInetAddress is NULL when trying to send a ConnectionInitialized ProxyMessage via %s\n",
+                            getConnectorTypeAsString());
+            return -2;
+        }
         else if (!isConnected()) {
             checkAndLogMsg ("Connection::confirmOpenedConnectionWithRemoteProxy", Logger::L_MildError,
                             "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
                             "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
-                            _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
-            return -2;
+                            pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), getRemoteProxyID());
+            return -3;
         }
 
         int rc;
         ConnectionInitializedProxyMessage cIPM (NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, NetProxyApplicationParameters::MOCKET_SERVER_PORT,
                                                 NetProxyApplicationParameters::TCP_SERVER_PORT, NetProxyApplicationParameters::UDP_SERVER_PORT, bLocalReachabilityFromRemote);
-        if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, 0, true, true, &cIPM, sizeof (ConnectionInitializedProxyMessage)))) {
+        if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, 0, true, true, &cIPM, sizeof(ConnectionInitializedProxyMessage)))) {
             checkAndLogMsg ("Connection::confirmOpenedConnectionWithRemoteProxy", Logger::L_MildError,
                             "send() of a ConnectionInitialized ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
-                            getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
-            return -3;
+                            getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), rc);
+            return -4;
         }
         checkAndLogMsg ("Connection::confirmOpenedConnectionWithRemoteProxy", Logger::L_HighDetailDebug,
-                        "successfully sent a ConnectionInitializedProxyMessage via %s to the remote NetProxy at address <%s:%hu>\n",
-                        getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
+                        "successfully sent a ConnectionInitialized ProxyMessage via %s to the remote NetProxy at address <%s:%hu>\n",
+                        getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort());
 
         return 0;
     }
 
-    int Connection::sendICMPProxyMessageToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalSourceIP,
-                                                      uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL, const uint8 * const pui8Buf, uint16 ui16BufLen, ProxyMessage::Protocol ui8PMProtocol,
-                                                      bool bLocalReachabilityFromRemote)
+    int Connection::tunnelEthernetPacket (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32RemoteDestinationIP,
+                                          const uint8 * const pui8Buf, uint16 ui16BufLen)
+    {
+        int rc;
+        if (!_pConnectorAdapter) {
+            return -1;
+        }
+        if (!pRemoteProxyInetAddr) {
+            checkAndLogMsg ("Connection::tunnelEthernetPacket", Logger::L_MildError,
+                            "remoteProxyInetAddress is NULL when trying to send a %hu bytes long packet via %s\n",
+                            ui16BufLen, getConnectorTypeAsString());
+            return -2;
+        }
+        if (!isConnected()) {
+            checkAndLogMsg ("Connection::tunnelEthernetPacket", Logger::L_MildError,
+                            "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
+                            "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
+                            pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), getRemoteProxyID());
+            return -3;
+        }
+
+        TunnelPacketProxyMessage tPPM (ui16BufLen);
+        if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, false, false, &tPPM,
+                                                  sizeof(TunnelPacketProxyMessage), pui8Buf, tPPM.getPayloadLen(), nullptr))) {
+            checkAndLogMsg ("Connection::tunnelEthernetPacket", Logger::L_MildError,
+                            "gsend() of an TunnelPacketProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
+                            getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), rc);
+            return -4;
+        }
+        checkAndLogMsg ("Connection::tunnelEthernetPacket", Logger::L_HighDetailDebug,
+                        "successfully sent a TunnelPacketProxyMessage via %s addressed to the remote NetProxy at address <%s:%hu>\n",
+                        getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort());
+
+        return 0;
+    }
+
+    int Connection::sendICMPProxyMessageToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH,
+                                                      uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL, const uint8 * const pui8Buf,
+                                                      uint16 ui16BufLen, ProxyMessage::Protocol ui8PMProtocol, bool bLocalReachabilityFromRemote)
     {
         if (!_pConnectorAdapter) {
             return -1;
         }
-        else if (!isConnected()) {
+        if (!pRemoteProxyInetAddr) {
+            checkAndLogMsg ("Connection::sendICMPProxyMessageToRemoteHost", Logger::L_MildError,
+                            "remoteProxyInetAddress is NULL when trying to send an ICMP ProxyMessage "
+                            "with type %hhu, code %hhu via %s\n", ui8Type, ui8Code,
+                            getConnectorTypeAsString());
+            return -2;
+        }
+        if (!isConnected()) {
             checkAndLogMsg ("Connection::sendICMPProxyMessageToRemoteHost", Logger::L_MildError,
                             "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
                             "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
-                            _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
-            return -2;
+                            pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), getRemoteProxyID());
+            return -3;
         }
 
         int rc;
@@ -669,22 +742,22 @@ namespace ACMNetProxy
         ICMPProxyMessage iCMPPM (ui16BufLen, ui8Type, ui8Code, ui32RoH, ui32LocalSourceIP, ui32RemoteDestinationIP, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
                                  NetProxyApplicationParameters::MOCKET_SERVER_PORT, NetProxyApplicationParameters::TCP_SERVER_PORT,
                                  NetProxyApplicationParameters::UDP_SERVER_PORT, ui8PacketTTL, bLocalReachabilityFromRemote);
-        if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &iCMPPM, sizeof (ICMPProxyMessage),
-                                                  pui8Buf, iCMPPM._ui16PayloadLen, (const void * const) NULL))) {
+        if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &iCMPPM, sizeof(ICMPProxyMessage),
+                                                  pui8Buf, iCMPPM._ui16PayloadLen, nullptr))) {
             checkAndLogMsg ("Connection::sendICMPProxyMessageToRemoteHost", Logger::L_MildError,
                             "gsend() of an ICMPProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
-                            getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
-            return -3;
+                            getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), rc);
+            return -4;
         }
         checkAndLogMsg ("Connection::sendICMPProxyMessageToRemoteHost", Logger::L_MediumDetailDebug,
-                        "successfully sent an ICMPProxyMessage via %s addressed to the remote NetProxy at address <%s:%hu> with parameters: "
-                        "bReliable = %s, bSequenced = %s\n", getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
-                        _remoteProxyInetAddr.getPort(), bReliable ? "true" : "false", bSequenced ? "true" : "false");
+                        "successfully sent an ICMP ProxyMessage via %s addressed to the remote NetProxy at address <%s:%hu> with parameters: "
+                        "bReliable = %s, bSequenced = %s\n", getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(),
+                        pRemoteProxyInetAddr->getPort(), bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
-        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                              getRemoteProxyInetAddr()->getPort(), PT_ICMP, sizeof (ICMPHeader) + ui16BufLen);
-        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_ICMP, sizeof (ICMPProxyMessage) + iCMPPM._ui16PayloadLen);
+        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                              pRemoteProxyInetAddr->getPort(), PT_ICMP, sizeof(ICMPHeader) + ui16BufLen);
+        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                               pRemoteProxyInetAddr->getPort(), PT_ICMP, sizeof(ICMPProxyMessage) + iCMPPM._ui16PayloadLen);
 
         return 0;
     }
@@ -696,12 +769,19 @@ namespace ACMNetProxy
         if (!_pConnectorAdapter) {
             return -1;
         }
+        if (!pRemoteProxyInetAddr) {
+            checkAndLogMsg ("Connection::sendUDPUnicastPacketToRemoteHost", Logger::L_MildError,
+                            "remoteProxyInetAddress is NULL when trying to send a UDPUnicastData ProxyMessage via %s "
+                            "to the remote host with IP address %s\n", getConnectorTypeAsString(),
+                            InetAddr(ui32RemoteDestinationIP).getIPAsString());
+            return -2;
+        }
         else if (!isConnected()) {
             checkAndLogMsg ("Connection::sendUDPUnicastPacketToRemoteHost", Logger::L_MildError,
                             "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
                             "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
-                            _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
-            return -2;
+                            pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), getRemoteProxyID());
+            return -3;
         }
 
         int rc;
@@ -711,34 +791,41 @@ namespace ACMNetProxy
                                             ui8PacketTTL, &CompressionSetting::DefaultNOCompressionSetting);
 
         // Applying compression if convenient
-        unsigned char *pucBuf[1];
+        unsigned char *pucBuf[1], *pucBytesToSend = const_cast<unsigned char *> (pPacket);
         unsigned int uiBufLen = 0;
         ConnectorWriter * const pConnectorWriter = ConnectorWriter::getAndLockUPDConnectorWriter (pCompressionSetting);
         if (0 == pConnectorWriter->writeDataAndResetWriter (pPacket, ui16PacketLen, pucBuf, uiBufLen)) {
             if ((uiBufLen > 0) && (uiBufLen < ui16PacketLen)) {
+                pucBytesToSend = pucBuf[0];
                 udpUDPM._ui16PayloadLen = uiBufLen;
                 udpUDPM._ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
+
+                checkAndLogMsg ("Connection::sendUDPUnicastPacketToRemoteHost", Logger::L_MediumDetailDebug,
+                                "the compressed datagram is %u bytes long, which is less than the original packet of %hu "
+                                "bytes in size; NetProxy will send the datagram compressed through %s level $hhu\n",
+                                uiBufLen, ui16PacketLen, pCompressionSetting->getCompressionTypeAsString(),
+                                pCompressionSetting->getCompressionLevel());
             }
         }
-        if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &udpUDPM, sizeof (UDPUnicastDataProxyMessage),
-                                                  pucBuf[0], udpUDPM._ui16PayloadLen, (const void * const) NULL))) {
+        if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &udpUDPM,
+                                                  sizeof(UDPUnicastDataProxyMessage), pucBytesToSend, udpUDPM._ui16PayloadLen, nullptr))) {
             checkAndLogMsg ("Connection::sendUDPUnicastPacketToRemoteHost", Logger::L_MildError,
                             "gsend() of a UDPUnicastData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
-                            getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
+                            getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), rc);
             pConnectorWriter->unlockConnectorWriter();
-            return -3;
+            return -4;
         }
         pConnectorWriter->unlockConnectorWriter();
         checkAndLogMsg ("Connection::sendUDPUnicastPacketToRemoteHost", Logger::L_MediumDetailDebug,
                         "successfully sent a UDPUnicastData ProxyMessage via %s with %hu bytes of data "
                         "(%hu bytes before compression, if any) to the remote NetProxy at address <%s:%hu>\n",
                         getConnectorTypeAsString(), udpUDPM._ui16PayloadLen, ui16PacketLen,
-                        _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
+                        pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort());
 
-        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                              getRemoteProxyInetAddr()->getPort(), PT_UDP, ui16PacketLen);
-        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (UDPUnicastDataProxyMessage) + udpUDPM._ui16PayloadLen);
+        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                              pRemoteProxyInetAddr->getPort(), PT_UDP, ui16PacketLen);
+        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                               pRemoteProxyInetAddr->getPort(), PT_UDP, sizeof(UDPUnicastDataProxyMessage) + udpUDPM._ui16PayloadLen);
 
         return 0;
     }
@@ -749,21 +836,28 @@ namespace ACMNetProxy
         if (!_pConnectorAdapter) {
             return -1;
         }
+        if (!pRemoteProxyInetAddr) {
+            checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
+                            "remoteProxyInetAddress is NULL when trying to send a MultipleUDPDatagram ProxyMessage via %s "
+                            "to the remote host with IP address %s\n", getConnectorTypeAsString(),
+                            InetAddr(ui32RemoteDestinationIP).getIPAsString());
+            return -2;
+        }
         else if (!isConnected()) {
             checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
                             "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
                             "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
-                            _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
-            return -2;
+                            pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), getRemoteProxyID());
+            return -3;
         }
 
         int rc;
         const int iPacketsNum = pUDPDatagramsQueue->size();
-        if ((sizeof (MultipleUDPDatagramsProxyMessage) + iPacketsNum + pUDPDatagramsQueue->getEnqueuedBytesCount()) > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
+        if ((sizeof(MultipleUDPDatagramsProxyMessage) + iPacketsNum + pUDPDatagramsQueue->getEnqueuedBytesCount()) > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
             checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
                             "impossible to wrap together %d UDP Datagrams for a total of %u bytes; buffer is only %hu bytes long\n",
                             pUDPDatagramsQueue->size(), pUDPDatagramsQueue->getEnqueuedBytesCount(), NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-            return -3;
+            return -4;
         }
 
         bool bReliable = isCommunicationReliable (ui8PMProtocol);
@@ -785,38 +879,45 @@ namespace ACMNetProxy
             checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
                             "the value of copied bytes (%u) and bytes to be copied (%u) do not match\n",
                             ui32CopiedBytes, pUDPDatagramsQueue->getEnqueuedBytesCount());
-            return -4;
+            return -5;
         }
 
         // Apply compression if convenient
-        unsigned char *pucBuf[1];
+        unsigned char *pucBuf[1], *pucBytesToSend = _pucMultipleUDPDatagramsBuffer;
         unsigned int uiBufLen = 0;
         ConnectorWriter * const pConnectorWriter = ConnectorWriter::getAndLockUPDConnectorWriter (pCompressionSetting);
-        if (0 == pConnectorWriter->writeDataAndResetWriter (_pucMultipleUDPDatagramsBuffer, ui32CopiedBytes, pucBuf, uiBufLen)) {
+        if (0 == pConnectorWriter->writeDataAndResetWriter (_pucMultipleUDPDatagramsBuffer, mUDPDPM.getPayloadLen(), pucBuf, uiBufLen)) {
             if ((uiBufLen > 0) && (uiBufLen < mUDPDPM.getPayloadLen())) {
+                pucBytesToSend = pucBuf[0];
                 mUDPDPM._ui16PayloadLen = uiBufLen;
                 mUDPDPM._ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
+
+                checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MediumDetailDebug,
+                                "the compressed size of %d consolidated UDP datagrams is %u bytes long, which is less than their size before "
+                                "compression (%hu bytes); NetProxy will send the consolidated datagrams compressed through %s level $hhu\n",
+                                iPacketsNum, uiBufLen, (iPacketsNum + pUDPDatagramsQueue->getEnqueuedBytesCount()),
+                                pCompressionSetting->getCompressionTypeAsString(), pCompressionSetting->getCompressionLevel());
             }
         }
-        if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &mUDPDPM, sizeof (MultipleUDPDatagramsProxyMessage),
-                                                  pucBuf[0], mUDPDPM.getPayloadLen(), (const void * const) NULL))) {
+        if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &mUDPDPM,
+                                                  sizeof(MultipleUDPDatagramsProxyMessage), pucBytesToSend, mUDPDPM.getPayloadLen(), nullptr))) {
             checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
                             "gsend() of a MultipleUDPDatagram ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
-                            getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
+                            getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), rc);
             pConnectorWriter->unlockConnectorWriter();
-            return -5;
+            return -6;
         }
         pConnectorWriter->unlockConnectorWriter();
         checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MediumDetailDebug,
-                        "successfully sent a MultipleUDPDatagram ProxyMessage via %s with %hu bytes of data "
-                        "(%hu bytes before compression, if any) to the remote NetProxy at address <%s:%hu>\n",
-                        getConnectorTypeAsString(), mUDPDPM.getPayloadLen(), pUDPDatagramsQueue->getEnqueuedBytesCount(),
+                        "successfully sent a MultipleUDPDatagram ProxyMessage via %s with %hu bytes of data (%hu bytes before "
+                        "compression, if any) to the remote NetProxy at address <%s:%hu>\n", getConnectorTypeAsString(),
+                        mUDPDPM.getPayloadLen(), iPacketsNum + pUDPDatagramsQueue->getEnqueuedBytesCount(),
                         _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
 
-        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                              getRemoteProxyInetAddr()->getPort(), PT_UDP, pUDPDatagramsQueue->getEnqueuedBytesCount());
-        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (MultipleUDPDatagramsProxyMessage) + mUDPDPM.getPayloadLen());
+        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                              pRemoteProxyInetAddr->getPort(), PT_UDP, pUDPDatagramsQueue->getEnqueuedBytesCount());
+        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                               pRemoteProxyInetAddr->getPort(), PT_UDP, sizeof(MultipleUDPDatagramsProxyMessage) + mUDPDPM.getPayloadLen());
 
         return 0;
     }
@@ -827,12 +928,19 @@ namespace ACMNetProxy
         if (!_pConnectorAdapter) {
             return -1;
         }
+        if (!pRemoteProxyInetAddr) {
+            checkAndLogMsg ("Connection::sendUDPBCastMCastPacketToRemoteHost", Logger::L_MildError,
+                            "remoteProxyInetAddress is NULL when trying to send a UDPBCastMCastData ProxyMessage via %s "
+                            "to the remote host with IP address %s\n", getConnectorTypeAsString(),
+                            InetAddr(ui32RemoteDestinationIP).getIPAsString());
+            return -2;
+        }
         else if (!isConnected()) {
-            checkAndLogMsg ("Connection::sendMultipleUDPDatagramsToRemoteHost", Logger::L_MildError,
+            checkAndLogMsg ("Connection::sendUDPBCastMCastPacketToRemoteHost", Logger::L_MildError,
                             "the connector of type %s used to reach the remote NetProxy at address <%s:%hu> "
                             "and NetProxy UniqueID %u is not connected\n", getConnectorTypeAsString(),
-                            _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), getRemoteProxyID());
-            return -2;
+                            pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), getRemoteProxyID());
+            return -3;
         }
 
         int rc;
@@ -842,19 +950,26 @@ namespace ACMNetProxy
         UDPBCastMCastDataProxyMessage udpBCMCPM (ui16PacketLen, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, &CompressionSetting::DefaultNOCompressionSetting);
 
         // Apply compression if convenient
-        unsigned char *pucBuf[1];
+        unsigned char *pucBuf[1], *pucBytesToSend = const_cast <unsigned char *> (pPacket);
         ConnectorWriter * const pConnectorWriter = ConnectorWriter::getAndLockUPDConnectorWriter (pCompressionSetting);
         if (0 == pConnectorWriter->writeDataAndResetWriter (pPacket, ui16PacketLen, pucBuf, uiBufLen)) {
             if ((uiBufLen > 0) && (uiBufLen < ui16PacketLen)) {
+                pucBytesToSend = pucBuf[0];
                 udpBCMCPM._ui16PayloadLen = uiBufLen;
                 udpBCMCPM._ui8CompressionTypeAndLevel = pCompressionSetting->getCompressionTypeAndLevel();
+
+                checkAndLogMsg ("Connection::sendUDPBCastMCastPacketToRemoteHost", Logger::L_MediumDetailDebug,
+                                "the compressed multi-/broad-cast datagram is %u bytes long, which is less than the original packet of %hu "
+                                "bytes in size; NetProxy will send the multi-/broad-cast datagram compressed through %s level $hhu\n",
+                                uiBufLen, ui16PacketLen, pCompressionSetting->getCompressionTypeAsString(),
+                                pCompressionSetting->getCompressionLevel());
             }
         }
         if (0 != (rc = _pConnectorAdapter->gsend (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &udpBCMCPM,
-                                                  sizeof (UDPBCastMCastDataProxyMessage), pucBuf[0], udpBCMCPM.getPayloadLen(), (const void * const) NULL))) {
+                                                  sizeof(UDPBCastMCastDataProxyMessage), pucBytesToSend, udpBCMCPM.getPayloadLen(), nullptr))) {
             checkAndLogMsg ("Connection::sendUDPBCastMCastPacketToRemoteHost", Logger::L_MildError,
                             "gsend() of a UDPBCastMCastData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
-                            getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), rc);
+                            getConnectorTypeAsString(), pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort(), rc);
             pConnectorWriter->unlockConnectorWriter();
             return -4;
         }
@@ -863,12 +978,12 @@ namespace ACMNetProxy
                         "successfully sent a UDPBCastMCastData ProxyMessage via %s with %hu bytes of data "
                         "(%hu bytes before compression, if any) to the remote NetProxy at address <%s:%hu>\n",
                         getConnectorTypeAsString(), udpBCMCPM.getPayloadLen(), ui16PacketLen,
-                        _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort());
+                        pRemoteProxyInetAddr->getIPAsString(), pRemoteProxyInetAddr->getPort());
 
-        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                              getRemoteProxyInetAddr()->getPort(), PT_UDP, ui16PacketLen);
-        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_UDP, sizeof (UDPBCastMCastDataProxyMessage) + udpBCMCPM.getPayloadLen());
+        _pGUIStatsManager->increaseTrafficIn (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                              pRemoteProxyInetAddr->getPort(), PT_UDP, ui16PacketLen);
+        _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), pRemoteProxyInetAddr->getIPAddress(),
+                                               pRemoteProxyInetAddr->getPort(), PT_UDP, sizeof(UDPBCastMCastDataProxyMessage) + udpBCMCPM.getPayloadLen());
 
         return 0;
     }
@@ -897,7 +1012,7 @@ namespace ACMNetProxy
                                          NetProxyApplicationParameters::NETPROXY_UNIQUE_ID, NetProxyApplicationParameters::MOCKET_SERVER_PORT,
                                          NetProxyApplicationParameters::TCP_SERVER_PORT, NetProxyApplicationParameters::UDP_SERVER_PORT,
                                          pEntry->getConnectorWriter()->getCompressionSetting(), bLocalReachabilityFromRemote);
-        if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &oCPM, sizeof (OpenConnectionProxyMessage)))) {
+        if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &oCPM, sizeof(OpenConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::sendOpenTCPConnectionRequest", Logger::L_MildError,
                             "L%hu-R0: send() of an OpenConnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             oCPM._ui16LocalID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
@@ -913,7 +1028,7 @@ namespace ACMNetProxy
                         bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), pEntry->ui32RemoteIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (OpenConnectionProxyMessage));
+                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof(OpenConnectionProxyMessage));
 
         return 0;
     }
@@ -941,7 +1056,7 @@ namespace ACMNetProxy
         ConnectionOpenedProxyMessage cOPM (pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32LocalIP, NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
                                            NetProxyApplicationParameters::MOCKET_SERVER_PORT, NetProxyApplicationParameters::TCP_SERVER_PORT,
                                            NetProxyApplicationParameters::UDP_SERVER_PORT, pEntry->getConnectorWriter()->getCompressionSetting(), bLocalReachabilityFromRemote);
-        if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &cOPM, sizeof (ConnectionOpenedProxyMessage)))) {
+        if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &cOPM, sizeof(ConnectionOpenedProxyMessage)))) {
             checkAndLogMsg ("Connection::sendTCPConnectionOpenedResponse", Logger::L_MildError,
                             "L%hu-R%hu: send() of a TCPConnectionOpened ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             cOPM._ui16LocalID, cOPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
@@ -955,7 +1070,7 @@ namespace ACMNetProxy
                         bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), pEntry->ui32RemoteIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (ConnectionOpenedProxyMessage));
+                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof(ConnectionOpenedProxyMessage));
 
         return 0;
     }
@@ -980,19 +1095,17 @@ namespace ACMNetProxy
         bool bReliable = isCommunicationReliable (pEntry->getProtocol());
         bool bSequenced = isCommunicationSequenced (pEntry->getProtocol());
         TCPDataProxyMessage tDPM (ui16BufLen, pEntry->ui16ID, pEntry->ui16RemoteID, ui8TCPFlags);
-		
-		bool _bPriorityMechanismActive = true; //this value will be true when the priority mechanism is active
-		
-		if (_bPriorityMechanismActive && (_pConnectorAdapter->getOutgoingBufferSize() < sizeof(TCPDataProxyMessage))) {
-			checkAndLogMsg("Connection::sendTCPDataToRemoteHost", Logger::L_Info,
-				"L%hu-R%hu: blocking gsend() of a TCPData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> dropped\n", 
-				tDPM._ui16LocalID, tDPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
-				pEntry->remoteProxyAddr.getPort());
+
+		if (NetProxyApplicationParameters::PRIORITY_MECHANISM && (_pConnectorAdapter->getOutgoingBufferSize() < sizeof(TCPDataProxyMessage))) {
+			checkAndLogMsg ("Connection::sendTCPDataToRemoteHost", Logger::L_Info,
+				            "L%hu-R%hu: blocking gsend() of a TCPData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> dropped\n",
+				            tDPM._ui16LocalID, tDPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
+				            pEntry->remoteProxyAddr.getPort());
 			return -4;
 		}
 
-        if (0 != (rc = _pConnectorAdapter->gsend (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &tDPM, sizeof (TCPDataProxyMessage),
-                                                  pui8Buf, tDPM.getPayloadLen(), (const void * const) NULL))) {
+        if (0 != (rc = _pConnectorAdapter->gsend (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &tDPM,
+                                                  sizeof(TCPDataProxyMessage), pui8Buf, tDPM.getPayloadLen(), nullptr))) {
             checkAndLogMsg ("Connection::sendTCPDataToRemoteHost", Logger::L_MildError,
                             "L%hu-R%hu: gsend() of a TCPData ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             tDPM._ui16LocalID, tDPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
@@ -1006,7 +1119,7 @@ namespace ACMNetProxy
                         pEntry->remoteProxyAddr.getPort(), bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), pEntry->ui32RemoteIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (TCPDataProxyMessage) + tDPM.getPayloadLen());
+                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof(TCPDataProxyMessage) + tDPM.getPayloadLen());
 
         return 0;
     }
@@ -1031,7 +1144,7 @@ namespace ACMNetProxy
         bool bReliable = isCommunicationReliable (pEntry->getProtocol());
         bool bSequenced = isCommunicationSequenced (pEntry->getProtocol());
         CloseConnectionProxyMessage cCPM (pEntry->ui16ID, pEntry->ui16RemoteID);
-        if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &cCPM, sizeof (CloseConnectionProxyMessage)))) {
+        if (0 != (rc = _pConnectorAdapter->send (&pEntry->remoteProxyAddr, pEntry->ui32RemoteIP, bReliable, bSequenced, &cCPM, sizeof(CloseConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::sendCloseTCPConnectionRequest", Logger::L_MildError,
                             "L%hu-R%hu: send() of a CloseTCPConnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             cCPM._ui16LocalID, cCPM._ui16RemoteID, getConnectorTypeAsString(), pEntry->remoteProxyAddr.getIPAsString(),
@@ -1045,7 +1158,7 @@ namespace ACMNetProxy
                         bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), pEntry->ui32RemoteIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (CloseConnectionProxyMessage));
+                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof(CloseConnectionProxyMessage));
 
         return 0;
     }
@@ -1068,7 +1181,7 @@ namespace ACMNetProxy
         bool bReliable = isCommunicationReliable (ui8PMProtocol);
         bool bSequenced = isCommunicationSequenced (ui8PMProtocol);
         ResetConnectionProxyMessage rCPM (ui16LocalID, ui16RemoteID);
-        if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &rCPM, sizeof (ResetConnectionProxyMessage)))) {
+        if (0 != (rc = _pConnectorAdapter->send (pRemoteProxyInetAddr, ui32RemoteDestinationIP, bReliable, bSequenced, &rCPM, sizeof(ResetConnectionProxyMessage)))) {
             checkAndLogMsg ("Connection::sendResetTCPConnectionRequest", Logger::L_MildError,
                             "L%hu-R%hu: send() of a ResetTCPconnection ProxyMessage via %s to the remote NetProxy at address <%s:%hu> failed with rc = %d\n",
                             rCPM._ui16LocalID, rCPM._ui16RemoteID, getConnectorTypeAsString(), _remoteProxyInetAddr.getIPAsString(),
@@ -1081,7 +1194,7 @@ namespace ACMNetProxy
                         _remoteProxyInetAddr.getIPAsString(), _remoteProxyInetAddr.getPort(), bReliable ? "true" : "false", bSequenced ? "true" : "false");
 
         _pGUIStatsManager->increaseTrafficOut (getConnectorType(), ui32RemoteDestinationIP, getRemoteProxyID(), getRemoteProxyInetAddr()->getIPAddress(),
-                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof (ResetConnectionProxyMessage));
+                                               getRemoteProxyInetAddr()->getPort(), PT_TCP, sizeof(ResetConnectionProxyMessage));
 
         return 0;
     }
@@ -1094,6 +1207,10 @@ namespace ACMNetProxy
         }
 
         Connection::_pConnectionManager->updateRemoteProxyUniqueID (getRemoteProxyID(), ui32RemoteProxyID);
+        auto * pAutoConnEntry = Connection::_pConnectionManager->getAutoConnectionEntryToRemoteProxyID (_ui32RemoteProxyID);
+        if (pAutoConnEntry) {
+            pAutoConnEntry->updateRemoteProxyID (ui32RemoteProxyID);
+        }
         Connection * const pOldConnection = Connection::_pConnectionManager->addNewActiveConnectionToRemoteProxy (this, ui32RemoteProxyID);
         _pConnectorAdapter->readConfigFile (_pConnectionManager->getMocketsConfigFileForProxyWithID (ui32RemoteProxyID));
         enforceConnectionsConsistency (pOldConnection, ui32RemoteProxyID);
@@ -1110,6 +1227,10 @@ namespace ACMNetProxy
 
         Connection * const pOldConnection = Connection::_pConnectionManager->updateRemoteProxyInfo (this, ui32RemoteProxyID, ui16MocketsServerPort, ui16TCPServerPort,
                                                                                                     ui16UDPServerPort, bRemoteProxyReachability);
+        auto * pAutoConnEntry = Connection::_pConnectionManager->getAutoConnectionEntryToRemoteProxyID (_ui32RemoteProxyID);
+        if (pAutoConnEntry) {
+            pAutoConnEntry->updateRemoteProxyID (ui32RemoteProxyID);
+        }
         _pConnectorAdapter->readConfigFile (_pConnectionManager->getMocketsConfigFileForProxyWithID (ui32RemoteProxyID));
         enforceConnectionsConsistency (pOldConnection, ui32RemoteProxyID);
         _ui32RemoteProxyID = ui32RemoteProxyID;
@@ -1119,26 +1240,13 @@ namespace ACMNetProxy
     {
         // If pOldConnection is passed as argument to this method, then it must have same remote NetProxy UniqueID of _pConnection
         if (pOldConnection && (pOldConnection != this)) {
-            if (NetProxyApplicationParameters::NETPROXY_UNIQUE_ID <= ui32RemoteProxyID) {
-                /* The NetProxy running on the local host is the master --> it will close the old connection
-                 * Note that this connection should be the one previously opened by the local NetProxy (that is, of which the local
-                 * NetProxy is the client), as we need to first receive a packet before we can assign a UniqueID to a Connection
-                 * of which the local NetProxy is the server. */
-                checkAndLogMsg ("Connection::enforceConnectionConsistency", Logger::L_LowDetailDebug,
-                                "replaced the existing %s connection to the remote NetProxy with UniqueID %u and IP address %s; "
-                                "the connection was in status %hu and the local NetProxy had the role of %s\n",
-                                pOldConnection->getConnectorTypeAsString(), ui32RemoteProxyID,
-                                pOldConnection->getRemoteProxyInetAddr()->getIPAsString(), pOldConnection->getStatus(),
-                                (pOldConnection->getLocalHostRole() == CHR_Client) ? "client" : "server");
-                delete pOldConnection;
-            }
-            else {
-                // The remote NetProxy is the master --> on this side, we do nothing (connection instance will delete itself upon closure on the remote side)
-                checkAndLogMsg ("Connection::enforceConnectionConsistency", Logger::L_LowDetailDebug,
-                                "found a duplicated %s connection to the NetProxy with UniqueID %u, IP address %s, and status %hu; "
-                                "the remote NetProxy will take care of closing it down\n", pOldConnection->getConnectorTypeAsString(),
-                                ui32RemoteProxyID, pOldConnection->getRemoteProxyInetAddr()->getIPAsString(), pOldConnection->getStatus());
-            }
+            checkAndLogMsg ("Connection::enforceConnectionConsistency", Logger::L_LowDetailDebug,
+                            "replaced the existing %s connection to the remote NetProxy with UniqueID %u and IP address %s; "
+                            "the old connection, which was in status %hu and for which the local NetProxy had the role of %s, "
+                            "is going to be closed\n", pOldConnection->getConnectorTypeAsString(), ui32RemoteProxyID,
+                            pOldConnection->getRemoteProxyInetAddr()->getIPAsString(), pOldConnection->getStatus(),
+                            (pOldConnection->getLocalHostRole() == CHR_Client) ? "client" : "server");
+            pOldConnection->requestTermination();
         }
     }
 

@@ -18,6 +18,7 @@
 #endif
 
 JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_init (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile);
+JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_initDtls (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile, jstring jsCertificatePath, jstring jsPrivateKeyPath);
 JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_dispose (JNIEnv *pEnv, jobject joThis);
 JNIEXPORT jint JNICALL Java_us_ihmc_mockets_ServerMocket_listen (JNIEnv *pEnv, jobject joThis, jint jiPort);
 JNIEXPORT jint JNICALL Java_us_ihmc_mockets_ServerMocket_listenAddr (JNIEnv *pEnv, jobject joThis, jint jiPort, jstring jsListenAddr);

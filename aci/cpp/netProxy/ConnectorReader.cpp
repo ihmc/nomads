@@ -27,7 +27,7 @@ namespace ACMNetProxy
     ConnectorReader * const ConnectorReader::inizializeConnectorReader (const CompressionSetting * const pCompressionSetting)
     {
         if (!pCompressionSetting) {
-            return NULL;
+            return nullptr;
         }
 
         switch (pCompressionSetting->getCompressionType()) {
@@ -41,13 +41,13 @@ namespace ACMNetProxy
             #endif
         }
 
-        return NULL;
+        return nullptr;
     }
 
     ConnectorReader * const ConnectorReader::getAndLockUDPConnectorReader (const CompressionSetting * const pCompressionSetting)
     {
         if (!pCompressionSetting) {
-            return NULL;
+            return nullptr;
         }
 
         switch (pCompressionSetting->getCompressionType()) {
@@ -79,7 +79,7 @@ namespace ACMNetProxy
             #endif
         }
 
-        return NULL;
+        return nullptr;
     }
 
     int ConnectorReader::receiveTCPDataProxyMessage (const uint8 *const ui8SrcData, uint16 ui16SrcLen, uint8 **pDest, uint32 &ui32DestLen)

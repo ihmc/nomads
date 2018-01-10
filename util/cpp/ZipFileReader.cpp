@@ -25,7 +25,8 @@
 
 using namespace NOMADSUtil;
 
-ZipFileReader::ZipFileReader (void)
+ZipFileReader::ZipFileReader (bool bCloseFile)
+    : _bCloseFile (bCloseFile)
 {
     fileInput = NULL;
     lLastFileHeaderSeekPos = 0;
@@ -34,7 +35,7 @@ ZipFileReader::ZipFileReader (void)
 
 ZipFileReader::~ZipFileReader (void)
 {
-    if (fileInput) {
+    if (fileInput && _bCloseFile) {
         fclose (fileInput);
         fileInput = NULL;
     }
@@ -44,11 +45,21 @@ ZipFileReader::~ZipFileReader (void)
     }
 }
 
-int ZipFileReader::init (const char *pszFile, bool bCacheDir)
+int ZipFileReader::init (const char *pszFilename, bool bCacheDir)
 {
-    if (NULL == (fileInput = fopen (pszFile, "rb"))) {
+    FILE *pInput = fopen (pszFilename, "rb");
+    if (NULL == pInput) {
         return RC_FileAccessError;
     }
+    return init (pInput, bCacheDir);
+}
+
+int ZipFileReader::init (FILE *Input, bool bCacheDir)
+{
+    if (Input == NULL) {
+        return RC_FileAccessError;
+    }
+    fileInput = Input;
     u4 u4Count = 0;
     u4 u4Index = 0;
     bool bDone = false;
@@ -251,7 +262,7 @@ int ZipFileReader::gotoFileHeader (int iIndex, FILE *fileInput)
     if (fseek (fileInput, ecd.u4CentralDirOffset, SEEK_SET)) {
         return -2;
     }
-    for (int i = 0; i < iIndex-1; i++) {
+    for (int i = 0; i < iIndex; i++) {
         if (T_FileHeader != readSignature (fileInput)) {
             return -3;
         }

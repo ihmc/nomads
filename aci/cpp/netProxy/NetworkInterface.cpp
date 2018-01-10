@@ -67,21 +67,21 @@ String NetworkInterface::getDeviceNameFromUserFriendlyName (const char * const p
     String retVal;
     DWORD dwRetVal;
     ULONG ulFamily = 0, ulFlags = 0, ulOutBufLen = 16384;       // Windows API Documentation recommends a 15KB buffer
-    IP_ADAPTER_ADDRESSES *pAddresses = (IP_ADAPTER_ADDRESSES *) NULL;
+    IP_ADAPTER_ADDRESSES * pAddresses = nullptr;
     pAddresses = (IP_ADAPTER_ADDRESSES *) malloc (ulOutBufLen);
     memset (pAddresses, 0, ulOutBufLen);
-    dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+    dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, nullptr, pAddresses, &ulOutBufLen);
     if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
         free (pAddresses);
         // Try once again, increasing the buffer size - the needed buffer size is returned back in ulOutBufLen
         ulOutBufLen += 2048;       // Just for good measure
         pAddresses = (IP_ADAPTER_ADDRESSES *) malloc (ulOutBufLen);
         memset (pAddresses, 0, ulOutBufLen);
-        dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+        dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, nullptr, pAddresses, &ulOutBufLen);
     }
     if (dwRetVal == NO_ERROR) {
         IP_ADAPTER_ADDRESSES *pCurrAddress = pAddresses;
-        while (pCurrAddress != NULL) {
+        while (pCurrAddress != nullptr) {
             // GetAdaptersAddresses uses wchar's for the FriendlyName - need to convert it first
             size_t len = wcslen (pCurrAddress->FriendlyName) * 2 + 1;
             char *pszFriendlyName = (char*) malloc (len);
@@ -96,6 +96,7 @@ String NetworkInterface::getDeviceNameFromUserFriendlyName (const char * const p
             free (pszFriendlyName);
             pCurrAddress = pCurrAddress->Next;
         }
+        free (pAddresses);
     }
     return retVal;
     #else
@@ -107,27 +108,27 @@ String NetworkInterface::getDeviceNameFromUserFriendlyName (const char * const p
 const uint8 * const NetworkInterface::getMACAddrForDevice (const char * const pszAdapterName)
 {
     #if defined (WIN32)
-        uint8 *pui8MACAddr = NULL;
+        uint8 *pui8MACAddr = nullptr;
         DWORD dwRetVal;
-        IP_ADAPTER_ADDRESSES *pAddresses = (IP_ADAPTER_ADDRESSES *) NULL;
+        IP_ADAPTER_ADDRESSES * pAddresses = nullptr;
         ULONG ulFlags = 0;
         ULONG ulFamily = 0;
         ULONG ulOutBufLen = 1024U * 15U;     // Windows API Documentation recommends a 15KB buffer
 
         pAddresses = (IP_ADAPTER_ADDRESSES *) malloc (ulOutBufLen);
         memset (pAddresses, 0, ulOutBufLen);
-        dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+        dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, nullptr, pAddresses, &ulOutBufLen);
         if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
             free (pAddresses);
             // Try once again, increasing the buffer size - the needed buffer size is returned back in ulOutBufLen
             ulOutBufLen += 2048;       // Just for good measure
             pAddresses = (IP_ADAPTER_ADDRESSES *) malloc (ulOutBufLen);
             memset (pAddresses, 0, ulOutBufLen);
-            dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+            dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, nullptr, pAddresses, &ulOutBufLen);
         }
         if (dwRetVal == NO_ERROR) {
             const IP_ADAPTER_ADDRESSES *pCurrAddress = pAddresses;
-            while (pCurrAddress != NULL) {
+            while (pCurrAddress != nullptr) {
                 // GetAdaptersAddresses uses wchar's for the FriendlyName - need to convert it first
                 size_t len = strlen (pCurrAddress->AdapterName) + 1;
                 String sIFAdapterName(len);
@@ -159,12 +160,12 @@ const uint8 * const NetworkInterface::getMACAddrForDevice (const char * const ps
 
     #elif defined (UNIX)
         struct if_nameindex *pIfList, *pIfListItem;
-        pIfList = pIfListItem = NULL;
+        pIfList = pIfListItem = nullptr;
         pIfList = if_nameindex();
-        if (pIfList == NULL) {
+        if (pIfList == nullptr) {
             checkAndLogMsg ("NetworkInterface::getMACAddrForDevice", Logger::L_MildError,
                             "could not obtain list of interfaces\n");
-            return NULL;
+            return nullptr;
         }
         for (pIfListItem = pIfList; pIfListItem->if_index != 0; pIfListItem++) {
             if (0 == stricmp (pIfListItem->if_name, pszAdapterName)) {
@@ -174,7 +175,7 @@ const uint8 * const NetworkInterface::getMACAddrForDevice (const char * const ps
                     checkAndLogMsg ("NetworkInterface::getMACAddrForDevice", Logger::L_MildError,
                                     "could not create a socket\n");
                     if_freenameindex (pIfList);
-                    return NULL;
+                    return nullptr;
                 }
                 struct ifreq ifReq;
                 strcpy (ifReq.ifr_name, pIfListItem->if_name);
@@ -184,7 +185,7 @@ const uint8 * const NetworkInterface::getMACAddrForDevice (const char * const ps
                                     pszAdapterName);
                     if_freenameindex (pIfList);
                     close (iSocket);
-                    return NULL;
+                    return nullptr;
                 }
                 uint8 *pui8MACAddr = new uint8[6];
                 memcpy (pui8MACAddr, &ifReq.ifr_ifru.ifru_hwaddr.sa_data[0], 6);
@@ -198,7 +199,7 @@ const uint8 * const NetworkInterface::getMACAddrForDevice (const char * const ps
                         "could not find interface %s\n",
                         pszAdapterName);
 
-        return NULL;
+        return nullptr;
     #endif
 }
 
@@ -207,11 +208,11 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
     res.ui32Addr = 0;
 
     #if defined (WIN32)
-        PIP_ADAPTER_INFO pAdapter = NULL, pAdapterInfo = NULL;
-        ULONG ulOutBufLen = sizeof (IP_ADAPTER_INFO);
+        PIP_ADAPTER_INFO pAdapter = nullptr, pAdapterInfo = nullptr;
+        ULONG ulOutBufLen = sizeof(IP_ADAPTER_INFO);
         DWORD dwRetVal = 0;
 
-        pAdapterInfo = (IP_ADAPTER_INFO *) malloc (sizeof (IP_ADAPTER_INFO));
+        pAdapterInfo = (IP_ADAPTER_INFO *) malloc (sizeof(IP_ADAPTER_INFO));
         if (!pAdapterInfo) {
             checkAndLogMsg ("NetworkInterface::getDefaultGatewayForInterface", Logger::L_SevereError,
                             "Error allocating memory needed to call GetAdaptersinfo()\n");
@@ -282,7 +283,7 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
         nlmsg = (struct nlmsghdr *)msgbuf;
 
         // Fill in the nlmsg header
-        nlmsg->nlmsg_len = NLMSG_LENGTH (sizeof (struct rtmsg));
+        nlmsg->nlmsg_len = NLMSG_LENGTH (sizeof(struct rtmsg));
         nlmsg->nlmsg_type = RTM_GETROUTE;                   // Get the routes from kernel routing table.
         nlmsg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;    // The message is a request for dump.
         nlmsg->nlmsg_seq = msgseq++;                        // Sequence of the message packet.
@@ -290,7 +291,7 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
 
         // 1 Sec Timeout to avoid stall
         tv.tv_sec = 1;
-        setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv, sizeof (struct timeval));
+        setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv, sizeof(struct timeval));
         if (send (sock, nlmsg, nlmsg->nlmsg_len, 0) < 0) {
             // send msg
             checkAndLogMsg ("NetworkInterface::getDefaultGatewayForInterface", Logger::L_SevereError,
@@ -353,7 +354,7 @@ IPv4Addr NetworkInterface::getDefaultGatewayForInterface (const char * const psz
                     if_indextoname (*(int *) RTA_DATA (route_attribute), interface);
                     break;
                 case RTA_GATEWAY:
-                    inet_ntop (AF_INET, RTA_DATA (route_attribute), gateway_address, sizeof (gateway_address));
+                    inet_ntop (AF_INET, RTA_DATA (route_attribute), gateway_address, sizeof(gateway_address));
                     break;
                 default:
                     break;
@@ -376,27 +377,27 @@ const uint32 NetworkInterface::retrieveMTUForInterface (const char *const pszAda
     uint32 ui32MTU = 0;
 
     #if defined (WIN32)
-        uint8 *pui8MACAddr = NULL;
+        uint8 *pui8MACAddr = nullptr;
         DWORD dwRetVal;
-        IP_ADAPTER_ADDRESSES *pAddresses = (IP_ADAPTER_ADDRESSES *) NULL;
+        IP_ADAPTER_ADDRESSES * pAddresses = nullptr;
         ULONG ulFlags = 0;
         ULONG ulFamily = 0;
         ULONG ulOutBufLen = 1024U * 15U;     // Windows API Documentation recommends a 15KB buffer
 
         pAddresses = (IP_ADAPTER_ADDRESSES *) MALLOC (ulOutBufLen);
         memset(pAddresses, 0, ulOutBufLen);
-        dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+        dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, nullptr, pAddresses, &ulOutBufLen);
         if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
             FREE (pAddresses);
             // Try once again, increasing the buffer size - the needed buffer size is returned back in ulOutBufLen
             ulOutBufLen += 2048;       // Just for good measure
             pAddresses = (IP_ADAPTER_ADDRESSES *) MALLOC (ulOutBufLen);
             memset (pAddresses, 0, ulOutBufLen);
-            dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, NULL, pAddresses, &ulOutBufLen);
+            dwRetVal = GetAdaptersAddresses (ulFamily, ulFlags, nullptr, pAddresses, &ulOutBufLen);
         }
         if (dwRetVal == NO_ERROR) {
             const IP_ADAPTER_ADDRESSES *pCurrAddress = pAddresses;
-            while (pCurrAddress != NULL) {
+            while (pCurrAddress != nullptr) {
                 // GetAdaptersAddresses uses wchar's for the FriendlyName - need to convert it first
                 size_t len = strlen (pCurrAddress->AdapterName) + 1;
                 String sIFAdapterName (len);
@@ -423,8 +424,8 @@ const uint32 NetworkInterface::retrieveMTUForInterface (const char *const pszAda
     #elif defined (UNIX)
         struct ifreq ifr;
 
-        memset (&ifr, 0, sizeof (ifr));
-        strncpy (ifr.ifr_name, pszAdapterName, sizeof (ifr.ifr_name));
+        memset (&ifr, 0, sizeof(ifr));
+        strncpy (ifr.ifr_name, pszAdapterName, sizeof(ifr.ifr_name));
 
         if (ioctl (fd, SIOCGIFMTU, &ifr) == -1) {
             checkAndLogMsg ("NetworkInterface::retrieveMTUForInterface", Logger::L_SevereError,

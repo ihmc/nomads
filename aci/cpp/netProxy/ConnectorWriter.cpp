@@ -27,7 +27,7 @@ namespace ACMNetProxy
     ConnectorWriter *ConnectorWriter::connectorWriterFactory (const CompressionSetting * const pCompressionSetting)
     {
         if (!pCompressionSetting) {
-            return NULL;
+            return nullptr;
         }
 
         switch (pCompressionSetting->getCompressionType()) {
@@ -41,7 +41,7 @@ namespace ACMNetProxy
             #endif
         }
 
-        return NULL;
+        return nullptr;
     }
 
     ConnectorWriter * const ConnectorWriter::getAndLockUPDConnectorWriter (uint8 ui8CompressionTypeAndLevel)
@@ -59,18 +59,18 @@ namespace ACMNetProxy
         *pDest = (unsigned char *) 0;
         uiDestLen = 0;
         _bFlushed = true;
-        
+
         return 0;
     }
 
     int ConnectorWriter::writeData (const unsigned char *pSrc, unsigned int uiSrcLen, unsigned char **pDest, unsigned int &uiDestLen, bool bLocalFlush)
     {
         (void) bLocalFlush;
-        
+
         *pDest = const_cast<unsigned char *> (pSrc);
         uiDestLen = uiSrcLen;
         _bFlushed = false;
-        
+
         return 0;
     }
 
@@ -79,7 +79,7 @@ namespace ACMNetProxy
         *pDest = const_cast<unsigned char *> (pSrc);
         uiDestLen = uiSrcLen;
         _bFlushed = true;
-        
+
         return 0;
     }
 

@@ -282,8 +282,10 @@ int SAckTSNRangeHandler::freeze (ObjectFreezer &objectFreezer)
 {
     objectFreezer.putUInt32 (_ui32CumulativeTSN);
     
-/*    printf ("SAckTSNRangeHandler\n");
-    printf ("_ui32CumulativeTSN %lu\n", _ui32CumulativeTSN);*/
+	/*  
+	printf ("SAckTSNRangeHandler\n");
+    printf ("_ui32CumulativeTSN %lu\n", _ui32CumulativeTSN);
+	*/
     
     // call the superclass method freeze
     TSNRangeHandler::freeze (objectFreezer);

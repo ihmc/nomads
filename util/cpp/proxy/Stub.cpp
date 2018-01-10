@@ -279,21 +279,21 @@ int Stub::registerProxy (SimpleCommHelper2 *pch, SimpleCommHelper2 *pchCallback,
         pchCallback->receiveMatch (error, "OK");
     }
 
-    if (error == SimpleCommHelper2::None) {
-        checkAndLogMsg (pszMethodName, Logger::L_Info, "registered proxy with id %d.\n", ui16ApplicationId);
-        return ui16ApplicationId;
+    switch (error) {
+        case SimpleCommHelper2::None:
+            checkAndLogMsg (pszMethodName, Logger::L_Info, "registered proxy with id %d.\n", ui16ApplicationId);
+            return ui16ApplicationId;
+        case SimpleCommHelper2::ProtocolError:
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed with protocol exception.\n");
+            return -4;
+        case SimpleCommHelper2::CommError:
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed with comm exception.\n");
+            return -5;
+        default:
+            // this case should never happen
+            assert (false);
+            return -6;
     }
-    if (error == SimpleCommHelper2::ProtocolError) {
-        checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed with protocol exception.\n");
-        return -4;
-    }
-    if (error == SimpleCommHelper2::CommError) {
-        checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed with comm exception.\n");
-        return -5;
-    }
-    // this case should never happen
-    assert (false);
-    return -6;
 }
 
 int Stub::tryConnect (void)

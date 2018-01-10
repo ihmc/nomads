@@ -36,6 +36,12 @@ namespace NOMADSUtil
     template <class T> class FourStringHashtable
     {
         public:
+            /*
+            *  
+            * bCloneKeys: If you don't put this to true the put process will fail during the rehasing if an original key got destroyed
+            *
+            *
+            */
             FourStringHashtable (bool bCaseSensitiveKeys = true,
                                   bool bCloneKeys = false,
                                   bool bDeleteKeys = false);

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -19,6 +19,7 @@
 
 #include "NetUtils.h"
 
+#include <cstdlib>
 #include "Logger.h"
 #include "NLFLib.h"
 
@@ -35,7 +36,7 @@
     #define inaddrr(x) (*(struct in_addr*) &ifr.x[sizeof sa.sin_port])
     #if defined (OSX)
         #include <ifaddrs.h>
-        #ifndef PATH_MAX 
+        #ifndef PATH_MAX
             #define PATH_MAX 1024
         #endif
     #endif
@@ -117,7 +118,7 @@ NICInfo ** NetUtils::getNICsInfo (bool bIncludeLoopback, bool bUniqueNetworks)
                 pNICInfo->ip = pAddress->sin_addr;
                 pAddress = (sockaddr_in *) & (InterfaceList[i].iiNetmask);
                 pNICInfo->netmask = pAddress->sin_addr;
-                pNICInfo->broadcast.S_un.S_addr = pNICInfo->ip.S_un.S_addr | ~pNICInfo->netmask.S_un.S_addr; 
+                pNICInfo->broadcast.S_un.S_addr = pNICInfo->ip.S_un.S_addr | ~pNICInfo->netmask.S_un.S_addr;
 
                 if (bUniqueNetworks) {
                     for (int z=0; z<j; z++) {
@@ -213,7 +214,7 @@ NICInfo ** NetUtils::getNICsInfo (bool bIncludeLoopback, bool bUniqueNetworks)
         }
         close (sockfd);
 
-        // Terminator 
+        // Terminator
         ppNICsInfo[j] = NULL;
 
         return ppNICsInfo;
@@ -221,14 +222,14 @@ NICInfo ** NetUtils::getNICsInfo (bool bIncludeLoopback, bool bUniqueNetworks)
     #elif defined (OSX)
 
         struct ifaddrs *myaddrs, *ifa;
-	
+
         if (getifaddrs (&myaddrs) != 0) {
             freeifaddrs (myaddrs);
             checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Failed to get information about NICs\n");
             return NULL;
         }
 
-        uint16 ui16IFNum = 0; 
+        uint16 ui16IFNum = 0;
         for (ifa = myaddrs; ifa != NULL; ifa = ifa->ifa_next, ui16IFNum++);
 
         NICInfo **ppNICsInfo = new NICInfo*[ui16IFNum+1];
@@ -413,6 +414,71 @@ String NetUtils::getIncomingNIC (const char *pszBindingIPAddr, const char *pszBi
     return String();
 }
 
+EtherMACAddr NetUtils::getEtherMACAddrFromString (const char * const pszEtherMACAddr)
+{
+    static const unsigned int MAC_ADDRESS_SIZE = 6;
+    static const char AC_SEPARATOR[] = ":";
+
+    EtherMACAddr etherMACaddr;
+    const char *pszMACAddressOctets[MAC_ADDRESS_SIZE];
+    char *pszTemp;
+    memset (reinterpret_cast<void *> (&etherMACaddr), 0, sizeof(EtherMACAddr));
+
+    if (!pszEtherMACAddr || !checkEtherMACAddressFormat (pszEtherMACAddr)) {
+        // Return empty MAC
+        return etherMACaddr;
+    }
+
+    // Parse Ethernet MAC address in the format A:B:C:D:E:F
+    unsigned int i = 0;
+    if ((pszMACAddressOctets[i++] = strtok_mt (pszEtherMACAddr, AC_SEPARATOR, &pszTemp)) == NULL) {
+        return etherMACaddr;
+    }
+    for (; i < MAC_ADDRESS_SIZE; ++i) {
+        pszMACAddressOctets[i] = strtok_mt (NULL, AC_SEPARATOR, &pszTemp);
+        if (pszMACAddressOctets[i] == NULL) {
+            return etherMACaddr;
+        }
+    }
+
+    uint8 *pui8EtherMACAddress = reinterpret_cast<uint8*> (&etherMACaddr);
+    for (i = 0; i < MAC_ADDRESS_SIZE; i += 2) {
+        pui8EtherMACAddress[i] = static_cast<uint8> (std::strtoul (pszMACAddressOctets[i + 1], 0, 16));
+        pui8EtherMACAddress[i + 1] = static_cast<uint8> (std::strtoul (pszMACAddressOctets[i], 0, 16));
+    }
+
+    return etherMACaddr;
+}
+
+bool NetUtils::checkEtherMACAddressFormat(const char * pszEtherMACAddr)
+{
+    unsigned int uiByteLength = 0, uiMACLength = 0;
+    while (*pszEtherMACAddr) {
+        if (*pszEtherMACAddr == ':') {
+            if (++uiMACLength > 5) {
+                return false;
+            }
+            ++pszEtherMACAddr;
+            uiByteLength = 0;
+            continue;
+        }
+        ++uiByteLength;
+        if (uiByteLength > 2) {
+            return false;
+        }
+        if (!checkCharRange (*pszEtherMACAddr, '0', '9') && !checkCharRange (*pszEtherMACAddr, 'a', 'f') &&
+            !checkCharRange (*pszEtherMACAddr, 'A', 'F')) {
+            return false;
+        }
+        ++pszEtherMACAddr;
+    }
+
+    if (uiMACLength != 5) {
+        return false;
+    }
+    return true;
+}
+
 bool NetUtils::isLocalAddress (uint32 ulIPAddr, NICInfo **pMyNetIFs)
 {
     const char *pszMethodName = "NetUtils::isLocalAddress";
@@ -459,15 +525,15 @@ bool NetUtils::isLocalAddress (const char *pszIPAddr)
     struct in_addr ia;
     hostent *phe;
 
-    if ((ia.s_addr = inet_addr (pszIPAddr)) == INADDR_NONE) { 
-        if ((phe = gethostbyname (pszIPAddr)) == NULL) { 
+    if ((ia.s_addr = inet_addr (pszIPAddr)) == INADDR_NONE) {
+        if ((phe = gethostbyname (pszIPAddr)) == NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError,
                             "Unable to resolve host: %s\n", pszIPAddr);
             return false;
-        } 
+        }
         ia = *(in_addr *) phe->h_addr_list[0];
-    } 
-    
+    }
+
     return isLocalAddress (ia);
 }
 
@@ -532,10 +598,10 @@ InetAddr NetUtils::determineDestIPAddr (NICInfo **pRemoteNetIFs, NICInfo **pLoca
     }
 
     if (!bFound) {
-        // NOTE: if we cannot find any address that is directly reachable 
-        // we assume that the OS will properly route the packet. This is the 
-        // case in which we have multiple instances of the group manager are 
-        // concurrently executing in the same node configured with IPs in 
+        // NOTE: if we cannot find any address that is directly reachable
+        // we assume that the OS will properly route the packet. This is the
+        // case in which we have multiple instances of the group manager are
+        // concurrently executing in the same node configured with IPs in
         // different networks:
         //
         // e.g. GroupManager A with IP 192.168.0.1/24

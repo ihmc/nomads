@@ -43,19 +43,19 @@ namespace ACMNetProxy
                         "%sConnector terminated\n", connectorTypeToString (_connectorType));
     }
 
-    Connection * const Connector::getAvailableConnectionToRemoteProxy (const InetAddr * const pRemoteProxyAddr)
+    Connection * const Connector::getAvailableConnectionToRemoteProxy (const InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType)
     {
-        if (_connectorType == CT_UDP) {
+        if (_connectorType == CT_UDPSOCKET) {
             return UDPConnector::getUDPConnection();
         }
 
         if (!pRemoteProxyAddr) {
-            return NULL;
+            return nullptr;
         }
 
-        _mConnectionsTable.lock();
-        Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr));
-        _mConnectionsTable.unlock();
+        lockConnectionTable();
+        Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr, encryptionType));
+        unlockConnectionTable();
         if (!pConnection) {
             checkAndLogMsg ("Connector::getAvailableConnectionToRemoteProxy", Logger::L_MildError,
                             "%sConnection object to connect to remote proxy at address <%s:%hu> not available\n",
@@ -67,11 +67,12 @@ namespace ACMNetProxy
 
     Connection * const Connector::openNewConnectionToRemoteProxy (const QueryResult & query, bool bBlocking)
     {
-        if (_connectorType == CT_UDP) {
-            return UDPConnector::getUDPConnection();
-        }
         if ((query.getRemoteProxyUniqueID() == 0) || (_connectorType == CT_UNDEF)) {
-            return NULL;
+            return nullptr;
+        }
+
+        if (_connectorType == CT_UDPSOCKET) {
+            return UDPConnector::getUDPConnection();
         }
 
         if (query.getActiveConnectionToRemoteProxy()) {
@@ -80,61 +81,64 @@ namespace ACMNetProxy
 
         int rc;
         const InetAddr * const pRemoteProxyAddr = query.getRemoteProxyServerAddress();
-        const uint64 ui64HashKey = generateUInt64Key (pRemoteProxyAddr);
-        _mConnectionsTable.lock();
+        const uint64 ui64HashKey = generateUInt64Key (pRemoteProxyAddr, query.getQueryEncryptionType());
+        lockConnectionTable();
         Connection *pConnection = _connectionsTable.get (ui64HashKey);
         if (!pConnection) {
-            pConnection = new Connection (_connectorType, query.getRemoteProxyUniqueID(), pRemoteProxyAddr, this);
+            pConnection = new Connection (_connectorType, query.getQueryEncryptionType(), query.getRemoteProxyUniqueID(), pRemoteProxyAddr, this);
 			if (!pConnection) {
 				checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_MildError,
 					            "impossible to instantiate a new %sConnection object for connection to the remote NetProxy with address %s:%hu\n",
 					            getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
-				return NULL;
+				return nullptr;
 			}
             _connectionsTable.put (ui64HashKey, pConnection);
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_LowDetailDebug,
-                            "created a %sConnection object to connect to the remote NetProxy at address %s:%hu\n",
-                            pConnection->getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(),
-                            pRemoteProxyAddr->getPort());
+                            "created a %sConnection object using %s encryption to connect to the remote NetProxy at address %s:%hu\n",
+                            pConnection->getConnectorTypeAsString(), encryptionTypeToString (query.getQueryEncryptionType()),
+                            pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
         }
         pConnection->lock();
         if (pConnection->isDeleteRequested()) {
             // Connection marked for delete --> create new Connection and add it to the Connections Table
             pConnection->unlock();  // unlock old Connection
-			pConnection = NULL;
-            pConnection = new Connection (_connectorType, query.getRemoteProxyUniqueID(), pRemoteProxyAddr, this);
+			pConnection = nullptr;
+            pConnection = new Connection (_connectorType, query.getQueryEncryptionType(), query.getRemoteProxyUniqueID(), pRemoteProxyAddr, this);
 			if (!pConnection) {
 				checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_MildError,
 					            "impossible to instantiate a new %sConnection object for connection to the remote NetProxy with address %s:%hu\n",
 					            getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
-				return NULL;
+				return nullptr;
 			}
             pConnection->lock();    // lock new Connection
             _connectionsTable.put (ui64HashKey, pConnection);
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_Warning,
                             "retrieved a %sConnection object for the remote NetProxy with address %s:%hu, but the object was marked for deletion; "
-                            "created a new %sConnection object to connect to the remote NetProxy\n", getConnectorTypeAsString(),
-                            pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(), getConnectorTypeAsString());
+                            "created a new %sConnection object using %s encryption to connect to the remote NetProxy\n", getConnectorTypeAsString(),
+                            pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(), getConnectorTypeAsString(),
+                            encryptionTypeToString (query.getQueryEncryptionType()));
         }
-        _mConnectionsTable.unlock();
+        unlockConnectionTable();
 
         if (pConnection->isConnected()) {
             // Status is CS_Connected and ConnectorAdapter is connected
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_Warning,
-                            "retrieved an active %sConnection object for the remote NetProxy with address %s:%hu even if the query did not return any active "
-                            "Connection; %sConnection is connected to the address %s:%hu\n", getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(),
-                            pRemoteProxyAddr->getPort(), getConnectorTypeAsString(), pConnection->getRemoteProxyInetAddr()->getIPAsString(),
-                            pConnection->getRemoteProxyInetAddr()->getPort());
+                            "retrieved an active %sConnection object for the remote NetProxy with address %s:%hu even if the query did "
+                            "not return any active Connection; %sConnection is connected to the address %s:%hu using %s encryption\n",
+                            getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(),
+                            getConnectorTypeAsString(), pConnection->getRemoteProxyInetAddr()->getIPAsString(),
+                            pConnection->getRemoteProxyInetAddr()->getPort(), encryptionTypeToString (query.getQueryEncryptionType()));
             _pConnectionManager->addNewActiveConnectionToRemoteProxy (pConnection);
             pConnection->unlock();
             return pConnection;
         }
         if (pConnection->isConnecting()) {
             checkAndLogMsg ("Connector::openNewConnectionToRemoteProxy", Logger::L_LowDetailDebug,
-                            "%sConnection object to reach remote NetProxy at address %s:%hu is still connecting; method will return NULL\n",
-                            getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort());
+                            "%sConnection object to reach remote NetProxy at address %s:%hu using %s encryption is still connecting\n",
+                             getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(),
+                            encryptionTypeToString (query.getQueryEncryptionType()));
             pConnection->unlock();
-            return NULL;
+            return nullptr;
         }
         if (pConnection->getConnectorAdapter()->isConnected()) {
             // Close connection to keep consistency with the Connection status
@@ -156,7 +160,7 @@ namespace ACMNetProxy
                                 "failed to establish a %s connection to remote NetProxy at address %s; rc = %d\n",
                                 getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), rc);
                 pConnection->unlock();
-                return NULL;
+                return nullptr;
             }
         }
         else {
@@ -169,23 +173,23 @@ namespace ACMNetProxy
                                 "failed to start background %sConnection thread to connect to the remote NetProxy at address %s:%hu; rc = %d\n",
                                 getConnectorTypeAsString(), pRemoteProxyAddr->getIPAsString(), pRemoteProxyAddr->getPort(), rc);
                 pConnection->unlock();
-                return NULL;
+                return nullptr;
             }
         }
         pConnection->unlock();
 
-        return pConnection->isConnected() ? pConnection : NULL;
+        return pConnection->isConnected() ? pConnection : nullptr;
     }
 
     const uint16 Connector::getAcceptServerPortForConnector (ConnectorType connectorType)
     {
         switch (connectorType) {
+        case CT_TCPSOCKET:
+            return NetProxyApplicationParameters::TCP_SERVER_PORT;
+        case CT_UDPSOCKET:
+            return NetProxyApplicationParameters::UDP_SERVER_PORT;
         case CT_MOCKETS:
             return NetProxyApplicationParameters::MOCKET_SERVER_PORT;
-        case CT_SOCKET:
-            return NetProxyApplicationParameters::TCP_SERVER_PORT;
-        case CT_UDP:
-            return NetProxyApplicationParameters::UDP_SERVER_PORT;
         case CT_CSR:
             return NetProxyApplicationParameters::CSR_MOCKET_SERVER_PORT;
         case CT_UNDEF:
@@ -195,41 +199,41 @@ namespace ACMNetProxy
         return 0;
     }
 
-    bool Connector::isConnectingToRemoteAddr (const InetAddr * const pRemoteProxyAddr) const
+    bool Connector::isConnectingToRemoteAddr (const InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const
     {
         if (!pRemoteProxyAddr) {
             return false;
         }
 
-        _mConnectionsTable.lock();
-        const Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr));
-        _mConnectionsTable.unlock();
+        lockConnectionTable();
+        const Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr, encryptionType));
+        unlockConnectionTable();
 
         return pConnection ? pConnection->isConnecting() : false;
     }
 
-    bool Connector::isConnectedToRemoteAddr (const InetAddr * const pRemoteProxyAddr) const
+    bool Connector::isConnectedToRemoteAddr (const InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const
     {
         if (!pRemoteProxyAddr) {
             return false;
         }
 
-        _mConnectionsTable.lock();
-        const Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr));
-        _mConnectionsTable.unlock();
+        lockConnectionTable();
+        const Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr, encryptionType));
+        unlockConnectionTable();
 
         return pConnection ? pConnection->isConnected() : false;
     }
 
-    bool Connector::hasFailedConnectionToRemoteAddr (const InetAddr * const pRemoteProxyAddr) const
+    bool Connector::hasFailedConnectionToRemoteAddr (const InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const
     {
         if (!pRemoteProxyAddr) {
             return false;
         }
 
-        _mConnectionsTable.lock();
-        const Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr));
-        _mConnectionsTable.unlock();
+        lockConnectionTable();
+        const Connection * const pConnection = _connectionsTable.get (generateUInt64Key (pRemoteProxyAddr, encryptionType));
+        unlockConnectionTable();
 
         return pConnection ? pConnection->hasFailedConnecting() : false;
     }
@@ -237,15 +241,15 @@ namespace ACMNetProxy
     Connector * const Connector::connectorFactoryMethod (ConnectorType connectorType)
     {
         switch (connectorType) {
+        case CT_TCPSOCKET:
+            return Connector::_pConnectionManager->getConnectorForType (connectorType) ?
+                Connector::_pConnectionManager->getConnectorForType (connectorType) : new SocketConnector();
+        case CT_UDPSOCKET:
+            return Connector::_pConnectionManager->getConnectorForType (connectorType) ?
+                Connector::_pConnectionManager->getConnectorForType (connectorType) : new UDPConnector();
         case CT_MOCKETS:
             return Connector::_pConnectionManager->getConnectorForType (connectorType) ?
                 Connector::_pConnectionManager->getConnectorForType (connectorType) : new MocketConnector();
-        case CT_SOCKET:
-            return Connector::_pConnectionManager->getConnectorForType (connectorType) ?
-                Connector::_pConnectionManager->getConnectorForType (connectorType) : new SocketConnector();
-        case CT_UDP:
-            return Connector::_pConnectionManager->getConnectorForType (connectorType) ?
-                Connector::_pConnectionManager->getConnectorForType (connectorType) : new UDPConnector();
         case CT_CSR:
             return Connector::_pConnectionManager->getConnectorForType (connectorType) ?
                 Connector::_pConnectionManager->getConnectorForType (connectorType) : new CSRConnector();
@@ -253,18 +257,17 @@ namespace ACMNetProxy
             break;
         }
 
-        return NULL;
+        return nullptr;
     }
 
+    // This method assumes that the lock on _mConnectionsTable is acquired by the caller
     Connection * const Connector::removeFromConnectionsTable (const Connection * const pConnectionToRemove)
     {
-        _mConnectionsTable.lock();
-        uint64 ui64Key = generateUInt64Key (pConnectionToRemove->getRemoteProxyInetAddr());
+        uint64 ui64Key = generateUInt64Key (pConnectionToRemove->getRemoteProxyInetAddr(), pConnectionToRemove->getEncryptionType());
         Connection * const pConnection = _connectionsTable.get (ui64Key);
         if (pConnection == pConnectionToRemove) {
             _connectionsTable.remove (ui64Key);
         }
-        _mConnectionsTable.unlock();
 
         return pConnection;
     }

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -25,11 +25,18 @@ namespace NOMADSUtil
     class File
     {
         public:
-            File (const String &path);
-            File (const String &parentDir, const String &fileName);
+            File (const String &path, char chSeparator='/', bool bForceSeparator=false);
+            File (const String &parentDir, const String &fileName,
+                  char chSeparator = '/', bool bForceSeparator = false);
             ~File (void);
 
             bool exists (void) const;
+            /**
+            * Returns TRUE if the specified file path is absolute,
+            * FALSE otherwise.
+            */
+            bool isPathAbsolute (void) const;
+
             int64 getFileSize (void) const;
 
             String getExtension (void) const;
@@ -49,6 +56,8 @@ namespace NOMADSUtil
             String getPath (void) const;
 
         private:
+            const char _chSeparator;
+            const bool _bForceSeparator;
             const String _parentDir;
             const String _fileName;
     };

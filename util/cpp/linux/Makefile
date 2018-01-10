@@ -8,6 +8,9 @@ include Makefile.inc
 %.o : ../%.cpp
 	$(cpp) -c $(cppflags) $<
 
+%.o : ../%.c
+	$(cpp) -c $(cppflags) $<
+
 %.o : ../graph/%.cpp
 	$(cpp) -c $(cppflags) $<
 

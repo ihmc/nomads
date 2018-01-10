@@ -45,7 +45,7 @@ namespace ACMNetProxy
 
         static Connection * getUDPConnection (void);
 
-        int init (uint16 ui16SocketPort);
+        virtual int init (uint16 ui16SocketPort);
         virtual void terminateExecution (void);
         void run (void);
 
@@ -66,7 +66,7 @@ namespace ACMNetProxy
 
     inline Connection * UDPConnector::getUDPConnection (void)
     {
-        static Connection udpConnection (_pUDPSocketAdapter, NULL);
+        static Connection udpConnection (_pUDPSocketAdapter, nullptr);
 
         return &udpConnection;
     }

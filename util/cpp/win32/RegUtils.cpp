@@ -3,6 +3,7 @@
 #include "Logger.h"
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define NOMINMAX
 #include <winsock2.h>
 #include <windows.h>
 

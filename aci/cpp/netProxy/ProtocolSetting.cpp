@@ -112,14 +112,14 @@ namespace ACMNetProxy
 
     ConnectorType ProtocolSetting::protocolToConnectorType (const ProxyMessage::Protocol protocol)
     {
-        if (isMocketsProtocol (protocol)) {
-            return CT_MOCKETS;
-        }
         if (isTCPProtocol (protocol)) {
-            return CT_SOCKET;
+            return CT_TCPSOCKET;
         }
         if (isUDPProtocol (protocol)) {
-            return CT_UDP;
+            return CT_UDPSOCKET;
+        }
+        if (isMocketsProtocol (protocol)) {
+            return CT_MOCKETS;
         }
         if (isCSRProtocol (protocol)) {
             return CT_CSR;
@@ -131,12 +131,12 @@ namespace ACMNetProxy
     ProxyMessage::Protocol ProtocolSetting::connectorTypeToProtocol (const ConnectorType connectorType)
     {
         switch (connectorType) {
+            case CT_TCPSOCKET:
+                return ProxyMessage::PMP_TCP;
+            case CT_UDPSOCKET:
+                return ProxyMessage::PMP_UDP;
             case CT_MOCKETS:
                 return ProxyMessage::PMP_UNDEF_MOCKETS;
-            case CT_SOCKET:
-                return ProxyMessage::PMP_TCP;
-            case CT_UDP:
-                return ProxyMessage::PMP_UDP;
             case CT_CSR:
                 return ProxyMessage::PMP_UNDEF_CSR;
             case CT_UNDEF:

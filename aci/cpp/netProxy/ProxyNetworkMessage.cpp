@@ -43,7 +43,7 @@ namespace ACMNetProxy
             _ui16PayloadLen = ui16PayloadLen;
         }
         else {
-            _pui8MessagePayload = NULL;
+            _pui8MessagePayload = nullptr;
             _ui16PayloadLen = 0;
         }
     }

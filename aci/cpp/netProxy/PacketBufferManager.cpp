@@ -58,8 +58,7 @@ namespace ACMNetProxy
     PacketBufferManager::PacketBufferManager (void)
     {
         for (int i = 0; i < NetProxyApplicationParameters::WRITE_PACKET_BUFFERS; i++) {
-            memset (_cTAPBuf[i], 0, (NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS >= NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU) ?
-                    NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS : NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU);
+            memset (_cTAPBuf[i], 0, NetProxyApplicationParameters::ETHERNET_MAX_MFS);
         }
     }
 

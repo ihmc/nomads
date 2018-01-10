@@ -47,12 +47,12 @@ using namespace NOMADSUtil;
 namespace ACMNetProxy
 {
     TapInterface::TapInterface (void) :
-        NetworkInterface (T_Tap), pPBM (PacketBufferManager::getPacketBufferManagerInstance())
+        NetworkInterface (Type::T_Tap), pPBM (PacketBufferManager::getPacketBufferManagerInstance())
     {
         #if defined (WIN32)
-            _hInterface = NULL;
-            _oRead.hEvent = NULL;
-            _oWrite.hEvent = NULL;
+            _hInterface = nullptr;
+            _oRead.hEvent = nullptr;
+            _oWrite.hEvent = nullptr;
         #elif defined (LINUX)
             _sAdapterName = "tap0";
             tvTimeout.tv_sec = 0;
@@ -66,11 +66,11 @@ namespace ACMNetProxy
 
         #if defined (WIN32)
         CloseHandle (_hInterface);
-        _hInterface = NULL;
+        _hInterface = nullptr;
         CloseHandle (_oRead.hEvent);
-        _oRead.hEvent = NULL;
+        _oRead.hEvent = nullptr;
         CloseHandle (_oWrite.hEvent);
-        _oWrite.hEvent = NULL;
+        _oWrite.hEvent = nullptr;
         #elif defined (LINUX)
         close (_fdTAP);
         _fdTAP = -1;
@@ -99,30 +99,30 @@ namespace ACMNetProxy
                 szKey[MAX_PATH-1] = '\0';
                 snprintf (szKey, MAX_PATH, "%s\\%s", WIN32_NETWORK_ADAPTERS_REG_KEY, pszSubKey);
                 RegEntries *pREs = getRegistryEntries (szKey);
-                if (pREs != NULL) {
+                if (pREs != nullptr) {
                     RegEntry *pEntry = pREs->get ("DriverDesc");
-                    if ((pEntry != NULL) && (pEntry->type == RegEntry::RET_String)) {
+                    if ((pEntry != nullptr) && (pEntry->type == RegEntry::RET_String)) {
                         checkAndLogMsg ("TapInterface::init", Logger::L_Info,
                                         "found network adaptor <%s>\n", pEntry->value);
                         if ((strstr (pEntry->value, TAP_INTERFACE_DESCRIPTION1)) || (strstr (pEntry->value, TAP_INTERFACE_DESCRIPTION2))) {
                             RegEntry *pREInstanceId = pREs->get ("NetCfgInstanceId");
-                            if ((pREInstanceId != NULL) && (pREInstanceId->type == RegEntry::RET_String)) {
+                            if ((pREInstanceId != nullptr) && (pREInstanceId->type == RegEntry::RET_String)) {
                                 iCount++;
                                 sInstanceID = pREInstanceId->value;
                                 RegEntry *pREMACAddr = pREs->get ("MAC");
-                                if ((pREMACAddr != NULL) && (pREMACAddr->type == RegEntry::RET_String)) {
+                                if ((pREMACAddr != nullptr) && (pREMACAddr->type == RegEntry::RET_String)) {
                                     sMACAddr = pREMACAddr->value;
                                 }
                                 RegEntry *pREMTU = pREs->get ("MTU");
-                                if ((pREMTU != NULL) && (pREMTU->type == RegEntry::RET_String)) {
+                                if ((pREMTU != nullptr) && (pREMTU->type == RegEntry::RET_String)) {
                                     sMTU = pREMTU->value;
                                 }
 
                                 snprintf (szKey, MAX_PATH, "%s\\%s\\Connection", WIN32_NETWORK_ADAPTERS_NAMES_REG_KEY, (const char*) sInstanceID);
                                 RegEntries *pNetworkConnEntries = getRegistryEntries (szKey);
-                                if (pNetworkConnEntries != NULL) {
+                                if (pNetworkConnEntries != nullptr) {
                                     RegEntry *pREName = pNetworkConnEntries->get ("Name");
-                                    if (pREName != NULL) {
+                                    if (pREName != nullptr) {
                                         _sAdapterName = pREName->value;
                                         checkAndLogMsg ("TapInterface::init", Logger::L_Info,
                                                         "TUN/TAP Network Adaptor name is %s\n", _sAdapterName.c_str());
@@ -135,10 +135,10 @@ namespace ACMNetProxy
 
                                 snprintf (szKey, MAX_PATH, "%s\\%s", WIN32_TCPIP_INTERFACE_CONFIGURATION_REG_KEY, (const char*) sInstanceID);
                                 RegEntries *pTCPIPEntries = getRegistryEntries (szKey);
-                                if (pTCPIPEntries != NULL) {
+                                if (pTCPIPEntries != nullptr) {
                                     // IP address
                                     RegEntry * const pREIPAddr = pTCPIPEntries->get ("IPAddress");
-                                    if ((pREIPAddr != NULL) && (pREIPAddr->type == RegEntry::RET_MultiString)) {
+                                    if ((pREIPAddr != nullptr) && (pREIPAddr->type == RegEntry::RET_MultiString)) {
                                         if (pREIPAddr->values.getHighestIndex() < 0) {
                                             checkAndLogMsg ("TapInterface::init", Logger::L_Warning,
                                                             "TUN/TAP Network Adaptor does not have an IP Address\n");
@@ -155,7 +155,7 @@ namespace ACMNetProxy
 
                                     // Netmask
                                     RegEntry * const pRENetmask = pTCPIPEntries->get ("SubnetMask");
-                                    if ((pRENetmask != NULL) && (pRENetmask->type == RegEntry::RET_MultiString)) {
+                                    if ((pRENetmask != nullptr) && (pRENetmask->type == RegEntry::RET_MultiString)) {
                                         if (pRENetmask->values.getHighestIndex() < 0) {
                                             checkAndLogMsg ("TapInterface::init", Logger::L_Warning,
                                                             "TUN/TAP Network Adaptor does not have a specified SubnetMask\n");
@@ -172,7 +172,7 @@ namespace ACMNetProxy
 
                                     // Netmask
                                     RegEntry * const pREGateway = pTCPIPEntries->get ("DefaultGateway");
-                                    if ((pREGateway != NULL) && (pREGateway->type == RegEntry::RET_MultiString)) {
+                                    if ((pREGateway != nullptr) && (pREGateway->type == RegEntry::RET_MultiString)) {
                                         if (pREGateway->values.getHighestIndex() < 0) {
                                             checkAndLogMsg ("TapInterface::init", Logger::L_Warning,
                                                             "TUN/TAP Network Adaptor does not have a specified Default Gateway\n");
@@ -211,22 +211,22 @@ namespace ACMNetProxy
 
             checkAndLogMsg ("TapInterface::init", Logger::L_Info, "opening device %s\n", szDeviceFilePath);
 
-            _hInterface = CreateFile (szDeviceFilePath, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+            _hInterface = CreateFile (szDeviceFilePath, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
             if (_hInterface == INVALID_HANDLE_VALUE) {
                 checkAndLogMsg ("TapInterface::init", Logger::L_SevereError,
                                 "CreateFile failed with error %d while attempting to open <%s>\n", GetLastError(), szDeviceFilePath);
                 return -3;
             }
 
-            memset (&_oRead, 0, sizeof (_oRead));
-            memset (&_oWrite, 0, sizeof (_oWrite));
-            _oRead.hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
+            memset (&_oRead, 0, sizeof(_oRead));
+            memset (&_oWrite, 0, sizeof(_oWrite));
+            _oRead.hEvent = CreateEvent (nullptr, TRUE, FALSE, nullptr);
             if (_oRead.hEvent == INVALID_HANDLE_VALUE) {
                 checkAndLogMsg ("TapInterface::init", Logger::L_SevereError,
                                 "CreateEvent 1 failed with error %d\n", GetLastError());
                 return -4;
             }
-            _oWrite.hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
+            _oWrite.hEvent = CreateEvent (nullptr, TRUE, FALSE, nullptr);
             if (_oWrite.hEvent == INVALID_HANDLE_VALUE) {
                 checkAndLogMsg ("TapInterface::init", Logger::L_SevereError,
                                 "CreateEvent 2 failed with error %d\n", GetLastError());
@@ -241,7 +241,7 @@ namespace ACMNetProxy
                 for (int i = 0; i < 6; i++) {
                     char pszByte[5];
                     const char *nextToken = st.getNextToken();
-                    if (nextToken == NULL) {
+                    if (nextToken == nullptr) {
                         _bMACAddrFound = false;
                         break;
                     }
@@ -302,7 +302,7 @@ namespace ACMNetProxy
             if (sMTU.length() > 0) {
                 // MTU value found
                 int32 i32MTU = atoi (sMTU);
-                if ((i32MTU <= 0) || (i32MTU > NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU)) {
+                if ((i32MTU <= 0) || (i32MTU > NetProxyApplicationParameters::ETHERNET_MAX_MTU)) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_MildError,
                                     "detected an invalid value of %d bytes as MTU of the TUN/TAP interface\n", i32MTU);
                 }
@@ -333,7 +333,7 @@ namespace ACMNetProxy
                 return -1;
             }
             //FD_SET (_fdTAP, &fdSet);
-            memset(&ifr, 0, sizeof (ifr));
+            memset(&ifr, 0, sizeof(ifr));
             strcpy (ifr.ifr_name, _sAdapterName);
             ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
             if ((err = ioctl (_fdTAP, TUNSETIFF, (void *) &ifr)) < 0 ) {
@@ -356,7 +356,7 @@ namespace ACMNetProxy
             }
 
             // MAC Address
-            memset(&ifr, 0, sizeof (ifr));
+            memset(&ifr, 0, sizeof(ifr));
             strncpy(ifr.ifr_name, _sAdapterName, _sAdapterName.length());
             if ((err = ioctl (_fdTAP, SIOCGIFHWADDR, (void *) &ifr)) < 0) {
                 checkAndLogMsg ("TapInterface::init", Logger::L_SevereError,
@@ -379,8 +379,8 @@ namespace ACMNetProxy
             }
             else {
                 // IP Address
-                memset(&ifr, 0, sizeof (ifr));
-                strncpy(ifr.ifr_name, _sAdapterName, sizeof (ifr.ifr_name) - 1);
+                memset(&ifr, 0, sizeof(ifr));
+                strncpy(ifr.ifr_name, _sAdapterName, sizeof(ifr.ifr_name) - 1);
                 ifr.ifr_addr.sa_family = AF_INET;
                 if ((err = ioctl (sock_fd, SIOCGIFADDR, (void *) &ifr)) < 0) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_Warning,
@@ -393,8 +393,8 @@ namespace ACMNetProxy
                 }
 
                 // Netmask
-                memset(&ifr, 0, sizeof (ifr));
-                strncpy(ifr.ifr_name, _sAdapterName, sizeof (ifr.ifr_name) - 1);
+                memset(&ifr, 0, sizeof(ifr));
+                strncpy(ifr.ifr_name, _sAdapterName, sizeof(ifr.ifr_name) - 1);
                 ifr.ifr_addr.sa_family = AF_INET;
                 if ((err = ioctl (sock_fd, SIOCGIFNETMASK, (void *) &ifr)) < 0) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_Warning,
@@ -407,8 +407,8 @@ namespace ACMNetProxy
                 }
 
                 // Netmask
-                memset(&ifr, 0, sizeof (ifr));
-                strncpy(ifr.ifr_name, _sAdapterName, sizeof (ifr.ifr_name) - 1);
+                memset(&ifr, 0, sizeof(ifr));
+                strncpy(ifr.ifr_name, _sAdapterName, sizeof(ifr.ifr_name) - 1);
                 ifr.ifr_addr.sa_family = AF_INET;
                 if ((err = ioctl (sock_fd, SIOCGIFMTU, (void *) &ifr)) < 0 ) {
                     checkAndLogMsg ("TapInterface::init", Logger::L_MildError,
@@ -422,8 +422,8 @@ namespace ACMNetProxy
                 close (sock_fd);
             }
 
-            tvTimeout.tv_sec = NetProxyApplicationParameters::TAP_READ_TIMEOUT / 1000;
-            tvTimeout.tv_usec = (NetProxyApplicationParameters::TAP_READ_TIMEOUT % 1000) * 1000;
+            tvTimeout.tv_sec = NetProxyApplicationParameters::TAP_INTERFACE_READ_TIMEOUT / 1000;
+            tvTimeout.tv_usec = (NetProxyApplicationParameters::TAP_INTERFACE_READ_TIMEOUT % 1000) * 1000;
             checkAndLogMsg ("TapInterface::init", Logger::L_Info,
                             "select() on the TUN/TAP interface will use a timeout of %ld.%04ld sec\n",
                             tvTimeout.tv_sec, tvTimeout.tv_usec);
@@ -439,8 +439,8 @@ namespace ACMNetProxy
         }
 
         uint8 ui8IPAddrOctet3, ui8IPAddrOctet4;
-        const char *nextToken = NULL;
-        InetAddr virtualIPAddr (NetProxyApplicationParameters::NETPROXY_IP_ADDR);
+        const char *nextToken = nullptr;
+        InetAddr virtualIPAddr (NetProxyApplicationParameters::INTERNAL_IP_ADDR);
         StringTokenizer st (virtualIPAddr.getIPAsString(), '.');
         st.getNextToken();
         st.getNextToken();
@@ -463,21 +463,27 @@ namespace ACMNetProxy
         return false;
     }
 
-    int TapInterface::readPacket (uint8 *pui8Buf, uint16 ui16BufSize)
+    int TapInterface::readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen)
     {
+        static const uint16 UI16BUFFER_SIZE = NetProxyApplicationParameters::ETHERNET_MAX_MFS;
+
         #if defined (WIN32)
         DWORD dwBytesRead = 0, dwWaitForSingleObjectRet = 0;
-        if (!ReadFile (_hInterface, pui8Buf, ui16BufSize, &dwBytesRead, &_oRead)) {
+        if (!ReadFile (_hInterface, ui8Buf, UI16BUFFER_SIZE, &dwBytesRead, &_oRead)) {
             if (GetLastError() != ERROR_IO_PENDING) {
                 checkAndLogMsg ("TapInterface::readPacket", Logger::L_MildError,
                                 "ReadFile failed with error %d\n", GetLastError());
+                *pui8Buf = nullptr;
+                ui16PacketLen = 0;
                 return -1;
             }
             else {
                 while (WAIT_TIMEOUT == (dwWaitForSingleObjectRet = WaitForSingleObject (
-                                        _oRead.hEvent, NetProxyApplicationParameters::TAP_READ_TIMEOUT))) {
+                                        _oRead.hEvent, NetProxyApplicationParameters::TAP_INTERFACE_READ_TIMEOUT))) {
                     if (_bIsTerminationRequested) {
                         CancelIo (_hInterface);
+                        *pui8Buf = nullptr;
+                        ui16PacketLen = 0;
                         return 0;
                     }
                 }
@@ -486,41 +492,55 @@ namespace ACMNetProxy
                 if ((dwWaitForSingleObjectRet == WAIT_OBJECT_0) && !GetOverlappedResult (_hInterface, &_oRead, &dwBytesRead, TRUE)) {
                     checkAndLogMsg ("TapInterface::readPacket", Logger::L_MildError,
                                     "GetOverlappedResult failed with error %d\n", GetLastError());
+                    *pui8Buf = nullptr;
+                    ui16PacketLen = 0;
                     return -2;
                 }
                 else if (dwWaitForSingleObjectRet != WAIT_OBJECT_0) {
                     checkAndLogMsg ("TapInterface::readPacket", Logger::L_MildError,
                                     "WaitForSingleObject failed returning %d, last error is %d\n",
                                     dwWaitForSingleObjectRet, GetLastError());
+                    *pui8Buf = nullptr;
+                    ui16PacketLen = 0;
+                    return -3;
                 }
             }
         }
+
         #elif defined (LINUX)
         int rc;
         FD_SET (_fdTAP, &fdSet);
-        tvTimeout.tv_sec = NetProxyApplicationParameters::TAP_READ_TIMEOUT / 1000;
-        tvTimeout.tv_usec = (NetProxyApplicationParameters::TAP_READ_TIMEOUT % 1000) * 1000;
-        while (0 == (rc = select (_fdTAP + 1, &fdSet, NULL, NULL, &tvTimeout))) {
+        tvTimeout.tv_sec = NetProxyApplicationParameters::TAP_INTERFACE_READ_TIMEOUT / 1000;
+        tvTimeout.tv_usec = (NetProxyApplicationParameters::TAP_INTERFACE_READ_TIMEOUT % 1000) * 1000;
+        while (0 == (rc = select (_fdTAP + 1, &fdSet, nullptr, nullptr, &tvTimeout))) {
             if (_bIsTerminationRequested) {
+                *pui8Buf = nullptr;
+                ui16PacketLen = 0;
                 return 0;
             }
             FD_SET (_fdTAP, &fdSet);
-            tvTimeout.tv_sec = NetProxyApplicationParameters::TAP_READ_TIMEOUT / 1000;
-            tvTimeout.tv_usec = (NetProxyApplicationParameters::TAP_READ_TIMEOUT % 1000) * 1000;
+            tvTimeout.tv_sec = NetProxyApplicationParameters::TAP_INTERFACE_READ_TIMEOUT / 1000;
+            tvTimeout.tv_usec = (NetProxyApplicationParameters::TAP_INTERFACE_READ_TIMEOUT % 1000) * 1000;
         }
         if (rc < 0) {
+            *pui8Buf = nullptr;
+            ui16PacketLen = 0;
             return rc;
         }
 
-        int64 dwBytesRead = read (_fdTAP, pui8Buf, ui16BufSize);
+        int64 dwBytesRead = read (_fdTAP, ui8Buf, UI16BUFFER_SIZE);
         if ((dwBytesRead < 0) && !_bIsTerminationRequested) {
             checkAndLogMsg ("TapInterface::readPacket", Logger::L_MildError,
                             "read() failed with error %d\n", errno);
+            *pui8Buf = nullptr;
+            ui16PacketLen = 0;
             return -1;
         }
         #endif
 
-        return (int) dwBytesRead;
+        *pui8Buf = ui8Buf;
+        ui16PacketLen = dwBytesRead;
+        return 0;
     }
 
     int TapInterface::writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen)

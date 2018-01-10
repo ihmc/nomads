@@ -29,12 +29,14 @@
 
 namespace NOMADSUtil
 {
+    class Stub;
+
     typedef bool (*UnmarshalFnPtr) (uint16 uiApplicationId, const String &methoName,
                                     void *pSvc, SimpleCommHelper2 *pCommHelper,
                                     SimpleCommHelper2::Error &error);
 
     typedef bool (*StubUnmarshalFnPtr) (uint16 uiApplicationId, const String &methoName,
-                                        void *pStub, SimpleCommHelper2 *pCommHelper);
+                                        Stub *pStub, SimpleCommHelper2 *pCommHelper);
 }
 
 

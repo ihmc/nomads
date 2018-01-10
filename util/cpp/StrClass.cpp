@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -99,6 +99,10 @@ String String::operator + (char c) const
 
 String & String::operator = (const char *pszStr)
 {
+    if (pszBuf == pszStr) {
+        return *this;
+    }
+
     if (pszBuf) {
         free (pszBuf);
         pszBuf = NULL;
@@ -141,11 +145,27 @@ String & String::operator += (char c)
     return *this;
 }
 
+String & String::operator += (unsigned char c)
+{
+    if (pszBuf) {
+        unsigned int uiOldLen = strlen (pszBuf);
+        pszBuf = (char *)realloc (pszBuf, uiOldLen + 1 + 1);
+        pszBuf[uiOldLen] = c;
+        pszBuf[uiOldLen + 1] = '\0';
+    }
+    else {
+        pszBuf = (char*)malloc (2);
+        pszBuf[0] = c;
+        pszBuf[1] = '\0';
+    }
+    return *this;
+}
+
 String & String::operator += (uint32 ui32)
 {
-    char szBuf[12];
-    itoa (szBuf, ui32);
-    return this->operator += (szBuf);
+    char szBuf[22];
+    char *pszBuf = i64toa (szBuf, (int64) ui32);
+    return this->operator += (pszBuf);
 }
 
 char & String::operator [] (int iPos) const
@@ -241,7 +261,7 @@ int String::trim (void)
             break;
         }
     }
-    
+
     for (i = 0; i < (int) strlen(pszBuf) - 1; i++) {
         if (isspace(pszBuf[i])) {
             offset++;
@@ -375,7 +395,7 @@ int String::startsWith (const char *pszStr) const
             return 1;
         }
     }
-    
+
     return 0;
 }
 

@@ -29,7 +29,7 @@ namespace ACMNetProxy
     MutexBuffer::MutexBuffer (bool bMutex, unsigned int uiMaxBufSize, unsigned int uiInitialBufSize) :
         _uiMinBufSize ((uiInitialBufSize <= uiMaxBufSize) ? uiInitialBufSize : uiMaxBufSize),
         _uiMaxBufSize ((uiMaxBufSize <= UI_BUFFER_SIZE_LIMIT) ? uiMaxBufSize : UI_BUFFER_SIZE_LIMIT),
-        _bResizable (uiInitialBufSize != uiMaxBufSize), _pMutex (bMutex ? new Mutex() : NULL)
+        _bResizable (uiInitialBufSize != uiMaxBufSize), _pMutex (bMutex ? new Mutex() : nullptr)
     {
         _pBuf = new unsigned char[_uiMinBufSize];
         _uiCurrBufSize = _uiMinBufSize;
@@ -40,14 +40,14 @@ namespace ACMNetProxy
         lock();
         if (_pBuf) {
             delete[] _pBuf;
-            _pBuf = NULL;
+            _pBuf = nullptr;
         }
         _uiCurrBufSize = 0;
 
         if (_pMutex) {
             _pMutex->unlock();
             delete _pMutex;
-            _pMutex = NULL;
+            _pMutex = nullptr;
         }
     }
 

@@ -59,26 +59,26 @@ namespace NOMADSUtil
             // Send ui32BufSize number of bytes from pBuf
             // May send less than the requested number of bytes
             // Returns the number of bytes sent
-            uint32 send (const void *pBuf, uint32 ui32BufSize) throw (CommException);
+            uint32 send (const void *pBuf, uint32 ui32BufSize);
 
             // Receive upto ui32BufSize number of bytes into pBuf
             // May receive less than the requested number of bytes
             // Returns the number of bytes received
-            uint32 receive (void *pBuf, uint32 ui32BufSize) throw (CommException);
+            uint32 receive (void *pBuf, uint32 ui32BufSize);
 
             // Sends ui32BufSize number of bytes from pBuf
-            void sendBlob (const void *pBuf, uint32 ui32BufSize) throw (CommException);
+            void sendBlob (const void *pBuf, uint32 ui32BufSize);
 
             // Receives ui32BufSize number of bytes into pBuf
-            void receiveBlob (void *pBuf, uint32 ui32BufSize) throw (CommException);
+            void receiveBlob (void *pBuf, uint32 ui32BufSize);
 
             // Sends a block of binary data. The data block is preceded by the length of the
             // block sent as a 4 byte value
-            void sendBlock (const void *pBuf, uint32 ui32BufSize) throw (CommException);
+            void sendBlock (const void *pBuf, uint32 ui32BufSize);
 
             // Sends a block of binary data. The data block is preceded by the length of the
             // block sent as a 4 byte value
-            void sendBlock (const void *pBuf1, uint32 ui32Buf1Size, const void *pBuf2, uint32 ui32Buf2Size) throw (CommException);
+            void sendBlock (const void *pBuf1, uint32 ui32Buf1Size, const void *pBuf2, uint32 ui32Buf2Size);
 
             // Sends a null-terminated string block of binary data. The data block
             // is preceded by the length of the block sent as a 4 byte value.
@@ -90,70 +90,70 @@ namespace NOMADSUtil
             // the block as a 4 byte value followed by the block of data.
             // Returns the number of bytes that were read
             // Throws a ProtocolException if the block is bigger than the receiving buffer size
-            uint32 receiveBlock (void *pBuf, uint32 ui32BufSize) throw (CommException, ProtocolException);
+            uint32 receiveBlock (void *pBuf, uint32 ui32BufSize);
 
             // Sends a line (terminated by \r\n) after performing a vsprintf() on pszMsg
             // Arguments must be printf() style and total length of line must not exceed
             //     the line buffer size (specified in init())
-            void sendLine (const char *pszMsg, ...) throw (CommException);
+            void sendLine (const char *pszMsg, ...);
 
             // Receives a line (terminated by \r\n) upto iBufSize-1 characters into pszBuf
             // Line termination is removed before returning
             // Returns the number of characters in the line
-            int receiveLine (char *pszBuf, int iBufSize) throw (CommException);
+            int receiveLine (char *pszBuf, int iBufSize); 
 
             // Similar to receiveLine() above but uses the internal buffer and returns a pointer to the buffer
-            const char * receiveLine (void) throw (CommException);
+            const char * receiveLine (void);
 
             // Receives a line (just like receiveLine) after truncating an initial portion
             // The initial portion to be discarded is determined by performing a vsprintf()
             //     on pszMsg which must be a printf() style format string followed by arguments
             // Throws a ProtocolException if the specified initial portion does not match the
             //     data received
-            int receiveRemainingLine (char *pszBuf, int iBufSize, const char *pszMsg, ...) throw (CommException, ProtocolException);
+            int receiveRemainingLine (char *pszBuf, int iBufSize, const char *pszMsg, ...);
 
             // Receives a line and compares it with the specified string (which must be printf() style)
             // If received line does not match, throws a ProtocolException
             // Otherwise, received input is quietly discarded
-            void receiveMatch (const char *pszMsg, ...) throw (CommException, ProtocolException);
+            void receiveMatch (const char *pszMsg, ...);
 
             // Receives a line and compares it with a number of specified alternative strings
             // The first argument (usAltCount) must specify the number of alternatives (each of which
             //     must follow as a const char* argument)
             // Returns the zero-based index of the matching alternative
             // Throws a ProtocolException if none of the strings match
-            int receiveMatchIndex (unsigned short usAltCount, ...) throw (CommException, ProtocolException);
+            int receiveMatchIndex (unsigned short usAltCount, ...);
 
             // Same as above except that the alternative strings are passed in as a null-terminated array of
             //     const char* values
-            int receiveMatchIndex (const char *apszAlternatives[]) throw (CommException, ProtocolException);
+            int receiveMatchIndex (const char *apszAlternatives[]);
 
             // Same as above except that the alternative strings are passed in as an array of const char* values
             //     whose size is specified in the second argument (usCount)
-            int receiveMatchIndex (const char *apszAlternatives[], unsigned short usCount) throw (CommException, ProtocolException);
+            int receiveMatchIndex (const char *apszAlternatives[], unsigned short usCount);
 
             // A combination of receiveRemainingLine and receiveMatchIndex
             // There must be usAltCount number of strings which are alternatives followed by
             //     a printf() style arguments for the initial string to be ignored
-            int receiveRemainingMatchIndex (unsigned short usAltCount, ...) throw (CommException, ProtocolException);
+            int receiveRemainingMatchIndex (unsigned short usAltCount, ...);
 
             // Same as above except the string alternatives are passed in as a null-terminated array
             //     of const char* values
-            int receiveRemainingMatchIndex (const char *apszAlternatives[], const char *pszMsg, ...) throw (CommException, ProtocolException);
+            int receiveRemainingMatchIndex (const char *apszAlternatives[], const char *pszMsg, ...);
 
             // Same as above except that the alternative strings are passed in as an array of const char* values
             //     whose size is specified in the second argument (usCount)
-            int receiveRemainingMatchIndex (const char *apszAlternatives[], unsigned short usCount, const char *pszMsg, ...) throw (CommException, ProtocolException);
+            int receiveRemainingMatchIndex (const char *apszAlternatives[], unsigned short usCount, const char *pszMsg, ...);
 
             // Receives a line, parses the line into words, and returns a null-terminated
             //     array of strings, one for each word
             // All whitespace between words is trimmed
             // NOTE: Caller should not delete the array that has been returned
-            const char ** receiveParsed (int *pCount = NULL) throw (CommException);
+            const char ** receiveParsed (int *pCount = NULL);
 
             // Same as receiveParsed, except that a custom delimiter can be be used
             // NOTE: Caller should not delete the array that has been returned
-            const char ** receiveParsedDelimited (const char *pszDelimiters, int *pCount = NULL) throw (CommException);
+            const char ** receiveParsedDelimited (const char *pszDelimiters, int *pCount = NULL);
 
             // Same as above except that the parsing is done according to the specified parse format string
             // The parse format string specifies the number of words that should be grouped into one
@@ -172,14 +172,14 @@ namespace NOMADSUtil
             //                     [2] "sleeping"
             //                     [3] "dog in   the yard"
             //                     [4] NULL
-            const char ** receiveParsedSpecific (const char *pszParseFmt) throw (CommException, ProtocolException);
+            const char ** receiveParsedSpecific (const char *pszParseFmt);
 
             // Same as receiveParsed except that an initial portion is discarded just like receiveRemainingLine
-            const char ** receiveRemainingParsed (const char *pszMsg, ...) throw (CommException);
+            const char ** receiveRemainingParsed (const char *pszMsg, ...);
 
             // A combination of receiveRemainingParsed and receiveParsedSpecific
-            const char ** receiveRemainingParsedSpecific (const char *pszParseFmt, const char *pszMsg, ...) throw (CommException, ProtocolException);
-            void closeConnection() throw (ProtocolException);
+            const char ** receiveRemainingParsedSpecific (const char *pszParseFmt, const char *pszMsg, ...);
+            void closeConnection();
 
             // returns a reference to the underlying Reader object
             Reader * getReaderRef();

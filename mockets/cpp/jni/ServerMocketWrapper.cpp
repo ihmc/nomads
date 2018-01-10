@@ -33,6 +33,35 @@ JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_init (JNIEnv *pEnv, job
     pEnv->SetLongField (joThis, jfServerMocket, UtilWrapper::toJLong (pServerMocket));
 }
 
+JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_initDtls (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile, jstring jsCertificatePath, jstring jsPrivateKeyPath)
+{
+    jclass jcServerMocket = pEnv->GetObjectClass (joThis);
+    jfieldID jfServerMocket = pEnv->GetFieldID (jcServerMocket, "_serverMocket", "J");
+    const char *pszConfigFile = NULL;
+    const char *pszPathToCertificate = NULL;
+    const char *pszPathToPrivateKey = NULL;
+
+    if (jsConfigFile != NULL) {
+        pszConfigFile = pEnv->GetStringUTFChars (jsConfigFile, NULL);
+    }
+    if (jsCertificatePath != NULL) {
+        pszPathToCertificate = pEnv->GetStringUTFChars (jsCertificatePath, NULL);
+    }
+    if (jsPrivateKeyPath != NULL) {
+        pszPathToPrivateKey = pEnv->GetStringUTFChars (jsPrivateKeyPath, NULL);
+    }
+
+    ServerMocket *pServerMocket = new ServerMocket (pszConfigFile, NULL, false, true, pszPathToCertificate, pszPathToPrivateKey);
+    if (pszConfigFile != NULL) {
+        pEnv->ReleaseStringUTFChars (jsConfigFile, pszConfigFile);
+    }
+    if (pServerMocket == NULL) {
+        pEnv->ThrowNew (pEnv->FindClass ("java/lang/Exception"), "MocketsJavaWrapper not initialized - ServerMocket is null");
+        return;
+    }
+    pEnv->SetLongField (joThis, jfServerMocket, UtilWrapper::toJLong (pServerMocket));
+}
+
 JNIEXPORT void JNICALL Java_us_ihmc_mockets_ServerMocket_dispose (JNIEnv *pEnv, jobject joThis)
 {
     jclass jcServerMocket = pEnv->GetObjectClass (joThis);

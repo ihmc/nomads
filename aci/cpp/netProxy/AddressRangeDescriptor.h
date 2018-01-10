@@ -61,6 +61,9 @@ namespace ACMNetProxy
         const NOMADSUtil::String & getHighestAddressAsString (void) const;
         const NOMADSUtil::String & getAddressRangeStringDescription (void) const;
 
+
+        friend bool overlap (const AddressRangeDescriptor & lhs, const AddressRangeDescriptor & rhs);
+
     private:
         /* This method parses a range in the form of A-B, where A,B are
          * two byte octets which can assume any value between 0 and 255. */
@@ -143,6 +146,11 @@ namespace ACMNetProxy
         return ui16PortLow != ui16PortHigh;
     }
 
+    inline bool AddressRangeDescriptor::overlaps (const AddressRangeDescriptor & rhs) const
+    {
+        return overlap (*this, rhs);
+    }
+
     inline bool AddressRangeDescriptor::matchesPort (uint16 ui16Port) const
     {
         return (ui16Port == 0) || ((ui16PortLow <= ui16Port) && (ui16Port <= ui16PortHigh));
@@ -173,6 +181,15 @@ namespace ACMNetProxy
     inline const NOMADSUtil::String & AddressRangeDescriptor::getAddressRangeStringDescription (void) const
     {
         return _sAddressRangeDescriptor;
+    }
+
+    // Two address ranges overlap if each pair of octet ranges overlap
+    inline bool overlap (const AddressRangeDescriptor & lhs, const AddressRangeDescriptor & rhs)
+    {
+        return ((lhs.ui8IPAddrOctet1Low < rhs.ui8IPAddrOctet1High) && (rhs.ui8IPAddrOctet1Low < lhs.ui8IPAddrOctet1High)) &&
+            ((lhs.ui8IPAddrOctet2Low < rhs.ui8IPAddrOctet2High) && (rhs.ui8IPAddrOctet2Low < lhs.ui8IPAddrOctet2High)) &&
+            ((lhs.ui8IPAddrOctet3Low < rhs.ui8IPAddrOctet3High) && (rhs.ui8IPAddrOctet3Low < lhs.ui8IPAddrOctet3High)) &&
+            ((lhs.ui8IPAddrOctet4Low < rhs.ui8IPAddrOctet4High) && (rhs.ui8IPAddrOctet4Low < lhs.ui8IPAddrOctet4High));
     }
 }
 

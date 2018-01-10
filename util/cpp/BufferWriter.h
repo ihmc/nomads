@@ -24,7 +24,6 @@
 
 namespace NOMADSUtil
 {
-
     class BufferWriter : public Writer
     {
         public:

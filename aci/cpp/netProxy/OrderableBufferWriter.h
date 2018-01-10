@@ -38,7 +38,7 @@ namespace ACMNetProxy
     {
     public:
         OrderableItem (unsigned int uiSequenceNumber, unsigned int uiItemLength);
-        explicit OrderableItem (const OrderableItem& rOrderableItem);
+        OrderableItem (const OrderableItem& rOrderableItem) = delete;
         virtual ~OrderableItem (void) {};
 
         virtual const unsigned int getSequenceNumber (void) const;
@@ -71,7 +71,7 @@ namespace ACMNetProxy
     {
     public:
         OrderableBufferWrapper (unsigned int uiSequenceNumber, unsigned int uiItemLength, const DataType *pData);
-        explicit OrderableBufferWrapper (const OrderableBufferWrapper& rOrderableBufferWrapper);
+        OrderableBufferWrapper (const OrderableBufferWrapper& rOrderableBufferWrapper) = delete;
         virtual ~OrderableBufferWrapper (void) {};
 
         using OrderableItem::getSequenceNumber;
@@ -175,8 +175,7 @@ namespace ACMNetProxy
 
     template <class DataType> inline bool OrderableBufferWrapper<DataType>::operator< (const OrderableItem &rhs) const
     {
-        return (NOMADSUtil::SequentialArithmetic::lessThan (getSequenceNumber(), rhs.getSequenceNumber()) &&
-                NOMADSUtil::SequentialArithmetic::lessThanOrEqual ((getSequenceNumber() + getItemLength()), rhs.getSequenceNumber()));
+        return NOMADSUtil::SequentialArithmetic::lessThanOrEqual (getFollowingSequenceNumber(), rhs.getSequenceNumber());
     }
 
     template <class DataType> inline bool OrderableBufferWrapper<DataType>::operator> (const OrderableItem &rhs) const

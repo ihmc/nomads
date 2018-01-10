@@ -26,39 +26,48 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    AutoConnectionEntry::AutoConnectionEntry (const uint32 ui32RemoteProxyID, const ConnectorType connectorType, const uint32 ui32AutoReconnectTimeInMillis) :
-        _ui32RemoteProxyID (ui32RemoteProxyID), _connectorType (connectorType),
-        _pConnectivitySolutions (P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (ui32RemoteProxyID)),
-        _ui32AutoReconnectTimeInMillis (ui32AutoReconnectTimeInMillis), _ui64LastConnectionAttemptTime (0), _bSynchronized (false),
-        _bValid (_pConnectivitySolutions != NULL) { }
+    AutoConnectionEntry::AutoConnectionEntry (const uint32 ui32RemoteProxyID, const ConnectorType connectorType,
+                                              const uint32 ui32AutoReconnectTimeInMillis) :
+        _ui32RemoteProxyID(ui32RemoteProxyID), _connectorType(connectorType), _ucAutoConnectionEncryptionDescriptor(ET_UNDEF),
+        _ui32AutoReconnectTimeInMillis(ui32AutoReconnectTimeInMillis), _ui64LastConnectionAttemptTime{},
+        _bSynchronized{false}, _bValid{true} { }
 
     const AutoConnectionEntry & AutoConnectionEntry::operator = (const AutoConnectionEntry &rhs)
     {
         _ui32RemoteProxyID = rhs._ui32RemoteProxyID;
         _connectorType = rhs._connectorType;
-        _pConnectivitySolutions = P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
+        _ucAutoConnectionEncryptionDescriptor = rhs._ucAutoConnectionEncryptionDescriptor;
         _ui32AutoReconnectTimeInMillis = rhs._ui32AutoReconnectTimeInMillis;
-        _ui64LastConnectionAttemptTime = rhs._ui64LastConnectionAttemptTime;
-        _bSynchronized = rhs._bSynchronized;
-        _bValid = _pConnectivitySolutions != NULL;
+        memcpy (_ui64LastConnectionAttemptTime, rhs._ui64LastConnectionAttemptTime, sizeof(_ui64LastConnectionAttemptTime));
+        for (unsigned int i = 0; i < ET_SIZE; ++i) {
+            _bSynchronized[i] = rhs._bSynchronized[i];
+            _bValid[i] = rhs._bValid[i];
+        }
 
         return *this;
     }
 
-    int AutoConnectionEntry::synchronize (void)
+    void AutoConnectionEntry::updateEncryptionDescriptor (void)
+    {
+        auto * pConnectivitySolutions = P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
+        _ucAutoConnectionEncryptionDescriptor |= pConnectivitySolutions ?
+            pConnectivitySolutions->getEncryptionDescription (_connectorType) : ET_UNDEF;
+    }
+
+    int AutoConnectionEntry::synchronize (EncryptionType encryptionType)
     {
         if ((_ui32RemoteProxyID == 0) || (_connectorType == CT_UNDEF)) {
             return -1;
         }
 
-        _pConnectivitySolutions = _pConnectivitySolutions ? _pConnectivitySolutions : P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
-        if (!_pConnectivitySolutions) {
+        auto * pConnectivitySolutions = P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
+        if (!pConnectivitySolutions) {
             return -2;
         }
 
-        QueryResult query (_pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType));
+        QueryResult query (pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType, encryptionType));
         Connection *pActiveConnection = query.getActiveConnectionToRemoteProxy();
-        if (!pActiveConnection && !_pConnectivitySolutions->getRemoteProxyInfo().isRemoteProxyReachableFromLocalHost()) {
+        if (!pActiveConnection && !pConnectivitySolutions->getRemoteProxyInfo().isRemoteProxyReachableFromLocalHost()) {
             // It is impossible to open a connection to the remote NetProxy from the local host
             return -3;
         }
@@ -70,11 +79,11 @@ namespace ACMNetProxy
             }
 
             pActiveConnection = pConnector->openNewConnectionToRemoteProxy (query, false);
-            if (!pActiveConnection && pConnector->isConnectingToRemoteAddr(query.getRemoteProxyServerAddress())) {
+            if (!pActiveConnection && pConnector->isConnectingToRemoteAddr (query.getRemoteProxyServerAddress(), encryptionType)) {
                 // Connection still establishing!
                 return 0;
             }
-            query = _pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType);
+            query = pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType, encryptionType);
             if (!(pActiveConnection = query.getActiveConnectionToRemoteProxy())) {
                 // Connection failed
                 return -5;
@@ -88,21 +97,29 @@ namespace ACMNetProxy
             return -6;
         }
 
-        if (_bSynchronized) {
+        if (isSynchronized (encryptionType)) {
             // Nothing to do here
             pActiveConnection->unlock();
             return 0;
         }
-        bool bReachable = _pConnectivitySolutions->getRemoteProxyInfo().isLocalProxyReachableFromRemote();
+        bool bReachable = pConnectivitySolutions->getRemoteProxyInfo().isLocalProxyReachableFromRemote();
         if (0 != pActiveConnection->openConnectionWithRemoteProxy (query.getBestConnectionSolution(), bReachable)) {
             pActiveConnection->unlock();
-            _bSynchronized = false;
+            resetSynch (encryptionType);
             return -7;
         }
         pActiveConnection->unlock();
-        _bSynchronized = true;
+        synchronized (encryptionType);
 
         return 0;
     }
 
+    const NOMADSUtil::InetAddr * const AutoConnectionEntry::getRemoteProxyInetAddress (EncryptionType encryptionType) const
+    {
+        auto * pConnectivitySolutions = P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
+        return pConnectivitySolutions ?
+            pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType,
+                                                                               encryptionType).getBestConnectionSolution() :
+            nullptr;
+    }
 }

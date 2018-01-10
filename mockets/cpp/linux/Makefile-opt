@@ -3,27 +3,35 @@ UTILDIR = ../../../util/cpp
 CC  = gcc
 CXX = g++
 
-CXXFLAGS = -O2 -DUNIX -DLINUX \
-           -DLITTLE_ENDIAN_SYSTEM -I.. -I../../../util/cpp \
-           -I../../../externals/JDK -I../../../externals/JDK/linux
+MACHINE = $(shell uname -m)
+ifeq ($(MACHINE), x86_64)
+CXXFLAGS = -m64
+else
+CXXFLAGS = -m32
+endif
+
+CXXFLAGS += -O2 -Wall -Wno-unused-parameter -Wno-unknown-pragmas -fPIC -DUNIX -DLINUX -DLITTLE_ENDIAN_SYSTEM \
+	    -I.. -I../../../util/cpp \
+	    -I../../../externals/openssl/1.0.2h/linux/include \
+	    -I../../../externals/include \
+            -I../../../externals/JDK -I../../../externals/JDK/linux
 
 sources = $(wildcard ../*.cpp)
 objects = $(sources:../%.cpp=%.o)
 
-all: libmockets.a 
+all: libmockets.a
 
-libmockets.a : $(objects) libutil.a
-	ar -rcv libmockets.a $(objects) ../../../util/cpp/linux/libutil.a
+libmockets.a : $(objects) libutil.a libsecurity.a
+	ar -rcv libmockets.a $(objects) 
 
 libsecurity.a :
-	make -C $(UTILDIR)/linux libsecurity.a -f Makefile-opt
+	make -C $(UTILDIR)/linux -f Makefile-opt libsecurity.a
 
-libutil.a : 
-	make -C ../../../util/cpp/linux -f Makefile-opt
+libutil.a :
+	make -C $(UTILDIR)/linux -f Makefile-opt libutil.a
 
 clean :
 	rm -rf *.o *.a 
 
 %.o : ../%.cpp
 	$(CXX) -c $(CXXFLAGS) $<
-

@@ -27,7 +27,7 @@
 #include "ConnectorWriter.h"
 #include "UDPConnector.h"
 #include "ConnectionManager.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 
 
 using namespace NOMADSUtil;
@@ -38,19 +38,19 @@ namespace ACMNetProxy
 {
     void Connectors::reset (Entry * const pEntry)
     {
-        pConnector = NULL;
+        pConnector = nullptr;
         if (pConnection && pEntry) {
             pConnection->removeTCPEntry (pEntry);
         }
-        pConnection = NULL;
+        pConnection = nullptr;
 
         if (pConnectorReader) {
             delete pConnectorReader;
-            pConnectorReader = NULL;
+            pConnectorReader = nullptr;
         }
         if (pConnectorWriter) {
             delete pConnectorWriter;
-            pConnectorWriter = NULL;
+            pConnectorWriter = nullptr;
         }
     }
 
@@ -62,15 +62,15 @@ namespace ACMNetProxy
 
         if (_pAvailableData) {
             delete _pAvailableData;
-            _pAvailableData = NULL;
+            _pAvailableData = nullptr;
         }
         if (_pMutexBuffer) {
             delete _pMutexBuffer;
-            _pMutexBuffer = NULL;
+            _pMutexBuffer = nullptr;
         }
         if (_pTempTCPSegment) {
             delete _pTempTCPSegment;
-            _pTempTCPSegment = NULL;
+            _pTempTCPSegment = nullptr;
         }
         _m.unlock();
     }
@@ -117,15 +117,15 @@ namespace ACMNetProxy
 
         if (_pAvailableData) {
             delete _pAvailableData;
-            _pAvailableData = NULL;
+            _pAvailableData = nullptr;
         }
         if (_pMutexBuffer) {
             delete _pMutexBuffer;
-            _pMutexBuffer = NULL;
+            _pMutexBuffer = nullptr;
         }
         if (_pTempTCPSegment) {
             delete _pTempTCPSegment;
-            _pTempTCPSegment = NULL;
+            _pTempTCPSegment = nullptr;
         }
     }
 
@@ -160,20 +160,20 @@ namespace ACMNetProxy
 
         if (_pAvailableData) {
             delete _pAvailableData;
-            _pAvailableData = NULL;
+            _pAvailableData = nullptr;
         }
         if (_pMutexBuffer) {
             delete _pMutexBuffer;
-            _pMutexBuffer = NULL;
+            _pMutexBuffer = nullptr;
         }
         if (_pTempTCPSegment) {
             delete _pTempTCPSegment;
-            _pTempTCPSegment = NULL;
+            _pTempTCPSegment = nullptr;
         }
 
 		if (pTCPSegment) {
 			delete pTCPSegment;
-			pTCPSegment = NULL;
+			pTCPSegment = nullptr;
 		}
     }
 
@@ -188,15 +188,15 @@ namespace ACMNetProxy
         _connectors.reset (this);
         if (_pAvailableData) {
             delete _pAvailableData;
-            _pAvailableData = NULL;
+            _pAvailableData = nullptr;
         }
         if (_pMutexBuffer) {
             delete _pMutexBuffer;
-            _pMutexBuffer = NULL;
+            _pMutexBuffer = nullptr;
         }
         if (_pTempTCPSegment) {
             delete _pTempTCPSegment;
-            _pTempTCPSegment = NULL;
+            _pTempTCPSegment = nullptr;
         }
 
         _m.unlock();
@@ -213,7 +213,7 @@ namespace ACMNetProxy
         ReceivedData *pData;
         uint32 ui16ACKedPackets = 0;
         int64 lastPacketTime = 0;
-        while (NULL != (pData = outBuf.peek())) {
+        while (nullptr != (pData = outBuf.peek())) {
             if ((pData->getItemLength() > 0) && SequentialArithmetic::lessThanOrEqual (pData->getFollowingSequenceNumber(), ui32AckNum)) {        // Do not dequeue 0 length items
                 outBuf.dequeue();
                 lastPacketTime = pData->_i64LastTransmitTime;
@@ -279,8 +279,8 @@ namespace ACMNetProxy
 
         static const uint8 TCP_DATA_FLAGS_FILTER = 0xF8;                // Nasty filter to avoid sending packets with control flags in a TCPDataProxyMessages
         static const uint8 TCP_DATA_FLAGS_FILTER_NO_PSH = 0xF0;         // Nasty filter to avoid sending packets with control or PSH flags in a TCPDataProxyMessages
-        
-        ppBuf[0] = NULL;
+
+        ppBuf[0] = nullptr;
         if (pDataToReturn) {
             // We have data previously processed --> check if there are already enough bytes in the buffer
             checkAndLogMsg ("Entry::dequeueLocallyReceivedData", Logger::L_MediumDetailDebug,
@@ -298,7 +298,7 @@ namespace ACMNetProxy
                 return pDataToReturn;
             }
 
-            _pAvailableData = NULL;
+            _pAvailableData = nullptr;
             if (pDataToReturn->getItemLength() == ui16RequestedBytesNum) {
                 // We have exactly the requested amount of data --> return the available packet
                 checkAndLogMsg ("Entry::dequeueLocallyReceivedData", Logger::L_HighDetailDebug,
@@ -335,7 +335,7 @@ namespace ACMNetProxy
                                 ui16ID, ui16RemoteID, _pMutexBuffer->getBuffer(),
                                 inQueue.getAvailableBytesCount());
                 _pMutexBuffer->unlock();
-                return NULL;
+                return nullptr;
             }
 
             if (!pDataToReturn) {
@@ -351,7 +351,7 @@ namespace ACMNetProxy
                                     "L%hu-R%hu: error manipulating %d bytes of data from packet with SEQ number %u through the Connector Writer; rc = %d\n",
                                     ui16ID, ui16RemoteID, extractedData, _pTempTCPSegment->getSequenceNumber(), rc);
                     _pMutexBuffer->unlock();
-                    return NULL;
+                    return nullptr;
                 }
 
                 if (ui16RequestedBytesNum < uiBufLen) {
@@ -423,7 +423,7 @@ namespace ACMNetProxy
                                     ui16ID, ui16RemoteID, _pTempTCPSegment->getSequenceNumber(),
                                     _pTempTCPSegment->getTCPFlags(), ui32BytesToReadFromPacket, _pTempTCPSegment->getItemLength(),
                                     ui16RequestedBytesNum - pDataToReturn->getItemLength());
-                    _pAvailableData = NULL;
+                    _pAvailableData = nullptr;
                 }
             }
             _pMutexBuffer->unlock();
@@ -469,13 +469,13 @@ namespace ACMNetProxy
             return pOldConnection;
         }
 
-        return NULL;
+        return nullptr;
     }
 
     int Entry::removePacketsFromUDPTransmissionQueue (void) const
     {
         static ConnectionManager * const P_CONNECTION_MANAGER = ConnectionManager::getConnectionManagerInstance();
-        static Connector * const pConnector =  P_CONNECTION_MANAGER->getConnectorForType (CT_UDP);
+        static Connector * const pConnector =  P_CONNECTION_MANAGER->getConnectorForType (CT_UDPSOCKET);
         if (pConnector) {
             UDPConnector * const pUDPConnector = dynamic_cast<UDPConnector*> (pConnector);
             if (!pUDPConnector) {

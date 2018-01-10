@@ -33,27 +33,29 @@ namespace ACMNetProxy
 
         switch (pProxyMessage->getMessageType()) {
             case ProxyMessage::PMT_InitializeConnection:
-                return sizeof (InitializeConnectionProxyMessage);
+                return sizeof(InitializeConnectionProxyMessage);
             case ProxyMessage::PMT_ConnectionInitialized:
-                return sizeof (ConnectionInitializedProxyMessage);
+                return sizeof(ConnectionInitializedProxyMessage);
             case ProxyMessage::PMT_ICMPMessage:
-                return sizeof (ICMPProxyMessage);
+                return sizeof(ICMPProxyMessage);
             case ProxyMessage::PMT_UDPUnicastData:
-                return sizeof (UDPUnicastDataProxyMessage);
+                return sizeof(UDPUnicastDataProxyMessage);
             case ProxyMessage::PMT_MultipleUDPDatagrams:
-                return sizeof (MultipleUDPDatagramsProxyMessage);
+                return sizeof(MultipleUDPDatagramsProxyMessage);
             case ProxyMessage::PMT_UDPBCastMCastData:
-                return sizeof (UDPBCastMCastDataProxyMessage);
+                return sizeof(UDPBCastMCastDataProxyMessage);
             case ProxyMessage::PMT_TCPOpenConnection:
-                return sizeof (OpenConnectionProxyMessage);
+                return sizeof(OpenConnectionProxyMessage);
             case ProxyMessage::PMT_TCPConnectionOpened:
-                return sizeof (ConnectionOpenedProxyMessage);
+                return sizeof(ConnectionOpenedProxyMessage);
             case ProxyMessage::PMT_TCPData:
-                return sizeof (TCPDataProxyMessage);
+                return sizeof(TCPDataProxyMessage);
             case ProxyMessage::PMT_TCPCloseConnection:
-                return sizeof (CloseConnectionProxyMessage);
+                return sizeof(CloseConnectionProxyMessage);
             case ProxyMessage::PMT_TCPResetConnection:
-                return sizeof (ResetConnectionProxyMessage);
+                return sizeof(ResetConnectionProxyMessage);
+            case ProxyMessage::PMT_TunnelPacket:
+                return sizeof(TunnelPacketProxyMessage);
         }
 
         return 0;
@@ -146,4 +148,7 @@ namespace ACMNetProxy
 
     ResetConnectionProxyMessage::ResetConnectionProxyMessage(uint16 ui16LocalID, uint16 ui16RemoteID) :
     ProxyMessage (PMT_TCPResetConnection), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID) {}
+
+    TunnelPacketProxyMessage::TunnelPacketProxyMessage (uint16 ui16PayloadLen) :
+        ProxyDataMessage (PMT_TunnelPacket, ui16PayloadLen) {}
 }

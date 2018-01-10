@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -24,6 +24,7 @@
 #include "InetAddr.h"
 #include "FTypes.h"
 #include "NICInfo.h"
+#include "NetworkHeaders.h"
 
 #if defined (WIN32)
     #define _WINSOCKAPI_ //prevent inclusion of winsock.h
@@ -38,8 +39,8 @@ namespace NOMADSUtil
     class NetUtils
     {
         public:
-            // returns the number of available network interfaces (note this method is inefficient 
-            // because is internally calling getNICsInfo(). There is no other way of getting the 
+            // returns the number of available network interfaces (note this method is inefficient
+            // because is internally calling getNICsInfo(). There is no other way of getting the
             // number of NICs.
             static uint16 getNICsNumber (bool bIncludeLoopback = false, bool bUniqueNetworks = false);
 
@@ -47,16 +48,28 @@ namespace NOMADSUtil
             static NICInfo ** getNICsInfo (bool bIncludeLoopback = false, bool bUniqueNetworks = false);
 
             // returns an array (NULL terminated) of pointers to NICInfo objects containing the NICInfo of
-            // network interfaces matching an ip address containing wildcards. 
+            // network interfaces matching an ip address containing wildcards.
             // NOTE: Caller must free memory allocated by the getNICsInfo() calling freeNICsInfo()
             static NICInfo ** getNICsInfo (const char *pszIPAddrWild);
 
             // NOTE: caller must deallocate memory used by NICInfo* using the delete() operator.
             static NICInfo * getNICInfo (const char *pszIPAddr);
             static NICInfo * getNICInfo (struct in_addr ipAddr);
-    
+
             static String getIncomingNIC (const char *pszBindingIPAddr, const char *pszBindingIPAddrNetmask,
                                           const char *pszPacketRemoteAddr, const char *pszPacketDstAddr);
+
+            /* Returns an EtherMACAddr instance that corresponds to the value
+             * represented in the string passed in as parameter.
+             * NOTE: in case of error, the returned value will be all zeros.
+             */
+            static EtherMACAddr getEtherMACAddrFromString (const char * const pszEtherMACAddr);
+
+            /* Returns true if the string passed in as parameter is a correct representation
+             * of an Ethernet MAC address, expressed in the form AA:BB:CC:DD:EE:FF.
+             */
+            static bool checkEtherMACAddressFormat (const char * pszEtherMACAddr);
+
             static bool isLocalAddress (uint32 ulIPAddr, NICInfo **pMyNetIFs = NULL);
 
             static bool isLocalAddress (struct in_addr ipAddr);

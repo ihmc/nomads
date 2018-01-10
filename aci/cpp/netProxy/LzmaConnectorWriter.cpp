@@ -36,7 +36,7 @@ namespace ACMNetProxy
             // Throw C++ exception here
         }
         _ulOutBufSize = ulOutBufSize;
-        if ((_pOutputBuffer = new unsigned char [_ulOutBufSize]) == NULL) {
+        if ((_pOutputBuffer = new unsigned char [_ulOutBufSize]) == nullptr) {
             // throw C++ exception here
         }
 
@@ -53,19 +53,19 @@ namespace ACMNetProxy
         if (_pOutputBuffer) {
             delete[] _pOutputBuffer;
         }
-        _pOutputBuffer = NULL;
+        _pOutputBuffer = nullptr;
     }
 
     int LzmaConnectorWriter::flush (unsigned char **pDest, unsigned int &uiDestLen)
     {
         if (_bFlushed) {
-            *pDest = NULL;
+            *pDest = nullptr;
             uiDestLen = 0;
             return 0;
         }
 
         bool bDone = false;
-        _lzmaCompStream.next_in = NULL;
+        _lzmaCompStream.next_in = nullptr;
         _lzmaCompStream.avail_in = 0;
         uiDestLen = 0;
         while (!bDone) {
@@ -79,7 +79,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("LzmaConnectorWriter::flush", Logger::L_MildError,
                                     "deflate with flag Z_FINISH returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -1;
                 }
             }
@@ -93,7 +93,7 @@ namespace ACMNetProxy
                                         "error trying to realloc %u (previously %u) bytes\n",
                                         _ulOutBufSize, _ulOutBufSize/2);
                         uiDestLen = 0;
-                        *pDest = NULL;
+                        *pDest = nullptr;
                         return -2;
                     }
                 }
@@ -105,7 +105,7 @@ namespace ACMNetProxy
                 checkAndLogMsg ("LzmaConnectorWriter::flush", Logger::L_MildError,
                                 "lzma_code() with flag LZMA_FINISH didn't produce new output but returned code is not LZMA_STREAM_END (code: %d)\n", rc);
                 uiDestLen = 0;
-                *pDest = NULL;
+                *pDest = nullptr;
                 return -3;
             }
         }
@@ -114,7 +114,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
         }
         _lzmaCompStream.avail_out = _ulOutBufSize;
         _lzmaCompStream.next_out = _pOutputBuffer;
@@ -131,7 +131,7 @@ namespace ACMNetProxy
         _lzmaCompStream.next_in = pSrc;
         _lzmaCompStream.avail_in = uiSrcLen;
         uiDestLen = 0;
-        *pDest = NULL;
+        *pDest = nullptr;
         _bFlushed = false;
 
         while ((_lzmaCompStream.avail_in > 0) || bNeedFlush) {
@@ -143,7 +143,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("LzmaConnectorWriter::writeData", Logger::L_MildError,
                                     "lzma_code() called with flag LZMA_SYNC_FLUSH returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -1;
                 }
             }
@@ -153,7 +153,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("LzmaConnectorWriter::writeData", Logger::L_MildError,
                                     "lzma_code() called with flag LZMA_RUN returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -1;
                 }
             }
@@ -172,7 +172,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
         }
         _lzmaCompStream.avail_out = _ulOutBufSize;
         _lzmaCompStream.next_out = _pOutputBuffer;
@@ -185,7 +185,7 @@ namespace ACMNetProxy
         int rc;
         unsigned int uiOldAvail_out = 0;
         bool bDone = false;
-        *pDest = NULL;
+        *pDest = nullptr;
         uiDestLen = 0;
 
         if (!pSrc || (uiSrcLen == 0)) {
@@ -209,7 +209,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("LzmaConnectorWriter::flush", Logger::L_MildError,
                                     "deflate with flag Z_FINISH returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -2;
                 }
             }
@@ -223,7 +223,7 @@ namespace ACMNetProxy
                                         "error trying to realloc %u (previously %u) bytes\n",
                                         _ulOutBufSize, _ulOutBufSize/2);
                         uiDestLen = 0;
-                        *pDest = NULL;
+                        *pDest = nullptr;
                         return -3;
                     }
                 }
@@ -235,7 +235,7 @@ namespace ACMNetProxy
                 checkAndLogMsg ("LzmaConnectorWriter::flush", Logger::L_MildError,
                                 "lzma_code() with flag LZMA_FINISH didn't produce new output but returned code is not LZMA_STREAM_END (code: %d)\n", rc);
                 uiDestLen = 0;
-                *pDest = NULL;
+                *pDest = nullptr;
                 return -4;
             }
         }
@@ -244,7 +244,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
         }
         _lzmaCompStream.avail_out = _ulOutBufSize;
         _lzmaCompStream.next_out = _pOutputBuffer;
@@ -261,19 +261,19 @@ namespace ACMNetProxy
 
     void LzmaConnectorWriter::resetCompStream (void)
     {
-        _lzmaCompStream.allocator = NULL;
-        _lzmaCompStream.next_in = NULL;
+        _lzmaCompStream.allocator = nullptr;
+        _lzmaCompStream.next_in = nullptr;
         _lzmaCompStream.avail_in = 0;
         _lzmaCompStream.total_in = 0;
         _lzmaCompStream.next_out = _pOutputBuffer;
         _lzmaCompStream.avail_out = _ulOutBufSize;
         _lzmaCompStream.total_out = 0;
-        _lzmaCompStream.allocator = NULL;
-        _lzmaCompStream.internal = NULL;
-        _lzmaCompStream.reserved_ptr1 = NULL;
-        _lzmaCompStream.reserved_ptr2 = NULL;
-        _lzmaCompStream.reserved_ptr3 = NULL;
-        _lzmaCompStream.reserved_ptr4 = NULL;
+        _lzmaCompStream.allocator = nullptr;
+        _lzmaCompStream.internal = nullptr;
+        _lzmaCompStream.reserved_ptr1 = nullptr;
+        _lzmaCompStream.reserved_ptr2 = nullptr;
+        _lzmaCompStream.reserved_ptr3 = nullptr;
+        _lzmaCompStream.reserved_ptr4 = nullptr;
         _lzmaCompStream.reserved_int1 = 0;
         _lzmaCompStream.reserved_int2 = 0;
         _lzmaCompStream.reserved_int3 = 0;

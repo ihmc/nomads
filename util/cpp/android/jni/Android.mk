@@ -6,8 +6,10 @@ LOCAL_PATH := $(call my-dir)/../..
 include $(CLEAR_VARS)
 LOCAL_MODULE := ssl
 #LOCAL_SRC_FILES := android/obj/local/$(TARGET_ARCH_ABI)/libihmcssl.so
-LOCAL_SRC_FILES := ../../android/externals/prebuilt/openssl/libssl.a
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/jni/include
+#LOCAL_SRC_FILES := ../../android/externals/prebuilt/openssl/libssl.a
+#LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/jni/include
+LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.2h/libssl.a
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.2h/include
 #LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.1g/libssl.a
 #LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.1g/include
 include $(PREBUILT_STATIC_LIBRARY)
@@ -15,8 +17,10 @@ include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_MODULE := crypto
 #LOCAL_SRC_FILES := android/obj/local/$(TARGET_ARCH_ABI)/libihmccrypto.so
-LOCAL_SRC_FILES := ../../android/externals/prebuilt/openssl/libcrypto.a
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/jni/crypto
+#LOCAL_SRC_FILES := ../../android/externals/prebuilt/openssl/libcrypto.a
+#LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/jni/crypto
+LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.2h/libcrypto.a
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.2h/include
 #LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.1g/libcrypto.a
 #LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.1g/include
 include $(PREBUILT_STATIC_LIBRARY)
@@ -24,6 +28,9 @@ include $(PREBUILT_STATIC_LIBRARY)
 ## android/sysinfo/sysinfo.S \
 
 include $(CLEAR_VARS)
+
+TARGET_PLATFORM := android-21
+
 LOCAL_SRC_FILES := AVList.cpp \
 	Base64.cpp \
 	Base64Transcoders.cpp \
@@ -32,6 +39,7 @@ LOCAL_SRC_FILES := AVList.cpp \
 	BufferedWriter.cpp \
 	BufferReader.cpp \
 	BufferWriter.cpp \
+	cJSON.c \
 	CommandProcessor.cpp \
 	CommHelper.cpp \
 	CommHelper2.cpp \
@@ -67,6 +75,7 @@ LOCAL_SRC_FILES := AVList.cpp \
 	HTTPHelper.cpp \
 	InetAddr.cpp \
 	ISAACRand.cpp \
+	Json.cpp \
 	LineOrientedReader.cpp \
 	Logger.cpp \
 	LoggingMutex.cpp \
@@ -114,6 +123,7 @@ LOCAL_SRC_FILES := AVList.cpp \
 	TCPSocket.cpp \
 	Thread.cpp \
 	ThreadPool.cpp \
+	Timestamp.cpp \
 	TimeBoundedStringHashset.cpp \
 	TreeUtils.cpp \
 	UDPDatagramSocket.cpp \
@@ -134,14 +144,16 @@ LOCAL_LDLIBS := -lz
 #	$(LOCAL_PATH)/../../android/externals/openssl/jni/ \
 #	$(LOCAL_PATH)/../../android/externals/openssl/jni/include \
 #	$(LOCAL_PATH)/../../android/externals/openssl/jni/crypto
+LOCAL_C_INCLUDES += \
+	$(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.2h/include \
 
-#LOCAL_SHARED_LIBRARIES := \
-#	ssl \
-#	crypto 
-
-LOCAL_STATIC_LIBRARIES := \
+LOCAL_SHARED_LIBRARIES := \
 	ssl \
-	crypto
+	crypto 
+
+#LOCAL_STATIC_LIBRARIES := \
+#	ssl \
+#	crypto
 
 LOCAL_DISABLE_FORMAT_STRING_CHECKS := true
 

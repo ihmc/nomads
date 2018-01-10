@@ -37,40 +37,71 @@ namespace ACMNetProxy
     class ActiveConnection
     {
     public:
-        ActiveConnection (void);
+        ActiveConnection (Connection * const pUDPConnection);
         ~ActiveConnection (void);
 
         const bool isAnyConnectorActive (void) const;
-        Connection * const getActiveConnection (ConnectorType connectorType) const;
-        const NOMADSUtil::InetAddr * const getActiveConnectionAddr (ConnectorType connectorType) const;
+        Connection * const getActiveConnection (ConnectorType connectorType, EncryptionType encryptionType) const;
+        const NOMADSUtil::InetAddr * const getActiveConnectionAddr (ConnectorType connectorType, EncryptionType encryptionType) const;
 
         Connection * const setNewActiveConnection (Connection * const pActiveConnection);
         Connection * const removeActiveConnection (const Connection * const pActiveConnection);
-        
+
     private:
-        Connection * const removeActiveConnectionByType (ConnectorType connectorType);
-        
-        Connection *_pMocketsConnection;
-        Connection *_pSocketConnection;
-        Connection *_pCSRConnection;
+        Connection * const removeActiveConnectionByType (ConnectorType connectorType, EncryptionType encryptionType);
+
+        Connection * _connectionTable[CT_SIZE][ET_SIZE];
     };
 
 
-    inline ActiveConnection::ActiveConnection (void) :
-        _pMocketsConnection (NULL), _pSocketConnection (NULL), _pCSRConnection (NULL) { }
-
-    inline ActiveConnection::~ActiveConnection (void)
-    {
-        _pMocketsConnection = NULL;
-        _pSocketConnection = NULL;
-        _pCSRConnection = NULL;
+    inline ActiveConnection::ActiveConnection (Connection * const pUDPConnection) : _connectionTable{} {
+        if (pUDPConnection && (pUDPConnection->getConnectorType() == CT_UDPSOCKET)) {
+            _connectionTable[CT_UDPSOCKET][ET_PLAIN - 1] = pUDPConnection;
+        }
     }
+
+    inline ActiveConnection::~ActiveConnection (void) { }
 
     inline const bool ActiveConnection::isAnyConnectorActive (void) const
     {
-        return (_pMocketsConnection && _pMocketsConnection->isConnected()) ||
-               (_pSocketConnection && _pSocketConnection->isConnected()) ||
-               (_pCSRConnection && _pCSRConnection->isConnected());
+        for (ConnectorType ct : CT_AVAILABLE) {
+            for (EncryptionType et : ET_AVAILABLE) {
+                if (_connectionTable[ct][et - 1]) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    inline Connection * const ActiveConnection::getActiveConnection (ConnectorType connectorType, EncryptionType encryptionType) const
+    {
+        // Temporary hacks because no encryption is available for TCP and UDP
+        if (connectorType == CT_TCPSOCKET) {
+            return _connectionTable[CT_TCPSOCKET][ET_PLAIN - 1];
+        }
+        if (connectorType == CT_UDPSOCKET) {
+            return _connectionTable[CT_UDPSOCKET][ET_PLAIN - 1];
+        }
+
+        return _connectionTable[connectorType][encryptionType - 1];
+    }
+
+    inline const InetAddr * const ActiveConnection::getActiveConnectionAddr (ConnectorType connectorType, EncryptionType encryptionType) const
+    {
+        Connection * const pConnection = getActiveConnection (connectorType, encryptionType);
+
+        return pConnection ? pConnection->getRemoteProxyInetAddr() : nullptr;
+    }
+
+    // This method is private and should only be invoked with a MOCKETS, SOCKET, or CSR connectorType
+    inline Connection * const ActiveConnection::removeActiveConnectionByType (ConnectorType connectorType, EncryptionType encryptionType)
+    {
+        Connection * const pOldConnection = getActiveConnection (connectorType, encryptionType);
+        _connectionTable[connectorType][encryptionType - 1] = nullptr;
+
+        return pOldConnection;
     }
 
 }

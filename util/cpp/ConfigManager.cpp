@@ -40,12 +40,13 @@
 
 using namespace NOMADSUtil;
 
-ConfigManager::ConfigManager (void)
-    : _iMaxLineLen (0),
+ConfigManager::ConfigManager (char chSeparator)
+    : _chSeparator (chSeparator),
+      _iMaxLineLen (0),
+      _pszConfigFile (NULL),
       // By default bCaseSensitiveKeys, bCloneKeys, bDeleteKeys, bCloneValues and
-       // bDeleteValues are all set to "true"
-      _pSettings (new StringStringHashtable()),
-      _pszConfigFile (NULL)
+      // bDeleteValues are all set to "true"
+      _pSettings (new StringStringHashtable())
 {
 }
 
@@ -93,7 +94,7 @@ void ConfigManager::display (void)
 
 int ConfigManager::write (Writer *pWriter)
 {
-    static char separator = '=';
+    char separator = _chSeparator;
     static char endOfLine = '\n';
     int rc = 0;
     StringStringHashtable::Iterator it = _pSettings->getAllElements();
@@ -225,7 +226,7 @@ int ConfigManager::read (Reader *pReader, uint32 ui32Len, bool bBeTolerant)
         }
 
         char *pszSeparator;
-        if (NULL == (pszSeparator = strchr (pszBuf, '='))) {
+        if (NULL == (pszSeparator = strchr (pszBuf, _chSeparator))) {
             if (bBeTolerant) {
                 continue;
             }
@@ -238,7 +239,7 @@ int ConfigManager::read (Reader *pReader, uint32 ui32Len, bool bBeTolerant)
         while ((*pszKey == ' ') || (*pszKey == '\t')) {
             *pszKey++;
         }
-        if (*pszKey == '=') {
+        if (*pszKey == _chSeparator) {
             // Key field was empty!
             if (bBeTolerant) {
                 continue;

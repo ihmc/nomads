@@ -48,7 +48,7 @@ namespace ACMNetProxy
         SocketConnector (void);
         virtual ~SocketConnector (void);
 
-        int init (uint16 ui16SocketPort);
+        virtual int init (uint16 ui16SocketPort);
         virtual void terminateExecution (void);
         void run (void);
 

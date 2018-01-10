@@ -20,7 +20,8 @@
 #include "ConfigManager.h"
 
 #if defined (WIN32)
-#include <winsock2.h>
+	#define NOMINMAX
+	#include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX _MAX_PATH
     #if _MCS_VER<1900
@@ -140,6 +141,7 @@ int Logger::configure (ConfigManager *pCfgMgr)
     }
     else if (pLogger != NULL) {
         delete pLogger;
+        pLogger = NULL;
     }
     return 0;
 }

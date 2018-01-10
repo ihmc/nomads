@@ -23,6 +23,8 @@
 #ifndef INCL_ENTRY_H
 #define INCL_ENTRY_H
 
+#include <climits>
+
 #include "FTypes.h"
 #include "net/NetworkHeaders.h"
 #include "PtrQueue.h"
@@ -107,7 +109,7 @@ namespace ACMNetProxy
         void calculateRTO (int64 rtt);
         const bool isRemoteConnectionFlushed (void) const;
         TCPSegment * const dequeueLocallyReceivedData (uint16 ui16RequestedBytesNum);
-		
+
         bool isOutgoingBufferEmpty (void) const;
         bool isOutgoingDataReady (void);
         bool areThereHolesInOutgoingDataBuffer (void) const;
@@ -115,6 +117,7 @@ namespace ACMNetProxy
         unsigned int getOutgoingTotalBytesCount (void) const;
         unsigned int getOutgoingBufferedBytesCount (void) const;
         unsigned int getOutgoingBufferRemainingSpace (void) const;
+        uint16 getCurrentTCPWindowSize (void) const;
         double getOutgoingBufferRemainingSpacePercentage (void) const;
         void setNextExpectedInSeqNum (unsigned int uiNextExpectedInSeqNum);
         int insertTCPSegmentIntoOutgoingBuffer (TCPSegment *pTCPSegment);
@@ -172,16 +175,18 @@ namespace ACMNetProxy
         uint32 currentPriority;
         TCPSegment *pTCPSegment;
 
-        NOMADSUtil::PtrQueue<ReceivedData> outBuf;              // Packets received from local host and outgoing to the network
+        NOMADSUtil::PtrQueue<ReceivedData> outBuf;              // Packets received from local host and outgoing onto the network
 
     private:
         friend class TCPConnTable;
         int removePacketsFromUDPTransmissionQueue (void) const;
 
+        static const uint16 MAX_TCP_WINDOW_SIZE = USHRT_MAX;
+
         Connectors _connectors;
         ProxyMessage::Protocol _protocol;
         NOMADSUtil::String _sMocketConfFileName;
-        MutexBuffer *_pMutexBuffer;                             // NULL except if the UDP connector is used to send data to remote proxy
+        MutexBuffer *_pMutexBuffer;                             // nullptr except if the UDP connector is used to send data to remote proxy
         TCPSegment *_pAvailableData;
         TCPSegment *_pTempTCPSegment;
 
@@ -192,11 +197,11 @@ namespace ACMNetProxy
 
 
     inline Connectors::Connectors (void) :
-        pConnector (NULL), pConnection (NULL), pConnectorReader (NULL), pConnectorWriter (NULL) { }
+        pConnector(nullptr), pConnection(nullptr), pConnectorReader(nullptr), pConnectorWriter(nullptr) { }
 
     inline Connectors::~Connectors (void)
     {
-        reset (NULL);
+        reset (nullptr);
     }
 
     inline bool Entry::operator== (const Entry &rEntry) const
@@ -210,7 +215,8 @@ namespace ACMNetProxy
     }
 
     inline Entry::Entry (void) :
-		pTCPSegment(NULL), _pMutexBuffer(NULL), _pAvailableData(NULL), _pTempTCPSegment(NULL), inQueue(ui32NextExpectedInSeqNum, NetProxyApplicationParameters::TCP_WINDOW_SIZE)
+		pTCPSegment(nullptr), _pMutexBuffer(nullptr), _pAvailableData(nullptr),
+        _pTempTCPSegment(nullptr), inQueue(ui32NextExpectedInSeqNum, NetProxyApplicationParameters::TCP_WINDOW_SIZE)
     {
         clear();
     }
@@ -248,6 +254,12 @@ namespace ACMNetProxy
     inline unsigned int Entry::getOutgoingBufferRemainingSpace (void) const
     {
         return inQueue.getRemainingSpace();
+    }
+
+    inline uint16 Entry::getCurrentTCPWindowSize(void) const
+    {
+        return static_cast<uint16> ((inQueue.getCurrentBufferSize() > MAX_TCP_WINDOW_SIZE) ?
+                                    MAX_TCP_WINDOW_SIZE : inQueue.getCurrentBufferSize());
     }
 
     inline double Entry::getOutgoingBufferRemainingSpacePercentage (void) const

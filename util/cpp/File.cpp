@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -25,13 +25,14 @@
 #include <string.h>
 
 #if defined (WIN32)
-#include <winsock2.h>
+	#define NOMINMAX
+	#include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX MAX_PATH
 #endif
 
 namespace NOMADSUtil
-{   
+{
     void split (const String &path, String &parentDir, String &fileName, char chSep)
     {
         int iPathLen = path.length();
@@ -62,30 +63,35 @@ namespace NOMADSUtil
         fileName = &(buf[i+1]);
     }
 
-    String getparentdir (const String &path)
+    String getparentdir (const String &path, bool bForceSeparator=false, char chSeparator='/')
     {
         String parentDir, fileName;
-        split (path, parentDir, fileName, getPathSepChar());
+        const char sep = bForceSeparator ? chSeparator : getPathSepChar();
+        split (path, parentDir, fileName, sep);
         return parentDir;
     }
 
-    String getfilename (const String &path)
+    String getfilename (const String &path, bool bForceSeparator = false, char chSeparator = '/')
     {
         String parentDir, fileName;
-        split (path, parentDir, fileName, getPathSepChar());
+        const char sep = bForceSeparator ? chSeparator : getPathSepChar();
+        split (path, parentDir, fileName, sep);
         return fileName;
     }
 }
 
 using namespace NOMADSUtil;
 
-File::File (const String &path)
-    : _parentDir (getparentdir (path)), _fileName (getfilename (path))
+File::File (const String &path, char chSeparator, bool bForceSeparator)
+    : _chSeparator (chSeparator), _bForceSeparator (bForceSeparator),
+      _parentDir (getparentdir (path, _bForceSeparator, _chSeparator)),
+      _fileName (getfilename (path, _bForceSeparator, _chSeparator))
 {
 }
 
-File::File (const String &parentDir, const String &fileName)
-    : _parentDir (parentDir), _fileName (fileName)
+File::File (const String &parentDir, const String &fileName, char chSeparator, bool bForceSeparator)
+    : _chSeparator (chSeparator), _bForceSeparator (bForceSeparator),
+      _parentDir (parentDir), _fileName (fileName)
 {
 }
 
@@ -98,16 +104,34 @@ bool File::exists (void) const
     return FileUtils::fileExists (getPath()) || FileUtils::directoryExists (getPath());
 }
 
-String File::getExtension (void) const
+/*
+ * C++17 supports the <filesystem> library:
+ *
+ *  std::filesystem::path path(pathString);
+ *  if (path.is_absolute()) { ... }
+ *  if (path.is_relative()) { ... }
+ */
+bool File::isPathAbsolute (void) const
 {
-    String name, extension;
-    split (getName(), name, extension, '.');
-    return extension;
+    String path = (_parentDir.length() > 0) ? _parentDir : _fileName;
+    #if defined (WIN32)
+        return (checkCharRange(tolower(path[0]), 'a', 'z') &&
+            (path[1] == ':') && (path[2] == getPathSepChar()));
+    #elif defined (UNIX)
+        return (path[0] == getPathSepChar());
+    #endif
 }
 
 int64 File::getFileSize (void) const
 {
     return FileUtils::fileSize (getPath());
+}
+
+String File::getExtension (void) const
+{
+    String name, extension;
+    split (getName(), name, extension, '.');
+    return extension;
 }
 
 String File::getName (bool bExcludeExtension) const
@@ -128,7 +152,7 @@ String File::getParent (void) const
 String File::getPath (void) const
 {
     String path (_parentDir);
-    if ((path.length() > 0) && (path.endsWith (getPathSepCharAsString()))) {
+    if ((path.length() > 0) && !(path.endsWith (getPathSepCharAsString()))) {
         path += getPathSepChar();
     }
     path += _fileName;

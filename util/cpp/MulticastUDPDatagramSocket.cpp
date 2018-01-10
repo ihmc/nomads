@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -54,7 +54,7 @@ using namespace NOMADSUtil;
     relayersFilePath += getPathSepCharAsString();
     relayersFilePath += "udprelays.cfg";
     if (NULL == (fileRelayers = fopen (relayersFilePath, "r"))) {
-        checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_Info,
+        checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_MediumDetailDebug,
                         "did not find file <%s> - assuming no UDP relays have been configured\n", (const char*) relayersFilePath);
     }
     else {
@@ -83,7 +83,7 @@ using namespace NOMADSUtil;
     relayersFilePath += getPathSepCharAsString();
     relayersFilePath += "mcastrelays.cfg";
     if (NULL == (fileRelayers = fopen (relayersFilePath, "r"))) {
-        checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_Info,
+        checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_MediumDetailDebug,
                         "did not find file <%s>\n", (const char*) relayersFilePath);
         // Try a different directory
         relayersFilePath = getPathSepCharAsString();
@@ -95,7 +95,7 @@ using namespace NOMADSUtil;
         relayersFilePath += getPathSepCharAsString();
         relayersFilePath += "mcastrelays.cfg";
         if (NULL == (fileRelayers = fopen (relayersFilePath, "r"))) {
-            checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_Info,
+            checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_MediumDetailDebug,
                             "did not find file <%s>\n", (const char*) relayersFilePath);
             // Try a different directory
             relayersFilePath = getPathSepCharAsString();
@@ -109,7 +109,7 @@ using namespace NOMADSUtil;
             relayersFilePath += getPathSepCharAsString();
             relayersFilePath += "mcastrelays.cfg";
             if (NULL == (fileRelayers = fopen (relayersFilePath, "r"))) {
-                checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_Info,
+                checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_MediumDetailDebug,
                                 "did not find file <%s>\n", (const char*) relayersFilePath);
                 // Try a different directory
                 relayersFilePath = getPathSepCharAsString();
@@ -121,7 +121,7 @@ using namespace NOMADSUtil;
                 relayersFilePath += getPathSepCharAsString();
                 relayersFilePath += "mcastrelays.cfg";
                 if (NULL == (fileRelayers = fopen (relayersFilePath, "r"))) {
-                    checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_Info,
+                    checkAndLogMsg ("MulticastUDPDatagramSocket::MulticastUDPDatagramSocket", Logger::L_MediumDetailDebug,
                                     "did not find file <%s>\n", (const char*) relayersFilePath);
                 }
             }
@@ -158,7 +158,7 @@ int MulticastUDPDatagramSocket::joinGroup (uint32 ui32MulticastGroup, uint32 ui3
     if (NetUtils::isMulticastAddress (InetAddr (ui32MulticastGroup))) {
         struct ip_mreq imr;
         memset (&imr, 0, sizeof (struct ip_mreq));
-        imr.imr_multiaddr.s_addr = ui32MulticastGroup; 
+        imr.imr_multiaddr.s_addr = ui32MulticastGroup;
         imr.imr_interface.s_addr = ui32ListenAddr;
         if (setsockopt (sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof (struct ip_mreq)) < 0) {
             return -1;
@@ -177,7 +177,7 @@ int MulticastUDPDatagramSocket::leaveGroup (uint32 ui32MulticastGroup, uint32 ui
     if (NetUtils::isMulticastAddress (InetAddr (ui32MulticastGroup))) {
         struct ip_mreq imr;
         memset (&imr, 0, sizeof (struct ip_mreq));
-        imr.imr_multiaddr.s_addr = ui32MulticastGroup; 
+        imr.imr_multiaddr.s_addr = ui32MulticastGroup;
         imr.imr_interface.s_addr = ui32ListenAddr;
         if (setsockopt (sockfd, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char *) &imr, sizeof (struct ip_mreq)) < 0) {
             return -1;

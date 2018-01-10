@@ -23,7 +23,7 @@
 #include "ConnectorAdapter.h"
 #include "Connection.h"
 #include "ConnectionManager.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 
 
 using namespace NOMADSUtil;
@@ -32,7 +32,8 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    SocketConnector::SocketConnector (void) : Connector (CT_SOCKET), _pServerSocket (NULL) { }
+    SocketConnector::SocketConnector (void) :
+        Connector (CT_TCPSOCKET), _pServerSocket (nullptr) { }
 
     SocketConnector::~SocketConnector (void)
     {
@@ -44,7 +45,7 @@ namespace ACMNetProxy
                 _pServerSocket->disableReceive();
 
                 delete _pServerSocket;
-                _pServerSocket = NULL;
+                _pServerSocket = nullptr;
             }
             _mConnector.unlock();
         }
@@ -96,18 +97,20 @@ namespace ACMNetProxy
             }
             pSocket->bufferingMode (0);
 
-            ConnectorAdapter * const pConnectorAdapter = ConnectorAdapter::ConnectorAdapterFactory (pSocket);
+            ConnectorAdapter * const pConnectorAdapter = ConnectorAdapter::ConnectorAdapterFactory (pSocket, _connectorType);
             Connection * const pConnection = new Connection (pConnectorAdapter, this);
 
-            _mConnectionsTable.lock();
+            lockConnectionTable();
             pConnection->lock();
-            Connection * const pOldConnection = _connectionsTable.put (generateUInt64Key (InetAddr (pSocket->getRemoteHostAddr(), pSocket->getRemotePort())), pConnection);
-            _mConnectionsTable.unlock();
+
+            Connection * const pOldConnection = _connectionsTable.put (
+                generateUInt64Key (InetAddr (pSocket->getRemoteHostAddr(), pSocket->getRemotePort()), pConnection->getEncryptionType()), pConnection);
             if (pOldConnection) {
                 // There was already a connection from this node to the remote node - close that one
                 checkAndLogMsg ("SocketConnector::run", Logger::L_Info,
-                                "replaced an old SocketConnection to <%s:%hu> in status %hu with a new one\n",
-                                pConnection->getRemoteProxyInetAddr()->getIPAsString(), pConnection->getRemoteProxyInetAddr()->getPort(),
+                                "replacing an existing SocketConnection to <%s:%hu> in status %hu with a new instance\n",
+                                pConnection->getRemoteProxyInetAddr()->getIPAsString(),
+                                pConnection->getRemoteProxyInetAddr()->getPort(),
                                 pOldConnection->getStatus());
                 delete pOldConnection;
             }
@@ -117,9 +120,10 @@ namespace ACMNetProxy
                                 pConnection->getRemoteProxyInetAddr()->getIPAsString(),
                                 pConnection->getRemoteProxyInetAddr()->getPort());
             }
-
             pConnection->startMessageHandler();
+
             pConnection->unlock();
+            unlockConnectionTable();
         }
         checkAndLogMsg ("SocketConnector::run", Logger::L_Info,
                         "SocketConnector terminated; termination code is %d\n", getTerminatingResultCode());

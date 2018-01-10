@@ -5,7 +5,7 @@
  * BandwidthEstimator.h
  * 
  * This file is part of the IHMC Mockets Library/Component
- * Copyright (c) 2002-2014 IHMC.
+ * Copyright (c) 2002-2016 IHMC.
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -46,47 +46,68 @@ class BandwidthEstimator
             NOMADSUtil::String toString (void);
         };
 
-    public:
-        //Constructor for BandwidthEstimator. Parameters: max lenght of the internals lists,
-        // duration of the time interval considered by the bandwidth samples, max time between two ack samples, initial assumed bandwidth.
-        BandwidthEstimator (uint32 ui32MaxSamplesNumber, uint32 ui32TimeIntervalInMs, uint64 ui64SamplingTime, uint16 ui16InitialAssumedBandwidth);
-
+    public:      	
+        /**
+        Constructor and destructor for BandwidthEstimator
+        - ui32MaxSamplesNumber: max lenght of the internals lists
+		- ui32TimeIntervalInMs: duration of the time interval considered by the bandwidth samples
+		- ui64SamplingTime: max time between two ack samples
+		- ui16InitialAssumedBandwidth: initial assumed bandwidth
+        */
+		BandwidthEstimator (uint32 ui32MaxSamplesNumber, uint32 ui32TimeIntervalInMs, uint64 ui64SamplingTime, uint16 ui16InitialAssumedBandwidth);
         virtual ~BandwidthEstimator (void);
-
-        // Adds a new ACK sample to the internal list and consequentely computes bandwidth
-        // samples and estimations. Returns the bandwidth estimated in bytes per second.
-        // If it is the first sample a default value is used as bandwidth estimation.
-        // param i64Timestamp timestamp of the ACK in milliseconds
-        // param i64AcknowledgedData number of acknowledged bytes
+		
+        /**
+        Adds a new ACK sample to the internal list and consequentely computes bandwidth samples and estimations.
+        If it is the first sample a default value is used as bandwidth estimation.
+        - i64Timestamp: Timestamp of the ACK in milliseconds
+		- i64AcknowledgedData: Number of acknowledged bytes
+		- ui32PacketInQueue: Number of packets in the queue
+        @retun: The bandwidth estimated in bytes per second.
+        */
         int32 addSample (uint64 i64Timestamp, uint64 i64AcknowledgedData, uint32 ui32PacketInQueue);
 
+        /**
+        Destroy and then re-initialize the internal DLLISTs
+        */
         void reset (void);
         
+        /**
+        Print DLL contents
+        */
         void printList (void);
 
-        // Returns the latest bandwidth estimation in bytes per milliseconds
+        /**
+        Returns the latest bandwidth estimation in B/ms
+        @retun: Last estimated BW or -1 if no estimation is present yet
+        */
         double getBandwidthEstimationBpms (void);
 
+        /**
+        Set new time interval used for the estimation process
+        - ui32NewTimeInt: New time limit
+        */
         void setNewTimeInterval (uint32 ui32NewTimeInt);
 
-        // Computes a new bandwidth sample from the ACK samples over a time interval.
-        //
-        //                             SUM( AcknowledgedData(j*) )
-        //    BandwidthSample(k) = -----------------------------------
-        //                           TimeSlidingWindowInMilliseconds
-        //
-        //    * [ACKs j received in Time Sliding Window]
-        //
-        // param *pACKList list of ACK samples
-        // return the bandwidth sample
+        /**
+        Computes a new bandwidth sample from the ACK samples over a time interval, that is:
+                                        SUM( AcknowledgedData(j*) )
+                BandwidthSample(k) = -----------------------------------
+                                        TimeSlidingWindowInMilliseconds
+
+                *Where j is the number of ACKs received in Time Sliding Window
+        - pACKList: Pointer to the list of ACK samples
+        @retun: The new computed bandwidth sample
+        */
         virtual double computeNewBandwidthSample (DLList<ACKSample> *pACKList);
-        
-        // Computes a new bandwidth estimation from the ACK samples over a time interval,
-        // the bandwidth samples and the previous estimations.
-        // param *pACKList list of ACK samples
-        // param *pBWSamplesList list of bandwidth samples
-        // param *pBWEstimationsList list of bandwidth estimations
-        // return the bandwidth estimation
+
+        /**
+        Computes a new bandwidth estimation from the ACK samples over a time interval,the bandwidth samples and the previous estimations.
+        - pACKList list of ACK samples
+        - pBWSamplesList list of bandwidth samples
+        - pBWEstimationsList list of bandwidth estimations
+        @retun: the bandwidth estimation
+        */
         virtual double computeNewBandwidthEstimation (DLList<ACKSample> *pACKList, DLList<double> *pBWSamplesList, DLList<double> *pBWEstimationsList, uint32 ui32PacketInQueue);
 
         DLList<ACKSample> *_pACKSamplesList;
@@ -106,31 +127,34 @@ class BandwidthEstimator
 class WestwoodBandwidthEstimator : BandwidthEstimator
 {
     public:
-        // Constructor for WestwoodBandwidthEstimator
-        // param ui32MaxSamplesNumber max lenght of the internals lists
-        // param ui32TimeIntervalInMs duration of the time interval considered by the bandwidth samples
-        // param ui64MaxSamplingTime max time between two ack samples
+        /**
+        Cosructor and destructor method for WestwoodBandwidthEstimator
+        - ui32MaxSamplesNumber max lenght of the internals lists
+        - ui32TimeIntervalInMs duration of the time interval considered by the bandwidth samples
+        - ui64MaxSamplingTime max time between two ack samples
+        */
         WestwoodBandwidthEstimator (uint32 ui32MaxSamplesNumber, uint32 ui32TimeIntervalInMs, uint64 ui64SamplingTime, uint16 ui16InitialAssumedBandwidth);
-
         ~WestwoodBandwidthEstimator (void);
 
     protected:
-        // Computes a new bandwidth sample from the ACK samples over a time interval
-        //
-        //                                 currentAck.ui64AcknowledgedData
-        //      bandwidthSample = ----------------------------------------------------
-        //                          currentAck.ui64Timestamp - lastAck.ui64Timestamp
-        //
-        // param *pACKList list of ACK samples
-        // return the bandwidth sample
+        /**
+        Computes a new bandwidth sample from the ACK samples over a time interval using the following calculation:
+                                         currentAck.ui64AcknowledgedData
+              bandwidthSample = ----------------------------------------------------
+                                  currentAck.ui64Timestamp - lastAck.ui64Timestamp
+        - pACKList: list of ACK samples
+        @return: Bandwidth Sample
+        */
         double computeNewBandwidthSample (DLList<ACKSample> *pACKList);
 
-        // Computes a new bandwidth estimation from the ACK samples over a time interval,
-        // the bandwidth samples and the previous estimations.
-        // param *pACKList list of ACK samples
-        // param *pBWSamplesList list of bandwidth samples
-        // param *pBWEstimationsList list of bandwidth estimations
-        // return the bandwidth estimation
+        /**
+        Computes a new bandwidth estimation from the ACK samples over a time interval, the bandwidth 
+        samples and the previous estimations.
+        - pACKList: list of ACK samples
+        - pBWSamplesList: list of bandwidth samples
+        - pBWEstimationsList: list of bandwidth estimations
+        @return: New bandwidth estimation
+        */
         double computeNewBandwidthEstimation (DLList<ACKSample> *pACKList, DLList<double> *pBWSamplesList, DLList<double> *pBWEstimationsList);
 };
 

@@ -35,24 +35,34 @@
 
 #include "ProxyMessages.h"
 
+
 namespace ACMNetProxy
 {
     struct NetworkConfigurationSettings
     {
         static const char * const DEFAULT_ENABLED_CONNECTORS;
-        static uint16 MAX_TCP_DATA_PROXY_MESSAGE_PAYLOAD_SIZE;                           // Configured maximum payload size (in bytes) of TCPData Proxy Messages that will be sent to remote proxies
-        static uint32 UDP_NAGLE_ALGORITHM_TIMEOUT;                                       // Configured UDP Nagle's Algorthm timeout
-        static uint16 MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD;                           // Configured size (in bytes) beyond which a MultipleUDPDatagrams proxy message is sent without any timeout to expire
-        static uint32 UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS;                            // Configured throughput limit for UDP Connections
-        static uint32 UDP_CONNECTION_BUFFER_SIZE;                                        // Configured size of the buffer which stores outgoing data in the UDP connection thread
 
-        static const uint16 DEFAULT_MAX_TCP_DATA_PAYLOAD_SIZE = 1024;                    // Default maximum payload size (in bytes) of TCPData Proxy Messages that will be sent to remote proxies
-        static const uint16 DEFAULT_MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD = 2048U;     // Size (in bytes) beyond which a MultipleUDPDatagrams proxy message is sent without any timeout to expire
-        static const uint32 DEFAULT_UDP_NAGLE_ALGORITHM_TIMEOUT = 0U;                    // 0 implies that Nagle's Algorithm is disabled
-        static const uint32 DEFAULT_UDP_CONNECTION_BUFFER_SIZE = 16384U;                 // Default size of the buffer which stores outgoing data in the UDP connection thread
-        static const uint32 DEFAULT_UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS = 0U;         // 0 implies that no throughput limits are applied to the data sent via UDP
-        static const uint32 DEFAULT_AUTO_RECONNECT_TIME = 30000U;                        // Default interval of time (in millisecond) to wait before attempting a new AutoConnection to remote proxies
-        static const uint32 DEFAULT_DUPLICATE_ACK_TIMEOUT = 1000U;                       // Timeout which manages the sending of duplicate ACKs to local hosts in FIN-WAIT-1 to prevent TCP to expire
+        static constexpr unsigned int PCAP_SEND_PACKET_ATTEMPTS = 3;                    // Total number of attempts before failing transmission of a packet over the network with PCAP
+        static constexpr unsigned int PCAP_SEND_ATTEMPT_INTERVAL_IN_MS = 15;            // Wait interval before trying a new packet send with PCAP if the previous attempt failed
+
+        static int64 ARP_TABLE_MISS_EXPIRATION_TIME_IN_MS;                              // Configured expiration time (in ms) after which entries in the ARP Table Miss Cache are deleted
+        static uint16 MAX_TCP_UNACKED_DATA;                                             // Configured maximum segment size that TCP can skip ACKing
+        static uint16 MAX_TCP_DATA_PROXY_MESSAGE_PAYLOAD_SIZE;                          // Configured maximum payload size (in bytes) of TCPData Proxy Messages that will be sent to remote proxies
+        static uint32 UDP_NAGLE_ALGORITHM_TIMEOUT;                                      // Configured UDP Nagle's Algorthm timeout
+        static uint16 MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD;                          // Configured size (in bytes) beyond which a MultipleUDPDatagrams proxy message is sent without any timeout to expire
+        static uint32 UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS;                           // Configured throughput limit for UDP Connections
+        static uint32 UDP_CONNECTION_BUFFER_SIZE;                                       // Configured size of the buffer which stores outgoing data in the UDP connection thread
+
+        static const int64 DEFAULT_ARP_TABLE_MISS_EXPIRATION_TIME_IN_MS = 3000;         // Configured default expiration time (in ms) after which entries in the ARP Table Miss Cache are deleted
+        static const uint16 MIN_IP_HEADER_SIZE = 20U;                                   // Minimum size of the IP Header
+        static const uint16 DEFAULT_MAX_TCP_UNACKED_DATA = 536U;                        // Default maximum segment size that TCP can skip ACKing
+        static const uint16 DEFAULT_MAX_TCP_DATA_PAYLOAD_SIZE = 1024;                   // Default maximum payload size (in bytes) of TCPData Proxy Messages that will be sent to remote proxies
+        static const uint16 DEFAULT_MULTIPLE_UDP_DATAGRAMS_PACKET_THRESHOLD = 2048U;    // Size (in bytes) beyond which a MultipleUDPDatagrams proxy message is sent without any timeout to expire
+        static const uint32 DEFAULT_UDP_NAGLE_ALGORITHM_TIMEOUT = 0U;                   // 0 implies that Nagle's Algorithm is disabled
+        static const uint32 DEFAULT_UDP_CONNECTION_BUFFER_SIZE = 16384U;                // Default size of the buffer which stores outgoing data in the UDP connection thread
+        static const uint32 DEFAULT_UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS = 0U;        // 0 implies that no throughput limits are applied to the data sent via UDP
+        static const uint32 DEFAULT_AUTO_RECONNECT_TIME = 30000U;                       // Default interval of time (in millisecond) to wait before attempting a new AutoConnection to remote proxies
+        static const uint32 DEFAULT_DUPLICATE_ACK_TIMEOUT = 1000U;                      // Timeout which manages the sending of duplicate ACKs to local hosts in FIN-WAIT-1 to prevent TCP to expire
     };
 
 
@@ -61,65 +71,75 @@ namespace ACMNetProxy
         static uint32 NETPROXY_UNIQUE_ID;                                                           // The 32bits unique ID of this NetProxy instance
         static bool GATEWAY_MODE;                                                                   // true if the NetProxy runs in gateway mode
         static const bool DEFAULT_GATEWAY_MODE = false;                                             // Default gateway mode is false
-        static uint32 NETPROXY_IP_ADDR;                                                             // Local IP address (of the TAP interface if running in HM, of the external network interface otherwise)
-        static uint32 NETPROXY_EXTERNAL_IP_ADDR;                                                    // IP address of the external network interface (same as the above if running in GM)
-        static uint32 NETPROXY_NETWORK_NETMASK;                                                     // Netmask of the physical network to which the NetProxy and the configured gateway belong
-        static NOMADSUtil::EtherMACAddr NETPROXY_INTERNAL_INTERFACE_MAC_ADDR;                       // MAC address of the internal network interface
-        static NOMADSUtil::EtherMACAddr NETPROXY_EXTERNAL_INTERFACE_MAC_ADDR;                       // MAC address of the external network interface
-        static uint32 NETWORK_GATEWAY_NODE_IP_ADDR;                                                 // IP address of the physical network gateway
-        static NOMADSUtil::EtherMACAddr NETWORK_GATEWAY_NODE_MAC_ADDR;                              // MAC address of the physical network gateway
+        static bool LEVEL2_TUNNEL_MODE;                                                             // true if the NetProxy runs in level 2 tunnel mode
+        static const bool DEFAULT_LEVEL2_TUNNEL_MODE = false;                                       // default level 2 tunnel mode is false
+        static NOMADSUtil::String EXTERNAL_INTERFACE_NAME;                                          // User friendly name for external interface
+        static NOMADSUtil::String INTERNAL_INTERFACE_NAME;                                          // User friendly name for internal interface
+        static uint32 EXTERNAL_IP_ADDR;                                                             // IP address of the external network interface (or the TUN/TAP interface if running in HM)
+        static uint32 INTERNAL_IP_ADDR;                                                             // IP address of the internal network interface
+        static uint32 EXTERNAL_NETWORK_NETMASK;                                                     // Netmask of the physical network to which the NetProx's external interface and the network gateway belong
+        static uint32 INTERNAL_NETWORK_NETMASK;                                                     // Netmask of the internal network
+        static uint16 ETHERNET_MTU_EXTERNAL_IF;                                                     // MTU (in bytes) for frames written to/read from the external ethernet network interface
+        static uint16 ETHERNET_MTU_INTERNAL_IF;                                                     // MTU (in bytes) for frames written to/read from the internal ethernet network interface
+        static NOMADSUtil::EtherMACAddr INTERNAL_INTERFACE_MAC_ADDR;                                // MAC address of the internal network interface
+        static NOMADSUtil::EtherMACAddr EXTERNAL_INTERFACE_MAC_ADDR;                                // MAC address of the external network interface
+        static uint32 NETWORK_GATEWAY_IP_ADDR;                                                      // IP address of the physical network gateway
+        static NOMADSUtil::EtherMACAddr NETWORK_GATEWAY_MAC_ADDR;                                   // MAC address of the physical network gateway
         static const NOMADSUtil::EtherMACAddr INVALID_MAC_ADDR;                                     // Invalid MAC address (00:00:00:00:00:00)
-        static const NOMADSUtil::EtherMACAddr BROADCAST_MAC_ADDR;                                   // Broadcast MAC address
+        static const NOMADSUtil::EtherMACAddr BROADCAST_MAC_ADDR;                                   // Broadcast MAC address (FF:FF:FF:FF:FF:FF)
 
         // TAP Interface configuration values
-        static uint16 TAP_INTERFACE_MTU;                                                            // MTU of the Virtual TAP Interface
         static const uint16 TAP_INTERFACE_DEFAULT_MTU = 1500U;                                      // Deafult value of the MTU of the Virtual TAP interface
-        static const uint16 TAP_INTERFACE_MIN_MTU = 68U;                                            // Min allowed value as MTU of the Virtual TUN/TAP interface
-        static const uint16 TAP_INTERFACE_MAX_MTU = 9000U;                                          // Max allowed value as MTU of the Virtual TUN/TAP interface
-        static const uint32 TAP_READ_TIMEOUT = 500U;                                                // Timeout for the call to WaitForSingleObject() on the TAP handle
+        static const uint32 TAP_INTERFACE_READ_TIMEOUT = 500U;                                      // Timeout for the call to WaitForSingleObject() on the TAP handle
         // First 4 bytes of the MAC Address of the virtual TAP interface
         static const uint8 VIRT_MAC_ADDR_BYTE1 = 0x02;
         static const uint8 VIRT_MAC_ADDR_BYTE2 = 0x0A;
         static const uint8 VIRT_MAC_ADDR_BYTE3 = 0x0C;
         static const uint8 VIRT_MAC_ADDR_BYTE4 = 0x00;
 
-        // Network interface configuration values (for gateway mode)
-        static uint16 ETHERNET_MTU_INTERNAL_IF;                                                     // MFS (in bytes) for frames written to/read from the internal ethernet network interface
-        static uint16 ETHERNET_MTU_EXTERNAL_IF;                                                     // MFS (in bytes) for frames written to/read from the external ethernet network interface
+        // Network interface configuration values
         static const uint16 ETHERNET_DEFAULT_MTU = 1500U;                                           // Default MTU (in bytes) for packets transmitted within ethernet network frames
         static const uint16 ETHERNET_DEFAULT_MFS = 1538U;                                           // Default MFS (in bytes) for frames written to/read from the ethernet network interface
-        static const uint16 ETHERNET_MAXIMUM_MTU = 9000U;                                           // Max allowed MTU (in bytes) for frames written to/read from the ethernet network interface
-        static const uint16 ETHERNET_MAXIMUM_MFS = 9038U;                                           // Max allowed MFS (in bytes) for frames written to/read from the ethernet network interface
+        static const uint16 ETHERNET_MIN_MTU = 68U;                                                 // Min allowed value as MTU of the Virtual TUN/TAP interface
+        static const uint16 ETHERNET_MAX_MTU = 9000U;                                               // Max allowed MTU (in bytes) for frames written to/read from the ethernet network interface
+        static const uint16 ETHERNET_MAX_MFS = 9038U;                                               // Max allowed MFS (in bytes) for frames written to/read from the ethernet network interface
         static const char * const pszNetworkAdapterNamePrefix;
 
-        static const uint8 WRITE_PACKET_BUFFERS = 3U;                                              // Number of buffers available to write on the TUN/TAP (or libpcap internal) interface
+        static const uint8 WRITE_PACKET_BUFFERS = 3U;                                               // Number of buffers available to write on the TUN/TAP (or libpcap internal) interface
 
         // Port and timeouts for Mockets, TCP and UDP connections, and for the GUI
         static uint16 MOCKET_SERVER_PORT;
         static uint32 MOCKET_TIMEOUT;
         static uint16 TCP_SERVER_PORT;
         static uint16 UDP_SERVER_PORT;
+        static uint16 TUNNEL_MODE_UDP_SERVER_PORT;
         static uint16 CSR_MOCKET_SERVER_PORT;
         static const uint16 CSR_PROXY_SERVER_PORT;
-        static uint16 GUI_LOCAL_PORT;
         static const char * const CSR_PROXY_SERVER_ADDR;
         static const uint16 DEFAULT_MOCKET_SERVER_PORT = 8751U;
         static const uint16 DEFAULT_TCP_SERVER_PORT = 8751U;
         static const uint16 DEFAULT_UDP_SERVER_PORT = 8752U;
-        static const uint16 DEFAULT_GUI_LOCAL_PORT = 8755U;
+        static const char * const DEFAULT_GUI_IP_ADDR;
+        static const uint16 DEFAULT_GUI_PORT = 8755U;
         static const uint32 DEFAULT_MOCKET_TIMEOUT = 30000U;
+
+        static bool MOCKETS_DTLS_ENABLED;
 
         static const bool DEFAULT_LOCAL_PROXY_REACHABILITY_FROM_REMOTE = true;
 
         static bool TRANSPARENT_GATEWAY_MODE;                                                       // When false, the TTL field of IP packets forwarded from the internal to the external network is decremented by 1
         static const bool DEFAULT_TRANSPARENT_GATEWAY_MODE = true;                                  // By default, the NetProxy operates in transparent Gateway Mode
-        
-        static bool MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE;                             // Specifies whether multicast packets should be forwarded over the external interface
-        static const bool DEFAULT_MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE = false;
-        static bool BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE;                             // Specifies whether broadcast packets should be forwarded over the external interface
-        static const bool DEFAULT_BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_INTERFACE = false;
-        
-        static const uint16 PROXY_MESSAGE_MTU = 8192U + sizeof (TCPDataProxyMessage);               // MTU (in bytes) for packets addressed to remote proxies
+
+        static bool MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_NETWORK;                             // Specifies whether multicast packets should be forwarded onto the external network
+        static const bool DEFAULT_MULTICAST_PACKETS_FORWARDING_ON_EXTERNAL_NETWORK = false;       // Default behavior is not to forward multicast packets onto the external network
+        static bool MULTICAST_PACKETS_FORWARDING_ON_INTERNAL_NETWORK;                             // Specifies whether multicast packets should be forwarded onto the internal network
+        static const bool DEFAULT_MULTICAST_PACKETS_FORWARDING_ON_INTERNAL_NETWORK = false;       // Default behavior is not to forward multicast packets onto the internal network
+        static bool BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_NETWORK;                             // Specifies whether broadcast packets should be forwarded onto the external network
+        static const bool DEFAULT_BROADCAST_PACKETS_FORWARDING_ON_EXTERNAL_NETWORK = false;       // Default behavior is not to forward broadcast packets onto the external network
+        static bool BROADCAST_PACKETS_FORWARDING_ON_INTERNAL_NETWORK;                             // Specifies whether broadcast packets should be forwarded onto the internal network
+        static const bool DEFAULT_BROADCAST_PACKETS_FORWARDING_ON_INTERNAL_NETWORK = false;       // Default behavior is not to forward broadcast packets onto the internal network
+
+        static const uint16 PROXY_MESSAGE_MTU = 8192U + sizeof(TCPDataProxyMessage);               // MTU (in bytes) for packets addressed to remote proxies
         static const uint16 TCP_WINDOW_SIZE = 65535U;                                               // Window size for incoming TCP connections (in bytes)
         static const uint32 MAX_UDP_CONNECTION_BUFFER_SIZE = 262144U;                               // Maximum allowed size of the buffer which stores outgoing data in the UDP connection thread
         static const uint32 MAX_UDP_NAGLE_ALGORITHM_TIMEOUT = 60000U;                               // Maximum allowed value for the timeout of the UDP Nagle's Algorithm
@@ -146,8 +166,10 @@ namespace ACMNetProxy
         static NOMADSUtil::String DEFAULT_MOCKETS_CONFIG_FILE;                                      // Default Mockets config file name when no default Mockets config file is specified in netProxy.cfg
         static const char * const LOGS_DIR;                                                         // Name of the directory where log files are stored
 
-		static char NETSENSOR_CONFIG_FILE[];													// Relative path and name of the NetSensor configuration file
+		static char NETSENSOR_CONFIG_FILE[];													    // Relative path and name of the NetSensor configuration file
+        static NOMADSUtil::String NETSENSOR_STAT_DEST_IP;
 		static bool ACTIVATE_NETSENSOR;
+		static bool PRIORITY_MECHANISM;
     };
 
 }

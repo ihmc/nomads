@@ -35,7 +35,7 @@ namespace ACMNetProxy
             // Throw C++ exception here
         }
         _ulOutBufSize = ulOutBufSize;
-        if ((_pOutputBuffer = new unsigned char [_ulOutBufSize]) == NULL) {
+        if ((_pOutputBuffer = new unsigned char [_ulOutBufSize]) == nullptr) {
             // throw C++ exception here
         }
         resetCompStream();
@@ -51,19 +51,19 @@ namespace ACMNetProxy
         if (_pOutputBuffer) {
             delete[] _pOutputBuffer;
         }
-        _pOutputBuffer = NULL;
+        _pOutputBuffer = nullptr;
     }
 
     int ZLibConnectorWriter::flush (unsigned char **pDest, unsigned int &uiDestLen)
     {
         if (_bFlushed) {
-            *pDest = NULL;
+            *pDest = nullptr;
             uiDestLen = 0;
             return 0;
         }
 
         bool bDone = false;
-        _zsCompStream.next_in = NULL;
+        _zsCompStream.next_in = nullptr;
         _zsCompStream.avail_in = 0;
         uiDestLen = 0;
         while (!bDone) {
@@ -77,7 +77,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
                                     "deflate() with flag Z_FINISH returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -1;
                 }
             }
@@ -91,7 +91,7 @@ namespace ACMNetProxy
                                         "error trying to realloc %u (previously %u) bytes\n",
                                         _ulOutBufSize, _ulOutBufSize/2);
                         uiDestLen = 0;
-                        *pDest = NULL;
+                        *pDest = nullptr;
                         return -2;
                     }
                 }
@@ -103,7 +103,7 @@ namespace ACMNetProxy
                 checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
                                 "deflate() with flag Z_FINISH didn't produce new output but returned code is not Z_STREAM_END (code: %d)\n", rc);
                 uiDestLen = 0;
-                *pDest = NULL;
+                *pDest = nullptr;
                 return -3;
             }
         }
@@ -113,7 +113,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
         }
         _zsCompStream.avail_out = _ulOutBufSize;
         _zsCompStream.next_out = _pOutputBuffer;
@@ -129,7 +129,7 @@ namespace ACMNetProxy
         _zsCompStream.next_in = const_cast<unsigned char*> (pSrc);
         _zsCompStream.avail_in = uiSrcLen;
         uiDestLen = 0;
-        *pDest = NULL;
+        *pDest = nullptr;
         _bFlushed = false;
 
         while ((_zsCompStream.avail_in > 0) || bNeedFlush) {
@@ -145,7 +145,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("ZLibConnectorWriter::writeData", Logger::L_MildError,
                                     "deflate with flag Z_PARTIAL_FLUSH returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -1;
                 }
             }
@@ -159,7 +159,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("ZLibConnectorWriter::writeData", Logger::L_MildError,
                                     "deflate with flag Z_NO_FLUSH returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -2;
                 }
             }
@@ -178,7 +178,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
         }
         _zsCompStream.avail_out = _ulOutBufSize;
         _zsCompStream.next_out = _pOutputBuffer;
@@ -190,7 +190,7 @@ namespace ACMNetProxy
     {
         int rc;
         unsigned int uiOldAvailableSpace = 0;
-        *pDest = NULL;
+        *pDest = nullptr;
         uiDestLen = 0;
         if (!pSrc || (uiSrcLen == 0)) {
             deflateReset (&_zsCompStream);
@@ -211,7 +211,7 @@ namespace ACMNetProxy
                     checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
                                     "deflate() with flag Z_FINISH returned with error code %d\n", rc);
                     uiDestLen = 0;
-                    *pDest = NULL;
+                    *pDest = nullptr;
                     return -1;
                 }
             }
@@ -225,7 +225,7 @@ namespace ACMNetProxy
                                         "error trying to realloc %u (previously %u) bytes\n",
                                         _ulOutBufSize, _ulOutBufSize/2);
                         uiDestLen = 0;
-                        *pDest = NULL;
+                        *pDest = nullptr;
                         return -2;
                     }
                 }
@@ -237,7 +237,7 @@ namespace ACMNetProxy
                 checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
                                 "deflate() with flag Z_FINISH didn't produce new output but returned code is not Z_STREAM_END (code: %d)\n", rc);
                 uiDestLen = 0;
-                *pDest = NULL;
+                *pDest = nullptr;
                 return -3;
             }
         }
@@ -247,7 +247,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
         }
 
         resetCompStream();
@@ -273,14 +273,14 @@ namespace ACMNetProxy
     void *ZLibConnectorWriter::alloc_mem (void *userdata, uInt items, uInt size)
     {
         (void) userdata;
-        
+
         return calloc (items, size);
     }
 
     void ZLibConnectorWriter::free_mem (void *userdata, void *data)
     {
         (void) userdata;
-        
+
         free (data);
     }
 

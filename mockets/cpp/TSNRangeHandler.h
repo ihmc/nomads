@@ -68,6 +68,7 @@ class TSNRangeHandler
 
 class SAckTSNRangeHandler : public TSNRangeHandler
 {
+	//TSN means Transmission Sequence Number
     public:
         SAckTSNRangeHandler (void);
 

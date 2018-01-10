@@ -19,8 +19,8 @@
  * TCP/IP Stream Socket Class header file
  *
  * Written by Niranjan Suri
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/SCTPSocket.h,v 1.2 2016/06/09 20:02:45 gbenincasa Exp $
- * Revision: $Revision: 1.2 $
+ * RCSInfo: $Header$
+ * Revision: $Revision$
  */
 
 #ifndef INCL_SCTPSocket_H

@@ -5,7 +5,7 @@
  * CancelledTSNManager.h
  * 
  * This file is part of the IHMC Mockets Library/Component
- * Copyright (c) 2002-2014 IHMC.
+ * Copyright (c) 2002-2016 IHMC.
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

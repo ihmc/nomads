@@ -26,63 +26,23 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    Connection * const ActiveConnection::getActiveConnection (ConnectorType connectorType) const
-    {
-        switch (connectorType) {
-        case CT_MOCKETS:
-            return _pMocketsConnection;
-        case CT_SOCKET:
-            return _pSocketConnection;
-        case CT_CSR:
-            return _pCSRConnection;
-        default:
-            break;
-        }
-
-        return NULL;
-    }
-
-    const InetAddr * const ActiveConnection::getActiveConnectionAddr (ConnectorType connectorType) const
-    {
-        switch (connectorType) {
-        case CT_MOCKETS:
-            return _pMocketsConnection ? _pMocketsConnection->getRemoteProxyInetAddr() : NULL;
-        case CT_SOCKET:
-            return _pSocketConnection ? _pSocketConnection->getRemoteProxyInetAddr() : NULL;
-        case CT_CSR:
-            return _pCSRConnection ? _pCSRConnection->getRemoteProxyInetAddr() : NULL;
-        default:
-            break;
-        }
-
-        return NULL;
-    }
-
     Connection * const ActiveConnection::setNewActiveConnection (Connection * const pActiveConnection)
     {
         if (!pActiveConnection) {
-            return NULL;
+            return nullptr;
         }
 
-        Connection * const pOldConnection = getActiveConnection (pActiveConnection->getConnectorType());
+        Connection * const pOldConnection = getActiveConnection (pActiveConnection->getConnectorType(), pActiveConnection->getEncryptionType());
         if (pOldConnection == pActiveConnection) {
-            return NULL;
+            return nullptr;
         }
 
-        switch (pActiveConnection->getConnectorType()) {
-        case CT_MOCKETS:
-            _pMocketsConnection = pActiveConnection;
-            break;
-        case CT_SOCKET:
-            _pSocketConnection = pActiveConnection;
-            break;
-        case CT_CSR:
-            _pCSRConnection = pActiveConnection;
-            break;
-        case CT_UDP:
-        case CT_UNDEF:
-            return NULL;
+        const ConnectorType ct = pActiveConnection->getConnectorType();
+        const EncryptionType et = pActiveConnection->getEncryptionType();
+        if ((ct == CT_UDPSOCKET) || (ct == CT_UNDEF)) {
+            return nullptr;
         }
+        _connectionTable[ct][et - 1] = pActiveConnection;
 
         return pOldConnection;
     }
@@ -90,35 +50,15 @@ namespace ACMNetProxy
     Connection * const ActiveConnection::removeActiveConnection (const Connection * const pActiveConnection)
     {
         if (!pActiveConnection || (pActiveConnection->getConnectorType() == CT_UNDEF) ||
-            (pActiveConnection->getConnectorType() == CT_UDP)) {
-            return NULL;
+            (pActiveConnection->getConnectorType() == CT_UDPSOCKET)) {
+            return nullptr;
         }
 
-        if (getActiveConnection (pActiveConnection->getConnectorType()) == pActiveConnection) {
-            return removeActiveConnectionByType (pActiveConnection->getConnectorType());
+        if (getActiveConnection (pActiveConnection->getConnectorType(), pActiveConnection->getEncryptionType()) == pActiveConnection) {
+            return removeActiveConnectionByType (pActiveConnection->getConnectorType(), pActiveConnection->getEncryptionType());
         }
 
-        return NULL;
+        return nullptr;
     }
 
-    // This method is private and should only be invoked with a MOCKETS, SOCKET, or CSR connectorType
-    Connection * const ActiveConnection::removeActiveConnectionByType (ConnectorType connectorType)
-    {
-        Connection * const pOldConnection = getActiveConnection (connectorType);
-        switch (connectorType) {
-        case CT_MOCKETS:
-            _pMocketsConnection = NULL;
-            break;
-        case CT_SOCKET:
-            _pSocketConnection = NULL;
-            break;
-        case CT_CSR:
-            _pCSRConnection = NULL;
-            break;
-        default:
-            return NULL;
-        }
-
-        return pOldConnection;
-    }
 }

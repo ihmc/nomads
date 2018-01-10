@@ -36,47 +36,56 @@ namespace ACMNetProxy
         delete[] _pui8MemBuf;
     }
 
-    ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (ConnectorType connectorType, const InetAddr * const pRemoteProxyInetAddr)
+    ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (ConnectorType connectorType, EncryptionType encryptionType,
+                                                                        const InetAddr * const pRemoteProxyInetAddr)
     {
         if (!pRemoteProxyInetAddr || (connectorType == CT_UNDEF)) {
-            return NULL;
+            return nullptr;
         }
 
         switch (connectorType) {
-            case CT_MOCKETS:
-                return new MocketAdapter (pRemoteProxyInetAddr);
-            case CT_SOCKET:
-                return new TCPSocketAdapter (pRemoteProxyInetAddr);
-            case CT_UDP:
+            case CT_TCPSOCKET:
+                return new TCPSocketAdapter (pRemoteProxyInetAddr, encryptionType);
+            case CT_UDPSOCKET:
                 return UDPConnector::getUDPConnection()->getConnectorAdapter();
+            case CT_MOCKETS:
+                return new MocketAdapter (pRemoteProxyInetAddr, encryptionType);
             case CT_CSR:
-                return new CSRAdapter (pRemoteProxyInetAddr);
+                return new CSRAdapter (pRemoteProxyInetAddr, encryptionType);
             case CT_UNDEF:
-                return NULL;
+                return nullptr;
         }
 
-        return NULL;
+        return nullptr;
     }
 
     ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (Mocket * const pMocket, ConnectorType connectorType)
     {
-        if (connectorType == CT_MOCKETS) {
-            return new MocketAdapter (pMocket);
+        switch (connectorType) {
+            case CT_MOCKETS:
+            {
+                return new MocketAdapter (pMocket);
+            }
+            case CT_CSR:
+            {
+                return new CSRAdapter (pMocket);
+            }
+            default:
+                break;
         }
-        else if (connectorType == CT_CSR) {
-            return new CSRAdapter (pMocket);
-        }
-        
-        return NULL;
+
+        return nullptr;
     }
 
-    ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (TCPSocket * const pTCPSocket)
+    ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (TCPSocket * const pTCPSocket, ConnectorType connectorType)
     {
+        (void) connectorType;
         return new TCPSocketAdapter (pTCPSocket);
     }
 
-    ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (UDPDatagramSocket * const pUDPSocket)
+    ConnectorAdapter * const ConnectorAdapter::ConnectorAdapterFactory (UDPDatagramSocket * const pUDPSocket, ConnectorType connectorType)
     {
+        (void) connectorType;
         return new UDPSocketAdapter (pUDPSocket);
     }
 
@@ -99,6 +108,7 @@ namespace ACMNetProxy
             case ProxyMessage::PMT_TCPData:
             case ProxyMessage::PMT_TCPCloseConnection:
             case ProxyMessage::PMT_TCPResetConnection:
+            case ProxyMessage::PMT_TunnelPacket:
                 return true;
             default:
                 return false;

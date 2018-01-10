@@ -19,8 +19,8 @@
  * TCP/IP Stream Socket Class header file
  *
  * Written by Niranjan Suri
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/TCPSocket.h,v 1.34 2016/06/09 20:02:45 gbenincasa Exp $
- * Revision: $Revision: 1.34 $
+ * RCSInfo: $Header$
+ * Revision: $Revision$
  */
 
 #ifndef INCL_TCPSOCKET_H
@@ -76,8 +76,8 @@ namespace NOMADSUtil
             virtual ~TCPSocket (void);
             virtual int blockingMode (int iMode);
 
-            // Enable or disable buffering (which, for TCP, basically controls the Nagle algorithm)
-            // Passing a zero indicates no buffering, which implies that the Nagle algorithm is disabled (TCP_NODELAY is set to 1)
+            // Enables or disables buffering (in case of TCP, it basically controls the Nagle's algorithm)
+            // Passing a zero indicates no buffering, which implies that the Nagle's algorithm is disabled (TCP_NODELAY is set to 1)
             // Passing a non-zero value indicates that buffering should be enabled (default with TCP)
             virtual int bufferingMode (int iMode);
 

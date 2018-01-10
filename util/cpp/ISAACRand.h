@@ -23,8 +23,8 @@ namespace NOMADSUtil
     class ISAACRand
     {
     public:
-        static uint32 getRnd();
-        static uint32 getRnd(uint32 seed);
+        static uint32 getRnd (void);
+        static uint32 getRnd (uint32 seed);
 
     private:
         static void isaac (void);

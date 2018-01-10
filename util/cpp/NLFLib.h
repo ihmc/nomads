@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -199,7 +199,7 @@ namespace NOMADSUtil
     // Will not work directly with windows sockets unless errnum passed in. can use WSAGetLastError() as arg
     const char * getLastOSErrorAsString (int iErrNum);
 
-    // Reads a line in from the given file pointed at by the file descriptor f, and place it in 
+    // Reads a line in from the given file pointed at by the file descriptor f, and place it in
     // char buf pointed to by s, but not exceeding n characters, which presumably is the size
     // of the string allocated to s; Returns a 0 if successful, a 1 if EOF encountered.
     int getline (char *s, int n, FILE *f);
@@ -209,6 +209,12 @@ namespace NOMADSUtil
 
     // Copies an entire file from src to dest, geared toward text files
     int copyFile (const char *pszSrcFile, const char *pszDestFile);
+
+    // Returns true if the first parameter 'c' falls within the range [cMin, cMax]
+    inline bool checkCharRange (const char c, const char cMin, const char cMax)
+    {
+        return (c >= cMin) && (c <= cMax);
+    }
 
     /** Replace occurrences of searchPattern with replacePattern in searchString.  If global is true,
      *  replace all occurrences, otherwise replace only the first.
@@ -233,12 +239,12 @@ namespace NOMADSUtil
     // Returns the relative difference between two floats
     inline float relDiff (float a, float b)
     {
-        float absA = fabs (a);
-        float absB = fabs (b);
+        float absA = (float) fabs (a);
+        float absB = (float) fabs (b);
 
         absB = maximum (absA, absB);
 
-        return absB > 0.0f ? (fabs (a - b) / absB) : 0.0f;
+        return absB > 0.0f ? (float) (fabs (a - b) / (double) absB) : 0.0f;
     }
 
     /**

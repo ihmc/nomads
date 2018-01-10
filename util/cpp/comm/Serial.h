@@ -39,6 +39,7 @@
 
 #if defined (WIN32)
     //typedef void * HANDLE;
+	#define NOMINMAX
     #include <winsock2.h>    // Only to avoid conflicts that occur if some other header file includes winsock2.h after the include below of windows.h
     #include <windows.h>
 #elif defined (UNIX)

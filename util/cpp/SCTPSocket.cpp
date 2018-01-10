@@ -16,8 +16,8 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/SCTPSocket.cpp,v 1.6 2016/06/09 20:02:45 gbenincasa Exp $
- * Revision: $Revision: 1.6 $
+ * RCSInfo: $Header$
+ * Revision: $Revision$
  */
 
 #include <stdio.h>

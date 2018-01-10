@@ -47,16 +47,16 @@ namespace ACMNetProxy
         int registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg);
 
         virtual bool isConnected (void) const;
-        virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort);
-        virtual int shutdown (bool bReadMode, bool bWriteMode);
-        virtual int close (void);
-
+        virtual EncryptionType getEncryptionType (void) const;
         virtual uint32 getOutgoingBufferSize (void);
 
+        virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort);
         virtual int send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
                           bool bSequenced, const void *pBuf, uint32 ui32BufSize);
         virtual int receiveMessage (void * const pBuf, uint32 ui32BufSize);
         int receiveMessage (void * const pBuf, uint32 ui32BufSize, NOMADSUtil::InetAddr * const pInetAddr);
+        virtual int shutdown (bool bReadMode, bool bWriteMode);
+        virtual int close (void);
 
 
     protected:
@@ -72,13 +72,13 @@ namespace ACMNetProxy
         class UDPConnectionThread : public NOMADSUtil::ManageableThread
         {
         public:
-            UDPConnectionThread (NOMADSUtil::UDPDatagramSocket * const _pSocket);
+            UDPConnectionThread (NOMADSUtil::UDPDatagramSocket * const pSocket, EncryptionType encryptionType);
             ~UDPConnectionThread (void);
 
             void run (void);
 
             int addProxyNetworkMessage (const NOMADSUtil::InetAddr * const pProxyAddr, const ProxyMessage * const pProxyMessage, uint32 ui32DestVirtualIPAddr,
-                                        const uint8 * const pui8MessagePayload = NULL, const uint16 ui16MessagePayloadLen = 0);
+                                        const uint8 * const pui8MessagePayload = nullptr, const uint16 ui16MessagePayloadLen = 0);
             unsigned int getTransmissionQueueSize (void);
             unsigned int getBufferedBytesAmount (void);
             unsigned int removeTCPTypePacketsFromTransmissionQueue (uint16 uiLocalID, uint16 uiRemoteID);
@@ -91,9 +91,11 @@ namespace ACMNetProxy
 
             NOMADSUtil::UDPDatagramSocket * const _pSocket;
             NOMADSUtil::PtrQueue<const ProxyNetworkMessage> _ProxyNetworkMessagesPtrQueue;
-            uint32 _ui32TotalBufferedBytes;
 
+            uint32 _ui32TotalBufferedBytes;
             unsigned char _pucOutBuf[NetProxyApplicationParameters::PROXY_MESSAGE_MTU];
+
+            EncryptionType _encryptionType;
 
             NOMADSUtil::Mutex _mPtrQueue;
             NOMADSUtil::Mutex _mUDPConnectionThread;
@@ -112,10 +114,9 @@ namespace ACMNetProxy
     };
 
 
-    inline UDPSocketAdapter::UDPConnectionThread::UDPConnectionThread (NOMADSUtil::UDPDatagramSocket * const pSocket) :
-        _pSocket (pSocket), _cvUDPConnectionThread (&_mUDPConnectionThread)
+    inline UDPSocketAdapter::UDPConnectionThread::UDPConnectionThread (NOMADSUtil::UDPDatagramSocket * const pSocket, EncryptionType encryptionType) :
+        _pSocket(pSocket), _ui32TotalBufferedBytes(0), _encryptionType(encryptionType), _cvUDPConnectionThread(&_mUDPConnectionThread)
     {
-        _ui32TotalBufferedBytes = 0;
         memset (_pucOutBuf, 0, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
     }
 
@@ -160,8 +161,8 @@ namespace ACMNetProxy
     }
 
     inline UDPSocketAdapter::UDPSocketAdapter (NOMADSUtil::UDPDatagramSocket * const pUDPSocket) :
-        ConnectorAdapter (CT_UDP, 0, 0, new uint8[NetProxyApplicationParameters::PROXY_MESSAGE_MTU], NetProxyApplicationParameters::PROXY_MESSAGE_MTU),
-        _pUDPSocket (pUDPSocket), _udpConnectionThread (pUDPSocket) { }
+        ConnectorAdapter (CT_UDPSOCKET, 0, 0, new uint8[NetProxyApplicationParameters::PROXY_MESSAGE_MTU], NetProxyApplicationParameters::PROXY_MESSAGE_MTU),
+        _pUDPSocket (pUDPSocket), _udpConnectionThread (pUDPSocket, getEncryptionType()) { }
 
     inline UDPSocketAdapter::~UDPSocketAdapter (void) { }
 
@@ -188,26 +189,22 @@ namespace ACMNetProxy
         return true;
     }
 
-    inline int UDPSocketAdapter::connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort)
+    // TO-DO: for the moment, encryption is always set to false
+    inline EncryptionType UDPSocketAdapter::getEncryptionType (void) const
     {
-        (void) pcRemoteProxyIP;
-        (void) ui16RemoteProxyPort;
-        return 0;
-    }
-
-    inline int UDPSocketAdapter::shutdown (bool bReadMode, bool bWriteMode)
-    {
-        return _pUDPSocket->shutdown (bReadMode, bWriteMode);
-    }
-
-    inline int UDPSocketAdapter::close (void)
-    {
-        return _pUDPSocket->close();
+        return ET_PLAIN;
     }
 
     inline uint32 UDPSocketAdapter::getOutgoingBufferSize (void)
     {
         return _pUDPSocket->getSendBufferSize();
+    }
+
+    inline int UDPSocketAdapter::connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort)
+    {
+        (void) pcRemoteProxyIP;
+        (void) ui16RemoteProxyPort;
+        return 0;
     }
 
     inline int UDPSocketAdapter::send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
@@ -225,6 +222,16 @@ namespace ACMNetProxy
         }
 
         return 0;
+    }
+
+    inline int UDPSocketAdapter::shutdown (bool bReadMode, bool bWriteMode)
+    {
+        return _pUDPSocket->shutdown (bReadMode, bWriteMode);
+    }
+
+    inline int UDPSocketAdapter::close (void)
+    {
+        return _pUDPSocket->close();
     }
 
     inline int UDPSocketAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)

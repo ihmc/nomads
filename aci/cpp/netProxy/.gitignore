@@ -1,0 +1,7 @@
+## NetProxy specific
+linux/netProxy
+win32/conf
+win32/enc_temp_folder/
+
+## DTLS related
+*.pem

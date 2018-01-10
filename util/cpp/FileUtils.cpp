@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -21,10 +21,11 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include  <limits.h>
+#include <limits.h>
 
 #if defined (WIN32)
-#include <winsock2.h>
+	#define NOMINMAX
+	#include <winsock2.h>
     #include <windows.h>
     #include <io.h>
     #include <direct.h>
@@ -74,12 +75,12 @@ bool FileUtils::createDirectory (const char *pszPath)
         strcat (pszDirPath, pszSubDirName);
         _mkdir (pszDirPath);
     }
-        
+
     // Check it the directory has beed created successfully
     return directoryExists (pszDirPath);
 }
 
-bool FileUtils::deleteDirectory (const char *pszPath) 
+bool FileUtils::deleteDirectory (const char *pszPath)
 {
 #if defined (WIN32)
 
@@ -101,7 +102,7 @@ bool FileUtils::deleteDirectory (const char *pszPath)
    strcpy (DirPath,FileName);
 
    bool bSearch = true;
-   
+
     while (bSearch) {    // until we find an entry
         if (FindNextFile (hFind,&FindFileData)) {
             if ((strcmp (FindFileData.cFileName, ".") == 0) ||
@@ -146,21 +147,21 @@ bool FileUtils::deleteDirectory (const char *pszPath)
     return (RemoveDirectory (pszPath) == TRUE);     // remove the empty directory
 
 #elif defined (UNIX)
-    
-    String currentDirPath = String (pszPath); 
+
+    String currentDirPath = String (pszPath);
     struct dirent **eps;
     struct stat sb;
     int n = 0;
     bool bTrailingSlash = (pszPath[strlen (pszPath) - 1] == '/');
-    
+
     #if !defined (ANDROID)
         if ((n = scandir ((const char*) currentDirPath, &eps, NULL, alphasort)) < 0) {
             return false;
         }
     #endif
-    
+
     for (int i = 0; i < n; i++) {
-        if ((strcmp (".", eps[i]->d_name) == 0) || (strcmp ("..", eps[i]->d_name) == 0)) {  
+        if ((strcmp (".", eps[i]->d_name) == 0) || (strcmp ("..", eps[i]->d_name) == 0)) {
             continue;
         }
         String currentFilePath = currentDirPath;
@@ -168,12 +169,12 @@ bool FileUtils::deleteDirectory (const char *pszPath)
             currentFilePath += "/";
         }
         currentFilePath += eps[i]->d_name;
-        
+
         if (lstat ((const char*) currentFilePath, &sb) != 0) {
             perror ((const char*) currentFilePath);
             continue;
-        }  
-        
+        }
+
         if (S_ISDIR (sb.st_mode)) {
             if (!deleteDirectory ((const char*) currentFilePath)) {
                 for (int i = 0; i < n; i++) {
@@ -184,7 +185,7 @@ bool FileUtils::deleteDirectory (const char *pszPath)
                 }
                 return false;
             }
-        } 
+        }
         else if (S_ISREG (sb.st_mode)) {
             if (unlink ((const char*) currentFilePath) != 0) {
                 return false;
@@ -240,7 +241,7 @@ char ** FileUtils::listFilesInDirectory (const char *pszPath, bool bIncludeDirs)
         }
     }
     while (FindNextFile(hFind, &ffd) != 0);
- 
+
     dwError = GetLastError();
     if (dwError != ERROR_NO_MORE_FILES) {
         FindClose (hFind);
@@ -253,7 +254,7 @@ char ** FileUtils::listFilesInDirectory (const char *pszPath, bool bIncludeDirs)
     if (pDir == NULL) {
         return NULL;
     }
-    
+
     struct dirent *pDe = readdir (pDir);
     for (unsigned int i = 0; pDe != NULL; pDe = readdir (pDir)) {
         String fullName (pszPath);
@@ -285,7 +286,7 @@ char ** FileUtils::listFilesInDirectory (const char *pszPath, bool bIncludeDirs)
 
     return ppFileList;
 }
-            
+
 String * FileUtils::enumSubdirs (const char *pszPath)
 {
 #if defined (WIN32)
@@ -313,9 +314,9 @@ String * FileUtils::enumSubdirs (const char *pszPath)
                 continue;
             }
             if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-                j++;    
+                j++;
             }
-        }        
+        }
         else {
             // no more files there
             if (GetLastError() == ERROR_NO_MORE_FILES) {
@@ -347,7 +348,7 @@ String * FileUtils::enumSubdirs (const char *pszPath)
             if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
                 pSubDirs[j++] = FindFileData.cFileName;
             }
-        }        
+        }
         else {
             // no more files there
             if (GetLastError() == ERROR_NO_MORE_FILES) {
@@ -363,7 +364,7 @@ String * FileUtils::enumSubdirs (const char *pszPath)
 
     pSubDirs[j] = "";
 
-    FindClose (hFind);  // close the file handle           
+    FindClose (hFind);  // close the file handle
     return pSubDirs;
 
 #elif defined (UNIX)
@@ -383,7 +384,7 @@ String * FileUtils::enumSubdirs (const char *pszPath)
     String *pSubDirs = new String[n];
     int j = 0;
     for (int i = 0; i < n; i++) {
-        if ((strcmp (".", eps[i]->d_name) == 0) || 
+        if ((strcmp (".", eps[i]->d_name) == 0) ||
             (strcmp ("..", eps[i]->d_name) == 0)) {
             continue;
         }
@@ -418,7 +419,7 @@ void FileUtils::transformPathSeparator (char *pszPath)
     #if defined (WIN32)
         char platSep = '\\';
         char otherPlatSep = '/';
-    #elif defined (UNIX) 
+    #elif defined (UNIX)
         char platSep = '/';
         char otherPlatSep = '\\';
     #else

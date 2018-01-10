@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -44,7 +44,7 @@ namespace NOMADSUtil
             static char ** listFilesInDirectory (const char *pszPath, bool bIncludeDirs);
 
             // Returns an array of strings containing the names
-            // of the subdirectories of a specified directory. The 
+            // of the subdirectories of a specified directory. The
             // array terminator is an empty string.
             //
             // NOTE: remember to call a delete[] on the
@@ -58,7 +58,7 @@ namespace NOMADSUtil
             static int64 fileSize (const char *pszPath);
 
             // Read the contents of the specified file into a newly allocated buffer and return the buffer
-            // The size of the file is written into pui32FileSize (if it is not NULL)
+            // The size of the file is written into pi64FileSize (if it is not NULL)
             // Caller is responsible for deleting the buffer
             static void * readFile (const char *pszPath, int64 *pi64FileSize);
 

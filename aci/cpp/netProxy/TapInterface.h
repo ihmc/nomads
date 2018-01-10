@@ -52,7 +52,7 @@ namespace ACMNetProxy
             void requestTermination (void);
             bool checkMACAddress (void);
 
-            int readPacket (uint8 *pui8Buf, uint16 ui16BufSize);
+            int readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen);
             int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen);
 
 
@@ -71,6 +71,7 @@ namespace ACMNetProxy
             PacketBufferManager * const pPBM;
 
             NOMADSUtil::Mutex _mWrite;
+            uint8 ui8Buf[NetProxyApplicationParameters::ETHERNET_MAX_MFS];
     };
 
 

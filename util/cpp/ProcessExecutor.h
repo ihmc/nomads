@@ -27,8 +27,9 @@
 #include "Thread.h"
 
 #if defined (WIN32)
-#include <winsock2.h>
-    #include <windows.h>
+	#define NOMINMAX
+	#include <winsock2.h>
+	#include <windows.h>
 #elif defined (UNIX)
 #else
     #error Must Define WIN32 or UNIX!

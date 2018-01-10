@@ -33,7 +33,6 @@
 #include "Logger.h"
 #include "ManageableThread.h"
 #include "StringHashset.h"
-#include "StringHashtable.h"
 
 namespace NOMADSUtil
 {
@@ -153,7 +152,7 @@ namespace NOMADSUtil
                                 "Command <%s> failed.  Communication error.\n", buf);
                 break;
             }
-            else if (bSuccess) {
+            if (bSuccess) {
                 _pCommHelper->sendLine (error, "OK");
                 if (error != SimpleCommHelper2::None) {
                     if (pLogger != NULL) pLogger->logMsg (pszMethodName, Logger::L_SevereError,
@@ -201,27 +200,21 @@ namespace NOMADSUtil
                             "!!!! UNKNOWN OPERATION!!!! [%s]\n", (const char *) methodName);
             return false;
         }
-        else if (methodName.startsWith ("register") || methodName.startsWith ("Register")) {
+        if (methodName.startsWith ("register") || methodName.startsWith ("Register")) {
             if (_pRegistry->registerCallback (_ui16ClientId, _pCommHelper, _pCallbackCommHelper, error)) {
                 _registeredFunctions.put (methodName);
                 return true;
             }
-            else {
-                return false;
-            }
+            return false;
         }
-        else if (methodName.startsWith ("deregister")) {
+        if (methodName.startsWith ("deregister")) {
             if (_pRegistry->deregisterCallback (_ui16ClientId, this, _pCommHelper, error)) {
                 _registeredFunctions.remove (methodName);
                 return true;
             }
-            else {
-                return false;
-            }
+            return false;
         }
-        else {
-            return _pUnmarshaller (_ui16ClientId, methodName, _pRegistry->getSvcInstace(), _pCommHelper, error);
-        }
+        return _pUnmarshaller (_ui16ClientId, methodName, _pRegistry->getSvcInstace(), _pCommHelper, error);
     }
 }
 

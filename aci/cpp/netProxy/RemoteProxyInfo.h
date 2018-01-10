@@ -36,12 +36,14 @@ namespace ACMNetProxy
     {
     public:
         RemoteProxyInfo (void);
-        RemoteProxyInfo (uint32 ui32RemoteProxyID, NOMADSUtil::InetAddr remoteMocketsServerAddr, NOMADSUtil::InetAddr remoteTCPServerAddr,
-                         NOMADSUtil::InetAddr remoteUDPServerAddr, const char *pszMocketsConfFileName);
-        RemoteProxyInfo (uint32 ui32RemoteProxyID, uint32 remoteHostAddr, uint16 ui16RemoteMocketsPort = NetProxyApplicationParameters::DEFAULT_MOCKET_SERVER_PORT,
+        RemoteProxyInfo (uint32 ui32RemoteProxyID, NOMADSUtil::InetAddr remoteMocketsServerAddr,
+                         NOMADSUtil::InetAddr remoteTCPServerAddr, NOMADSUtil::InetAddr remoteUDPServerAddr,
+                         const char *pszMocketsConfFileName);
+        RemoteProxyInfo (uint32 ui32RemoteProxyID, uint32 remoteHostAddr,
+                         uint16 ui16RemoteMocketsPort = NetProxyApplicationParameters::DEFAULT_MOCKET_SERVER_PORT,
                          uint16 ui16RemoteTCPPort = NetProxyApplicationParameters::DEFAULT_TCP_SERVER_PORT,
                          uint16 ui16RemoteUDPPort = NetProxyApplicationParameters::DEFAULT_UDP_SERVER_PORT,
-                         const char *pszMocketsConfFileName = NULL);
+                         const char *pszMocketsConfFileName = nullptr);
         RemoteProxyInfo (uint32 ui32RemoteProxyID, uint32 remoteHostAddr, const char *pszMocketsConfFileName);
         RemoteProxyInfo (const RemoteProxyInfo & rhsEntry);
         ~RemoteProxyInfo (void);
@@ -58,7 +60,7 @@ namespace ACMNetProxy
 
         void setRemoteIPAddr (uint32 ui32RemoteHostIP);
         void setRemoteServerPort (ConnectorType connectorType, uint16 ui16RemotePort);
-        char const * const setMocketsConfFileName (char const * const pszMocketsConfFile);
+        char const * const setMocketsConfigFileName (char const * const pszMocketsConfFile);
         void setLocalProxyReachabilityFromRemote (const bool bLocalProxyReachabilityFromRemote);
         void setRemoteProxyReachabilityFromLocalHost (const bool bRemoteProxyReachabilityFromLocalHost);
 
@@ -72,9 +74,9 @@ namespace ACMNetProxy
         const uint32 setRemoteProxyID (uint32 ui32RemoteProxyID);
 
         uint32 _ui32RemoteProxyID;
-        NOMADSUtil::InetAddr _remoteMocketsServerAddr;
         NOMADSUtil::InetAddr _remoteTCPServerAddr;
         NOMADSUtil::InetAddr _remoteUDPServerAddr;
+        NOMADSUtil::InetAddr _remoteMocketsServerAddr;
         NOMADSUtil::String _mocketsConfFileName;
         bool _bIsLocalProxyReachableFromRemote;
         bool _bIsRemoteProxyReachableFromLocalHost;
@@ -158,7 +160,7 @@ namespace ACMNetProxy
         getRemoteProxyInetAddr (connectorType)->setPort (ui16RemotePort);
     }
 
-    inline char const * const RemoteProxyInfo::setMocketsConfFileName (char const * const pszMocketsConfFile)
+    inline char const * const RemoteProxyInfo::setMocketsConfigFileName (char const * const pszMocketsConfFile)
     {
         char const * const pszPreviousMocketsConfFile = _mocketsConfFileName;
         _mocketsConfFileName = pszMocketsConfFile;

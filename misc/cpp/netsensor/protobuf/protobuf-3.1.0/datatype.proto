@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package netsensor;
+
+option go_package = "netsensor";
+option java_package = "us.ihmc.ddam.sensors.netsensor";
+option java_generate_equals_and_hash = true;
+option java_multiple_files = true;
+option java_outer_classname = "DataTypeProto";
+
+enum DataType {
+    TRAFFIC = 0; //The container contains Traffic Information
+    TOPOLOGY = 1; //The container contains Topology Information
+    NETPROXY = 2; //The container contains Netproxy information
+	ICMP     = 3; // The container contains ICMP Packet information
+}
+
+enum StatType {
+    TRAFFIC_AVERAGE = 0; //Traffic average in Bytes
+    PACKETS = 1; //Average number of detected packets
+}

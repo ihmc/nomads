@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package netproxy;
+
+/*
+ * Each link is uniquely identified by the triple:
+ * <endpoint_local_ip, endpoint_remote_ip, connector_name>
+ */
+
+enum Str
+{
+	sensor_ip			= 0; // IP of the sensor
+	np_uid				= 1; // NP UID
+	endpoint_local_ip	= 2; // Local interface IP
+	endpoint_remote_ip	= 3; // Remote interface IP
+	connector_name		= 4; // Mockets, TCP, UDP
+}
+
+enum Int
+{
+	connected			= 0; // 1 --> TRUE, 0 --> FALSE
+}
+
+enum Double
+{
+	started_seconds		= 0;
+	started_nanos		= 1;
+}

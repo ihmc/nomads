@@ -116,7 +116,7 @@ namespace ACMNetProxy
     inline ConnectorWriter * const ConnectorWriter::getAndLockUPDConnectorWriter (const CompressionSetting * const pCompressionSetting)
     {
         if (!pCompressionSetting) {
-            return NULL;
+            return nullptr;
         }
 
         return getAndLockUPDConnectorWriter (pCompressionSetting->getCompressionTypeAndLevel());

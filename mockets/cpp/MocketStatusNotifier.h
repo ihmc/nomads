@@ -49,6 +49,7 @@ class MocketStatusNotifier
         int connectionRestored (const char *pszLocalIdentifier, NOMADSUtil::InetAddr *pLocalAddr, uint16 ui16LocalPort, NOMADSUtil::InetAddr *pRemoteAddr, uint16 ui16RemotePort);
         int setLastContactTime (int64 i64LastContactTime);
         int sendStats (const char *pszLocalIdentifier, MocketStats *pStats);
+        void setLocalAddress(const char *pszLocalAddr);
         int disconnected (const char *pszLocalIdentifier);
 
     private:

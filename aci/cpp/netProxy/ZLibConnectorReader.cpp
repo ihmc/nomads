@@ -38,8 +38,8 @@ namespace ACMNetProxy
         : ConnectorReader (pCompressionSetting), _bNoWrapMode (bNoWrapMode)
     {
          if ((ulOutBufSize == 0) || (ulInBufSize == 0) ||
-             (NULL == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
-             (NULL == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
+             (nullptr == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
+             (nullptr == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
             // throw a c++ exception here
         }
         _ulInBufSize = ulInBufSize;
@@ -62,11 +62,11 @@ namespace ACMNetProxy
         if (_pOutputBuffer) {
             delete[] _pOutputBuffer;
         }
-        _pOutputBuffer = NULL;
+        _pOutputBuffer = nullptr;
         if (_pInputBuffer) {
             delete[] _pInputBuffer;
         }
-        _pInputBuffer = NULL;
+        _pInputBuffer = nullptr;
     }
 
     int ZLibConnectorReader::receiveTCPDataProxyMessage (const uint8 *const ui8SrcData, uint16 ui16SrcLen, uint8 **pDest, uint32 &ui32DestLen)
@@ -79,7 +79,7 @@ namespace ACMNetProxy
             while ((uiIncreaseRate * _ulInBufSize) < (_zsDecompStream.avail_in + ui16SrcLen)) {
                 uiIncreaseRate *= 2;
             }
-            if (NULL == (_pInputBuffer = (unsigned char*) realloc (_pInputBuffer, uiIncreaseRate*_ulInBufSize))) {
+            if (nullptr == (_pInputBuffer = (unsigned char*) realloc (_pInputBuffer, uiIncreaseRate*_ulInBufSize))) {
                 checkAndLogMsg ("ZLibConnectorReader::receiveTCPDataProxyMessage", Logger::L_MildError,
                                 "error reallocating memory for _pInputBuffer; impossible to increase size from %u to %u bytes\n",
                                 _ulInBufSize, uiIncreaseRate * _ulInBufSize);
@@ -116,7 +116,7 @@ namespace ACMNetProxy
             *pDest = _pOutputBuffer;
         }
         else {
-            *pDest = NULL;
+            *pDest = nullptr;
             ui32DestLen = 0;
         }
 
@@ -133,8 +133,8 @@ namespace ACMNetProxy
 
     void ZLibConnectorReader::resetDecompStream (void)
     {
-        _zsDecompStream.zalloc = NULL;
-        _zsDecompStream.zfree = NULL;
+        _zsDecompStream.zalloc = nullptr;
+        _zsDecompStream.zfree = nullptr;
         _zsDecompStream.opaque = (voidpf) 0;
 
         _zsDecompStream.next_in = _pInputBuffer;

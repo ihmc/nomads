@@ -2114,7 +2114,7 @@ int Transmitter::transmitPacket (Packet *pPacket, const char *pszPurpose)
                         "failed to send packet; rc = %d\n", rc);
         return -1;
     }
-    else if (rc != pPacket->getPacketSize()) {
+    else if (rc < pPacket->getPacketSize()) {
         checkAndLogMsg ("Transmitter::transmitPacket", Logger::L_MildError,
                         "sent a short packet; rc = %d; packet size = %d\n",
                         rc, (int) pPacket->getPacketSize());
@@ -2132,7 +2132,8 @@ int Transmitter::transmitPacket (Packet *pPacket, const char *pszPurpose)
                         pPacket->isSequencedPacket() ? "sequenced" : "unsequenced",
                         pPacket->getSequenceNum(), (int) pPacket->getPacketSize(),
                         pPacket->getWindowSize());
-        /* printf ("Transmitter::transmitPacket transmitted a data packet of type %s:%s with sequence number %u and size %d; local window size is %lu\n",
+        /* 
+		("Transmitter::transmitPacket transmitted a data packet of type %s:%s with sequence number %u and size %d; local window size is %lu\n",
                         pPacket->isReliablePacket() ? "reliable" : "unreliable",
                         pPacket->isSequencedPacket() ? "sequenced" : "unsequenced",
                         pPacket->getSequenceNum(), (int) pPacket->getPacketSize(),
@@ -2154,7 +2155,7 @@ int Transmitter::transmitPacket (Packet *pPacket, const char *pszPurpose)
     }
     _pMocket->getStatistics()->_ui32SentPackets++;
     if (_filePacketXMitLog) {
-            char *pszFragment = "No";
+            const char *pszFragment = "No";
             if (pPacket->isFirstFragment()) {
                 pszFragment = "First";
             }

@@ -231,7 +231,7 @@ namespace ACMNetProxy
         (void) ui32DestVirtualIPAddr;
         (void) bReliable;
         (void) bSequenced;
-        
+
         if (!pBuf1) {
             if (ui32BufSize1 > 0) {
                 return -1;
@@ -240,7 +240,7 @@ namespace ACMNetProxy
         }
 
         uint32 ui32TotalBytes = ui32BufSize1;
-        while (va_arg (valist1, const void*) != (const void*) NULL) {
+        while (va_arg (valist1, const void*) != nullptr) {
             ui32TotalBytes += va_arg (valist1, uint32);
         }
         if (ui32TotalBytes > _ui16MemBufSize) {

@@ -28,7 +28,7 @@
 
 #if defined (WIN32)
     #if _MCS_VER<1900
-        #define snprintf _snprintf    
+        #define snprintf _snprintf
     #endif
 #endif
 
@@ -108,7 +108,7 @@ int CommHelper2::init (Reader *pReader, Writer *pWriter, unsigned short usMaxLin
     return 0;
 }
 
-uint32 CommHelper2::send (const void *pBuf, uint32 ui32Size) throw (CommException)
+uint32 CommHelper2::send (const void *pBuf, uint32 ui32Size)
 {
     int rc;
     if (_pWriter == NULL) {
@@ -127,7 +127,7 @@ uint32 CommHelper2::send (const void *pBuf, uint32 ui32Size) throw (CommExceptio
     return ui32Size;
 }
 
-uint32 CommHelper2::receive (void *pBuf, uint32 ui32Size) throw (CommException)
+uint32 CommHelper2::receive (void *pBuf, uint32 ui32Size)
 {
     int rc;
     if (_pLOReader == NULL) {
@@ -146,14 +146,14 @@ uint32 CommHelper2::receive (void *pBuf, uint32 ui32Size) throw (CommException)
     return rc;
 }
 
-void CommHelper2::sendBlob (const void *pBuf, uint32 ui32Size) throw (CommException)
+void CommHelper2::sendBlob (const void *pBuf, uint32 ui32Size)
 {
     // With a writer, there is not difference between send and sendBlob because the
     // writer will treat a partial write as a failure
     send (pBuf, ui32Size);
 }
 
-void CommHelper2::receiveBlob (void *pBuf, uint32 ui32Size) throw (CommException)
+void CommHelper2::receiveBlob (void *pBuf, uint32 ui32Size)
 {
     int rc;
     if (_pLOReader == NULL) {
@@ -170,7 +170,7 @@ void CommHelper2::receiveBlob (void *pBuf, uint32 ui32Size) throw (CommException
     }
 }
 
-void CommHelper2::sendBlock (const void *pBuf, uint32 ui32BufSize) throw (CommException)
+void CommHelper2::sendBlock (const void *pBuf, uint32 ui32BufSize)
 {
     if (pBuf == NULL) {
         ui32BufSize = 0;
@@ -182,7 +182,7 @@ void CommHelper2::sendBlock (const void *pBuf, uint32 ui32BufSize) throw (CommEx
     }
 }
 
-void CommHelper2::sendBlock (const void *pBuf1, uint32 ui32Buf1Size, const void *pBuf2, uint32 ui32Buf2Size) throw (CommException)
+void CommHelper2::sendBlock (const void *pBuf1, uint32 ui32Buf1Size, const void *pBuf2, uint32 ui32Buf2Size)
 {
     uint32 ui32BlockSize = htonl (ui32Buf1Size + ui32Buf2Size);
     sendBlob (&ui32BlockSize, sizeof (ui32BlockSize));
@@ -201,7 +201,7 @@ void CommHelper2::sendStringBlock (const char *pszBuf)
     }
 }
 
-uint32 CommHelper2::receiveBlock (void *pBuf, uint32 ui32BufSize) throw (CommException, ProtocolException)
+uint32 CommHelper2::receiveBlock (void *pBuf, uint32 ui32BufSize)
 {
     uint32 ui32BlockSize;
     receiveBlob (&ui32BlockSize, sizeof (ui32BlockSize));
@@ -215,7 +215,7 @@ uint32 CommHelper2::receiveBlock (void *pBuf, uint32 ui32BufSize) throw (CommExc
     return ui32BlockSize;
 }
 
-void CommHelper2::sendLine (const char *pszMsg, ...) throw (CommException)
+void CommHelper2::sendLine (const char *pszMsg, ...)
 {
     if (_pWriter == NULL) {
         throw CommException ("CommHelper2::sendLine: CommHelper not initialized for writing");
@@ -228,7 +228,7 @@ void CommHelper2::sendLine (const char *pszMsg, ...) throw (CommException)
     send (_pszLineBuf, (uint32) strlen (_pszLineBuf));
 }
 
-int CommHelper2::receiveLine (char *pszBuf, int iBufSize) throw (CommException)
+int CommHelper2::receiveLine (char *pszBuf, int iBufSize)
 {
     int rc;
     if (_pLOReader == NULL) {
@@ -247,20 +247,20 @@ int CommHelper2::receiveLine (char *pszBuf, int iBufSize) throw (CommException)
     return rc;
 }
 
-const char * CommHelper2::receiveLine (void) throw (CommException)
+const char * CommHelper2::receiveLine (void)
 {
     receiveLine (_pszLineBuf, _usLineBufSize);
     return _pszLineBuf;
 }
 
-int CommHelper2::receiveRemainingLine (char *pszBuf, int iBufSize, const char *pszMsg, ...) throw (CommException, ProtocolException)
+int CommHelper2::receiveRemainingLine (char *pszBuf, int iBufSize, const char *pszMsg, ...)
 {
     va_list args;
     va_start (args, pszMsg);
     return receiveRemainingLine (pszBuf, iBufSize, pszMsg, args);
 }
 
-void CommHelper2::receiveMatch (const char *pszMsg, ...) throw (CommException, ProtocolException)
+void CommHelper2::receiveMatch (const char *pszMsg, ...)
 {
     char *pszMatchStr = new char [_usLineBufSize];
 
@@ -281,7 +281,7 @@ void CommHelper2::receiveMatch (const char *pszMsg, ...) throw (CommException, P
     delete[] pszMatchStr;
 }
 
-int CommHelper2::receiveMatchIndex (unsigned short usAltCount, ...) throw (CommException, ProtocolException)
+int CommHelper2::receiveMatchIndex (unsigned short usAltCount, ...)
 {
     // Receive a line into the internal buffer
     receiveLine (_pszLineBuf, _usLineBufSize);
@@ -302,12 +302,12 @@ int CommHelper2::receiveMatchIndex (unsigned short usAltCount, ...) throw (CommE
         }
     }
     va_end (args);
-    
+
     // No match was found among the alternatives
     throw ProtocolException ("CommHelper2::receiveMatchIndex: received line does not match any alternatives");
 }
 
-int CommHelper2::receiveMatchIndex (const char *apszAlternatives[]) throw (CommException, ProtocolException)
+int CommHelper2::receiveMatchIndex (const char *apszAlternatives[])
 {
     unsigned short usCount = 0;
     while (apszAlternatives[usCount] != NULL) {
@@ -316,7 +316,7 @@ int CommHelper2::receiveMatchIndex (const char *apszAlternatives[]) throw (CommE
     return receiveMatchIndex (apszAlternatives, usCount);
 }
 
-int CommHelper2::receiveMatchIndex (const char *apszAlternatives[], unsigned short usCount) throw (CommException, ProtocolException)
+int CommHelper2::receiveMatchIndex (const char *apszAlternatives[], unsigned short usCount)
 {
     // Receive a line into the internal buffer
     receiveLine (_pszLineBuf, _usLineBufSize);
@@ -336,7 +336,7 @@ int CommHelper2::receiveMatchIndex (const char *apszAlternatives[], unsigned sho
     throw ProtocolException ("CommHelper2::receiveMatchIndex: received line does not match any alternatives");  
 }
 
-int CommHelper2::receiveRemainingMatchIndex (unsigned short usAltCount, ...) throw (CommException, ProtocolException)
+int CommHelper2::receiveRemainingMatchIndex (unsigned short usAltCount, ...)
 {
     // Get a pointer to pszMsg first;
     const char *pszMsg;
@@ -379,7 +379,7 @@ int CommHelper2::receiveRemainingMatchIndex (unsigned short usAltCount, ...) thr
     throw ProtocolException ("CommHelper2::receiveMatchIndex: received line does not match any alternatives");
 }
 
-int CommHelper2::receiveRemainingMatchIndex (const char *apszAlternatives[], const char *pszMsg, ...) throw (CommException, ProtocolException)
+int CommHelper2::receiveRemainingMatchIndex (const char *apszAlternatives[], const char *pszMsg, ...)
 {
     char *pszRemainingLine = new char [_usLineBufSize];
 
@@ -413,7 +413,7 @@ int CommHelper2::receiveRemainingMatchIndex (const char *apszAlternatives[], con
     throw ProtocolException ("CommHelper2::receiveMatchIndex: received line does not match any alternatives");
 }
 
-int CommHelper2::receiveRemainingMatchIndex (const char *apszAlternatives[], unsigned short usCount, const char *pszMsg, ...) throw (CommException, ProtocolException)
+int CommHelper2::receiveRemainingMatchIndex (const char *apszAlternatives[], unsigned short usCount, const char *pszMsg, ...)
 {
     char *pszRemainingLine = new char [_usLineBufSize];
 
@@ -447,7 +447,7 @@ int CommHelper2::receiveRemainingMatchIndex (const char *apszAlternatives[], uns
     throw ProtocolException ("CommHelper2::receiveMatchIndex: received line does not match any alternatives");
 }
 
-const char ** CommHelper2::receiveParsed (int* pCount) throw (CommException)
+const char ** CommHelper2::receiveParsed (int* pCount)
 {
     // Receive a line into the internal buffer
     receiveLine (_pszLineBuf, _usLineBufSize);
@@ -463,12 +463,12 @@ const char ** CommHelper2::receiveParsed (int* pCount) throw (CommException)
     }
     _parsedTokens[i] = NULL;
     if (NULL != pCount) {
-		*pCount = i;
+        *pCount = i;
     }
     return (const char **) &_parsedTokens[0];    // NOTE: This makes the assumption that the elements in the array in DArray are contiguously allocated!
 }
 
-const char ** CommHelper2::receiveParsedDelimited (const char* pszDelimiters, int* pCount) throw (CommException)
+const char ** CommHelper2::receiveParsedDelimited (const char* pszDelimiters, int* pCount)
 {
     // Receive a line into the internal buffer
     receiveLine (_pszLineBuf, _usLineBufSize);
@@ -483,13 +483,14 @@ const char ** CommHelper2::receiveParsedDelimited (const char* pszDelimiters, in
         pszToken = strtok_mt (NULL, pszDelimiters, &pszTemp);
     }
     _parsedTokens[i] = NULL;
-	if (NULL != pCount)	
-		*pCount = i;
+    if (NULL != pCount) {
+        *pCount = i;
+    }
     return (const char **) &_parsedTokens[0];
 }
 
 
-const char ** CommHelper2::receiveParsedSpecific (const char *pszParseFmt) throw (CommException, ProtocolException)
+const char ** CommHelper2::receiveParsedSpecific (const char *pszParseFmt)
 {
     // Receive a line into the internal buffer
     receiveLine (_pszLineBuf, _usLineBufSize);
@@ -655,7 +656,7 @@ void CommHelper2::setDeleteUnderlyingWriter (bool bDelete)
     _bDeleteWriter = bDelete;
 }
 
-void CommHelper2::closeConnection() throw (ProtocolException)
+void CommHelper2::closeConnection()
 {
     if (_pSocket == NULL) {
         throw new ProtocolException ("CommHelper2::closeConnection: CommHelper not initialized with a socket");
@@ -664,3 +665,5 @@ void CommHelper2::closeConnection() throw (ProtocolException)
         throw ProtocolException ("CommHelper2::closeConnection: unable to close the connection");
     }
 }
+
+

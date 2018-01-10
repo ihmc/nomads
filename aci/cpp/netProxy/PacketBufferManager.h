@@ -44,9 +44,7 @@ namespace ACMNetProxy
 
             PacketBufferManager & operator = (const PacketBufferManager &rhPBM);
 
-            char _cTAPBuf[NetProxyApplicationParameters::WRITE_PACKET_BUFFERS]
-                [(NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS >= NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU) ?
-                    NetProxyApplicationParameters::ETHERNET_MAXIMUM_MFS : NetProxyApplicationParameters::TAP_INTERFACE_MAX_MTU];
+            char _cTAPBuf[NetProxyApplicationParameters::WRITE_PACKET_BUFFERS][NetProxyApplicationParameters::ETHERNET_MAX_MFS];
 
             mutable NOMADSUtil::Mutex _mTAPBuf[NetProxyApplicationParameters::WRITE_PACKET_BUFFERS];
     };

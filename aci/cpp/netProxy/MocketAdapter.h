@@ -37,7 +37,7 @@ namespace ACMNetProxy
     {
     public:
         MocketAdapter (Mocket * const pMocket);
-        MocketAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr);
+        MocketAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, EncryptionType encryptionType);
         ~MocketAdapter (void);
 
         virtual int bufferingMode (int iMode);
@@ -45,15 +45,15 @@ namespace ACMNetProxy
         virtual int registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg);
 
         virtual bool isConnected (void) const;
-        virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort);
-        virtual int shutdown (bool bReadMode, bool bWriteMode);
-        virtual int close (void);
-
+        virtual EncryptionType getEncryptionType (void) const;
         virtual uint32 getOutgoingBufferSize (void);
 
+        virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort);
         virtual int send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
                           bool bSequenced, const void *pBuf, uint32 ui32BufSize);
         virtual int receiveMessage (void * const pBuf, uint32 ui32BufSize);
+        virtual int shutdown (bool bReadMode, bool bWriteMode);
+        virtual int close (void);
 
 
     protected:
@@ -68,10 +68,11 @@ namespace ACMNetProxy
 
 
     inline MocketAdapter::MocketAdapter (Mocket * const pMocket) :
-        ConnectorAdapter (CT_MOCKETS, pMocket->getRemoteAddress(), pMocket->getRemotePort(), NULL, 0), _pMocket (pMocket) { }
+        ConnectorAdapter (CT_MOCKETS, pMocket->getRemoteAddress(), pMocket->getRemotePort(), nullptr, 0), _pMocket (pMocket) { }
 
-    inline MocketAdapter::MocketAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr) :
-        ConnectorAdapter (CT_MOCKETS, pRemoteProxyInetAddr->getIPAddress(), pRemoteProxyInetAddr->getPort(), NULL, 0), _pMocket (new Mocket()) { }
+    inline MocketAdapter::MocketAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, EncryptionType encryptionType) :
+        ConnectorAdapter (CT_MOCKETS, pRemoteProxyInetAddr->getIPAddress(), pRemoteProxyInetAddr->getPort(), nullptr, 0),
+        _pMocket ((encryptionType == ET_DTLS) ? new Mocket (nullptr, nullptr, false, true) : new Mocket()) { }
 
     inline MocketAdapter::~MocketAdapter (void)
     {
@@ -81,7 +82,7 @@ namespace ACMNetProxy
     inline int MocketAdapter::bufferingMode (int iMode)
     {
         (void) iMode;
-        
+
         return -1;
     }
 
@@ -100,27 +101,20 @@ namespace ACMNetProxy
         return _pMocket->isConnected();
     }
 
-    inline int MocketAdapter::connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort)
+    inline EncryptionType MocketAdapter::getEncryptionType (void) const
     {
-        return _pMocket->connect (pcRemoteProxyIP, ui16RemoteProxyPort);
+        return _pMocket->isEncrypted() ? ET_DTLS : ET_PLAIN;
     }
 
-    inline int MocketAdapter::shutdown (bool bReadMode, bool bWriteMode)
-    {
-        (void) bReadMode;
-        (void) bWriteMode;
-        
-        return _pMocket->close();
-    }
-
-    inline int MocketAdapter::close (void)
-    {
-        return _pMocket->close();
-    }
-
-    inline uint32 MocketAdapter::getOutgoingBufferSize (void)
+    inline uint32 MocketAdapter::getOutgoingBufferSize(void)
     {
         return _pMocket->getOutgoingBufferSize();
+    }
+
+    inline int MocketAdapter::connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort)
+    {
+        _pMocket->setLocalAddr(InetAddr(NetProxyApplicationParameters::EXTERNAL_IP_ADDR).getIPAsString());
+        return _pMocket->connect (pcRemoteProxyIP, ui16RemoteProxyPort);
     }
 
     inline int MocketAdapter::send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
@@ -128,7 +122,7 @@ namespace ACMNetProxy
     {
         (void) pInetAddr;
         (void) ui32DestVirtualIPAddr;
-        
+
         return _pMocket->send (bReliable, bSequenced, pBuf, ui32BufSize, 0, 0, 0, 0);
     }
 
@@ -137,9 +131,17 @@ namespace ACMNetProxy
         return _pMocket->receive (pBuf, ui32BufSize);
     }
 
-    inline int MocketAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)
+    inline int MocketAdapter::shutdown (bool bReadMode, bool bWriteMode)
     {
-        return _pMocket->receive (pBuf, ui32BufSize, i64Timeout);
+        (void) bReadMode;
+        (void) bWriteMode;
+
+        return _pMocket->close();
+    }
+
+    inline int MocketAdapter::close (void)
+    {
+        return _pMocket->close();
     }
 
     inline int MocketAdapter::gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
@@ -147,8 +149,13 @@ namespace ACMNetProxy
     {
         (void) pInetAddr;
         (void) ui32DestVirtualIPAddr;
-        
+
         return _pMocket->gsend (bReliable, bSequenced, 0, 0, 0, 0, pBuf1, ui32BufSize1, valist1, valist2);
+    }
+
+    inline int MocketAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)
+    {
+        return _pMocket->receive (pBuf, ui32BufSize, i64Timeout);
     }
 }
 

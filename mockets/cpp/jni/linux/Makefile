@@ -2,27 +2,21 @@ CC  = gcc
 CXX = g++
 
 CXXFLAGS = -g -DUNIX -DLINUX -DENABLE_DEBUG -DERROR_CHECKING -DRTT_TIMESTAMP \
-           -DLITTLE_ENDIAN_SYSTEM -fPIC -I../.. -I../../../../util/cpp \
-           -I../../../../externals/JDK -I../../../../externals/JDK/linux \
-           -I../../../../util/cpp/security
+           -DLITTLE_ENDIAN_SYSTEM -fPIC -I../../../../externals/openssl/1.0.2h/linux/include -I../.. \
+           -I../../../../externals/include \
+           -I../../../../util/cpp \
+           -I../../../../util/cpp/security \
+           -I../../../../externals/JDK -I../../../../externals/JDK/linux 
 
-ifdef USE_X64_LIBS
-  EXTERNALS_LIB = ../../../../externals/lib/linux-x86_64
-else
-  EXTERNALS_LIB = ../../../../externals/lib/linux-x86
-endif
-
-ifdef USE_SYSTEM_LIBS
-  OPENSSL_LIBS = -lcrypto -lssl
-else
-  OPENSSL_LIBS = $(EXTERNALS_LIB)/libcrypto.a $(EXTERNALS_LIB)/libssl.a 
-endif
+#openssl static libraries compiled with -fPIC flag
+EXTRA_LIBS = ../openssl_linux/libssl.a
+EXTRA_LIBS += ../openssl_linux/libcrypto.a
 
 
 wrappers = $(wildcard ../*Wrapper.cpp)
 wrappers_objs = $(wrappers:../%.cpp=%.o)
 
-all: libmocketsjavawrapper.so
+all: libmockets.a libutil.a libsecurity.a libmocketsjavawrapper.so 
 
 libmockets.a : $(objects) libutil.a libsecurity.a 
 	make -C ../../linux
@@ -35,12 +29,13 @@ libutil.a :
 	make -C ../../../../util/cpp/linux
 
 libmocketsjavawrapper.so: $(wrappers_objs) libutil.a libsecurity.a libmockets.a 
-	$(CXX) -shared -o ../../../bin/libmocketsjavawrapper.so \
+	$(CXX) -Wall -Wextra -Werror -shared -o ../../../bin/libmocketsjavawrapper.so \
 	$(wrappers_objs) \
 	../../linux/libmockets.a \
 	../../../../util/cpp/linux/libsecurity.a \
 	../../../../util/cpp/linux/libutil.a \
-	$(OPENSSL_LIBS) 
+	$(EXTRA_LIBS)
+
 
 clean :
 	(make -C ../../../../util/cpp/linux clean)

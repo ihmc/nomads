@@ -2,7 +2,7 @@
  * NetworkHeaders.cpp
  *
  * This file is part of the IHMC Util Library
- * Copyright (c) 1993-2016 IHMC.
+ * Copyright (c) 1993-2017 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -54,6 +54,46 @@ void EtherFrameHeader::hton (void)
 {
     dest.hton();
     src.hton();
+    ui16EtherType = htons (ui16EtherType);
+}
+
+void EtherFrameHeader802_1Q::ntoh (void)
+{
+    dest.ntoh();
+    src.ntoh();
+    ui16_802_1Q_TPI = ntohs (ui16_802_1Q_TPI);
+    ui16_802_1Q_TCI = ntohs (ui16_802_1Q_TCI);
+    ui16EtherType = ntohs (ui16EtherType);
+}
+
+void EtherFrameHeader802_1Q::hton (void)
+{
+    dest.hton();
+    src.hton();
+    ui16_802_1Q_TPI = htons (ui16_802_1Q_TPI);
+    ui16_802_1Q_TCI = htons (ui16_802_1Q_TCI);
+    ui16EtherType = htons (ui16EtherType);
+}
+
+void EtherFrameHeader802_1AD::ntoh (void)
+{
+    dest.ntoh();
+    src.ntoh();
+    ui16_802_1AD_TPI = ntohs (ui16_802_1AD_TPI);
+    ui16_802_1AD_TCI = ntohs (ui16_802_1AD_TCI);
+    ui16_802_1Q_TPI = ntohs (ui16_802_1Q_TPI);
+    ui16_802_1Q_TCI = ntohs (ui16_802_1Q_TCI);
+    ui16EtherType = ntohs (ui16EtherType);
+}
+
+void EtherFrameHeader802_1AD::hton (void)
+{
+    dest.hton();
+    src.hton();
+    ui16_802_1AD_TPI = htons (ui16_802_1AD_TPI);
+    ui16_802_1AD_TCI = htons (ui16_802_1AD_TCI);
+    ui16_802_1Q_TPI = htons (ui16_802_1Q_TPI);
+    ui16_802_1Q_TCI = htons (ui16_802_1Q_TCI);
     ui16EtherType = htons (ui16EtherType);
 }
 

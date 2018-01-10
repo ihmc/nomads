@@ -30,6 +30,8 @@
  * connection to a remote NetProxy.
  */
 
+#include <mutex>
+
 #include "StrClass.h"
 #include "InetAddr.h"
 #include "UInt32Hashset.h"
@@ -81,7 +83,8 @@ namespace ACMNetProxy
             class IncomingMessageHandler : public NOMADSUtil::ManageableThread
             {
                 public:
-                    IncomingMessageHandler (Connection * const pConnection, ConnectorAdapter * const pConnectorAdapter);
+                    IncomingMessageHandler (Connection * const pConnection, ConnectorAdapter * const pConnectorAdapter,
+                                            Connector * const pConnector);
                     virtual ~IncomingMessageHandler (void);
 
                     void run (void);
@@ -91,17 +94,12 @@ namespace ACMNetProxy
                     bool isTerminationRequested (void);
                     void setConnectorAdapter (ConnectorAdapter * const pConnectorAdapter);
 
-                    int lockMessageHandlingMutex (void) const;
-                    int tryLockMessageHandlingMutex (void) const;
-                    int unlockMessageHandlingMutex (void) const;
-
                 private:
                     Connection * _pConnection;
                     ConnectorAdapter * _pConnectorAdapter;
+                    Connector * const _pConnector;
 
                     uint8 _ui8InBuf[NetProxyApplicationParameters::PROXY_MESSAGE_MTU];
-
-                    mutable NOMADSUtil::Mutex _mMessageHandlingMutex;
             };
 
 
@@ -129,10 +127,12 @@ namespace ACMNetProxy
             // Constructor used when a connection has been accepted (HostRole server)
             Connection (ConnectorAdapter * const pConnectorAdapter, Connector * const pConnector);
             // Constructor used when a connection should be established (HostRole client)
-            Connection (ConnectorType connectorType, uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, Connector * const pConnector);
+            Connection (ConnectorType connectorType, EncryptionType encryptionType, uint32 ui32RemoteProxyID,
+                        const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, Connector * const pConnector);
             ~Connection (void);
 
             int startMessageHandler (void);
+            void requestTermination (void);
             void connectionThreadTerminating (void);
 
             int connectSync (void);
@@ -143,24 +143,32 @@ namespace ACMNetProxy
             bool isConnecting (void) const;
             bool hasFailedConnecting (void) const;
             bool isDeleteRequested (void) const;
+            EncryptionType getEncryptionType (void) const;
 
             int openConnectionWithRemoteProxy (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, bool bLocalReachabilityFromRemote);
             int confirmOpenedConnectionWithRemoteProxy (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, bool bLocalReachabilityFromRemote);
-            int sendICMPProxyMessageToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalOriginationIP,
-                                                  uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL, const uint8 * const pui8Buf, uint16 ui16BufLen,
-                                                  ProxyMessage::Protocol ui8PMProtocol, bool bLocalReachabilityFromRemote);
-            int sendUDPUnicastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL,
-                                                  const uint8 * const pPacket, uint16 ui16PacketLen, const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
-            int sendMultipleUDPDatagramsToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP, uint32 ui32RemoteDestinationIP,
-                                                      MutexUDPQueue * const pUDPDatagramsQueue, const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
-            int sendUDPBCastMCastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32RemoteDestinationIP, const uint8 * const pPacket, uint16 ui16PacketLen,
-                                                     const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
+            int sendICMPProxyMessageToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint8 ui8Type, uint8 ui8Code,
+                                                  uint32 ui32RoH, uint32 ui32LocalOriginationIP, uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL,
+                                                  const uint8 * const pui8Buf, uint16 ui16BufLen, ProxyMessage::Protocol ui8PMProtocol,
+                                                  bool bLocalReachabilityFromRemote);
+            int sendUDPUnicastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP,
+                                                  uint32 ui32RemoteDestinationIP, uint8 ui8PacketTTL, const uint8 * const pPacket, uint16 ui16PacketLen,
+                                                  const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
+            int sendMultipleUDPDatagramsToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32LocalSourceIP,
+                                                      uint32 ui32RemoteDestinationIP, MutexUDPQueue * const pUDPDatagramsQueue,
+                                                      const CompressionSetting * const pCompressionSetting, ProxyMessage::Protocol ui8PMProtocol);
+            int sendUDPBCastMCastPacketToRemoteHost (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32RemoteDestinationIP,
+                                                     const uint8 * const pPacket, uint16 ui16PacketLen, const CompressionSetting * const pCompressionSetting,
+                                                     ProxyMessage::Protocol ui8PMProtocol);
             int sendOpenTCPConnectionRequest (Entry * const pEntry, bool bLocalReachabilityFromRemote);
             int sendTCPConnectionOpenedResponse (Entry * const pEntry, bool bLocalReachabilityFromRemote);
             int sendTCPDataToRemoteHost (const Entry * const pEntry, const uint8 * const pui8Buf, uint16 ui16BufLen, uint8 ui8TCPFlags);
             int sendCloseTCPConnectionRequest (const Entry * const pEntry);
             int sendResetTCPConnectionRequest (const Entry * const pEntry);
-            int sendResetTCPConnectionRequest (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32RemoteDestinationIP, uint16 ui16LocalID, uint16 ui16RemoteID, ProxyMessage::Protocol ui8PMProtocol);
+            int sendResetTCPConnectionRequest (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32RemoteDestinationIP,
+                                               uint16 ui16LocalID, uint16 ui16RemoteID, ProxyMessage::Protocol ui8PMProtocol);
+            int tunnelEthernetPacket (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, uint32 ui32RemoteDestinationIP,
+                                      const uint8 * const pui8Buf, uint16 ui16BufLen);
 
             void setStatusAsDisconnected (void);
             int addTCPEntry (Entry * const pEntry);
@@ -175,13 +183,15 @@ namespace ACMNetProxy
             const NOMADSUtil::InetAddr * const getRemoteProxyInetAddr (void) const;
             bool isTCPEntryInTable (Entry * const pEntry) const;
 
-            int lock (void) const;
-            int tryLock (void) const;
-            int unlock (void) const;
-	
+            void lock (void) const;
+            bool tryLock (void) const;
+            void unlock (void) const;
+
 
         private:
             friend class IncomingMessageHandler;
+
+            int doConnect (void);
 
             void updateRemoteProxyID (uint32 ui32RemoteProxyID);
             void updateRemoteProxyInformation (uint32 ui32RemoteProxyID, uint16 ui16MocketsServerPort, uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
@@ -193,11 +203,12 @@ namespace ACMNetProxy
             static bool isCommunicationSequenced (ProxyMessage::Protocol pmProtocol);
 
             const ConnectorType _connectorType;
+            const EncryptionType _encryptionType;
             const HostRole _localHostRole;
             Status _status;
             uint32 _ui32RemoteProxyID;
             const NOMADSUtil::InetAddr _remoteProxyInetAddr;
-            ConnectorAdapter *_pConnectorAdapter;
+            ConnectorAdapter * _pConnectorAdapter;
             Connector * const _pConnector;
 
             NOMADSUtil::PtrLList<Entry> _TCPEntryList;
@@ -206,12 +217,12 @@ namespace ACMNetProxy
             IncomingMessageHandler* _pIncomingMessageHandler;
             BackgroundConnectionThread *_pBCThread;
 
-            mutable NOMADSUtil::Mutex _mConnection;
+            mutable std::mutex _mConnection;
             mutable NOMADSUtil::Mutex _mBCThread;
             mutable NOMADSUtil::ConditionVariable _cvBCThread;
 
             bool _bDeleteRequested;
-			
+
             static ConnectionManager * const _pConnectionManager;
             static NetProxyConfigManager * const _pConfigurationManager;
             static GUIStatsManager * const _pGUIStatsManager;
@@ -219,21 +230,20 @@ namespace ACMNetProxy
     };
 
 
-    inline Connection::IncomingMessageHandler::IncomingMessageHandler (Connection * const pConnection, ConnectorAdapter * const pConnectorAdapter) :
-        _pConnection (pConnection), _pConnectorAdapter (pConnectorAdapter)
+    inline Connection::IncomingMessageHandler::IncomingMessageHandler (Connection * const pConnection, ConnectorAdapter * const pConnectorAdapter,
+                                                                       Connector * const pConnector) :
+        _pConnection (pConnection), _pConnectorAdapter (pConnectorAdapter), _pConnector (pConnector)
     {
         memset (_ui8InBuf, 0, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-    }
 
-    inline Connection::IncomingMessageHandler::~IncomingMessageHandler (void)
-    {
-        delete _pConnection;        // This is still safe if _pConnection is NULL
+        String threadName(pConnection ? pConnection->getConnectorTypeAsString() : "NULL");
+        setName (threadName + " IncomingMessageHandler Thread");
     }
 
     inline void Connection::IncomingMessageHandler::executionTerminated (void)
     {
-        _pConnection = NULL;
-        _pConnectorAdapter = NULL;
+        _pConnection = nullptr;
+        _pConnectorAdapter = nullptr;
     }
 
     inline bool Connection::IncomingMessageHandler::isReadyToRun (void) const
@@ -251,27 +261,31 @@ namespace ACMNetProxy
         _pConnectorAdapter = pConnectorAdapter;
     }
 
-    inline int Connection::IncomingMessageHandler::lockMessageHandlingMutex (void) const
-    {
-        return _mMessageHandlingMutex.lock();
-    }
-
-    inline int Connection::IncomingMessageHandler::tryLockMessageHandlingMutex (void) const
-    {
-        return _mMessageHandlingMutex.tryLock();
-    }
-
-    inline int Connection::IncomingMessageHandler::unlockMessageHandlingMutex (void) const
-    {
-        return _mMessageHandlingMutex.unlock();
-    }
-
     inline Connection::BackgroundConnectionThread::BackgroundConnectionThread (Connection * const pConnection) :
-        _pConnection (pConnection), _pConnectorAdapter (pConnection->getConnectorAdapter()), _bDeleteConnectorAdapter (false) { }
+        _pConnection(pConnection), _pConnectorAdapter(pConnection->getConnectorAdapter()), _bDeleteConnectorAdapter(false) { }
+
+    inline Connection::BackgroundConnectionThread::~BackgroundConnectionThread (void)
+    {
+        if (_bDeleteConnectorAdapter) {
+            delete _pConnectorAdapter;
+        }
+    }
+
+    inline void Connection::requestTermination (void)
+    {
+        std::lock_guard<std::mutex> lg (_mConnection);
+
+        if (_pIncomingMessageHandler) {
+            _pIncomingMessageHandler->requestTermination();
+        }
+        if (_pConnectorAdapter) {
+            _pConnectorAdapter->shutdown (true, true);
+        }
+    }
 
     inline void Connection::connectionThreadTerminating (void)
     {
-        _pBCThread = NULL;                  // Thread will delete itself
+        _pBCThread = nullptr;                  // Thread will delete itself
     }
 
     inline ConnectorType Connection::getConnectorType (void) const
@@ -311,7 +325,7 @@ namespace ACMNetProxy
 
     inline bool Connection::isTCPEntryInTable (Entry * const pEntry) const
     {
-        return _TCPEntryList.search (pEntry) != NULL;
+        return _TCPEntryList.search (pEntry) != nullptr;
     }
 
     inline bool Connection::isConnected (void) const
@@ -332,6 +346,11 @@ namespace ACMNetProxy
     inline bool Connection::isDeleteRequested (void) const
     {
         return _bDeleteRequested || !_pIncomingMessageHandler || _pIncomingMessageHandler->isTerminationRequested();
+    }
+
+    inline EncryptionType Connection::getEncryptionType (void) const
+    {
+        return _encryptionType;
     }
 
     inline int Connection::sendResetTCPConnectionRequest (const Entry * const pEntry)
@@ -367,19 +386,19 @@ namespace ACMNetProxy
         return -1;
     }
 
-    inline int Connection::lock (void) const
+    inline void Connection::lock (void) const
     {
-        return _mConnection.lock();
+        _mConnection.lock();
     }
 
-    inline int Connection::tryLock (void) const
+    inline bool Connection::tryLock (void) const
     {
-        return _mConnection.tryLock();
+        return _mConnection.try_lock();
     }
 
-    inline int Connection::unlock (void) const
+    inline void Connection::unlock (void) const
     {
-        return _mConnection.unlock();
+        _mConnection.unlock();
     }
 
     inline bool Connection::isCommunicationReliable (ProxyMessage::Protocol pmProtocol)

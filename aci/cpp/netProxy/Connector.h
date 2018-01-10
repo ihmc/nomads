@@ -60,7 +60,7 @@ namespace ACMNetProxy
             ConnectorType getConnectorType (void) const;
             const char * const getConnectorTypeAsString (void) const;
 
-            Connection * const getAvailableConnectionToRemoteProxy (const NOMADSUtil::InetAddr * const pRemoteProxyAddr);
+            Connection * const getAvailableConnectionToRemoteProxy (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType);
             Connection * const openNewConnectionToRemoteProxy (const QueryResult & query, bool bBlocking);
 
             static const uint16 getAcceptServerPortForConnector (ConnectorType connectorType);
@@ -73,10 +73,14 @@ namespace ACMNetProxy
 
             Connector (ConnectorType connectorType);
 
+            int lockConnectionTable (void) const;
+            int tryLockConnectionTable (void) const;
+            int unlockConnectionTable (void) const;
+
             virtual bool isEnqueueingAllowed (void) const = 0;
-            bool isConnectingToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr) const;
-            bool isConnectedToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr) const;
-            bool hasFailedConnectionToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr) const;
+            bool isConnectingToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const;
+            bool isConnectedToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const;
+            bool hasFailedConnectionToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const;
 
             const ConnectorType _connectorType;
             const char * const _pcConnectorTypeName;
@@ -95,17 +99,17 @@ namespace ACMNetProxy
 
             explicit Connector (const Connector& rConnector);
 
-            static Connector * const connectorFactoryMethod (ConnectorType connectorType);
-
             Connection * const removeFromConnectionsTable (const Connection * const pConnectionToRemove);
+
+            static Connector * const connectorFactoryMethod (ConnectorType connectorType);
     };
 
 
     inline void Connector::terminateExecution (void)
     {
-        _mConnectionsTable.lock();
+        lockConnectionTable();
         _connectionsTable.removeAll();
-        _mConnectionsTable.unlock();
+        unlockConnectionTable();
     }
 
     inline ConnectorType Connector::getConnectorType (void) const
@@ -118,9 +122,23 @@ namespace ACMNetProxy
         return _pcConnectorTypeName;
     }
 
-    inline Connector::Connector (ConnectorType connectorType) :
-        _connectorType (connectorType), _pcConnectorTypeName (connectorTypeToString (connectorType)), _connectionsTable (true) { }
+    inline Connector::Connector (ConnectorType connectorType) : _connectorType (connectorType),
+        _pcConnectorTypeName (connectorTypeToString (connectorType)), _connectionsTable (true) { }
 
+    inline int Connector::lockConnectionTable (void) const
+    {
+        return _mConnectionsTable.lock();
+    }
+
+    inline int Connector::tryLockConnectionTable (void) const
+    {
+        return _mConnectionsTable.tryLock();
+    }
+
+    inline int Connector::unlockConnectionTable (void) const
+    {
+        return _mConnectionsTable.unlock();
+    }
 }
 
 #endif  // INCL_CONNECTOR_H

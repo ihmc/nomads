@@ -26,7 +26,7 @@
 #include "Entry.h"
 #include "TCPConnTable.h"
 #include "ConnectionManager.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 #include "PacketRouter.h"
 
 #ifdef min
@@ -59,7 +59,7 @@ namespace ACMNetProxy
         uint32 ui32ACKedPackets = 0;
         uint64 packetTime = getTimeInMilliseconds();
 
-        register Entry *pEntry = NULL;
+        register Entry *pEntry = nullptr;
         pEntry = _pTCPConnTable->getEntry (pIPHeader->srcAddr.ui32Addr, pTCPHeader->ui16SPort, pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort);
         pEntry->lock();
         uint64 oldWinRecSize = pEntry->ui16ReceiverWindowSize;
@@ -91,23 +91,25 @@ namespace ACMNetProxy
                 // Since this is a SYN, lookup the proxy address for the destination address
                 // This is the only time we should need to look up the proxy address
                 const ProtocolSetting *pProtocolSetting = _pConfigurationManager->mapAddrToProtocol (pIPHeader->srcAddr.ui32Addr, pTCPHeader->ui16SPort,
-                                                                                                     pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort, IP_PROTO_TCP);
+                                                                                                     pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort,
+                                                                                                     IP_PROTO_TCP);
                 if (!pProtocolSetting) {
                     pProtocolSetting = ProtocolSetting::getDefaultTCPProtocolSetting();
                     checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
                                     "the protocol specification for this address was not found; using the default protocol %s\n",
                                     pProtocolSetting->getProxyMessageProtocolAsString());
                 }
-                
+
                 ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
-                QueryResult query (_pConnectionManager->queryConnectionToRemoteHostForConnectorType (connectorType, pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort));
+                QueryResult query (_pConnectionManager->queryConnectionToRemoteHostForConnectorType (pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort,
+                                                                                                     connectorType, pProtocolSetting->getEncryptionType()));
                 const InetAddr * const pProxyAddr = query.getBestConnectionSolution();
                 if (!pProxyAddr) {
                     pEntry->ui32StartingInSeqNum = pTCPHeader->ui32SeqNum;                      // Starting SEQ Number of the communication used by the local host
                     pEntry->setNextExpectedInSeqNum (pTCPHeader->ui32SeqNum + 1);               // Next expected sequence number sent by the host, ie the next ACK the host will send to local host
                     checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
-                                    "received a SYN packet destined for %s:%hu which could not be mapped to a "
-                                    "proxy address - sending back an RST and ignoring connect request\n",
+                                    "received a SYN packet destined for %s:%hu that could not be mapped to a remote NetProxy address "
+                                    "(mapping entry set to PASSIVE?) - sending back an RST and ignoring connect request\n",
                                     InetAddr (pIPHeader->destAddr.ui32Addr).getIPAsString(), pTCPHeader->ui16DPort);
                     if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST | TCPHeader::TCPF_ACK, 0))) {
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_MildError,
@@ -135,6 +137,7 @@ namespace ACMNetProxy
                 pEntry->i64LastAckTime = packetTime;
 
                 pEntry->setProtocol (pProtocolSetting->getProxyMessageProtocol());
+                pEntry->assignedPriority = pProtocolSetting->getPriorityLevel();
                 pEntry->setMocketConfFile (_pConnectionManager->getMocketsConfigFileForConnectionsToRemoteHost (pIPHeader->destAddr.ui32Addr, pTCPHeader->ui16DPort));
 
                 const CompressionSetting * const pCompressionSetting = &pProtocolSetting->getCompressionSetting();
@@ -159,8 +162,9 @@ namespace ACMNetProxy
 
                 Connection *pConnection = query.getActiveConnectionToRemoteProxy();
                 pConnection = (pConnection && (pConnection->isConnected() || pConnection->isConnecting())) ?
-                               pConnection : pEntry->getConnector()->openNewConnectionToRemoteProxy (query, false);
-                pConnection = pConnection ? pConnection : pEntry->getConnector()->getAvailableConnectionToRemoteProxy (&pEntry->remoteProxyAddr);       // Set connection even if not yet connected
+                               pConnection : pEntry->getConnector()->openNewConnectionToRemoteProxy (query, false);     // openNewConnectionToRemoteProxy() returns nullptr unless the new connection has been established
+                pConnection = pConnection ? pConnection :
+                    pEntry->getConnector()->getAvailableConnectionToRemoteProxy (&pEntry->remoteProxyAddr, pProtocolSetting->getEncryptionType());       // Set connection even if not yet connected
                 if (!pConnection || pConnection->hasFailedConnecting()) {
                     pEntry->ui32StartingOutSeqNum = 0;
                     if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST | TCPHeader::TCPF_ACK, 0))) {
@@ -489,9 +493,9 @@ namespace ACMNetProxy
                                 pEntry->ui32OutSeqNum - 1, SequentialArithmetic::delta (pEntry->ui32OutSeqNum - 1, pEntry->ui32StartingOutSeqNum));
             }
             else {
-                checkAndLogMsg("TCPManager::tcpConnectionToHostOpened", Logger::L_MediumDetailDebug,
-                    "L%hu-R%hu: received a duplicate SYN packet while remote connection status is %d; ignoring\n",
-                    pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteStatus);
+                checkAndLogMsg ("TCPManager::tcpConnectionToHostOpened", Logger::L_MediumDetailDebug,
+                                "L%hu-R%hu: received a duplicate SYN packet while remote connection status is %d; ignoring\n",
+                                pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->remoteStatus);
             }
 
             // If the previous equality does not hold true, then we are still trying to connect to the remote NetProxy --> we simply ignore the SYN
@@ -606,9 +610,9 @@ namespace ACMNetProxy
         }
         else if ((pEntry->getOutgoingBufferRemainingSpace() > 0) && (ui16DataSize > 0)) {
             if (!((SequentialArithmetic::lessThanOrEqual (pEntry->ui32NextExpectedInSeqNum, pTCPHeader->ui32SeqNum) &&
-                SequentialArithmetic::lessThan (pTCPHeader->ui32SeqNum, (pEntry->ui32NextExpectedInSeqNum + pEntry->getOutgoingBufferRemainingSpace()))) ||
+                SequentialArithmetic::lessThan (pTCPHeader->ui32SeqNum, (pEntry->ui32NextExpectedInSeqNum + pEntry->getCurrentTCPWindowSize()))) ||
                 (SequentialArithmetic::lessThanOrEqual (pEntry->ui32NextExpectedInSeqNum, (pTCPHeader->ui32SeqNum + ui16DataSize - 1)) &&
-                SequentialArithmetic::lessThan ((pTCPHeader->ui32SeqNum + ui16DataSize - 1), (pEntry->ui32NextExpectedInSeqNum + pEntry->getOutgoingBufferRemainingSpace()))))) {
+                SequentialArithmetic::lessThan ((pTCPHeader->ui32SeqNum + ui16DataSize - 1), (pEntry->ui32NextExpectedInSeqNum + pEntry->getCurrentTCPWindowSize()))))) {
                 if (!(pTCPHeader->ui8Flags & TCPHeader::TCPF_RST)) {
                     if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_SevereError,
@@ -621,9 +625,10 @@ namespace ACMNetProxy
                         pEntry->ui32LastACKedSeqNum = pEntry->ui32NextExpectedInSeqNum;
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_LowDetailDebug,
                                         "L%hu-R%hu: received a packet with with SEQ %u (relative %u), flags %hhu and %hu bytes of data "
-                                        "that did not belong to the buffer window; sent back an ACK\n", pEntry->ui16ID, pEntry->ui16RemoteID,
-                                        pTCPHeader->ui32SeqNum, SequentialArithmetic::delta (pTCPHeader->ui32SeqNum, pEntry->ui32StartingInSeqNum),
-                                        pTCPHeader->ui8Flags, ui16DataSize);
+                                        "that did not belong to the buffer window (expecting packet with SEQ %u); sent back an ACK\n",
+                                        pEntry->ui16ID, pEntry->ui16RemoteID, pTCPHeader->ui32SeqNum,
+                                        SequentialArithmetic::delta (pTCPHeader->ui32SeqNum, pEntry->ui32StartingInSeqNum),
+                                        pTCPHeader->ui8Flags, ui16DataSize, pEntry->ui32NextExpectedInSeqNum);
                     }
                 }
                 // Invalid RST received or sent ACK with correct values --> drop packet and return
@@ -652,7 +657,7 @@ namespace ACMNetProxy
             else {
                 if (((pEntry->localStatus == TCTLS_CLOSING) || (pEntry->localStatus == TCTLS_TIME_WAIT)) &&
                     (pEntry->remoteStatus == TCTRS_DisconnRequestReceived)) {
-                    if (pEntry->getConnection() == NULL) {
+                    if (pEntry->getConnection() == nullptr) {
                         checkAndLogMsg ("PacketRouter::remoteTransmitterThreadRun", Logger::L_MildError,
                                         "L%hu-R%hu: getConnection() returned a NULL pointer; impossible to send a CloseTCPConnection request "
                                         "to the remote NetProxy\n", pEntry->ui16ID, pEntry->ui16RemoteID);
@@ -727,6 +732,7 @@ namespace ACMNetProxy
             if (SequentialArithmetic::lessThanOrEqual (pEntry->ui32LastAckSeqNum, pTCPHeader->ui32AckNum) &&
                 SequentialArithmetic::lessThanOrEqual (pTCPHeader->ui32AckNum, pEntry->ui32OutSeqNum)) {
                 // Acceptable ACK
+                pEntry->i64LocalActionTime = packetTime;
                 if ((pEntry->localStatus == TCTLS_ESTABLISHED) || (pEntry->localStatus == TCTLS_CLOSE_WAIT)) {
                     checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_HighDetailDebug,
                                     "L%hu-R%hu: received an ACK with number %u (relative %u); first unacknowledged packet in the output buffer had SEQ number %u; "
@@ -747,7 +753,6 @@ namespace ACMNetProxy
                     // Received ACK is up-to-date: check if local status needs to be changed
                     if (pEntry->localStatus == TCTLS_FIN_WAIT_1) {
                         pEntry->localStatus = TCTLS_FIN_WAIT_2;
-                        pEntry->i64LocalActionTime = packetTime;
                         delete pEntry->outBuf.dequeue();
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_MediumDetailDebug,
                                         "L%hu-R%hu: received an ACK while in FIN_WAIT_1 - moved to FIN_WAIT_2\n",
@@ -762,14 +767,12 @@ namespace ACMNetProxy
                     }
                     else if (pEntry->localStatus == TCTLS_CLOSING) {
                         pEntry->localStatus = TCTLS_TIME_WAIT;
-                        pEntry->i64LocalActionTime = packetTime;
                         delete pEntry->outBuf.dequeue();
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Info,
                                         "L%hu-R%hu: received an updated ACK while in status CLOSING; moved to TIME_WAIT\n",
                                         pEntry->ui16ID, pEntry->ui16RemoteID);
                     }
                     else if (pEntry->localStatus == TCTLS_LAST_ACK) {
-                        pEntry->i64LocalActionTime = packetTime;
                         delete pEntry->outBuf.dequeue();
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Info,
                                         "L%hu-R%hu: received an ACK while in status LAST_ACK; moving to CLOSED\n",
@@ -778,8 +781,7 @@ namespace ACMNetProxy
                     }
                     if (pEntry->localStatus == TCTLS_TIME_WAIT) {
                         if (pTCPHeader->ui8Flags & TCPHeader::TCPF_FIN) {
-                            // Received a duplicate FIN+ACK --> send back an ACK and update localActionTime
-                            pEntry->i64LocalActionTime = packetTime;
+                            // Received a duplicate FIN+ACK --> send back an ACK
                             if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
                                 checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_SevereError,
                                                 "L%hu-R%hu: failed to send ACK to a duplicate FIN+ACK while in status TIME_WAIT; "
@@ -884,10 +886,12 @@ namespace ACMNetProxy
                     pGUIStatsManager->increaseTrafficIn (pEntry->getConnector()->getConnectorType(), pIPHeader->destAddr.ui32Addr, pEntry->ui32RemoteProxyUniqueID,
                                                          pEntry->remoteProxyAddr.getIPAddress(), pEntry->remoteProxyAddr.getPort(), PT_TCP, ui16DataSize);
 
-                    // Sending ACK only if we received a PSH or the previous packet wasn't ACKed and FIN flag is not set --> reducing amount of ACKs to about 1/2
+                    /* Sending ACK only if the FIN flag is not set and either the PSH flag was set, the previous packet wasn't ACKed, or more
+                     * than 536 bytes were received --> this allows the TCP protocol to reduce the amount of ACKs generated to about 1/2 */
                     if ((enqueuedDataSize >= 0) && !(pTCPHeader->ui8Flags & TCPHeader::TCPF_FIN) &&
                         (SequentialArithmetic::greaterThan (pTCPHeader->ui32SeqNum, pEntry->ui32LastACKedSeqNum) ||
-                        (pTCPHeader->ui8Flags & TCPHeader::TCPF_PSH) || wereThereHolesInBuffer)) {
+                        (pTCPHeader->ui8Flags & TCPHeader::TCPF_PSH) || wereThereHolesInBuffer ||
+                         (enqueuedDataSize > NetworkConfigurationSettings::MAX_TCP_UNACKED_DATA))) {
                         if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_ACK, pEntry->ui32OutSeqNum))) {
                             checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_SevereError,
                                             "L%hu-R%hu: failed to send ACK packet to host; rc = %d\n",
@@ -902,16 +906,16 @@ namespace ACMNetProxy
                             pEntry->ui32LastACKedSeqNum = pEntry->ui32NextExpectedInSeqNum;
                             checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_HighDetailDebug,
                                             "L%hu-R%hu: sent ACK to local host; last ACKed SEQ number and next expected SEQ number are %u (relative %u)\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID,
-                                            pEntry->ui32LastACKedSeqNum, SequentialArithmetic::delta (pEntry->ui32LastACKedSeqNum, pEntry->ui32StartingInSeqNum));
+                                            pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32LastACKedSeqNum,
+                                            SequentialArithmetic::delta (pEntry->ui32LastACKedSeqNum, pEntry->ui32StartingInSeqNum));
                         }
                     }
                     else {
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_HighDetailDebug,
                                         "L%hu-R%hu: ACK to local host skipped; last ACKed SEQ num is %u (relative %u), next expected SEQ num is %u (relative %u)\n",
-                                        pEntry->ui16ID, pEntry->ui16RemoteID,
-                                        pEntry->ui32LastACKedSeqNum, SequentialArithmetic::delta (pEntry->ui32LastACKedSeqNum, pEntry->ui32StartingInSeqNum),
-                                        pEntry->ui32NextExpectedInSeqNum, SequentialArithmetic::delta (pEntry->ui32NextExpectedInSeqNum, pEntry->ui32StartingInSeqNum));
+                                        pEntry->ui16ID, pEntry->ui16RemoteID, pEntry->ui32LastACKedSeqNum,
+                                        SequentialArithmetic::delta (pEntry->ui32LastACKedSeqNum, pEntry->ui32StartingInSeqNum), pEntry->ui32NextExpectedInSeqNum,
+                                        SequentialArithmetic::delta (pEntry->ui32NextExpectedInSeqNum, pEntry->ui32StartingInSeqNum));
                     }
                 }
             }
@@ -948,7 +952,7 @@ namespace ACMNetProxy
                     // All previous packets have been received <--> SEQ num is consistent with the expected one
                     if (!pEntry->isOutgoingBufferEmpty()) {
                         // Outgoing buffer is not empty --> enqueuing TCP packet with FIN+ACK flags for later processing
-                        if ((rc = pEntry->insertTCPSegmentIntoOutgoingBuffer (new TCPSegment (pTCPHeader->ui32SeqNum + ui16DataSize, 0, NULL,
+                        if ((rc = pEntry->insertTCPSegmentIntoOutgoingBuffer (new TCPSegment (pTCPHeader->ui32SeqNum + ui16DataSize, 0, nullptr,
                                                                                               TCPHeader::TCPF_FIN | TCPHeader::TCPF_ACK))) < 0) {
                             checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_SevereError,
                                             "L%hu-R%hu: failed to enqueue FIN packet received from host; rc = %d\n",
@@ -1062,7 +1066,7 @@ namespace ACMNetProxy
                 }
                 else {
                     // Enqueueing received out-of-order FIN packet for later processing
-                    if ((rc = pEntry->insertTCPSegmentIntoOutgoingBuffer (new TCPSegment (pTCPHeader->ui32SeqNum + ui16DataSize, 0, NULL,
+                    if ((rc = pEntry->insertTCPSegmentIntoOutgoingBuffer (new TCPSegment (pTCPHeader->ui32SeqNum + ui16DataSize, 0, nullptr,
                                                                             TCPHeader::TCPF_FIN | TCPHeader::TCPF_ACK))) < 0) {
                         checkAndLogMsg ("TCPManager::handleTCPPacketFromHost", Logger::L_Warning,
                                         "L%hu-R%hu: failed to enqueue an out-of-order FIN packet received from local host; rc = %d\n",
@@ -1154,11 +1158,11 @@ namespace ACMNetProxy
     int TCPManager::sendTCPPacketToHost (Entry * const pEntry, uint8 ui8TCPFlags, uint32 ui32SeqNum, const uint8 * const pui8Payload, uint16 ui16PayloadLen)
     {
         static PacketBufferManager * const pPBM (PacketBufferManager::getPacketBufferManagerInstance());
-        static const uint16 ui16TCPHeaderLen = sizeof (TCPHeader);
+        static const uint16 ui16TCPHeaderLen = sizeof(TCPHeader);
 
         int rc;
         uint8* pui8Packet = (uint8*) pPBM->getAndLockWriteBuf();
-        const uint16 ui16PacketLen = sizeof (IPHeader) + ui16TCPHeaderLen + ui16PayloadLen;
+        const uint16 ui16PacketLen = sizeof(IPHeader) + ui16TCPHeaderLen + ui16PayloadLen;
         if (ui16PacketLen > NetProxyApplicationParameters::PROXY_MESSAGE_MTU) {
             checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_MildError,
                             "L%hu-R%hu: packet length with data (%hu - ack %u) exceeds maximum packet size (%hu)\n",
@@ -1171,10 +1175,10 @@ namespace ACMNetProxy
             return -1;
         }
 
-        IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof (EtherFrameHeader));
-        pIPHeader->ui8VerAndHdrLen = 0x40 | (sizeof (IPHeader) / 4);
+        IPHeader *pIPHeader = (IPHeader*) (pui8Packet + sizeof(EtherFrameHeader));
+        pIPHeader->ui8VerAndHdrLen = 0x40 | (sizeof(IPHeader) / 4);
         pIPHeader->ui8TOS = 0;
-        pIPHeader->ui16TLen = sizeof (IPHeader) + ui16TCPHeaderLen + ui16PayloadLen;
+        pIPHeader->ui16TLen = sizeof(IPHeader) + ui16TCPHeaderLen + ui16PayloadLen;
         pIPHeader->ui16Ident = PacketRouter::getMutexCounter()->tick();
         pIPHeader->ui16FlagsAndFragOff = 0;
         pIPHeader->ui8TTL = 8;
@@ -1183,7 +1187,8 @@ namespace ACMNetProxy
         pIPHeader->destAddr.ui32Addr = EndianHelper::ntohl (pEntry->ui32LocalIP);
         pIPHeader->computeChecksum();
 
-        TCPHeader *pTCPHeader = (TCPHeader*) ((uint8*) pIPHeader + sizeof (IPHeader));
+        const uint16 ui16IPHeaderLen = (pIPHeader->ui8VerAndHdrLen & 0x0F) * 4;
+        TCPHeader *pTCPHeader = (TCPHeader*) ((uint8*) pIPHeader + ui16IPHeaderLen);
         pTCPHeader->ui16SPort = pEntry->ui16RemotePort;
         pTCPHeader->ui16DPort = pEntry->ui16LocalPort;
         pTCPHeader->ui32SeqNum = ui32SeqNum;
@@ -1195,14 +1200,16 @@ namespace ACMNetProxy
         memcpy ((uint8*) pTCPHeader + ui16TCPHeaderLen, pui8Payload, ui16PayloadLen);
         TCPHeader::computeChecksum ((uint8*) pIPHeader);
         checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_MediumDetailDebug,
-                        "L%hu-R%hu: sending a packet with %hu bytes of data with sequence number %u (relative %u) and ack %u (relative %u) to local host %s:%hu\n",
-                        pEntry->ui16ID, pEntry->ui16RemoteID, ui16PayloadLen, ui32SeqNum, SequentialArithmetic::delta (ui32SeqNum, pEntry->ui32StartingOutSeqNum),
-                        pEntry->ui32NextExpectedInSeqNum, SequentialArithmetic::delta (pEntry->ui32NextExpectedInSeqNum, pEntry->ui32StartingInSeqNum),
+                        "L%hu-R%hu: sending a packet with %hu bytes of data, flags %hhu, SEQ number %u (relative %u) and ACK number %u "
+                        "(relative %u) to %s:%hu\n", pEntry->ui16ID, pEntry->ui16RemoteID, ui16PayloadLen, ui8TCPFlags, ui32SeqNum,
+                        SequentialArithmetic::delta (ui32SeqNum, pEntry->ui32StartingOutSeqNum), pEntry->ui32NextExpectedInSeqNum,
+                        SequentialArithmetic::delta (pEntry->ui32NextExpectedInSeqNum, pEntry->ui32StartingInSeqNum),
                         InetAddr(pEntry->ui32LocalIP).getIPAsString(), pTCPHeader->ui16DPort);
 
-        if (0 != (rc = _pPacketRouter->wrapEtherAndSendPacketToHost (PacketRouter::getInternalNetworkInterface(), pui8Packet, ui16PacketLen))) {
-            checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_SevereError,
-                            "L%hu-R%hu: wrapEtherAndSendPacketToHost() failed with rc = %d\n",
+        if (0 != (rc = _pPacketRouter->wrapEthernetFrameAndSendToHost (PacketRouter::getInternalNetworkInterface(), pui8Packet,
+                                                                       sizeof(EtherFrameHeader) + ui16PacketLen))) {
+            checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_MildError,
+                            "L%hu-R%hu: wrapEthernetFrameAndSendToHost() failed with rc = %d\n",
                             pEntry->ui16ID, pEntry->ui16RemoteID, rc);
             if (0 != pPBM->findAndUnlockWriteBuf (pui8Packet)) {
                 checkAndLogMsg ("TCPManager::sendTCPPacketToHost", Logger::L_SevereError,
@@ -1234,7 +1241,8 @@ namespace ACMNetProxy
         }
 
         ConnectorType connectorType = ProtocolSetting::protocolToConnectorType (pProtocolSetting->getProxyMessageProtocol());
-        QueryResult query (_pConnectionManager->queryConnectionToRemoteHostForConnectorType (connectorType, ui32RemoteHostIP, ui16RemotePort));
+        QueryResult query (_pConnectionManager->queryConnectionToRemoteHostForConnectorType (ui32RemoteHostIP, ui16RemotePort, connectorType,
+                                                                                             pProtocolSetting->getEncryptionType()));
         const InetAddr * const pRemoteProxyAddr = query.getBestConnectionSolution();
         if (!pRemoteProxyAddr) {
             checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
@@ -1250,18 +1258,11 @@ namespace ACMNetProxy
         pEntry->remoteStatus = TCTRS_ConnRequested;
         pEntry->ui16RemoteID = ui16RemoteID;
         pEntry->i64RemoteActionTime = getTimeInMilliseconds();
+
         pEntry->setProtocol (pProtocolSetting->getProxyMessageProtocol());
+        pEntry->assignedPriority = pProtocolSetting->getPriorityLevel();
         pEntry->setMocketConfFile (_pConnectionManager->getMocketsConfigFileForConnectionsToRemoteHost (ui32RemoteHostIP, ui16RemotePort));
         pEntry->prepareNewConnection();
-		if (pProtocolSetting) {
-			pEntry->assignedPriority = pProtocolSetting->getPrioritySetting();
-		}
-		else {
-			checkAndLogMsg("TCPManager::handleTCPPacketFromHost", Logger::L_MildError,
-				"pProtocolSetting entry not found setting entry priority to 0");
-			pEntry->assignedPriority = 0;
-		}
-
 
         pEntry->setConnector (_pConnectionManager->getConnectorForType (connectorType));
         if (!pEntry->getConnector()) {
@@ -1276,8 +1277,9 @@ namespace ACMNetProxy
 
         Connection *pConnection = query.getActiveConnectionToRemoteProxy();
         pConnection = (pConnection && (pConnection->isConnected() || pConnection->isConnecting())) ?
-                       pConnection : pEntry->getConnector()->openNewConnectionToRemoteProxy (query, false);
-        pConnection = pConnection ? pConnection : pEntry->getConnector()->getAvailableConnectionToRemoteProxy (&pEntry->remoteProxyAddr);       // Set connection even if not yet connected
+                       pConnection : pEntry->getConnector()->openNewConnectionToRemoteProxy (query, false);     // openNewConnectionToRemoteProxy() returns nullptr unless the new connection has been established
+        pConnection = pConnection ? pConnection :
+            pEntry->getConnector()->getAvailableConnectionToRemoteProxy (&pEntry->remoteProxyAddr, pProtocolSetting->getEncryptionType());      // Set connection even if not yet connected
         if (!pConnection || (pConnection->hasFailedConnecting())) {
             if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
                 checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_SevereError,
@@ -1356,7 +1358,7 @@ namespace ACMNetProxy
         }
 
         // Enqueue and then send a SYN packet to the host to open the connection
-        ReceivedData *pData = new ReceivedData (pEntry->ui32OutSeqNum, 0, NULL, TCPHeader::TCPF_SYN);
+        ReceivedData *pData = new ReceivedData (pEntry->ui32OutSeqNum, 0, nullptr, TCPHeader::TCPF_SYN);
         if (0 != (rc = pEntry->outBuf.enqueue (pData))) {
             checkAndLogMsg ("TCPManager::openTCPConnectionToHost", Logger::L_MildError,
                             "L%hu-R%hu: failed to enqueue SYN packet to outBuf; rc = %d\n",
@@ -1436,7 +1438,7 @@ namespace ACMNetProxy
     {
         int rc;
         Entry *pEntry = _pTCPConnTable->getEntry (ui16LocalID);
-        if (pEntry == NULL) {
+        if (pEntry == nullptr) {
             checkAndLogMsg ("TCPManager::tcpConnectionToHostOpened", Logger::L_Warning,
                             "no entry found in TCP Connection Table with local ID %hu; "
                             "cannot update remote status to ConnEstablished\n", ui16LocalID);
@@ -1506,11 +1508,11 @@ namespace ACMNetProxy
 
     int TCPManager::sendTCPDataToHost (uint16 ui16LocalID, uint16 ui16RemoteID, const uint8 * const pui8CompData, uint16 ui16CompDataLen, uint8 ui8Flags)
     {
-        static const uint16 MAX_SEGMENT_LENGTH = NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF - static_cast<uint16> (sizeof (IPHeader) + sizeof (TCPHeader));
+        static const uint16 MAX_SEGMENT_LENGTH = NetProxyApplicationParameters::ETHERNET_MTU_INTERNAL_IF - static_cast<uint16> (sizeof(IPHeader) + sizeof(TCPHeader));
 
         int rc;
         Entry *pEntry = _pTCPConnTable->getEntry (ui16LocalID, ui16RemoteID);
-        if (pEntry == NULL) {
+        if (pEntry == nullptr) {
             checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_Warning,
                             "no entry found in TCP Connection Table with local ID %hu and remote ID %hu; "
                             "impossible to send data to local host\n", ui16LocalID, ui16RemoteID);
@@ -1527,7 +1529,7 @@ namespace ACMNetProxy
             if (pEntry->getConnectorReader()) {
                 uint8 *pui8Data[1];
                 uint32 ui32DataLen;
-                *pui8Data = NULL;
+                *pui8Data = nullptr;
                 // Receives the packet (through the decompressor, if there is any)
                 if (0 != (rc = pEntry->getConnectorReader()->receiveTCPDataProxyMessage (pui8CompData, ui16CompDataLen, pui8Data, ui32DataLen))) {
                     checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_MildError,
@@ -1543,73 +1545,79 @@ namespace ACMNetProxy
                     pEntry->unlock();
                     return -2;
                 }
-                else {
-                    // To fix problem caused by long inactivity times
-                    if ((pEntry->outBuf.size() == 0) && (pEntry->getOutgoingTotalBytesCount() == 0)) {
-                        pEntry->i64LastAckTime = getTimeInMilliseconds();
+
+                // To fix problem caused by long inactivity times
+                if ((pEntry->outBuf.size() == 0) && (pEntry->getOutgoingTotalBytesCount() == 0)) {
+                    pEntry->i64LastAckTime = getTimeInMilliseconds();
+                }
+                if (ui32DataLen == 0) {
+                    // ConnectorReader returned 0 bytes (decompression needs more data?)
+                    checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_NetDetailDebug,
+                                    "L%hu-R%hu: ConnectorReader returned 0 bytes to append to the outgoing "
+                                    "buffer queue (decompression needs more data?); doing nothing\n",
+                                    pEntry->ui16ID, pEntry->ui16RemoteID);
+                    pEntry->unlock();
+                    return 0;
+                }
+
+                uint32 ui32SentData = 0;
+                ReceivedData *pTailPacket = pEntry->outBuf.peekTail();
+                // Check if we can append data to the last packet
+                if (pTailPacket && pTailPacket->canAppendData() && (pTailPacket->getItemLength() < MAX_SEGMENT_LENGTH)) {
+                    uint32 ui32BytesToEnqueue = std::min (ui32DataLen, MAX_SEGMENT_LENGTH - pTailPacket->getItemLength());
+                    if (0 < (rc = pTailPacket->appendDataToBuffer (*pui8Data, ui32BytesToEnqueue))) {
+                        ui32SentData = ui32BytesToEnqueue;
+                        if (ui32BytesToEnqueue >= ui32DataLen) {
+                            pTailPacket->addTCPFlags (ui8Flags);
+                        }
+                        checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_HighDetailDebug,
+                                        "L%hu-R%hu: appended %u bytes to the segment of TCP packet with SEQ number %u; "
+                                        "there are now %u bytes of total data and FLAGs are %hhu\n",
+                                        pEntry->ui16ID, pEntry->ui16RemoteID, ui32BytesToEnqueue,
+                                        pTailPacket->getSequenceNumber(), pTailPacket->getItemLength(), pTailPacket->getTCPFlags());
+                    }
+                    else {
+                        checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_Warning,
+                                        "L%hu-R%hu: error trying to append %u bytes to the segment of TCP packet with SEQ number %u; rc = %d\n",
+                                        pEntry->ui16ID, pEntry->ui16RemoteID, ui32BytesToEnqueue,
+                                        pTailPacket->getSequenceNumber(), rc);
+                    }
+                }
+
+                // Create new packets to store remaining received data
+                while (ui32SentData < ui32DataLen) {
+                    uint32 ui32BytesToEnqueue = std::min (ui32DataLen - ui32SentData, (uint32) MAX_SEGMENT_LENGTH);
+                    uint8 ui8FlagsToEnqueue = ((ui32SentData + ui32BytesToEnqueue) >= ui32DataLen) ? ui8Flags : TCPHeader::TCPF_ACK;
+                    ReceivedData *pNewData = new ReceivedData (ui32PcktOutSeqNum + ui32SentData, ui32BytesToEnqueue,
+                                                                *pui8Data + ui32SentData, ui8FlagsToEnqueue);
+                    if (0 != (rc = pEntry->outBuf.enqueue (pNewData))) {
+                        checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_Warning,
+                                        "L%hu-R%hu: error trying to enqueue new packet with SEQ num %u and %hu bytes of data\n",
+                                        pEntry->ui16ID, pEntry->ui16RemoteID,
+                                        pNewData->getSequenceNumber(), pNewData->getItemLength());
+                        if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
+                            checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_SevereError,
+                                            "L%hu-R%hu: failed to send RST packet to local host; rc = %d\n",
+                                            pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                        }
+                        PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
+                        pEntry->reset();
+                        pEntry->unlock();
+                        return -3;
                     }
 
-                    uint32 ui32SentData = 0;
-                    ReceivedData *pTailPacket = pEntry->outBuf.peekTail();
-
-                    // Check if we can append data to the last packet
-                    if (pTailPacket && pTailPacket->canAppendData() && (pTailPacket->getItemLength() < MAX_SEGMENT_LENGTH)) {
-                        uint32 ui32BytesToEnqueue = std::min (ui32DataLen, MAX_SEGMENT_LENGTH - pTailPacket->getItemLength());
-                        if (0 < (rc = pTailPacket->appendDataToBuffer (*pui8Data, ui32BytesToEnqueue))) {
-                            ui32SentData = ui32BytesToEnqueue;
-                            if (ui32BytesToEnqueue >= ui32DataLen) {
-                                pTailPacket->addTCPFlags (ui8Flags);
-                            }
-                            checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_HighDetailDebug,
-                                            "L%hu-R%hu: appended %u bytes to the segment of TCP packet with SEQ number %u; "
-                                            "there are now %u bytes of total data and FLAGs are %hhu\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID, ui32BytesToEnqueue,
-                                            pTailPacket->getSequenceNumber(), pTailPacket->getItemLength(), pTailPacket->getTCPFlags());
-                        }
-                        else {
-                            checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_Warning,
-                                            "L%hu-R%hu: error trying to append %u bytes to the segment of TCP packet with SEQ number %u; rc = %d\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID, ui32BytesToEnqueue,
-                                            pTailPacket->getSequenceNumber(), rc);
-                        }
-                    }
-
-                    // Create new packets to store remaining received data
-                    while (ui32SentData < ui32DataLen) {
-                        uint32 ui32BytesToEnqueue = std::min (ui32DataLen - ui32SentData, (uint32) MAX_SEGMENT_LENGTH);
-                        uint8 ui8FlagsToEnqueue = ((ui32SentData + ui32BytesToEnqueue) >= ui32DataLen) ? ui8Flags : TCPHeader::TCPF_ACK;
-                        ReceivedData *pNewData = new ReceivedData (ui32PcktOutSeqNum + ui32SentData, ui32BytesToEnqueue,
-                                                                    *pui8Data + ui32SentData, ui8FlagsToEnqueue);
-                        if (0 != (rc = pEntry->outBuf.enqueue (pNewData))) {
-                            checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_Warning,
-                                            "L%hu-R%hu: error trying to enqueue new packet with SEQ num %u and %hu bytes of data\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID,
-                                            pNewData->getSequenceNumber(), pNewData->getItemLength());
-                            if (0 != (rc = sendTCPPacketToHost (pEntry, TCPHeader::TCPF_RST, pEntry->ui32OutSeqNum))) {
-                                checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_SevereError,
-                                                "L%hu-R%hu: failed to send RST packet to local host; rc = %d\n",
-                                                pEntry->ui16ID, pEntry->ui16RemoteID, rc);
-                            }
-                            PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
-                            pEntry->reset();
-                            pEntry->unlock();
-                            return -3;
-                        }
-                        else {
-                            ui32SentData += ui32BytesToEnqueue;
-                            checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_HighDetailDebug,
-                                            "L%hu-R%hu: enqueued TCP packet with SEQ number %u, %hu bytes of data (%hu "
-                                            "before decompression, if any) and FLAGs %hhu into the output buffer\n",
-                                            pEntry->ui16ID, pEntry->ui16RemoteID, pNewData->getSequenceNumber(),
-                                            pNewData->getItemLength(), ui16CompDataLen, ui8FlagsToEnqueue);
-                        }
-                    }
+                    ui32SentData += ui32BytesToEnqueue;
+                    checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_HighDetailDebug,
+                                    "L%hu-R%hu: enqueued TCP packet with SEQ number %u, %hu bytes of data (%hu "
+                                    "before decompression, if any) and FLAGs %hhu into the output buffer\n",
+                                    pEntry->ui16ID, pEntry->ui16RemoteID, pNewData->getSequenceNumber(),
+                                    pNewData->getItemLength(), ui16CompDataLen, ui8FlagsToEnqueue);
                 }
                 isPSHFlagSet = (ui8Flags & TCPHeader::TCPF_PSH) != 0;
             }
             else {
                 checkAndLogMsg ("TCPManager::sendTCPDataToHost", Logger::L_MildError,
-                                "L%hu-R%hu: ConnectorReader not initialized (NULL pointer); resetting connection\n",
+                                "L%hu-R%hu: ConnectorReader not initialized; resetting connection\n",
                                 pEntry->ui16ID, pEntry->ui16RemoteID);
                 PacketRouter::sendRemoteResetRequestIfNeeded (pEntry);
                 pEntry->reset();
@@ -1630,16 +1638,13 @@ namespace ACMNetProxy
             return -5;
         }
 
+        pEntry->unlock();
         if (isPSHFlagSet && ((pEntry->localStatus == TCTLS_ESTABLISHED) ||
             (pEntry->localStatus == TCTLS_CLOSE_WAIT))) {
-            pEntry->unlock();
             if (_pPacketRouter->_mLocalTCPTransmitter.tryLock() == Mutex::RC_Ok) {
                 _pPacketRouter->_cvLocalTCPTransmitter.notify();
                 _pPacketRouter->_mLocalTCPTransmitter.unlock();
             }
-        }
-        else {
-            pEntry->unlock();
         }
 
         return 0;
@@ -1648,7 +1653,7 @@ namespace ACMNetProxy
     int TCPManager::closeTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID)
     {
         Entry *pEntry = _pTCPConnTable->getEntry (ui16LocalID, ui16RemoteID);
-        if (pEntry == NULL) {
+        if (pEntry == nullptr) {
             checkAndLogMsg ("TCPManager::closeTCPConnectionToHost", Logger::L_Warning,
                             "no entry found in TCP Connection Table with local ID %hu and remote ID %hu; "
                             "impossible to close connection to local host\n", ui16LocalID, ui16RemoteID);
@@ -1709,7 +1714,7 @@ namespace ACMNetProxy
             pEntry->i64RemoteActionTime = i64CurrTime;
             // Enqueue a zero-length ReceivedData packet, which signifies the FIN
             uint32 ui32PcktOutSeqNum = pEntry->outBuf.isEmpty() ? pEntry->ui32OutSeqNum : (pEntry->outBuf.peekTail()->getSequenceNumber() + pEntry->outBuf.peekTail()->getItemLength());
-            ReceivedData *pReceivedData = new ReceivedData (ui32PcktOutSeqNum, 0, NULL, TCPHeader::TCPF_FIN | TCPHeader::TCPF_ACK);
+            ReceivedData *pReceivedData = new ReceivedData (ui32PcktOutSeqNum, 0, nullptr, TCPHeader::TCPF_FIN | TCPHeader::TCPF_ACK);
             if (0 != (rc = pEntry->outBuf.enqueue (pReceivedData))) {
                 checkAndLogMsg ("TCPManager::closeTCPConnectionToHost", Logger::L_MildError,
                                 "L%hu-R%hu: failed to enqueue FIN+ACK packet to outBuf; rc = %d\n",
@@ -1774,12 +1779,12 @@ namespace ACMNetProxy
     int TCPManager::resetTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID)
     {
         Entry *pEntry = _pTCPConnTable->getEntry (ui16LocalID, ui16RemoteID);
-        if (pEntry == NULL) {
+        if (pEntry == nullptr) {
             checkAndLogMsg ("TCPManager::resetTCPConnectionToHost", Logger::L_Warning,
                             "no entry found in TCP Connection Table with local ID %d and remote ID %d; "
                             "impossible to reset connection to local host\n", ui16LocalID, ui16RemoteID);
-            Connector *pConnector = _pConnectionManager->getConnectorForType (CT_UDP);
-            UDPConnector *pUDPConnector = NULL;
+            Connector *pConnector = _pConnectionManager->getConnectorForType (CT_UDPSOCKET);
+            UDPConnector *pUDPConnector = nullptr;
             if (pConnector) {
                 pUDPConnector = dynamic_cast<UDPConnector*> (pConnector);
                 if (!pUDPConnector) {
@@ -1817,12 +1822,16 @@ namespace ACMNetProxy
             if (0 != (rc = sendTCPPacketToHost (pEntry, ui8TCPFlags, ui32OutSeqNum))) {
                 checkAndLogMsg ("TCPManager::resetTCPConnectionToHost", Logger::L_SevereError,
                                 "L%hu-R%hu: failed to send RST packet as a consequence of a remoteResetRequest; rc = %d\n",
-                                pEntry->ui16ID, pEntry->ui16RemoteID, rc);
+                                ui16LocalID, ui16RemoteID, rc);
             }
             else {
                 checkAndLogMsg ("TCPManager::resetTCPConnectionToHost", Logger::L_Info,
-                                "L%hu-R%hu: received a remoteResetRequest from remote host; successfully sent an RST to local host\n",
-                                pEntry->ui16ID, pEntry->ui16RemoteID);
+                                "L%hu-R%hu: received a remoteResetRequest from the remote NetProxy with IP %s and UniqueID %u to "
+                                "reset the TCP connection between %s:%hu (local node) and %s:%hu (remote node); successfully "
+                                "sent an RST to the local host\n", ui16LocalID, ui16RemoteID,
+                                pEntry->remoteProxyAddr.getIPAsString(), pEntry->ui32RemoteProxyUniqueID,
+                                InetAddr(pEntry->ui32LocalIP).getIPAsString(), pEntry->ui16LocalPort,
+                                InetAddr(pEntry->ui32RemoteIP).getIPAsString(), pEntry->ui16RemotePort);
             }
             pEntry->reset();
         }
@@ -1830,12 +1839,12 @@ namespace ACMNetProxy
             (pEntry->localStatus == TCTLS_TIME_WAIT) || (pEntry->localStatus == TCTLS_CLOSED)) {
             checkAndLogMsg ("TCPManager::resetTCPConnectionToHost", Logger::L_MediumDetailDebug,
                             "L%hu-R%hu: connection already in status %hu; ignoring the reset\n",
-                            pEntry->ui16ID, pEntry->ui16RemoteID, (unsigned short) pEntry->localStatus);
+                            ui16LocalID, ui16RemoteID, (unsigned short) pEntry->localStatus);
         }
         else {
             checkAndLogMsg ("TCPManager::resetTCPConnectionToHost", Logger::L_Warning,
                             "L%hu-R%hu: connection in state %hu; cannot do a reset\n",
-                            pEntry->ui16ID, pEntry->ui16RemoteID, (unsigned short) pEntry->localStatus);
+                            ui16LocalID, ui16RemoteID, (unsigned short) pEntry->localStatus);
             pEntry->unlock();
             return -4;
         }

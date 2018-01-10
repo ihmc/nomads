@@ -2,8 +2,8 @@ cpp = g++
 
 cppflags = -O2 -DUNIX -DLINUX -DLITTLE_ENDIAN_SYSTEM -I.. -I../../../externals/include
 
-sources = $(wildcard ../*.cpp)
-objects = $(sources:../%.cpp=%.o)
+sources = $(wildcard ../*.cpp) $(wildcard ../*.c)
+objects = $(sources:../%.cpp=%.o) $(sources:../%.c=%.o)
 
 netsources = $(wildcard ../net/*.cpp)
 netobjects = $(netsources:../net/%.cpp=%.o)
@@ -18,6 +18,9 @@ commsources = $(wildcard ../comm/*.cpp)
 commobjects = $(commsources:../comm/%.cpp=%.o)
 
 %.o : ../%.cpp
+	$(cpp) -c $(cppflags) $<
+
+%.o : ../%.c
 	$(cpp) -c $(cppflags) $<
 
 %.o : ../graph/%.cpp

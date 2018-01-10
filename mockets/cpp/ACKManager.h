@@ -5,7 +5,7 @@
  * ACKManager.h
  * 
  * This file is part of the IHMC Mockets Library/Component
- * Copyright (c) 2002-2014 IHMC.
+ * Copyright (c) 2002-2016 IHMC.
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,12 +21,10 @@
  */
 
 #include "TSNRangeHandler.h"
-
 #include "FTypes.h"
 #include "Mutex.h"
 #include "ObjectDefroster.h"
 #include "ObjectFreezer.h"
-
 
 class Packet;
 
@@ -38,13 +36,16 @@ class ACKManager
                   uint32 ui32InitialReliableSequencedTSN,
                   uint32 ui32InitialReliableUnsequencedID);
         bool haveNewInformationSince (int64 i64Time);
+
         void receivedControlPacket (uint32 ui32TSN);
         void receivedReliableSequencedPacket (uint32 ui32TSN);
         void receivedReliableUnsequencedPacket (uint32 ui32TSN);
+
         int appendACKInformation (Packet *pPacket);
         // This SAck is also used to pass the info to estimate the bandwidth receiver side
         int appendACKInformation (Packet *pPacket, int64 i64Timestamp, uint32 ui32BytesReceived);
-        void receivedMoreRecentSentPacket (int64 i64Timestamp, uint32 ui32SequenceNumber); //Erika: this method is not implemented
+        
+		void receivedMoreRecentSentPacket (int64 i64Timestamp, uint32 ui32SequenceNumber); //Erika: this method is not implemented
         void setLastSentPacketReceivedTime (int64 i64Timestamp); //Erika: this method is not implemented
 
     private:

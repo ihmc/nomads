@@ -10,14 +10,14 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/TCPSocket.cpp,v 1.61 2016/06/09 20:02:45 gbenincasa Exp $
- * Revision: $Revision: 1.61 $
+ * RCSInfo: $Header$
+ * Revision: $Revision$
  */
 
 #include <stdio.h>
@@ -311,7 +311,7 @@ int TCPSocket::connect (const char *pszHostName, unsigned short usPortNum)
     remote.sin_port = htons (usPortNum);
 
     int iResult;
-/*    
+/*
     #if defined (UNIX)
     if (ulTimeOutLimit) {
             alarm (ulTimeOutLimit);
@@ -333,7 +333,7 @@ int TCPSocket::connect (const char *pszHostName, unsigned short usPortNum)
         #endif
         return -4;
     }
-    
+
     iConnected = 1;
 
     remoteSockAddr = remote;
@@ -471,12 +471,12 @@ int TCPSocket::flushAndClose (void)
         iConnected = 0;
         return 0;
     #else
-        
+
         //shutdown
         if (shutdown(iSocket,SHUT_WR) < 0) {
             return disconnect();
         }
-        
+
         //read from the client until we get EOF or 2 seconds are passed
         fd_set t;
         struct timeval ti;
@@ -487,7 +487,7 @@ int TCPSocket::flushAndClose (void)
         int iResult;
         char pBuf[512];
         int iSize = 512;
-        
+
         while (select(iSocket+1, &t, NULL, NULL, &ti) > 0){
             if (FD_ISSET (iSocket, &t)){
                 if ((iResult = ::recv (iSocket, pBuf, iSize, 0)) <= 0){
@@ -499,7 +499,7 @@ int TCPSocket::flushAndClose (void)
             FD_ZERO(&t);
             FD_SET(iSocket,&t);
         }
-        
+
         return disconnect();
     #endif
 }
@@ -565,7 +565,7 @@ Socket * TCPSocket::accept (void)
 
     struct sockaddr_in remote;
     socklen_t sockAddrLen = sizeof (remote);
-    int iNewSocket; 
+    int iNewSocket;
 
     #if defined (DEFINED_ACCEPT)
         if ((iNewSocket = ::DEFINED_ACCEPT (iSocket, (struct sockaddr *) &remote, &iSockAddrLen)) < 0) {
@@ -845,11 +845,11 @@ int TCPSocket::receiveImpl (void *pBuf, int iSize)
             iResult = ::recv (iSocket, (char*) pBuf, iSize, 0);
         }
     }
-    
+
     if (0 == iResult) {
         return SE_DISCONNECT;
     }
-        
+
     if (iResult < 0) {
         #if defined (UNIX)
             if (errno == EINTR) {
@@ -906,7 +906,7 @@ int TCPSocket::bytesAvail (void)
     #endif
 }
 
-// getFileDescriptor 
+// getFileDescriptor
 // returns the file descriptor of the current socket.
 int TCPSocket::getFileDescriptor (void)
 {
@@ -916,8 +916,8 @@ int TCPSocket::getFileDescriptor (void)
 // This method "getAndDisassociateFileDescriptor" will return
 // the file descriptor (int) currently in use by this socket and will
 // dissociate it from the socket. From this point on, the socket will
-// no longer have control over the file descriptor. All Read/Write 
-// operations on the socket will fail and closing or destroing the 
+// no longer have control over the file descriptor. All Read/Write
+// operations on the socket will fail and closing or destroing the
 // socket will not affect the file descritpor (IT IS YOUR RESPONSABILITY
 // TO CLOSE IT, WHEN YOU'RE DONE) (mc - Feb 2002).
 int TCPSocket::getAndDisassociateFileDescriptor (void)

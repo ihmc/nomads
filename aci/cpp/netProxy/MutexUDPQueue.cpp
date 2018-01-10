@@ -29,18 +29,18 @@ namespace ACMNetProxy
     UDPDatagramPacket * MutexUDPQueue::findPacketFromIPHeader (const IPHeader * const pIPHeader)
     {
         if (!pIPHeader) {
-            return NULL;
+            return nullptr;
         }
 
         resetGet();
-        UDPDatagramPacket *pUDPDatagramPacket = NULL;
+        UDPDatagramPacket *pUDPDatagramPacket = nullptr;
         while ((pUDPDatagramPacket = getNext())) {
             if (pUDPDatagramPacket->matchesIPPacket (pIPHeader)) {
                 return pUDPDatagramPacket;
             }
         }
 
-        return NULL;
+        return nullptr;
     }
 
     int MutexUDPQueue::enqueue (UDPDatagramPacket * const pUDPDatagramPacket)

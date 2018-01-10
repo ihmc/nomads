@@ -180,7 +180,7 @@ namespace ACMNetProxy
     {
         if (_bIsFragmented) {
             // Data not completely available yet
-            return NULL;
+            return nullptr;
         }
 
         return _pui8UDPDatagram;
@@ -190,10 +190,10 @@ namespace ACMNetProxy
     {
         if (_bIsFragmented) {
             // Data not completely available yet
-            return NULL;
+            return nullptr;
         }
 
-        return _pui8UDPDatagram + sizeof (NOMADSUtil::UDPHeader);
+        return _pui8UDPDatagram + sizeof(NOMADSUtil::UDPHeader);
     }
 
     inline bool UDPDatagramPacket::matchesIPPacket (const NOMADSUtil::IPHeader * const pIPHeader) const

@@ -20,10 +20,6 @@
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
-#ifndef NULL
-#define NULL 0
-#endif
-
 #include "FTypes.h"
 #include "net/NetworkHeaders.h"
 #include "StrClass.h"
@@ -34,7 +30,7 @@ namespace ACMNetProxy
     class NetworkInterface
     {
         public:
-            enum Type {
+            enum class Type {
                 T_Unknown = 0x00,
                 T_Tap = 0x01,
                 T_PCap = 0x02
@@ -47,7 +43,7 @@ namespace ACMNetProxy
             Type getType (void) const;
             //Returns the name of Network Adapter
             const NOMADSUtil::String & getAdapterName (void) const;
-            /* Returns the MAC address for the Tap Interface, if available, or NULL
+            /* Returns the MAC address for the Tap Interface, if available, or nullptr
              * otherwise. The MAC address is returned as a pointer to a 6-byte array. */
             virtual const uint8 * const getMACAddr (void) const;
             // Returns the IPv4 address as a IPv4Addr*
@@ -59,7 +55,7 @@ namespace ACMNetProxy
             // Returns the size of the MTU as a uint16
             virtual uint16 getMTUSize (void) const;
 
-            virtual int readPacket (uint8 *pui8Buf, uint16 ui16BufSize) = 0;
+            virtual int readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen) = 0;
             virtual int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen) = 0;
 
             static NOMADSUtil::String getDeviceNameFromUserFriendlyName (const char * const pszUserFriendlyInterfaceName);
@@ -97,6 +93,11 @@ namespace ACMNetProxy
         _bIsTerminationRequested = true;
     }
 
+    inline NetworkInterface::Type NetworkInterface::getType(void) const
+    {
+        return _tType;
+    }
+
     inline const NOMADSUtil::String & NetworkInterface::getAdapterName (void) const
     {
         return _sAdapterName;
@@ -108,7 +109,7 @@ namespace ACMNetProxy
             return _aui8MACAddr;
         }
         else {
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -118,7 +119,7 @@ namespace ACMNetProxy
             return &_ipv4Addr;
         }
 
-        return NULL;
+        return nullptr;
     }
 
     inline const NOMADSUtil::IPv4Addr * const NetworkInterface::getNetmask (void) const
@@ -127,7 +128,7 @@ namespace ACMNetProxy
             return &_ipv4Netmask;
         }
 
-        return NULL;
+        return nullptr;
     }
 
     inline const NOMADSUtil::IPv4Addr * const NetworkInterface::getDefaultGateway (void) const
@@ -136,7 +137,7 @@ namespace ACMNetProxy
             return &_ipv4DefaultGateway;
         }
 
-        return NULL;
+        return nullptr;
     }
 
     inline uint16 NetworkInterface::getMTUSize (void) const

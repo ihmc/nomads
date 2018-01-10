@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -142,9 +142,8 @@ int UDPDatagramSocket::init (uint16 ui16Port, uint32 ui32ListenAddr)
     if (bind (sockfd, (struct sockaddr *) &local, sizeof (local)) < 0) {
          return -6;
     }
-    _ui16Port = ui16Port;                   // Store the port that was used
+    _ui16Port       = ui16Port;             // Store the port that was used
     _ui32ListenAddr = ui32ListenAddr;       // Store the listen addr that was used
-
     return 0;
 }
 
@@ -374,7 +373,7 @@ int UDPDatagramSocket::receive (void *pBuf, int iBufSize)
         }
         int rc;
         socklen_t saSourceLen = sizeof (pRemoteAddr->_sa);
-        
+
         if (_ui32TimeOut > 0) {
             fd_set fdSet;
             FD_ZERO (&fdSet);
@@ -480,8 +479,8 @@ int UDPDatagramSocket::receive (void *pBuf, int iBufSize)
             /*
              * Notes about the socket errors that we are ignoring:
              *
-             * WSAETIMEDOUT: The connection has been dropped, becaui16e of a network failure 
-             * or becaui16e the system on the other end went down without notice.
+             * WSAETIMEDOUT: The connection has been dropped, because of a network failure
+             * or because the system on the other end went down without notice.
              *
              * WSAECONNRESET: On a UDP-datagram socket this error indicates a previous
              * send operation resulted in an ICMP Port Unreachable message.

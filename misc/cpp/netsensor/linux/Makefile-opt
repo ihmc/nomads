@@ -1,0 +1,47 @@
+# Makefile for netsensor
+#-Wl, -R/path/to/libdir
+
+include Makefile.common.inc
+include Makefile-opt.inc
+
+MAKEFILE_FOLDER = linux
+ifeq ($(MACHINE), x86_64)
+UTIL_MAKEFILE = Makefile-opt.64bit
+else
+UTIL_MAKEFILE = Makefile-opt
+endif
+
+
+%.o : ../%.cpp
+	$(CPP) $(C11FLAG) -c $(CPPFLAGS) $<
+
+%.o : ../%.cc
+	$(CPP) $(C11FLAG) -c $(CPPFLAGS) $<
+
+
+all: libnetsensor.a Launcher
+
+libz.a :
+	make -C $(LIBZ_HOME)/$(MAKEFILE_FOLDER)/ libz.a
+
+libutil.a :
+	make -f $(UTIL_MAKEFILE) -C $(UTIL_HOME)/cpp/$(MAKEFILE_FOLDER)/ libutil.a
+
+libnetsensor.a : $(objects)
+	ar -rcv libnetsensor.a $(objects)
+
+Launcher: libnetsensor.a libutil.a libz.a ../Launcher.cpp
+	$(CPP) $(C11FLAG) $(CPPFLAGS) \
+	../Launcher.cpp \
+	libnetsensor.a \
+	$(LIB_LIST) $(LD_FLAGS) \
+	-o Launcher
+
+
+clean :
+	rm -rf *.o ../*.o *../*.a ./*.a Launcher 
+	
+cleanall :
+	make clean
+	(make -C $(UTIL_HOME)/cpp/$(MAKEFILE_FOLDER) clean)
+	(make -C $(LIBZ_HOME)/$(MAKEFILE_FOLDER) clean)

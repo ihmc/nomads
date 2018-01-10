@@ -39,6 +39,7 @@ namespace NOMADSUtil
         public:
             ConditionVariable (Mutex *pMutex);
             ~ConditionVariable();
+
             // These functions use pthread_cond_wait() and pthread_cond_timedwait().
             // The pthread_cond_wait() and pthread_cond_timedwait() functions are used to block on a condition variable.
             // They are called with mutex locked by the calling thread or undefined behaviour will result.
@@ -46,6 +47,7 @@ namespace NOMADSUtil
             int wait (void);
             int wait (int64 i64Millisec);
             int wait (int64 i64Millisec, bool *timedOut);
+
             // When each thread unblocked as a result of a pthread_cond_broadcast() or pthread_cond_signal() returns from
             // its call to pthread_cond_wait() or pthread_cond_timedwait(), the thread shall own the mutex with which it
             // called pthread_cond_wait() or pthread_cond_timedwait().

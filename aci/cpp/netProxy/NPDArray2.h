@@ -80,27 +80,27 @@ namespace ACMNetProxy
     };
 
     template <class T> inline NPDArray2<T>::NPDArray2 (void)
-        : Array ((T*)NULL)
+        : Array (nullptr)
     {
     }
 
     template <class T> inline NPDArray2<T>::NPDArray2 (unsigned int uiSize)
-        : Array ((T*)NULL,uiSize)
+        : Array (nullptr, uiSize)
     {
     }
 
     template <class T> NPDArray2<T>::NPDArray2 (const NPDArray2<T> &SourceArray)   // Copy constructor
-        : Array ((T*)NULL,0)
+        : Array (nullptr, 0)
     {
         #ifdef USE_ERROR_HANDLER_FOR_DARRAY2
              pErr->enter ("NPDArray2::NPDArray2 (NPDArray2 &sourceArray)");
         #endif
-        Array [SourceArray.Array.getSize()] = NULL;       // Grow array to size req
+        Array [SourceArray.Array.getSize()] = nullptr;       // Grow array to size req
         for (unsigned int i = 0; i < SourceArray.getSize(); i++)   // Copy each element
         {
-             if (SourceArray.Array.get (i) == NULL)
+             if (SourceArray.Array.get (i) == nullptr)
              {
-                  Array [i] = NULL;
+                  Array [i] = nullptr;
              }
              else
              {
@@ -129,7 +129,7 @@ namespace ACMNetProxy
              }
         #endif
         T **pItem = &Array [uiIndex];
-        if (*pItem == NULL)
+        if (*pItem == nullptr)
         {
              *pItem = new T;
         }
@@ -150,7 +150,7 @@ namespace ACMNetProxy
 
     template <class T> inline int NPDArray2<T>::used (unsigned int uiIndex)
     {
-        return (Array[uiIndex] != NULL);
+        return (Array[uiIndex] != nullptr);
     }
 
     template <class T> inline int NPDArray2<T>::clear (unsigned int uiIndex)
@@ -158,7 +158,7 @@ namespace ACMNetProxy
         if (Array[uiIndex])
         {
              delete Array[uiIndex];
-             Array[uiIndex] = NULL;
+             Array[uiIndex] = nullptr;
              return 0;
         }
         return -1;
@@ -169,7 +169,7 @@ namespace ACMNetProxy
         int j = (int) Array.size();
         for (int i = 0; i < j; i++)
         {
-             if (Array[i] == NULL)
+             if (Array[i] == nullptr)
              {
                   return i;
              }
@@ -186,11 +186,11 @@ namespace ACMNetProxy
     {
         unsigned int uiSize = size();
         if (uiSize < 1) {
-            return NULL;
+            return nullptr;
         }
-        T *pArray = (T *) calloc (uiSize+1, sizeof (T));
-        if (pArray == NULL) {
-            return NULL;
+        T *pArray = (T *) calloc (uiSize+1, sizeof(T));
+        if (pArray == nullptr) {
+            return nullptr;
         }
         unsigned int j = 0;
         for (unsigned int i = 0; i < uiSize; i++) {

@@ -37,13 +37,13 @@ namespace NOMADSUtil
 {
 
     typedef int i4;
-    typedef unsigned long u4;
+    typedef unsigned int u4;
     typedef unsigned short u2;
 
     class ZipFileReader
     {
         public:
-            ZipFileReader (void);
+            ZipFileReader (bool bCloseFile = true);
             ~ZipFileReader (void);
             enum ReturnCodes {
                 RC_Ok,
@@ -74,6 +74,7 @@ namespace NOMADSUtil
                 char *pBuf;
             };
             int init (const char *pszFile, bool bCacheDir = false);
+            int init (FILE *fileInput, bool bCacheDir = false);
             int getFileCount (void);
             const char * getFirstFileName (void);
             const char * getNextFileName (void);
@@ -260,6 +261,7 @@ namespace NOMADSUtil
             Entry * getEntry (FileHeader *pfh, FILE *fileInput);
 
         protected:
+            const bool _bCloseFile;
             FILE *fileInput;
             long lLastFileHeaderSeekPos;
             LocalFileHeader lfh;

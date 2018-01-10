@@ -23,7 +23,7 @@
 #include "ConnectorAdapter.h"
 #include "Connection.h"
 #include "ConnectionManager.h"
-#include "NetProxyConfigManager.h"
+#include "ConfigurationManager.h"
 
 
 using namespace NOMADSUtil;
@@ -32,7 +32,8 @@ using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    CSRConnector::CSRConnector (void) : Connector (CT_CSR), _pServerMocket (NULL) { }
+    CSRConnector::CSRConnector (void) :
+        Connector (CT_CSR), _pServerMocket (nullptr) { }
 
     CSRConnector::~CSRConnector (void)
     {
@@ -43,7 +44,7 @@ namespace ACMNetProxy
                 _pServerMocket->close();
 
                 delete _pServerMocket;
-                _pServerMocket = NULL;
+                _pServerMocket = nullptr;
             }
             _mConnector.unlock();
         }
@@ -54,7 +55,7 @@ namespace ACMNetProxy
         int rc;
 
         ProxyCommInterface *pPCI = new ProxyCommInterface (NetProxyApplicationParameters::CSR_PROXY_SERVER_ADDR, NetProxyApplicationParameters::CSR_PROXY_SERVER_PORT);
-        _pServerMocket = new ServerMocket (NULL, pPCI);
+        _pServerMocket = new ServerMocket (nullptr, pPCI);
         if ((rc = _pServerMocket->listen (ui16MocketPort)) < 0) {
             checkAndLogMsg ("CSRConnector::init", Logger::L_MildError,
                             "listen() on ServerMocket failed - could not initialize to use port %d; rc = %d\n",
@@ -91,28 +92,37 @@ namespace ACMNetProxy
                 }
                 break;
             }
-
-            ConnectorAdapter * const pConnectorAdapter = ConnectorAdapter::ConnectorAdapterFactory (pMocket, CT_CSR);
+            pMocket->setLocalAddr(InetAddr(NetProxyApplicationParameters::EXTERNAL_IP_ADDR).getIPAsString());
+            ConnectorAdapter * const pConnectorAdapter = ConnectorAdapter::ConnectorAdapterFactory (pMocket, _connectorType);
             Connection * const pConnection = new Connection (pConnectorAdapter, this);
 
+            lockConnectionTable();
             pConnection->lock();
-            _mConnectionsTable.lock();
-            Connection *pOldConnection = _connectionsTable.put (generateUInt64Key (pMocket->getRemoteAddress(), pMocket->getRemotePort()), pConnection);
-            _mConnectionsTable.unlock();
 
+            Connection * const pOldConnection = _connectionsTable.put (
+                generateUInt64Key (pMocket->getRemoteAddress(), pMocket->getRemotePort(), pConnection->getEncryptionType()), pConnection);
             if (pOldConnection) {
                 // There was already a connection from this node to the remote node - close that one
+                checkAndLogMsg ("CSRConnector::run", Logger::L_Info,
+                                "replaced an existing CSRMocketConnection to <%s:%hu> in status %hu with a new instance\n",
+                                pConnection->getRemoteProxyInetAddr()->getIPAsString(),
+                                pConnection->getRemoteProxyInetAddr()->getPort(),
+                                pOldConnection->getStatus());
                 delete pOldConnection;
-                checkAndLogMsg ("MocketConnector::run", Logger::L_Info,
-                                "replaced an existing Mockets connection to <%s:%hu> with the new pair which has been received\n",
-                                pConnection->getRemoteProxyInetAddr()->getIPAsString(), pConnection->getRemoteProxyInetAddr()->getPort());
             }
-
+            else {
+                checkAndLogMsg ("CSRConnector::run", Logger::L_Info,
+                                "accepted a new CSR Mockets connection from <%s:%hu>\n",
+                                pConnection->getRemoteProxyInetAddr()->getIPAsString(),
+                                pConnection->getRemoteProxyInetAddr()->getPort());
+            }
             pConnection->startMessageHandler();
+
             pConnection->unlock();
+            unlockConnectionTable();
         }
-        checkAndLogMsg ("MocketConnector::run", Logger::L_Info,
-                        "MocketConnector terminated; termination code is %d\n",
+        checkAndLogMsg ("CSRConnector::run", Logger::L_Info,
+                        "CSRConnector terminated; termination code is %d\n",
                         getTerminatingResultCode());
 
         Connector::_pConnectionManager->deregisterConnector (_connectorType);

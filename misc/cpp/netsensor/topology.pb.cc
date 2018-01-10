@@ -17,3694 +17,1395 @@
 #include <google/protobuf/wire_format.h>
 // @@protoc_insertion_point(includes)
 
-namespace ddam {
+namespace netsensor {
 
-namespace {
+    namespace {
 
-const ::google::protobuf::Descriptor* TopologyParts_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  TopologyParts_reflection_ = NULL;
-const ::google::protobuf::Descriptor* Topology_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  Topology_reflection_ = NULL;
-const ::google::protobuf::Descriptor* Topology_InternalsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* Topology_LocalGwsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* Topology_RemoteGwsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* Topology_ExternalsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* Host_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  Host_reflection_ = NULL;
-const ::google::protobuf::Descriptor* ReadableTopology_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  ReadableTopology_reflection_ = NULL;
-const ::google::protobuf::Descriptor* ReadableTopology_InternalsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* ReadableTopology_LocalGwsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* ReadableTopology_RemoteGwsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* ReadableTopology_ExternalsEntry_descriptor_ = NULL;
-const ::google::protobuf::Descriptor* ReadableHost_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  ReadableHost_reflection_ = NULL;
+        const ::google::protobuf::Descriptor* Topology_descriptor_ = NULL;
+        const ::google::protobuf::internal::GeneratedMessageReflection*
+            Topology_reflection_ = NULL;
+        const ::google::protobuf::Descriptor* Host_descriptor_ = NULL;
+        const ::google::protobuf::internal::GeneratedMessageReflection*
+            Host_reflection_ = NULL;
+        const ::google::protobuf::Descriptor* NetworkInfo_descriptor_ = NULL;
+        const ::google::protobuf::internal::GeneratedMessageReflection*
+            NetworkInfo_reflection_ = NULL;
 
-}  // namespace
+    }  // namespace
 
 
-void protobuf_AssignDesc_topology_2eproto() {
-  protobuf_AddDesc_topology_2eproto();
-  const ::google::protobuf::FileDescriptor* file =
-    ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
-      "topology.proto");
-  GOOGLE_CHECK(file != NULL);
-  TopologyParts_descriptor_ = file->message_type(0);
-  static const int TopologyParts_offsets_[7] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, networkname_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, subnetmask_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, internals_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, localgws_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, remotegws_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, externals_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, timestamp_),
-  };
-  TopologyParts_reflection_ =
-    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
-      TopologyParts_descriptor_,
-      TopologyParts::default_instance_,
-      TopologyParts_offsets_,
-      -1,
-      -1,
-      -1,
-      sizeof(TopologyParts),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TopologyParts, _is_default_instance_));
-  Topology_descriptor_ = file->message_type(1);
-  static const int Topology_offsets_[7] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, networkname_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, subnetmask_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, internals_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, localgws_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, remotegws_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, externals_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, timestamp_),
-  };
-  Topology_reflection_ =
-    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
-      Topology_descriptor_,
-      Topology::default_instance_,
-      Topology_offsets_,
-      -1,
-      -1,
-      -1,
-      sizeof(Topology),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, _is_default_instance_));
-  Topology_InternalsEntry_descriptor_ = Topology_descriptor_->nested_type(0);
-  Topology_LocalGwsEntry_descriptor_ = Topology_descriptor_->nested_type(1);
-  Topology_RemoteGwsEntry_descriptor_ = Topology_descriptor_->nested_type(2);
-  Topology_ExternalsEntry_descriptor_ = Topology_descriptor_->nested_type(3);
-  Host_descriptor_ = file->message_type(2);
-  static const int Host_offsets_[4] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, ip_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, mac_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, gatewayname_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, isdefault_),
-  };
-  Host_reflection_ =
-    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
-      Host_descriptor_,
-      Host::default_instance_,
-      Host_offsets_,
-      -1,
-      -1,
-      -1,
-      sizeof(Host),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, _is_default_instance_));
-  ReadableTopology_descriptor_ = file->message_type(3);
-  static const int ReadableTopology_offsets_[7] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, networkname_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, subnetmask_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, internals_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, localgws_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, remotegws_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, externals_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, timestamp_),
-  };
-  ReadableTopology_reflection_ =
-    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
-      ReadableTopology_descriptor_,
-      ReadableTopology::default_instance_,
-      ReadableTopology_offsets_,
-      -1,
-      -1,
-      -1,
-      sizeof(ReadableTopology),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableTopology, _is_default_instance_));
-  ReadableTopology_InternalsEntry_descriptor_ = ReadableTopology_descriptor_->nested_type(0);
-  ReadableTopology_LocalGwsEntry_descriptor_ = ReadableTopology_descriptor_->nested_type(1);
-  ReadableTopology_RemoteGwsEntry_descriptor_ = ReadableTopology_descriptor_->nested_type(2);
-  ReadableTopology_ExternalsEntry_descriptor_ = ReadableTopology_descriptor_->nested_type(3);
-  ReadableHost_descriptor_ = file->message_type(4);
-  static const int ReadableHost_offsets_[4] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableHost, ip_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableHost, mac_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableHost, gatewayname_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableHost, isdefault_),
-  };
-  ReadableHost_reflection_ =
-    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
-      ReadableHost_descriptor_,
-      ReadableHost::default_instance_,
-      ReadableHost_offsets_,
-      -1,
-      -1,
-      -1,
-      sizeof(ReadableHost),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableHost, _internal_metadata_),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReadableHost, _is_default_instance_));
-}
+    void protobuf_AssignDesc_topology_2eproto() GOOGLE_ATTRIBUTE_COLD;
+    void protobuf_AssignDesc_topology_2eproto() {
+        protobuf_AddDesc_topology_2eproto();
+        const ::google::protobuf::FileDescriptor* file =
+            ::google::protobuf::DescriptorPool::generated_pool()->FindFileByName(
+                "topology.proto");
+        GOOGLE_CHECK(file != NULL);
+        Topology_descriptor_ = file->message_type(0);
+        static const int Topology_offsets_[3] = {
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, networkinfo_),
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, internals_),
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, localgws_),
+        };
+        Topology_reflection_ =
+            ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+                Topology_descriptor_,
+                Topology::internal_default_instance(),
+                Topology_offsets_,
+                -1,
+                -1,
+                -1,
+                sizeof(Topology),
+                GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Topology, _internal_metadata_));
+        Host_descriptor_ = file->message_type(1);
+        static const int Host_offsets_[2] = {
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, ip_),
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, mac_),
+        };
+        Host_reflection_ =
+            ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+                Host_descriptor_,
+                Host::internal_default_instance(),
+                Host_offsets_,
+                -1,
+                -1,
+                -1,
+                sizeof(Host),
+                GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Host, _internal_metadata_));
+        NetworkInfo_descriptor_ = file->message_type(2);
+        static const int NetworkInfo_offsets_[3] = {
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetworkInfo, networkname_),
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetworkInfo, networknetmask_),
+            GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetworkInfo, interfaceip_),
+        };
+        NetworkInfo_reflection_ =
+            ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+                NetworkInfo_descriptor_,
+                NetworkInfo::internal_default_instance(),
+                NetworkInfo_offsets_,
+                -1,
+                -1,
+                -1,
+                sizeof(NetworkInfo),
+                GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(NetworkInfo, _internal_metadata_));
+    }
 
-namespace {
+    namespace {
 
-GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_AssignDescriptors_once_);
-inline void protobuf_AssignDescriptorsOnce() {
-  ::google::protobuf::GoogleOnceInit(&protobuf_AssignDescriptors_once_,
-                 &protobuf_AssignDesc_topology_2eproto);
-}
+        GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_AssignDescriptors_once_);
+        void protobuf_AssignDescriptorsOnce() {
+            ::google::protobuf::GoogleOnceInit(&protobuf_AssignDescriptors_once_,
+                &protobuf_AssignDesc_topology_2eproto);
+        }
 
-void protobuf_RegisterTypes(const ::std::string&) {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      TopologyParts_descriptor_, &TopologyParts::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      Topology_descriptor_, &Topology::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        Topology_InternalsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::google::protobuf::uint32,
-            ::ddam::Host,
-            ::google::protobuf::internal::WireFormatLite::TYPE_UINT32,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                Topology_InternalsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        Topology_LocalGwsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::google::protobuf::uint32,
-            ::ddam::Host,
-            ::google::protobuf::internal::WireFormatLite::TYPE_UINT32,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                Topology_LocalGwsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        Topology_RemoteGwsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::google::protobuf::uint32,
-            ::ddam::Host,
-            ::google::protobuf::internal::WireFormatLite::TYPE_UINT32,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                Topology_RemoteGwsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        Topology_ExternalsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::google::protobuf::uint32,
-            ::ddam::Host,
-            ::google::protobuf::internal::WireFormatLite::TYPE_UINT32,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                Topology_ExternalsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      Host_descriptor_, &Host::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      ReadableTopology_descriptor_, &ReadableTopology::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        ReadableTopology_InternalsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::std::string,
-            ::ddam::ReadableHost,
-            ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                ReadableTopology_InternalsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        ReadableTopology_LocalGwsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::std::string,
-            ::ddam::ReadableHost,
-            ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                ReadableTopology_LocalGwsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        ReadableTopology_RemoteGwsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::std::string,
-            ::ddam::ReadableHost,
-            ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                ReadableTopology_RemoteGwsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-        ReadableTopology_ExternalsEntry_descriptor_,
-        ::google::protobuf::internal::MapEntry<
-            ::std::string,
-            ::ddam::ReadableHost,
-            ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
-            ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
-            0>::CreateDefaultInstance(
-                ReadableTopology_ExternalsEntry_descriptor_));
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-      ReadableHost_descriptor_, &ReadableHost::default_instance());
-}
+        void protobuf_RegisterTypes(const ::std::string&) GOOGLE_ATTRIBUTE_COLD;
+        void protobuf_RegisterTypes(const ::std::string&) {
+            protobuf_AssignDescriptorsOnce();
+            ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+                Topology_descriptor_, Topology::internal_default_instance());
+            ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+                Host_descriptor_, Host::internal_default_instance());
+            ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+                NetworkInfo_descriptor_, NetworkInfo::internal_default_instance());
+        }
 
-}  // namespace
+    }  // namespace
 
-void protobuf_ShutdownFile_topology_2eproto() {
-  delete TopologyParts::default_instance_;
-  delete TopologyParts_reflection_;
-  delete Topology::default_instance_;
-  delete Topology_reflection_;
-  delete Host::default_instance_;
-  delete Host_reflection_;
-  delete ReadableTopology::default_instance_;
-  delete ReadableTopology_reflection_;
-  delete ReadableHost::default_instance_;
-  delete ReadableHost_reflection_;
-}
+    void protobuf_ShutdownFile_topology_2eproto() {
+        Topology_default_instance_.Shutdown();
+        delete Topology_reflection_;
+        Host_default_instance_.Shutdown();
+        delete Host_reflection_;
+        NetworkInfo_default_instance_.Shutdown();
+        delete NetworkInfo_reflection_;
+    }
 
-void protobuf_AddDesc_topology_2eproto() {
-  static bool already_here = false;
-  if (already_here) return;
-  already_here = true;
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+    void protobuf_InitDefaults_topology_2eproto_impl() {
+        GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  ::google::protobuf::protobuf_AddDesc_google_2fprotobuf_2ftimestamp_2eproto();
-  ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\016topology.proto\022\004ddam\032\037google/protobuf/"
-    "timestamp.proto\"\342\001\n\rTopologyParts\022\023\n\013net"
-    "workName\030\001 \001(\t\022\022\n\nsubnetMask\030\002 \001(\t\022\035\n\tin"
-    "ternals\030\003 \003(\0132\n.ddam.Host\022\034\n\010localGws\030\004 "
-    "\003(\0132\n.ddam.Host\022\035\n\tremoteGws\030\005 \003(\0132\n.dda"
-    "m.Host\022\035\n\texternals\030\006 \003(\0132\n.ddam.Host\022-\n"
-    "\ttimestamp\030\007 \001(\0132\032.google.protobuf.Times"
-    "tamp\"\237\004\n\010Topology\022\023\n\013networkName\030\001 \001(\t\022\022"
-    "\n\nsubnetMask\030\002 \001(\t\0220\n\tinternals\030\004 \003(\0132\035."
-    "ddam.Topology.InternalsEntry\022.\n\010localGws"
-    "\030\005 \003(\0132\034.ddam.Topology.LocalGwsEntry\0220\n\t"
-    "remoteGws\030\006 \003(\0132\035.ddam.Topology.RemoteGw"
-    "sEntry\0220\n\texternals\030\007 \003(\0132\035.ddam.Topolog"
-    "y.ExternalsEntry\022-\n\ttimestamp\030\010 \001(\0132\032.go"
-    "ogle.protobuf.Timestamp\032<\n\016InternalsEntr"
-    "y\022\013\n\003key\030\001 \001(\r\022\031\n\005value\030\002 \001(\0132\n.ddam.Hos"
-    "t:\0028\001\032;\n\rLocalGwsEntry\022\013\n\003key\030\001 \001(\r\022\031\n\005v"
-    "alue\030\002 \001(\0132\n.ddam.Host:\0028\001\032<\n\016RemoteGwsE"
-    "ntry\022\013\n\003key\030\001 \001(\r\022\031\n\005value\030\002 \001(\0132\n.ddam."
-    "Host:\0028\001\032<\n\016ExternalsEntry\022\013\n\003key\030\001 \001(\r\022"
-    "\031\n\005value\030\002 \001(\0132\n.ddam.Host:\0028\001\"G\n\004Host\022\n"
-    "\n\002ip\030\001 \001(\r\022\013\n\003mac\030\002 \001(\t\022\023\n\013gatewayName\030\003"
-    " \001(\t\022\021\n\tisDefault\030\004 \001(\010\"\347\004\n\020ReadableTopo"
-    "logy\022\023\n\013networkName\030\001 \001(\t\022\022\n\nsubnetMask\030"
-    "\002 \001(\t\0228\n\tinternals\030\003 \003(\0132%.ddam.Readable"
-    "Topology.InternalsEntry\0226\n\010localGws\030\004 \003("
-    "\0132$.ddam.ReadableTopology.LocalGwsEntry\022"
-    "8\n\tremoteGws\030\005 \003(\0132%.ddam.ReadableTopolo"
-    "gy.RemoteGwsEntry\0228\n\texternals\030\006 \003(\0132%.d"
-    "dam.ReadableTopology.ExternalsEntry\022-\n\tt"
-    "imestamp\030\007 \001(\0132\032.google.protobuf.Timesta"
-    "mp\032D\n\016InternalsEntry\022\013\n\003key\030\001 \001(\t\022!\n\005val"
-    "ue\030\002 \001(\0132\022.ddam.ReadableHost:\0028\001\032C\n\rLoca"
-    "lGwsEntry\022\013\n\003key\030\001 \001(\t\022!\n\005value\030\002 \001(\0132\022."
-    "ddam.ReadableHost:\0028\001\032D\n\016RemoteGwsEntry\022"
-    "\013\n\003key\030\001 \001(\t\022!\n\005value\030\002 \001(\0132\022.ddam.Reada"
-    "bleHost:\0028\001\032D\n\016ExternalsEntry\022\013\n\003key\030\001 \001"
-    "(\t\022!\n\005value\030\002 \001(\0132\022.ddam.ReadableHost:\0028"
-    "\001\"O\n\014ReadableHost\022\n\n\002ip\030\001 \001(\t\022\013\n\003mac\030\002 \001"
-    "(\t\022\023\n\013gatewayName\030\003 \001(\t\022\021\n\tisDefault\030\004 \001"
-    "(\010B&\n\020us.ihmc.aci.ddamB\rTopologyProtoP\001\240"
-    "\001\001b\006proto3", 1650);
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
-    "topology.proto", &protobuf_RegisterTypes);
-  TopologyParts::default_instance_ = new TopologyParts();
-  Topology::default_instance_ = new Topology();
-  Host::default_instance_ = new Host();
-  ReadableTopology::default_instance_ = new ReadableTopology();
-  ReadableHost::default_instance_ = new ReadableHost();
-  TopologyParts::default_instance_->InitAsDefaultInstance();
-  Topology::default_instance_->InitAsDefaultInstance();
-  Host::default_instance_->InitAsDefaultInstance();
-  ReadableTopology::default_instance_->InitAsDefaultInstance();
-  ReadableHost::default_instance_->InitAsDefaultInstance();
-  ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_topology_2eproto);
-}
+        Topology_default_instance_.DefaultConstruct();
+        ::google::protobuf::internal::GetEmptyString();
+        Host_default_instance_.DefaultConstruct();
+        ::google::protobuf::internal::GetEmptyString();
+        NetworkInfo_default_instance_.DefaultConstruct();
+        Topology_default_instance_.get_mutable()->InitAsDefaultInstance();
+        Host_default_instance_.get_mutable()->InitAsDefaultInstance();
+        NetworkInfo_default_instance_.get_mutable()->InitAsDefaultInstance();
+    }
 
-// Force AddDescriptors() to be called at static initialization time.
-struct StaticDescriptorInitializer_topology_2eproto {
-  StaticDescriptorInitializer_topology_2eproto() {
-    protobuf_AddDesc_topology_2eproto();
-  }
-} static_descriptor_initializer_topology_2eproto_;
+    GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_InitDefaults_topology_2eproto_once_);
+    void protobuf_InitDefaults_topology_2eproto() {
+        ::google::protobuf::GoogleOnceInit(&protobuf_InitDefaults_topology_2eproto_once_,
+            &protobuf_InitDefaults_topology_2eproto_impl);
+    }
+    void protobuf_AddDesc_topology_2eproto_impl() {
+        GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-namespace {
+        protobuf_InitDefaults_topology_2eproto();
+        ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
+            "\n\016topology.proto\022\tnetsensor\"~\n\010Topology\022"
+            "+\n\013networkInfo\030\001 \001(\0132\026.netsensor.Network"
+            "Info\022\"\n\tinternals\030\002 \003(\0132\017.netsensor.Host"
+            "\022!\n\010localGws\030\003 \003(\0132\017.netsensor.Host\"\037\n\004H"
+            "ost\022\n\n\002ip\030\001 \001(\r\022\013\n\003mac\030\002 \001(\t\"O\n\013NetworkI"
+            "nfo\022\023\n\013networkName\030\001 \001(\t\022\026\n\016networkNetma"
+            "sk\030\002 \001(\t\022\023\n\013interfaceIp\030\003 \001(\rB\?\n\036us.ihmc"
+            ".ddam.sensors.netsensorB\rTopologyProtoP\001"
+            "Z\tnetsensor\240\001\001b\006proto3", 342);
+        ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
+            "topology.proto", &protobuf_RegisterTypes);
+        ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_topology_2eproto);
+    }
 
-static void MergeFromFail(int line) GOOGLE_ATTRIBUTE_COLD;
-static void MergeFromFail(int line) {
-  GOOGLE_CHECK(false) << __FILE__ << ":" << line;
-}
+    GOOGLE_PROTOBUF_DECLARE_ONCE(protobuf_AddDesc_topology_2eproto_once_);
+    void protobuf_AddDesc_topology_2eproto() {
+        ::google::protobuf::GoogleOnceInit(&protobuf_AddDesc_topology_2eproto_once_,
+            &protobuf_AddDesc_topology_2eproto_impl);
+    }
+    // Force AddDescriptors() to be called at static initialization time.
+    struct StaticDescriptorInitializer_topology_2eproto {
+        StaticDescriptorInitializer_topology_2eproto() {
+            protobuf_AddDesc_topology_2eproto();
+        }
+    } static_descriptor_initializer_topology_2eproto_;
 
-}  // namespace
+    namespace {
+
+        static void MergeFromFail(int line) GOOGLE_ATTRIBUTE_COLD GOOGLE_ATTRIBUTE_NORETURN;
+        static void MergeFromFail(int line) {
+            ::google::protobuf::internal::MergeFromFail(__FILE__, line);
+        }
+
+    }  // namespace
 
 
-// ===================================================================
+       // ===================================================================
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int TopologyParts::kNetworkNameFieldNumber;
-const int TopologyParts::kSubnetMaskFieldNumber;
-const int TopologyParts::kInternalsFieldNumber;
-const int TopologyParts::kLocalGwsFieldNumber;
-const int TopologyParts::kRemoteGwsFieldNumber;
-const int TopologyParts::kExternalsFieldNumber;
-const int TopologyParts::kTimestampFieldNumber;
+    const int Topology::kNetworkInfoFieldNumber;
+    const int Topology::kInternalsFieldNumber;
+    const int Topology::kLocalGwsFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
-TopologyParts::TopologyParts()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:ddam.TopologyParts)
-}
-
-void TopologyParts::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
-  timestamp_ = const_cast< ::google::protobuf::Timestamp*>(&::google::protobuf::Timestamp::default_instance());
-}
-
-TopologyParts::TopologyParts(const TopologyParts& from)
-  : ::google::protobuf::Message(),
-    _internal_metadata_(NULL) {
-  SharedCtor();
-  MergeFrom(from);
-  // @@protoc_insertion_point(copy_constructor:ddam.TopologyParts)
-}
-
-void TopologyParts::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  networkname_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  timestamp_ = NULL;
-}
-
-TopologyParts::~TopologyParts() {
-  // @@protoc_insertion_point(destructor:ddam.TopologyParts)
-  SharedDtor();
-}
-
-void TopologyParts::SharedDtor() {
-  networkname_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-    delete timestamp_;
-  }
-}
-
-void TopologyParts::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* TopologyParts::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return TopologyParts_descriptor_;
-}
-
-const TopologyParts& TopologyParts::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_topology_2eproto();
-  return *default_instance_;
-}
-
-TopologyParts* TopologyParts::default_instance_ = NULL;
-
-TopologyParts* TopologyParts::New(::google::protobuf::Arena* arena) const {
-  TopologyParts* n = new TopologyParts;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void TopologyParts::Clear() {
-  networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (GetArenaNoVirtual() == NULL && timestamp_ != NULL) delete timestamp_;
-  timestamp_ = NULL;
-  internals_.Clear();
-  localgws_.Clear();
-  remotegws_.Clear();
-  externals_.Clear();
-}
-
-bool TopologyParts::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:ddam.TopologyParts)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string networkName = 1;
-      case 1: {
-        if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_networkname()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->networkname().data(), this->networkname().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.TopologyParts.networkName"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(18)) goto parse_subnetMask;
-        break;
-      }
-
-      // optional string subnetMask = 2;
-      case 2: {
-        if (tag == 18) {
-         parse_subnetMask:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_subnetmask()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->subnetmask().data(), this->subnetmask().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.TopologyParts.subnetMask"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(26)) goto parse_internals;
-        break;
-      }
-
-      // repeated .ddam.Host internals = 3;
-      case 3: {
-        if (tag == 26) {
-         parse_internals:
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_internals:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
-                input, add_internals()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(26)) goto parse_loop_internals;
-        if (input->ExpectTag(34)) goto parse_loop_localGws;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // repeated .ddam.Host localGws = 4;
-      case 4: {
-        if (tag == 34) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_localGws:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
-                input, add_localgws()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(34)) goto parse_loop_localGws;
-        if (input->ExpectTag(42)) goto parse_loop_remoteGws;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // repeated .ddam.Host remoteGws = 5;
-      case 5: {
-        if (tag == 42) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_remoteGws:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
-                input, add_remotegws()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(42)) goto parse_loop_remoteGws;
-        if (input->ExpectTag(50)) goto parse_loop_externals;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // repeated .ddam.Host externals = 6;
-      case 6: {
-        if (tag == 50) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_externals:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
-                input, add_externals()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(50)) goto parse_loop_externals;
-        input->UnsafeDecrementRecursionDepth();
-        if (input->ExpectTag(58)) goto parse_timestamp;
-        break;
-      }
-
-      // optional .google.protobuf.Timestamp timestamp = 7;
-      case 7: {
-        if (tag == 58) {
-         parse_timestamp:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_timestamp()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectAtEnd()) goto success;
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
-        break;
-      }
+    Topology::Topology()
+        : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+        if (this != internal_default_instance()) protobuf_InitDefaults_topology_2eproto();
+        SharedCtor();
+        // @@protoc_insertion_point(constructor:netsensor.Topology)
     }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:ddam.TopologyParts)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:ddam.TopologyParts)
-  return false;
+
+    void Topology::InitAsDefaultInstance() {
+        networkinfo_ = const_cast< ::netsensor::NetworkInfo*>(
+            ::netsensor::NetworkInfo::internal_default_instance());
+    }
+
+    Topology::Topology(const Topology& from)
+        : ::google::protobuf::Message(),
+        _internal_metadata_(NULL) {
+        SharedCtor();
+        UnsafeMergeFrom(from);
+        // @@protoc_insertion_point(copy_constructor:netsensor.Topology)
+    }
+
+    void Topology::SharedCtor() {
+        networkinfo_ = NULL;
+        _cached_size_ = 0;
+    }
+
+    Topology::~Topology() {
+        // @@protoc_insertion_point(destructor:netsensor.Topology)
+        SharedDtor();
+    }
+
+    void Topology::SharedDtor() {
+        if (this != &Topology_default_instance_.get()) {
+            delete networkinfo_;
+        }
+    }
+
+    void Topology::SetCachedSize(int size) const {
+        GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+        _cached_size_ = size;
+        GOOGLE_SAFE_CONCURRENT_WRITES_END();
+    }
+    const ::google::protobuf::Descriptor* Topology::descriptor() {
+        protobuf_AssignDescriptorsOnce();
+        return Topology_descriptor_;
+    }
+
+    const Topology& Topology::default_instance() {
+        protobuf_InitDefaults_topology_2eproto();
+        return *internal_default_instance();
+    }
+
+    ::google::protobuf::internal::ExplicitlyConstructed<Topology> Topology_default_instance_;
+
+    Topology* Topology::New(::google::protobuf::Arena* arena) const {
+        Topology* n = new Topology;
+        if (arena != NULL) {
+            arena->Own(n);
+        }
+        return n;
+    }
+
+    void Topology::Clear() {
+        // @@protoc_insertion_point(message_clear_start:netsensor.Topology)
+        if (GetArenaNoVirtual() == NULL && networkinfo_ != NULL) delete networkinfo_;
+        networkinfo_ = NULL;
+        internals_.Clear();
+        localgws_.Clear();
+    }
+
+    bool Topology::MergePartialFromCodedStream(
+        ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+        ::google::protobuf::uint32 tag;
+        // @@protoc_insertion_point(parse_start:netsensor.Topology)
+        for (;;) {
+            ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+            tag = p.first;
+            if (!p.second) goto handle_unusual;
+            switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+                // optional .netsensor.NetworkInfo networkInfo = 1;
+            case 1: {
+                if (tag == 10) {
+                    DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+                        input, mutable_networkinfo()));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectTag(18)) goto parse_internals;
+                break;
+            }
+
+                    // repeated .netsensor.Host internals = 2;
+            case 2: {
+                if (tag == 18) {
+                parse_internals:
+                    DO_(input->IncrementRecursionDepth());
+                parse_loop_internals:
+                    DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                        input, add_internals()));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectTag(18)) goto parse_loop_internals;
+                if (input->ExpectTag(26)) goto parse_loop_localGws;
+                input->UnsafeDecrementRecursionDepth();
+                break;
+            }
+
+                    // repeated .netsensor.Host localGws = 3;
+            case 3: {
+                if (tag == 26) {
+                    DO_(input->IncrementRecursionDepth());
+                parse_loop_localGws:
+                    DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                        input, add_localgws()));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectTag(26)) goto parse_loop_localGws;
+                input->UnsafeDecrementRecursionDepth();
+                if (input->ExpectAtEnd()) goto success;
+                break;
+            }
+
+            default: {
+            handle_unusual:
+                if (tag == 0 ||
+                    ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+                    ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+                    goto success;
+                }
+                DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+                break;
+            }
+            }
+        }
+    success:
+        // @@protoc_insertion_point(parse_success:netsensor.Topology)
+        return true;
+    failure:
+        // @@protoc_insertion_point(parse_failure:netsensor.Topology)
+        return false;
 #undef DO_
-}
+    }
 
-void TopologyParts::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:ddam.TopologyParts)
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->networkname().data(), this->networkname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.TopologyParts.networkName");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      1, this->networkname(), output);
-  }
+    void Topology::SerializeWithCachedSizes(
+        ::google::protobuf::io::CodedOutputStream* output) const {
+        // @@protoc_insertion_point(serialize_start:netsensor.Topology)
+        // optional .netsensor.NetworkInfo networkInfo = 1;
+        if (this->has_networkinfo()) {
+            ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+                1, *this->networkinfo_, output);
+        }
 
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->subnetmask().data(), this->subnetmask().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.TopologyParts.subnetMask");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->subnetmask(), output);
-  }
+        // repeated .netsensor.Host internals = 2;
+        for (unsigned int i = 0, n = this->internals_size(); i < n; i++) {
+            ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+                2, this->internals(i), output);
+        }
 
-  // repeated .ddam.Host internals = 3;
-  for (unsigned int i = 0, n = this->internals_size(); i < n; i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      3, this->internals(i), output);
-  }
+        // repeated .netsensor.Host localGws = 3;
+        for (unsigned int i = 0, n = this->localgws_size(); i < n; i++) {
+            ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+                3, this->localgws(i), output);
+        }
 
-  // repeated .ddam.Host localGws = 4;
-  for (unsigned int i = 0, n = this->localgws_size(); i < n; i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      4, this->localgws(i), output);
-  }
+        // @@protoc_insertion_point(serialize_end:netsensor.Topology)
+    }
 
-  // repeated .ddam.Host remoteGws = 5;
-  for (unsigned int i = 0, n = this->remotegws_size(); i < n; i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      5, this->remotegws(i), output);
-  }
+    ::google::protobuf::uint8* Topology::InternalSerializeWithCachedSizesToArray(
+        bool deterministic, ::google::protobuf::uint8* target) const {
+        (void)deterministic; // Unused
+                             // @@protoc_insertion_point(serialize_to_array_start:netsensor.Topology)
+                             // optional .netsensor.NetworkInfo networkInfo = 1;
+        if (this->has_networkinfo()) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                InternalWriteMessageNoVirtualToArray(
+                    1, *this->networkinfo_, false, target);
+        }
 
-  // repeated .ddam.Host externals = 6;
-  for (unsigned int i = 0, n = this->externals_size(); i < n; i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      6, this->externals(i), output);
-  }
+        // repeated .netsensor.Host internals = 2;
+        for (unsigned int i = 0, n = this->internals_size(); i < n; i++) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                InternalWriteMessageNoVirtualToArray(
+                    2, this->internals(i), false, target);
+        }
 
-  // optional .google.protobuf.Timestamp timestamp = 7;
-  if (this->has_timestamp()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      7, *this->timestamp_, output);
-  }
+        // repeated .netsensor.Host localGws = 3;
+        for (unsigned int i = 0, n = this->localgws_size(); i < n; i++) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                InternalWriteMessageNoVirtualToArray(
+                    3, this->localgws(i), false, target);
+        }
 
-  // @@protoc_insertion_point(serialize_end:ddam.TopologyParts)
-}
+        // @@protoc_insertion_point(serialize_to_array_end:netsensor.Topology)
+        return target;
+    }
 
-::google::protobuf::uint8* TopologyParts::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ddam.TopologyParts)
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->networkname().data(), this->networkname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.TopologyParts.networkName");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->networkname(), target);
-  }
+    size_t Topology::ByteSizeLong() const {
+        // @@protoc_insertion_point(message_byte_size_start:netsensor.Topology)
+        size_t total_size = 0;
 
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->subnetmask().data(), this->subnetmask().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.TopologyParts.subnetMask");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->subnetmask(), target);
-  }
+        // optional .netsensor.NetworkInfo networkInfo = 1;
+        if (this->has_networkinfo()) {
+            total_size += 1 +
+                ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+                    *this->networkinfo_);
+        }
 
-  // repeated .ddam.Host internals = 3;
-  for (unsigned int i = 0, n = this->internals_size(); i < n; i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        3, this->internals(i), target);
-  }
+        // repeated .netsensor.Host internals = 2;
+        {
+            unsigned int count = this->internals_size();
+            total_size += 1UL * count;
+            for (unsigned int i = 0; i < count; i++) {
+                total_size +=
+                    ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+                        this->internals(i));
+            }
+        }
 
-  // repeated .ddam.Host localGws = 4;
-  for (unsigned int i = 0, n = this->localgws_size(); i < n; i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        4, this->localgws(i), target);
-  }
+        // repeated .netsensor.Host localGws = 3;
+        {
+            unsigned int count = this->localgws_size();
+            total_size += 1UL * count;
+            for (unsigned int i = 0; i < count; i++) {
+                total_size +=
+                    ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+                        this->localgws(i));
+            }
+        }
 
-  // repeated .ddam.Host remoteGws = 5;
-  for (unsigned int i = 0, n = this->remotegws_size(); i < n; i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        5, this->remotegws(i), target);
-  }
+        int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+        GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+        _cached_size_ = cached_size;
+        GOOGLE_SAFE_CONCURRENT_WRITES_END();
+        return total_size;
+    }
 
-  // repeated .ddam.Host externals = 6;
-  for (unsigned int i = 0, n = this->externals_size(); i < n; i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        6, this->externals(i), target);
-  }
+    void Topology::MergeFrom(const ::google::protobuf::Message& from) {
+        // @@protoc_insertion_point(generalized_merge_from_start:netsensor.Topology)
+        if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+        const Topology* source =
+            ::google::protobuf::internal::DynamicCastToGenerated<const Topology>(
+                &from);
+        if (source == NULL) {
+            // @@protoc_insertion_point(generalized_merge_from_cast_fail:netsensor.Topology)
+            ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+        }
+        else {
+            // @@protoc_insertion_point(generalized_merge_from_cast_success:netsensor.Topology)
+            UnsafeMergeFrom(*source);
+        }
+    }
 
-  // optional .google.protobuf.Timestamp timestamp = 7;
-  if (this->has_timestamp()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        7, *this->timestamp_, target);
-  }
+    void Topology::MergeFrom(const Topology& from) {
+        // @@protoc_insertion_point(class_specific_merge_from_start:netsensor.Topology)
+        if (GOOGLE_PREDICT_TRUE(&from != this)) {
+            UnsafeMergeFrom(from);
+        }
+        else {
+            MergeFromFail(__LINE__);
+        }
+    }
 
-  // @@protoc_insertion_point(serialize_to_array_end:ddam.TopologyParts)
-  return target;
-}
+    void Topology::UnsafeMergeFrom(const Topology& from) {
+        GOOGLE_DCHECK(&from != this);
+        internals_.MergeFrom(from.internals_);
+        localgws_.MergeFrom(from.localgws_);
+        if (from.has_networkinfo()) {
+            mutable_networkinfo()->::netsensor::NetworkInfo::MergeFrom(from.networkinfo());
+        }
+    }
 
-int TopologyParts::ByteSize() const {
-  int total_size = 0;
+    void Topology::CopyFrom(const ::google::protobuf::Message& from) {
+        // @@protoc_insertion_point(generalized_copy_from_start:netsensor.Topology)
+        if (&from == this) return;
+        Clear();
+        MergeFrom(from);
+    }
 
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->networkname());
-  }
+    void Topology::CopyFrom(const Topology& from) {
+        // @@protoc_insertion_point(class_specific_copy_from_start:netsensor.Topology)
+        if (&from == this) return;
+        Clear();
+        UnsafeMergeFrom(from);
+    }
 
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->subnetmask());
-  }
+    bool Topology::IsInitialized() const {
 
-  // optional .google.protobuf.Timestamp timestamp = 7;
-  if (this->has_timestamp()) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        *this->timestamp_);
-  }
+        return true;
+    }
 
-  // repeated .ddam.Host internals = 3;
-  total_size += 1 * this->internals_size();
-  for (int i = 0; i < this->internals_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->internals(i));
-  }
+    void Topology::Swap(Topology* other) {
+        if (other == this) return;
+        InternalSwap(other);
+    }
+    void Topology::InternalSwap(Topology* other) {
+        std::swap(networkinfo_, other->networkinfo_);
+        internals_.UnsafeArenaSwap(&other->internals_);
+        localgws_.UnsafeArenaSwap(&other->localgws_);
+        _internal_metadata_.Swap(&other->_internal_metadata_);
+        std::swap(_cached_size_, other->_cached_size_);
+    }
 
-  // repeated .ddam.Host localGws = 4;
-  total_size += 1 * this->localgws_size();
-  for (int i = 0; i < this->localgws_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->localgws(i));
-  }
-
-  // repeated .ddam.Host remoteGws = 5;
-  total_size += 1 * this->remotegws_size();
-  for (int i = 0; i < this->remotegws_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->remotegws(i));
-  }
-
-  // repeated .ddam.Host externals = 6;
-  total_size += 1 * this->externals_size();
-  for (int i = 0; i < this->externals_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->externals(i));
-  }
-
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void TopologyParts::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  const TopologyParts* source = 
-      ::google::protobuf::internal::DynamicCastToGenerated<const TopologyParts>(
-          &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
-
-void TopologyParts::MergeFrom(const TopologyParts& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  internals_.MergeFrom(from.internals_);
-  localgws_.MergeFrom(from.localgws_);
-  remotegws_.MergeFrom(from.remotegws_);
-  externals_.MergeFrom(from.externals_);
-  if (from.networkname().size() > 0) {
-
-    networkname_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.networkname_);
-  }
-  if (from.subnetmask().size() > 0) {
-
-    subnetmask_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.subnetmask_);
-  }
-  if (from.has_timestamp()) {
-    mutable_timestamp()->::google::protobuf::Timestamp::MergeFrom(from.timestamp());
-  }
-}
-
-void TopologyParts::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void TopologyParts::CopyFrom(const TopologyParts& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool TopologyParts::IsInitialized() const {
-
-  return true;
-}
-
-void TopologyParts::Swap(TopologyParts* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
-void TopologyParts::InternalSwap(TopologyParts* other) {
-  networkname_.Swap(&other->networkname_);
-  subnetmask_.Swap(&other->subnetmask_);
-  internals_.UnsafeArenaSwap(&other->internals_);
-  localgws_.UnsafeArenaSwap(&other->localgws_);
-  remotegws_.UnsafeArenaSwap(&other->remotegws_);
-  externals_.UnsafeArenaSwap(&other->externals_);
-  std::swap(timestamp_, other->timestamp_);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  std::swap(_cached_size_, other->_cached_size_);
-}
-
-::google::protobuf::Metadata TopologyParts::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = TopologyParts_descriptor_;
-  metadata.reflection = TopologyParts_reflection_;
-  return metadata;
-}
+    ::google::protobuf::Metadata Topology::GetMetadata() const {
+        protobuf_AssignDescriptorsOnce();
+        ::google::protobuf::Metadata metadata;
+        metadata.descriptor = Topology_descriptor_;
+        metadata.reflection = Topology_reflection_;
+        return metadata;
+    }
 
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
-// TopologyParts
+    // Topology
 
-// optional string networkName = 1;
-void TopologyParts::clear_networkname() {
-  networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& TopologyParts::networkname() const {
-  // @@protoc_insertion_point(field_get:ddam.TopologyParts.networkName)
-  return networkname_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void TopologyParts::set_networkname(const ::std::string& value) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.TopologyParts.networkName)
-}
- void TopologyParts::set_networkname(const char* value) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.TopologyParts.networkName)
-}
- void TopologyParts::set_networkname(const char* value, size_t size) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.TopologyParts.networkName)
-}
- ::std::string* TopologyParts::mutable_networkname() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.TopologyParts.networkName)
-  return networkname_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* TopologyParts::release_networkname() {
-  
-  return networkname_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void TopologyParts::set_allocated_networkname(::std::string* networkname) {
-  if (networkname != NULL) {
-    
-  } else {
-    
-  }
-  networkname_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), networkname);
-  // @@protoc_insertion_point(field_set_allocated:ddam.TopologyParts.networkName)
-}
+    // optional .netsensor.NetworkInfo networkInfo = 1;
+    bool Topology::has_networkinfo() const {
+        return this != internal_default_instance() && networkinfo_ != NULL;
+    }
+    void Topology::clear_networkinfo() {
+        if (GetArenaNoVirtual() == NULL && networkinfo_ != NULL) delete networkinfo_;
+        networkinfo_ = NULL;
+    }
+    const ::netsensor::NetworkInfo& Topology::networkinfo() const {
+        // @@protoc_insertion_point(field_get:netsensor.Topology.networkInfo)
+        return networkinfo_ != NULL ? *networkinfo_
+            : *::netsensor::NetworkInfo::internal_default_instance();
+    }
+    ::netsensor::NetworkInfo* Topology::mutable_networkinfo() {
 
-// optional string subnetMask = 2;
-void TopologyParts::clear_subnetmask() {
-  subnetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& TopologyParts::subnetmask() const {
-  // @@protoc_insertion_point(field_get:ddam.TopologyParts.subnetMask)
-  return subnetmask_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void TopologyParts::set_subnetmask(const ::std::string& value) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.TopologyParts.subnetMask)
-}
- void TopologyParts::set_subnetmask(const char* value) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.TopologyParts.subnetMask)
-}
- void TopologyParts::set_subnetmask(const char* value, size_t size) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.TopologyParts.subnetMask)
-}
- ::std::string* TopologyParts::mutable_subnetmask() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.TopologyParts.subnetMask)
-  return subnetmask_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* TopologyParts::release_subnetmask() {
-  
-  return subnetmask_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void TopologyParts::set_allocated_subnetmask(::std::string* subnetmask) {
-  if (subnetmask != NULL) {
-    
-  } else {
-    
-  }
-  subnetmask_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), subnetmask);
-  // @@protoc_insertion_point(field_set_allocated:ddam.TopologyParts.subnetMask)
-}
+        if (networkinfo_ == NULL) {
+            networkinfo_ = new ::netsensor::NetworkInfo;
+        }
+        // @@protoc_insertion_point(field_mutable:netsensor.Topology.networkInfo)
+        return networkinfo_;
+    }
+    ::netsensor::NetworkInfo* Topology::release_networkinfo() {
+        // @@protoc_insertion_point(field_release:netsensor.Topology.networkInfo)
 
-// repeated .ddam.Host internals = 3;
-int TopologyParts::internals_size() const {
-  return internals_.size();
-}
-void TopologyParts::clear_internals() {
-  internals_.Clear();
-}
-const ::ddam::Host& TopologyParts::internals(int index) const {
-  // @@protoc_insertion_point(field_get:ddam.TopologyParts.internals)
-  return internals_.Get(index);
-}
-::ddam::Host* TopologyParts::mutable_internals(int index) {
-  // @@protoc_insertion_point(field_mutable:ddam.TopologyParts.internals)
-  return internals_.Mutable(index);
-}
-::ddam::Host* TopologyParts::add_internals() {
-  // @@protoc_insertion_point(field_add:ddam.TopologyParts.internals)
-  return internals_.Add();
-}
-::google::protobuf::RepeatedPtrField< ::ddam::Host >*
-TopologyParts::mutable_internals() {
-  // @@protoc_insertion_point(field_mutable_list:ddam.TopologyParts.internals)
-  return &internals_;
-}
-const ::google::protobuf::RepeatedPtrField< ::ddam::Host >&
-TopologyParts::internals() const {
-  // @@protoc_insertion_point(field_list:ddam.TopologyParts.internals)
-  return internals_;
-}
+        ::netsensor::NetworkInfo* temp = networkinfo_;
+        networkinfo_ = NULL;
+        return temp;
+    }
+    void Topology::set_allocated_networkinfo(::netsensor::NetworkInfo* networkinfo) {
+        delete networkinfo_;
+        networkinfo_ = networkinfo;
+        if (networkinfo) {
 
-// repeated .ddam.Host localGws = 4;
-int TopologyParts::localgws_size() const {
-  return localgws_.size();
-}
-void TopologyParts::clear_localgws() {
-  localgws_.Clear();
-}
-const ::ddam::Host& TopologyParts::localgws(int index) const {
-  // @@protoc_insertion_point(field_get:ddam.TopologyParts.localGws)
-  return localgws_.Get(index);
-}
-::ddam::Host* TopologyParts::mutable_localgws(int index) {
-  // @@protoc_insertion_point(field_mutable:ddam.TopologyParts.localGws)
-  return localgws_.Mutable(index);
-}
-::ddam::Host* TopologyParts::add_localgws() {
-  // @@protoc_insertion_point(field_add:ddam.TopologyParts.localGws)
-  return localgws_.Add();
-}
-::google::protobuf::RepeatedPtrField< ::ddam::Host >*
-TopologyParts::mutable_localgws() {
-  // @@protoc_insertion_point(field_mutable_list:ddam.TopologyParts.localGws)
-  return &localgws_;
-}
-const ::google::protobuf::RepeatedPtrField< ::ddam::Host >&
-TopologyParts::localgws() const {
-  // @@protoc_insertion_point(field_list:ddam.TopologyParts.localGws)
-  return localgws_;
-}
+        }
+        else {
 
-// repeated .ddam.Host remoteGws = 5;
-int TopologyParts::remotegws_size() const {
-  return remotegws_.size();
-}
-void TopologyParts::clear_remotegws() {
-  remotegws_.Clear();
-}
-const ::ddam::Host& TopologyParts::remotegws(int index) const {
-  // @@protoc_insertion_point(field_get:ddam.TopologyParts.remoteGws)
-  return remotegws_.Get(index);
-}
-::ddam::Host* TopologyParts::mutable_remotegws(int index) {
-  // @@protoc_insertion_point(field_mutable:ddam.TopologyParts.remoteGws)
-  return remotegws_.Mutable(index);
-}
-::ddam::Host* TopologyParts::add_remotegws() {
-  // @@protoc_insertion_point(field_add:ddam.TopologyParts.remoteGws)
-  return remotegws_.Add();
-}
-::google::protobuf::RepeatedPtrField< ::ddam::Host >*
-TopologyParts::mutable_remotegws() {
-  // @@protoc_insertion_point(field_mutable_list:ddam.TopologyParts.remoteGws)
-  return &remotegws_;
-}
-const ::google::protobuf::RepeatedPtrField< ::ddam::Host >&
-TopologyParts::remotegws() const {
-  // @@protoc_insertion_point(field_list:ddam.TopologyParts.remoteGws)
-  return remotegws_;
-}
+        }
+        // @@protoc_insertion_point(field_set_allocated:netsensor.Topology.networkInfo)
+    }
 
-// repeated .ddam.Host externals = 6;
-int TopologyParts::externals_size() const {
-  return externals_.size();
-}
-void TopologyParts::clear_externals() {
-  externals_.Clear();
-}
-const ::ddam::Host& TopologyParts::externals(int index) const {
-  // @@protoc_insertion_point(field_get:ddam.TopologyParts.externals)
-  return externals_.Get(index);
-}
-::ddam::Host* TopologyParts::mutable_externals(int index) {
-  // @@protoc_insertion_point(field_mutable:ddam.TopologyParts.externals)
-  return externals_.Mutable(index);
-}
-::ddam::Host* TopologyParts::add_externals() {
-  // @@protoc_insertion_point(field_add:ddam.TopologyParts.externals)
-  return externals_.Add();
-}
-::google::protobuf::RepeatedPtrField< ::ddam::Host >*
-TopologyParts::mutable_externals() {
-  // @@protoc_insertion_point(field_mutable_list:ddam.TopologyParts.externals)
-  return &externals_;
-}
-const ::google::protobuf::RepeatedPtrField< ::ddam::Host >&
-TopologyParts::externals() const {
-  // @@protoc_insertion_point(field_list:ddam.TopologyParts.externals)
-  return externals_;
-}
+    // repeated .netsensor.Host internals = 2;
+    int Topology::internals_size() const {
+        return internals_.size();
+    }
+    void Topology::clear_internals() {
+        internals_.Clear();
+    }
+    const ::netsensor::Host& Topology::internals(int index) const {
+        // @@protoc_insertion_point(field_get:netsensor.Topology.internals)
+        return internals_.Get(index);
+    }
+    ::netsensor::Host* Topology::mutable_internals(int index) {
+        // @@protoc_insertion_point(field_mutable:netsensor.Topology.internals)
+        return internals_.Mutable(index);
+    }
+    ::netsensor::Host* Topology::add_internals() {
+        // @@protoc_insertion_point(field_add:netsensor.Topology.internals)
+        return internals_.Add();
+    }
+    ::google::protobuf::RepeatedPtrField< ::netsensor::Host >*
+        Topology::mutable_internals() {
+        // @@protoc_insertion_point(field_mutable_list:netsensor.Topology.internals)
+        return &internals_;
+    }
+    const ::google::protobuf::RepeatedPtrField< ::netsensor::Host >&
+        Topology::internals() const {
+        // @@protoc_insertion_point(field_list:netsensor.Topology.internals)
+        return internals_;
+    }
 
-// optional .google.protobuf.Timestamp timestamp = 7;
-bool TopologyParts::has_timestamp() const {
-  return !_is_default_instance_ && timestamp_ != NULL;
-}
-void TopologyParts::clear_timestamp() {
-  if (GetArenaNoVirtual() == NULL && timestamp_ != NULL) delete timestamp_;
-  timestamp_ = NULL;
-}
-const ::google::protobuf::Timestamp& TopologyParts::timestamp() const {
-  // @@protoc_insertion_point(field_get:ddam.TopologyParts.timestamp)
-  return timestamp_ != NULL ? *timestamp_ : *default_instance_->timestamp_;
-}
-::google::protobuf::Timestamp* TopologyParts::mutable_timestamp() {
-  
-  if (timestamp_ == NULL) {
-    timestamp_ = new ::google::protobuf::Timestamp;
-  }
-  // @@protoc_insertion_point(field_mutable:ddam.TopologyParts.timestamp)
-  return timestamp_;
-}
-::google::protobuf::Timestamp* TopologyParts::release_timestamp() {
-  
-  ::google::protobuf::Timestamp* temp = timestamp_;
-  timestamp_ = NULL;
-  return temp;
-}
-void TopologyParts::set_allocated_timestamp(::google::protobuf::Timestamp* timestamp) {
-  delete timestamp_;
-  if (timestamp != NULL && timestamp->GetArena() != NULL) {
-    ::google::protobuf::Timestamp* new_timestamp = new ::google::protobuf::Timestamp;
-    new_timestamp->CopyFrom(*timestamp);
-    timestamp = new_timestamp;
-  }
-  timestamp_ = timestamp;
-  if (timestamp) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_set_allocated:ddam.TopologyParts.timestamp)
-}
+    // repeated .netsensor.Host localGws = 3;
+    int Topology::localgws_size() const {
+        return localgws_.size();
+    }
+    void Topology::clear_localgws() {
+        localgws_.Clear();
+    }
+    const ::netsensor::Host& Topology::localgws(int index) const {
+        // @@protoc_insertion_point(field_get:netsensor.Topology.localGws)
+        return localgws_.Get(index);
+    }
+    ::netsensor::Host* Topology::mutable_localgws(int index) {
+        // @@protoc_insertion_point(field_mutable:netsensor.Topology.localGws)
+        return localgws_.Mutable(index);
+    }
+    ::netsensor::Host* Topology::add_localgws() {
+        // @@protoc_insertion_point(field_add:netsensor.Topology.localGws)
+        return localgws_.Add();
+    }
+    ::google::protobuf::RepeatedPtrField< ::netsensor::Host >*
+        Topology::mutable_localgws() {
+        // @@protoc_insertion_point(field_mutable_list:netsensor.Topology.localGws)
+        return &localgws_;
+    }
+    const ::google::protobuf::RepeatedPtrField< ::netsensor::Host >&
+        Topology::localgws() const {
+        // @@protoc_insertion_point(field_list:netsensor.Topology.localGws)
+        return localgws_;
+    }
 
+    inline const Topology* Topology::internal_default_instance() {
+        return &Topology_default_instance_.get();
+    }
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
-// ===================================================================
+    // ===================================================================
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int Topology::kNetworkNameFieldNumber;
-const int Topology::kSubnetMaskFieldNumber;
-const int Topology::kInternalsFieldNumber;
-const int Topology::kLocalGwsFieldNumber;
-const int Topology::kRemoteGwsFieldNumber;
-const int Topology::kExternalsFieldNumber;
-const int Topology::kTimestampFieldNumber;
+    const int Host::kIpFieldNumber;
+    const int Host::kMacFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
-Topology::Topology()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:ddam.Topology)
-}
-
-void Topology::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
-  timestamp_ = const_cast< ::google::protobuf::Timestamp*>(&::google::protobuf::Timestamp::default_instance());
-}
-
-Topology::Topology(const Topology& from)
-  : ::google::protobuf::Message(),
-    _internal_metadata_(NULL) {
-  SharedCtor();
-  MergeFrom(from);
-  // @@protoc_insertion_point(copy_constructor:ddam.Topology)
-}
-
-void Topology::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  networkname_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  internals_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  internals_.SetEntryDescriptor(
-      &::ddam::Topology_InternalsEntry_descriptor_);
-  localgws_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  localgws_.SetEntryDescriptor(
-      &::ddam::Topology_LocalGwsEntry_descriptor_);
-  remotegws_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  remotegws_.SetEntryDescriptor(
-      &::ddam::Topology_RemoteGwsEntry_descriptor_);
-  externals_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  externals_.SetEntryDescriptor(
-      &::ddam::Topology_ExternalsEntry_descriptor_);
-  timestamp_ = NULL;
-}
-
-Topology::~Topology() {
-  // @@protoc_insertion_point(destructor:ddam.Topology)
-  SharedDtor();
-}
-
-void Topology::SharedDtor() {
-  networkname_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-    delete timestamp_;
-  }
-}
-
-void Topology::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* Topology::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return Topology_descriptor_;
-}
-
-const Topology& Topology::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_topology_2eproto();
-  return *default_instance_;
-}
-
-Topology* Topology::default_instance_ = NULL;
-
-Topology* Topology::New(::google::protobuf::Arena* arena) const {
-  Topology* n = new Topology;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void Topology::Clear() {
-  networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (GetArenaNoVirtual() == NULL && timestamp_ != NULL) delete timestamp_;
-  timestamp_ = NULL;
-  internals_.Clear();
-  localgws_.Clear();
-  remotegws_.Clear();
-  externals_.Clear();
-}
-
-bool Topology::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:ddam.Topology)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string networkName = 1;
-      case 1: {
-        if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_networkname()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->networkname().data(), this->networkname().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.Topology.networkName"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(18)) goto parse_subnetMask;
-        break;
-      }
-
-      // optional string subnetMask = 2;
-      case 2: {
-        if (tag == 18) {
-         parse_subnetMask:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_subnetmask()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->subnetmask().data(), this->subnetmask().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.Topology.subnetMask"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(34)) goto parse_internals;
-        break;
-      }
-
-      // map<uint32, .ddam.Host> internals = 4;
-      case 4: {
-        if (tag == 34) {
-         parse_internals:
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_internals:
-          ::google::protobuf::scoped_ptr<Topology_InternalsEntry> entry(internals_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_internals())[entry->key()].Swap(entry->mutable_value());
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(34)) goto parse_loop_internals;
-        if (input->ExpectTag(42)) goto parse_loop_localGws;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // map<uint32, .ddam.Host> localGws = 5;
-      case 5: {
-        if (tag == 42) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_localGws:
-          ::google::protobuf::scoped_ptr<Topology_LocalGwsEntry> entry(localgws_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_localgws())[entry->key()].Swap(entry->mutable_value());
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(42)) goto parse_loop_localGws;
-        if (input->ExpectTag(50)) goto parse_loop_remoteGws;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // map<uint32, .ddam.Host> remoteGws = 6;
-      case 6: {
-        if (tag == 50) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_remoteGws:
-          ::google::protobuf::scoped_ptr<Topology_RemoteGwsEntry> entry(remotegws_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_remotegws())[entry->key()].Swap(entry->mutable_value());
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(50)) goto parse_loop_remoteGws;
-        if (input->ExpectTag(58)) goto parse_loop_externals;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // map<uint32, .ddam.Host> externals = 7;
-      case 7: {
-        if (tag == 58) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_externals:
-          ::google::protobuf::scoped_ptr<Topology_ExternalsEntry> entry(externals_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_externals())[entry->key()].Swap(entry->mutable_value());
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(58)) goto parse_loop_externals;
-        input->UnsafeDecrementRecursionDepth();
-        if (input->ExpectTag(66)) goto parse_timestamp;
-        break;
-      }
-
-      // optional .google.protobuf.Timestamp timestamp = 8;
-      case 8: {
-        if (tag == 66) {
-         parse_timestamp:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_timestamp()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectAtEnd()) goto success;
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
-        break;
-      }
+    Host::Host()
+        : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+        if (this != internal_default_instance()) protobuf_InitDefaults_topology_2eproto();
+        SharedCtor();
+        // @@protoc_insertion_point(constructor:netsensor.Host)
     }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:ddam.Topology)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:ddam.Topology)
-  return false;
+
+    void Host::InitAsDefaultInstance() {
+    }
+
+    Host::Host(const Host& from)
+        : ::google::protobuf::Message(),
+        _internal_metadata_(NULL) {
+        SharedCtor();
+        UnsafeMergeFrom(from);
+        // @@protoc_insertion_point(copy_constructor:netsensor.Host)
+    }
+
+    void Host::SharedCtor() {
+        mac_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+        ip_ = 0u;
+        _cached_size_ = 0;
+    }
+
+    Host::~Host() {
+        // @@protoc_insertion_point(destructor:netsensor.Host)
+        SharedDtor();
+    }
+
+    void Host::SharedDtor() {
+        mac_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+
+    void Host::SetCachedSize(int size) const {
+        GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+        _cached_size_ = size;
+        GOOGLE_SAFE_CONCURRENT_WRITES_END();
+    }
+    const ::google::protobuf::Descriptor* Host::descriptor() {
+        protobuf_AssignDescriptorsOnce();
+        return Host_descriptor_;
+    }
+
+    const Host& Host::default_instance() {
+        protobuf_InitDefaults_topology_2eproto();
+        return *internal_default_instance();
+    }
+
+    ::google::protobuf::internal::ExplicitlyConstructed<Host> Host_default_instance_;
+
+    Host* Host::New(::google::protobuf::Arena* arena) const {
+        Host* n = new Host;
+        if (arena != NULL) {
+            arena->Own(n);
+        }
+        return n;
+    }
+
+    void Host::Clear() {
+        // @@protoc_insertion_point(message_clear_start:netsensor.Host)
+        ip_ = 0u;
+        mac_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+
+    bool Host::MergePartialFromCodedStream(
+        ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+        ::google::protobuf::uint32 tag;
+        // @@protoc_insertion_point(parse_start:netsensor.Host)
+        for (;;) {
+            ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+            tag = p.first;
+            if (!p.second) goto handle_unusual;
+            switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+                // optional uint32 ip = 1;
+            case 1: {
+                if (tag == 8) {
+
+                    DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                        ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                            input, &ip_)));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectTag(18)) goto parse_mac;
+                break;
+            }
+
+                    // optional string mac = 2;
+            case 2: {
+                if (tag == 18) {
+                parse_mac:
+                    DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                        input, this->mutable_mac()));
+                    DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                        this->mac().data(), this->mac().length(),
+                        ::google::protobuf::internal::WireFormatLite::PARSE,
+                        "netsensor.Host.mac"));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectAtEnd()) goto success;
+                break;
+            }
+
+            default: {
+            handle_unusual:
+                if (tag == 0 ||
+                    ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+                    ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+                    goto success;
+                }
+                DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+                break;
+            }
+            }
+        }
+    success:
+        // @@protoc_insertion_point(parse_success:netsensor.Host)
+        return true;
+    failure:
+        // @@protoc_insertion_point(parse_failure:netsensor.Host)
+        return false;
 #undef DO_
-}
-
-void Topology::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:ddam.Topology)
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->networkname().data(), this->networkname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Topology.networkName");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      1, this->networkname(), output);
-  }
-
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->subnetmask().data(), this->subnetmask().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Topology.subnetMask");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->subnetmask(), output);
-  }
-
-  // map<uint32, .ddam.Host> internals = 4;
-  {
-    ::google::protobuf::scoped_ptr<Topology_InternalsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->internals().begin();
-        it != this->internals().end(); ++it) {
-      entry.reset(internals_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          4, *entry, output);
     }
-  }
 
-  // map<uint32, .ddam.Host> localGws = 5;
-  {
-    ::google::protobuf::scoped_ptr<Topology_LocalGwsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->localgws().begin();
-        it != this->localgws().end(); ++it) {
-      entry.reset(localgws_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          5, *entry, output);
+    void Host::SerializeWithCachedSizes(
+        ::google::protobuf::io::CodedOutputStream* output) const {
+        // @@protoc_insertion_point(serialize_start:netsensor.Host)
+        // optional uint32 ip = 1;
+        if (this->ip() != 0) {
+            ::google::protobuf::internal::WireFormatLite::WriteUInt32(1, this->ip(), output);
+        }
+
+        // optional string mac = 2;
+        if (this->mac().size() > 0) {
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                this->mac().data(), this->mac().length(),
+                ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+                "netsensor.Host.mac");
+            ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+                2, this->mac(), output);
+        }
+
+        // @@protoc_insertion_point(serialize_end:netsensor.Host)
     }
-  }
 
-  // map<uint32, .ddam.Host> remoteGws = 6;
-  {
-    ::google::protobuf::scoped_ptr<Topology_RemoteGwsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->remotegws().begin();
-        it != this->remotegws().end(); ++it) {
-      entry.reset(remotegws_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          6, *entry, output);
+    ::google::protobuf::uint8* Host::InternalSerializeWithCachedSizesToArray(
+        bool deterministic, ::google::protobuf::uint8* target) const {
+        (void)deterministic; // Unused
+                             // @@protoc_insertion_point(serialize_to_array_start:netsensor.Host)
+                             // optional uint32 ip = 1;
+        if (this->ip() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(1, this->ip(), target);
+        }
+
+        // optional string mac = 2;
+        if (this->mac().size() > 0) {
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                this->mac().data(), this->mac().length(),
+                ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+                "netsensor.Host.mac");
+            target =
+                ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+                    2, this->mac(), target);
+        }
+
+        // @@protoc_insertion_point(serialize_to_array_end:netsensor.Host)
+        return target;
     }
-  }
 
-  // map<uint32, .ddam.Host> externals = 7;
-  {
-    ::google::protobuf::scoped_ptr<Topology_ExternalsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->externals().begin();
-        it != this->externals().end(); ++it) {
-      entry.reset(externals_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          7, *entry, output);
+    size_t Host::ByteSizeLong() const {
+        // @@protoc_insertion_point(message_byte_size_start:netsensor.Host)
+        size_t total_size = 0;
+
+        // optional uint32 ip = 1;
+        if (this->ip() != 0) {
+            total_size += 1 +
+                ::google::protobuf::internal::WireFormatLite::UInt32Size(
+                    this->ip());
+        }
+
+        // optional string mac = 2;
+        if (this->mac().size() > 0) {
+            total_size += 1 +
+                ::google::protobuf::internal::WireFormatLite::StringSize(
+                    this->mac());
+        }
+
+        int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+        GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+        _cached_size_ = cached_size;
+        GOOGLE_SAFE_CONCURRENT_WRITES_END();
+        return total_size;
     }
-  }
 
-  // optional .google.protobuf.Timestamp timestamp = 8;
-  if (this->has_timestamp()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      8, *this->timestamp_, output);
-  }
-
-  // @@protoc_insertion_point(serialize_end:ddam.Topology)
-}
-
-::google::protobuf::uint8* Topology::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ddam.Topology)
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->networkname().data(), this->networkname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Topology.networkName");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->networkname(), target);
-  }
-
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->subnetmask().data(), this->subnetmask().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Topology.subnetMask");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->subnetmask(), target);
-  }
-
-  // map<uint32, .ddam.Host> internals = 4;
-  {
-    ::google::protobuf::scoped_ptr<Topology_InternalsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->internals().begin();
-        it != this->internals().end(); ++it) {
-      entry.reset(internals_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              4, *entry, target);
+    void Host::MergeFrom(const ::google::protobuf::Message& from) {
+        // @@protoc_insertion_point(generalized_merge_from_start:netsensor.Host)
+        if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+        const Host* source =
+            ::google::protobuf::internal::DynamicCastToGenerated<const Host>(
+                &from);
+        if (source == NULL) {
+            // @@protoc_insertion_point(generalized_merge_from_cast_fail:netsensor.Host)
+            ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+        }
+        else {
+            // @@protoc_insertion_point(generalized_merge_from_cast_success:netsensor.Host)
+            UnsafeMergeFrom(*source);
+        }
     }
-  }
 
-  // map<uint32, .ddam.Host> localGws = 5;
-  {
-    ::google::protobuf::scoped_ptr<Topology_LocalGwsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->localgws().begin();
-        it != this->localgws().end(); ++it) {
-      entry.reset(localgws_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              5, *entry, target);
+    void Host::MergeFrom(const Host& from) {
+        // @@protoc_insertion_point(class_specific_merge_from_start:netsensor.Host)
+        if (GOOGLE_PREDICT_TRUE(&from != this)) {
+            UnsafeMergeFrom(from);
+        }
+        else {
+            MergeFromFail(__LINE__);
+        }
     }
-  }
 
-  // map<uint32, .ddam.Host> remoteGws = 6;
-  {
-    ::google::protobuf::scoped_ptr<Topology_RemoteGwsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->remotegws().begin();
-        it != this->remotegws().end(); ++it) {
-      entry.reset(remotegws_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              6, *entry, target);
+    void Host::UnsafeMergeFrom(const Host& from) {
+        GOOGLE_DCHECK(&from != this);
+        if (from.ip() != 0) {
+            set_ip(from.ip());
+        }
+        if (from.mac().size() > 0) {
+
+            mac_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.mac_);
+        }
     }
-  }
 
-  // map<uint32, .ddam.Host> externals = 7;
-  {
-    ::google::protobuf::scoped_ptr<Topology_ExternalsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->externals().begin();
-        it != this->externals().end(); ++it) {
-      entry.reset(externals_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              7, *entry, target);
+    void Host::CopyFrom(const ::google::protobuf::Message& from) {
+        // @@protoc_insertion_point(generalized_copy_from_start:netsensor.Host)
+        if (&from == this) return;
+        Clear();
+        MergeFrom(from);
     }
-  }
 
-  // optional .google.protobuf.Timestamp timestamp = 8;
-  if (this->has_timestamp()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        8, *this->timestamp_, target);
-  }
-
-  // @@protoc_insertion_point(serialize_to_array_end:ddam.Topology)
-  return target;
-}
-
-int Topology::ByteSize() const {
-  int total_size = 0;
-
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->networkname());
-  }
-
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->subnetmask());
-  }
-
-  // optional .google.protobuf.Timestamp timestamp = 8;
-  if (this->has_timestamp()) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        *this->timestamp_);
-  }
-
-  // map<uint32, .ddam.Host> internals = 4;
-  total_size += 1 * this->internals_size();
-  {
-    ::google::protobuf::scoped_ptr<Topology_InternalsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->internals().begin();
-        it != this->internals().end(); ++it) {
-      entry.reset(internals_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
+    void Host::CopyFrom(const Host& from) {
+        // @@protoc_insertion_point(class_specific_copy_from_start:netsensor.Host)
+        if (&from == this) return;
+        Clear();
+        UnsafeMergeFrom(from);
     }
-  }
 
-  // map<uint32, .ddam.Host> localGws = 5;
-  total_size += 1 * this->localgws_size();
-  {
-    ::google::protobuf::scoped_ptr<Topology_LocalGwsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->localgws().begin();
-        it != this->localgws().end(); ++it) {
-      entry.reset(localgws_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
+    bool Host::IsInitialized() const {
+
+        return true;
     }
-  }
 
-  // map<uint32, .ddam.Host> remoteGws = 6;
-  total_size += 1 * this->remotegws_size();
-  {
-    ::google::protobuf::scoped_ptr<Topology_RemoteGwsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->remotegws().begin();
-        it != this->remotegws().end(); ++it) {
-      entry.reset(remotegws_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
+    void Host::Swap(Host* other) {
+        if (other == this) return;
+        InternalSwap(other);
     }
-  }
-
-  // map<uint32, .ddam.Host> externals = 7;
-  total_size += 1 * this->externals_size();
-  {
-    ::google::protobuf::scoped_ptr<Topology_ExternalsEntry> entry;
-    for (::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >::const_iterator
-        it = this->externals().begin();
-        it != this->externals().end(); ++it) {
-      entry.reset(externals_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
+    void Host::InternalSwap(Host* other) {
+        std::swap(ip_, other->ip_);
+        mac_.Swap(&other->mac_);
+        _internal_metadata_.Swap(&other->_internal_metadata_);
+        std::swap(_cached_size_, other->_cached_size_);
     }
-  }
 
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void Topology::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  const Topology* source = 
-      ::google::protobuf::internal::DynamicCastToGenerated<const Topology>(
-          &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
-
-void Topology::MergeFrom(const Topology& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  internals_.MergeFrom(from.internals_);
-  localgws_.MergeFrom(from.localgws_);
-  remotegws_.MergeFrom(from.remotegws_);
-  externals_.MergeFrom(from.externals_);
-  if (from.networkname().size() > 0) {
-
-    networkname_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.networkname_);
-  }
-  if (from.subnetmask().size() > 0) {
-
-    subnetmask_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.subnetmask_);
-  }
-  if (from.has_timestamp()) {
-    mutable_timestamp()->::google::protobuf::Timestamp::MergeFrom(from.timestamp());
-  }
-}
-
-void Topology::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void Topology::CopyFrom(const Topology& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool Topology::IsInitialized() const {
-
-  return true;
-}
-
-void Topology::Swap(Topology* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
-void Topology::InternalSwap(Topology* other) {
-  networkname_.Swap(&other->networkname_);
-  subnetmask_.Swap(&other->subnetmask_);
-  internals_.Swap(&other->internals_);
-  localgws_.Swap(&other->localgws_);
-  remotegws_.Swap(&other->remotegws_);
-  externals_.Swap(&other->externals_);
-  std::swap(timestamp_, other->timestamp_);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  std::swap(_cached_size_, other->_cached_size_);
-}
-
-::google::protobuf::Metadata Topology::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = Topology_descriptor_;
-  metadata.reflection = Topology_reflection_;
-  return metadata;
-}
+    ::google::protobuf::Metadata Host::GetMetadata() const {
+        protobuf_AssignDescriptorsOnce();
+        ::google::protobuf::Metadata metadata;
+        metadata.descriptor = Host_descriptor_;
+        metadata.reflection = Host_reflection_;
+        return metadata;
+    }
 
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
-// Topology
+    // Host
 
-// optional string networkName = 1;
-void Topology::clear_networkname() {
-  networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& Topology::networkname() const {
-  // @@protoc_insertion_point(field_get:ddam.Topology.networkName)
-  return networkname_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Topology::set_networkname(const ::std::string& value) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.Topology.networkName)
-}
- void Topology::set_networkname(const char* value) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.Topology.networkName)
-}
- void Topology::set_networkname(const char* value, size_t size) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.Topology.networkName)
-}
- ::std::string* Topology::mutable_networkname() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.Topology.networkName)
-  return networkname_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* Topology::release_networkname() {
-  
-  return networkname_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Topology::set_allocated_networkname(::std::string* networkname) {
-  if (networkname != NULL) {
-    
-  } else {
-    
-  }
-  networkname_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), networkname);
-  // @@protoc_insertion_point(field_set_allocated:ddam.Topology.networkName)
-}
+    // optional uint32 ip = 1;
+    void Host::clear_ip() {
+        ip_ = 0u;
+    }
+    ::google::protobuf::uint32 Host::ip() const {
+        // @@protoc_insertion_point(field_get:netsensor.Host.ip)
+        return ip_;
+    }
+    void Host::set_ip(::google::protobuf::uint32 value) {
 
-// optional string subnetMask = 2;
-void Topology::clear_subnetmask() {
-  subnetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& Topology::subnetmask() const {
-  // @@protoc_insertion_point(field_get:ddam.Topology.subnetMask)
-  return subnetmask_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Topology::set_subnetmask(const ::std::string& value) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.Topology.subnetMask)
-}
- void Topology::set_subnetmask(const char* value) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.Topology.subnetMask)
-}
- void Topology::set_subnetmask(const char* value, size_t size) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.Topology.subnetMask)
-}
- ::std::string* Topology::mutable_subnetmask() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.Topology.subnetMask)
-  return subnetmask_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* Topology::release_subnetmask() {
-  
-  return subnetmask_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Topology::set_allocated_subnetmask(::std::string* subnetmask) {
-  if (subnetmask != NULL) {
-    
-  } else {
-    
-  }
-  subnetmask_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), subnetmask);
-  // @@protoc_insertion_point(field_set_allocated:ddam.Topology.subnetMask)
-}
+        ip_ = value;
+        // @@protoc_insertion_point(field_set:netsensor.Host.ip)
+    }
 
-// map<uint32, .ddam.Host> internals = 4;
-int Topology::internals_size() const {
-  return internals_.size();
-}
-void Topology::clear_internals() {
-  internals_.Clear();
-}
- const ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >&
-Topology::internals() const {
-  // @@protoc_insertion_point(field_map:ddam.Topology.internals)
-  return internals_.GetMap();
-}
- ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >*
-Topology::mutable_internals() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.Topology.internals)
-  return internals_.MutableMap();
-}
+    // optional string mac = 2;
+    void Host::clear_mac() {
+        mac_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    const ::std::string& Host::mac() const {
+        // @@protoc_insertion_point(field_get:netsensor.Host.mac)
+        return mac_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    void Host::set_mac(const ::std::string& value) {
 
-// map<uint32, .ddam.Host> localGws = 5;
-int Topology::localgws_size() const {
-  return localgws_.size();
-}
-void Topology::clear_localgws() {
-  localgws_.Clear();
-}
- const ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >&
-Topology::localgws() const {
-  // @@protoc_insertion_point(field_map:ddam.Topology.localGws)
-  return localgws_.GetMap();
-}
- ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >*
-Topology::mutable_localgws() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.Topology.localGws)
-  return localgws_.MutableMap();
-}
+        mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+        // @@protoc_insertion_point(field_set:netsensor.Host.mac)
+    }
+    void Host::set_mac(const char* value) {
 
-// map<uint32, .ddam.Host> remoteGws = 6;
-int Topology::remotegws_size() const {
-  return remotegws_.size();
-}
-void Topology::clear_remotegws() {
-  remotegws_.Clear();
-}
- const ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >&
-Topology::remotegws() const {
-  // @@protoc_insertion_point(field_map:ddam.Topology.remoteGws)
-  return remotegws_.GetMap();
-}
- ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >*
-Topology::mutable_remotegws() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.Topology.remoteGws)
-  return remotegws_.MutableMap();
-}
+        mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+        // @@protoc_insertion_point(field_set_char:netsensor.Host.mac)
+    }
+    void Host::set_mac(const char* value, size_t size) {
 
-// map<uint32, .ddam.Host> externals = 7;
-int Topology::externals_size() const {
-  return externals_.size();
-}
-void Topology::clear_externals() {
-  externals_.Clear();
-}
- const ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >&
-Topology::externals() const {
-  // @@protoc_insertion_point(field_map:ddam.Topology.externals)
-  return externals_.GetMap();
-}
- ::google::protobuf::Map< ::google::protobuf::uint32, ::ddam::Host >*
-Topology::mutable_externals() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.Topology.externals)
-  return externals_.MutableMap();
-}
+        mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+            ::std::string(reinterpret_cast<const char*>(value), size));
+        // @@protoc_insertion_point(field_set_pointer:netsensor.Host.mac)
+    }
+    ::std::string* Host::mutable_mac() {
 
-// optional .google.protobuf.Timestamp timestamp = 8;
-bool Topology::has_timestamp() const {
-  return !_is_default_instance_ && timestamp_ != NULL;
-}
-void Topology::clear_timestamp() {
-  if (GetArenaNoVirtual() == NULL && timestamp_ != NULL) delete timestamp_;
-  timestamp_ = NULL;
-}
-const ::google::protobuf::Timestamp& Topology::timestamp() const {
-  // @@protoc_insertion_point(field_get:ddam.Topology.timestamp)
-  return timestamp_ != NULL ? *timestamp_ : *default_instance_->timestamp_;
-}
-::google::protobuf::Timestamp* Topology::mutable_timestamp() {
-  
-  if (timestamp_ == NULL) {
-    timestamp_ = new ::google::protobuf::Timestamp;
-  }
-  // @@protoc_insertion_point(field_mutable:ddam.Topology.timestamp)
-  return timestamp_;
-}
-::google::protobuf::Timestamp* Topology::release_timestamp() {
-  
-  ::google::protobuf::Timestamp* temp = timestamp_;
-  timestamp_ = NULL;
-  return temp;
-}
-void Topology::set_allocated_timestamp(::google::protobuf::Timestamp* timestamp) {
-  delete timestamp_;
-  if (timestamp != NULL && timestamp->GetArena() != NULL) {
-    ::google::protobuf::Timestamp* new_timestamp = new ::google::protobuf::Timestamp;
-    new_timestamp->CopyFrom(*timestamp);
-    timestamp = new_timestamp;
-  }
-  timestamp_ = timestamp;
-  if (timestamp) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_set_allocated:ddam.Topology.timestamp)
-}
+        // @@protoc_insertion_point(field_mutable:netsensor.Host.mac)
+        return mac_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    ::std::string* Host::release_mac() {
+        // @@protoc_insertion_point(field_release:netsensor.Host.mac)
 
+        return mac_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    void Host::set_allocated_mac(::std::string* mac) {
+        if (mac != NULL) {
+
+        }
+        else {
+
+        }
+        mac_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), mac);
+        // @@protoc_insertion_point(field_set_allocated:netsensor.Host.mac)
+    }
+
+    inline const Host* Host::internal_default_instance() {
+        return &Host_default_instance_.get();
+    }
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
-// ===================================================================
+    // ===================================================================
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int Host::kIpFieldNumber;
-const int Host::kMacFieldNumber;
-const int Host::kGatewayNameFieldNumber;
-const int Host::kIsDefaultFieldNumber;
+    const int NetworkInfo::kNetworkNameFieldNumber;
+    const int NetworkInfo::kNetworkNetmaskFieldNumber;
+    const int NetworkInfo::kInterfaceIpFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
-Host::Host()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:ddam.Host)
-}
-
-void Host::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
-}
-
-Host::Host(const Host& from)
-  : ::google::protobuf::Message(),
-    _internal_metadata_(NULL) {
-  SharedCtor();
-  MergeFrom(from);
-  // @@protoc_insertion_point(copy_constructor:ddam.Host)
-}
-
-void Host::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  ip_ = 0u;
-  mac_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  gatewayname_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  isdefault_ = false;
-}
-
-Host::~Host() {
-  // @@protoc_insertion_point(destructor:ddam.Host)
-  SharedDtor();
-}
-
-void Host::SharedDtor() {
-  mac_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  gatewayname_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-  }
-}
-
-void Host::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* Host::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return Host_descriptor_;
-}
-
-const Host& Host::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_topology_2eproto();
-  return *default_instance_;
-}
-
-Host* Host::default_instance_ = NULL;
-
-Host* Host::New(::google::protobuf::Arena* arena) const {
-  Host* n = new Host;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void Host::Clear() {
-#define ZR_HELPER_(f) reinterpret_cast<char*>(\
-  &reinterpret_cast<Host*>(16)->f)
-
-#define ZR_(first, last) do {\
-  ::memset(&first, 0,\
-           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
-} while (0)
-
-  ZR_(ip_, isdefault_);
-  mac_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  gatewayname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-
-#undef ZR_HELPER_
-#undef ZR_
-
-}
-
-bool Host::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:ddam.Host)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional uint32 ip = 1;
-      case 1: {
-        if (tag == 8) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 input, &ip_)));
-
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(18)) goto parse_mac;
-        break;
-      }
-
-      // optional string mac = 2;
-      case 2: {
-        if (tag == 18) {
-         parse_mac:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_mac()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->mac().data(), this->mac().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.Host.mac"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(26)) goto parse_gatewayName;
-        break;
-      }
-
-      // optional string gatewayName = 3;
-      case 3: {
-        if (tag == 26) {
-         parse_gatewayName:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_gatewayname()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->gatewayname().data(), this->gatewayname().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.Host.gatewayName"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(32)) goto parse_isDefault;
-        break;
-      }
-
-      // optional bool isDefault = 4;
-      case 4: {
-        if (tag == 32) {
-         parse_isDefault:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &isdefault_)));
-
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectAtEnd()) goto success;
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
-        break;
-      }
+    NetworkInfo::NetworkInfo()
+        : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+        if (this != internal_default_instance()) protobuf_InitDefaults_topology_2eproto();
+        SharedCtor();
+        // @@protoc_insertion_point(constructor:netsensor.NetworkInfo)
     }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:ddam.Host)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:ddam.Host)
-  return false;
+
+    void NetworkInfo::InitAsDefaultInstance() {
+    }
+
+    NetworkInfo::NetworkInfo(const NetworkInfo& from)
+        : ::google::protobuf::Message(),
+        _internal_metadata_(NULL) {
+        SharedCtor();
+        UnsafeMergeFrom(from);
+        // @@protoc_insertion_point(copy_constructor:netsensor.NetworkInfo)
+    }
+
+    void NetworkInfo::SharedCtor() {
+        networkname_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+        networknetmask_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+        interfaceip_ = 0u;
+        _cached_size_ = 0;
+    }
+
+    NetworkInfo::~NetworkInfo() {
+        // @@protoc_insertion_point(destructor:netsensor.NetworkInfo)
+        SharedDtor();
+    }
+
+    void NetworkInfo::SharedDtor() {
+        networkname_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+        networknetmask_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+
+    void NetworkInfo::SetCachedSize(int size) const {
+        GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+        _cached_size_ = size;
+        GOOGLE_SAFE_CONCURRENT_WRITES_END();
+    }
+    const ::google::protobuf::Descriptor* NetworkInfo::descriptor() {
+        protobuf_AssignDescriptorsOnce();
+        return NetworkInfo_descriptor_;
+    }
+
+    const NetworkInfo& NetworkInfo::default_instance() {
+        protobuf_InitDefaults_topology_2eproto();
+        return *internal_default_instance();
+    }
+
+    ::google::protobuf::internal::ExplicitlyConstructed<NetworkInfo> NetworkInfo_default_instance_;
+
+    NetworkInfo* NetworkInfo::New(::google::protobuf::Arena* arena) const {
+        NetworkInfo* n = new NetworkInfo;
+        if (arena != NULL) {
+            arena->Own(n);
+        }
+        return n;
+    }
+
+    void NetworkInfo::Clear() {
+        // @@protoc_insertion_point(message_clear_start:netsensor.NetworkInfo)
+        networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+        networknetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+        interfaceip_ = 0u;
+    }
+
+    bool NetworkInfo::MergePartialFromCodedStream(
+        ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+        ::google::protobuf::uint32 tag;
+        // @@protoc_insertion_point(parse_start:netsensor.NetworkInfo)
+        for (;;) {
+            ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+            tag = p.first;
+            if (!p.second) goto handle_unusual;
+            switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+                // optional string networkName = 1;
+            case 1: {
+                if (tag == 10) {
+                    DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                        input, this->mutable_networkname()));
+                    DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                        this->networkname().data(), this->networkname().length(),
+                        ::google::protobuf::internal::WireFormatLite::PARSE,
+                        "netsensor.NetworkInfo.networkName"));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectTag(18)) goto parse_networkNetmask;
+                break;
+            }
+
+                    // optional string networkNetmask = 2;
+            case 2: {
+                if (tag == 18) {
+                parse_networkNetmask:
+                    DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                        input, this->mutable_networknetmask()));
+                    DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                        this->networknetmask().data(), this->networknetmask().length(),
+                        ::google::protobuf::internal::WireFormatLite::PARSE,
+                        "netsensor.NetworkInfo.networkNetmask"));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectTag(24)) goto parse_interfaceIp;
+                break;
+            }
+
+                    // optional uint32 interfaceIp = 3;
+            case 3: {
+                if (tag == 24) {
+                parse_interfaceIp:
+
+                    DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                        ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                            input, &interfaceip_)));
+                }
+                else {
+                    goto handle_unusual;
+                }
+                if (input->ExpectAtEnd()) goto success;
+                break;
+            }
+
+            default: {
+            handle_unusual:
+                if (tag == 0 ||
+                    ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+                    ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+                    goto success;
+                }
+                DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+                break;
+            }
+            }
+        }
+    success:
+        // @@protoc_insertion_point(parse_success:netsensor.NetworkInfo)
+        return true;
+    failure:
+        // @@protoc_insertion_point(parse_failure:netsensor.NetworkInfo)
+        return false;
 #undef DO_
-}
+    }
 
-void Host::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:ddam.Host)
-  // optional uint32 ip = 1;
-  if (this->ip() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32(1, this->ip(), output);
-  }
+    void NetworkInfo::SerializeWithCachedSizes(
+        ::google::protobuf::io::CodedOutputStream* output) const {
+        // @@protoc_insertion_point(serialize_start:netsensor.NetworkInfo)
+        // optional string networkName = 1;
+        if (this->networkname().size() > 0) {
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                this->networkname().data(), this->networkname().length(),
+                ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+                "netsensor.NetworkInfo.networkName");
+            ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+                1, this->networkname(), output);
+        }
 
-  // optional string mac = 2;
-  if (this->mac().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->mac().data(), this->mac().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Host.mac");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->mac(), output);
-  }
+        // optional string networkNetmask = 2;
+        if (this->networknetmask().size() > 0) {
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                this->networknetmask().data(), this->networknetmask().length(),
+                ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+                "netsensor.NetworkInfo.networkNetmask");
+            ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+                2, this->networknetmask(), output);
+        }
 
-  // optional string gatewayName = 3;
-  if (this->gatewayname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->gatewayname().data(), this->gatewayname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Host.gatewayName");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      3, this->gatewayname(), output);
-  }
+        // optional uint32 interfaceIp = 3;
+        if (this->interfaceip() != 0) {
+            ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->interfaceip(), output);
+        }
 
-  // optional bool isDefault = 4;
-  if (this->isdefault() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->isdefault(), output);
-  }
+        // @@protoc_insertion_point(serialize_end:netsensor.NetworkInfo)
+    }
 
-  // @@protoc_insertion_point(serialize_end:ddam.Host)
-}
+    ::google::protobuf::uint8* NetworkInfo::InternalSerializeWithCachedSizesToArray(
+        bool deterministic, ::google::protobuf::uint8* target) const {
+        (void)deterministic; // Unused
+                             // @@protoc_insertion_point(serialize_to_array_start:netsensor.NetworkInfo)
+                             // optional string networkName = 1;
+        if (this->networkname().size() > 0) {
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                this->networkname().data(), this->networkname().length(),
+                ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+                "netsensor.NetworkInfo.networkName");
+            target =
+                ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+                    1, this->networkname(), target);
+        }
 
-::google::protobuf::uint8* Host::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ddam.Host)
-  // optional uint32 ip = 1;
-  if (this->ip() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(1, this->ip(), target);
-  }
+        // optional string networkNetmask = 2;
+        if (this->networknetmask().size() > 0) {
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                this->networknetmask().data(), this->networknetmask().length(),
+                ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+                "netsensor.NetworkInfo.networkNetmask");
+            target =
+                ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+                    2, this->networknetmask(), target);
+        }
 
-  // optional string mac = 2;
-  if (this->mac().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->mac().data(), this->mac().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Host.mac");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->mac(), target);
-  }
+        // optional uint32 interfaceIp = 3;
+        if (this->interfaceip() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(3, this->interfaceip(), target);
+        }
 
-  // optional string gatewayName = 3;
-  if (this->gatewayname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->gatewayname().data(), this->gatewayname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.Host.gatewayName");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        3, this->gatewayname(), target);
-  }
+        // @@protoc_insertion_point(serialize_to_array_end:netsensor.NetworkInfo)
+        return target;
+    }
 
-  // optional bool isDefault = 4;
-  if (this->isdefault() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(4, this->isdefault(), target);
-  }
+    size_t NetworkInfo::ByteSizeLong() const {
+        // @@protoc_insertion_point(message_byte_size_start:netsensor.NetworkInfo)
+        size_t total_size = 0;
 
-  // @@protoc_insertion_point(serialize_to_array_end:ddam.Host)
-  return target;
-}
+        // optional string networkName = 1;
+        if (this->networkname().size() > 0) {
+            total_size += 1 +
+                ::google::protobuf::internal::WireFormatLite::StringSize(
+                    this->networkname());
+        }
 
-int Host::ByteSize() const {
-  int total_size = 0;
+        // optional string networkNetmask = 2;
+        if (this->networknetmask().size() > 0) {
+            total_size += 1 +
+                ::google::protobuf::internal::WireFormatLite::StringSize(
+                    this->networknetmask());
+        }
 
-  // optional uint32 ip = 1;
-  if (this->ip() != 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::UInt32Size(
-        this->ip());
-  }
+        // optional uint32 interfaceIp = 3;
+        if (this->interfaceip() != 0) {
+            total_size += 1 +
+                ::google::protobuf::internal::WireFormatLite::UInt32Size(
+                    this->interfaceip());
+        }
 
-  // optional string mac = 2;
-  if (this->mac().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->mac());
-  }
+        int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+        GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+        _cached_size_ = cached_size;
+        GOOGLE_SAFE_CONCURRENT_WRITES_END();
+        return total_size;
+    }
 
-  // optional string gatewayName = 3;
-  if (this->gatewayname().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->gatewayname());
-  }
+    void NetworkInfo::MergeFrom(const ::google::protobuf::Message& from) {
+        // @@protoc_insertion_point(generalized_merge_from_start:netsensor.NetworkInfo)
+        if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
+        const NetworkInfo* source =
+            ::google::protobuf::internal::DynamicCastToGenerated<const NetworkInfo>(
+                &from);
+        if (source == NULL) {
+            // @@protoc_insertion_point(generalized_merge_from_cast_fail:netsensor.NetworkInfo)
+            ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+        }
+        else {
+            // @@protoc_insertion_point(generalized_merge_from_cast_success:netsensor.NetworkInfo)
+            UnsafeMergeFrom(*source);
+        }
+    }
 
-  // optional bool isDefault = 4;
-  if (this->isdefault() != 0) {
-    total_size += 1 + 1;
-  }
+    void NetworkInfo::MergeFrom(const NetworkInfo& from) {
+        // @@protoc_insertion_point(class_specific_merge_from_start:netsensor.NetworkInfo)
+        if (GOOGLE_PREDICT_TRUE(&from != this)) {
+            UnsafeMergeFrom(from);
+        }
+        else {
+            MergeFromFail(__LINE__);
+        }
+    }
 
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
+    void NetworkInfo::UnsafeMergeFrom(const NetworkInfo& from) {
+        GOOGLE_DCHECK(&from != this);
+        if (from.networkname().size() > 0) {
 
-void Host::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  const Host* source = 
-      ::google::protobuf::internal::DynamicCastToGenerated<const Host>(
-          &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
+            networkname_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.networkname_);
+        }
+        if (from.networknetmask().size() > 0) {
 
-void Host::MergeFrom(const Host& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  if (from.ip() != 0) {
-    set_ip(from.ip());
-  }
-  if (from.mac().size() > 0) {
+            networknetmask_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.networknetmask_);
+        }
+        if (from.interfaceip() != 0) {
+            set_interfaceip(from.interfaceip());
+        }
+    }
 
-    mac_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.mac_);
-  }
-  if (from.gatewayname().size() > 0) {
+    void NetworkInfo::CopyFrom(const ::google::protobuf::Message& from) {
+        // @@protoc_insertion_point(generalized_copy_from_start:netsensor.NetworkInfo)
+        if (&from == this) return;
+        Clear();
+        MergeFrom(from);
+    }
 
-    gatewayname_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.gatewayname_);
-  }
-  if (from.isdefault() != 0) {
-    set_isdefault(from.isdefault());
-  }
-}
+    void NetworkInfo::CopyFrom(const NetworkInfo& from) {
+        // @@protoc_insertion_point(class_specific_copy_from_start:netsensor.NetworkInfo)
+        if (&from == this) return;
+        Clear();
+        UnsafeMergeFrom(from);
+    }
 
-void Host::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
+    bool NetworkInfo::IsInitialized() const {
 
-void Host::CopyFrom(const Host& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
+        return true;
+    }
 
-bool Host::IsInitialized() const {
+    void NetworkInfo::Swap(NetworkInfo* other) {
+        if (other == this) return;
+        InternalSwap(other);
+    }
+    void NetworkInfo::InternalSwap(NetworkInfo* other) {
+        networkname_.Swap(&other->networkname_);
+        networknetmask_.Swap(&other->networknetmask_);
+        std::swap(interfaceip_, other->interfaceip_);
+        _internal_metadata_.Swap(&other->_internal_metadata_);
+        std::swap(_cached_size_, other->_cached_size_);
+    }
 
-  return true;
-}
-
-void Host::Swap(Host* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
-void Host::InternalSwap(Host* other) {
-  std::swap(ip_, other->ip_);
-  mac_.Swap(&other->mac_);
-  gatewayname_.Swap(&other->gatewayname_);
-  std::swap(isdefault_, other->isdefault_);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  std::swap(_cached_size_, other->_cached_size_);
-}
-
-::google::protobuf::Metadata Host::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = Host_descriptor_;
-  metadata.reflection = Host_reflection_;
-  return metadata;
-}
+    ::google::protobuf::Metadata NetworkInfo::GetMetadata() const {
+        protobuf_AssignDescriptorsOnce();
+        ::google::protobuf::Metadata metadata;
+        metadata.descriptor = NetworkInfo_descriptor_;
+        metadata.reflection = NetworkInfo_reflection_;
+        return metadata;
+    }
 
 #if PROTOBUF_INLINE_NOT_IN_HEADERS
-// Host
+    // NetworkInfo
 
-// optional uint32 ip = 1;
-void Host::clear_ip() {
-  ip_ = 0u;
-}
- ::google::protobuf::uint32 Host::ip() const {
-  // @@protoc_insertion_point(field_get:ddam.Host.ip)
-  return ip_;
-}
- void Host::set_ip(::google::protobuf::uint32 value) {
-  
-  ip_ = value;
-  // @@protoc_insertion_point(field_set:ddam.Host.ip)
-}
+    // optional string networkName = 1;
+    void NetworkInfo::clear_networkname() {
+        networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    const ::std::string& NetworkInfo::networkname() const {
+        // @@protoc_insertion_point(field_get:netsensor.NetworkInfo.networkName)
+        return networkname_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    void NetworkInfo::set_networkname(const ::std::string& value) {
 
-// optional string mac = 2;
-void Host::clear_mac() {
-  mac_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& Host::mac() const {
-  // @@protoc_insertion_point(field_get:ddam.Host.mac)
-  return mac_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Host::set_mac(const ::std::string& value) {
-  
-  mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.Host.mac)
-}
- void Host::set_mac(const char* value) {
-  
-  mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.Host.mac)
-}
- void Host::set_mac(const char* value, size_t size) {
-  
-  mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.Host.mac)
-}
- ::std::string* Host::mutable_mac() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.Host.mac)
-  return mac_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* Host::release_mac() {
-  
-  return mac_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Host::set_allocated_mac(::std::string* mac) {
-  if (mac != NULL) {
-    
-  } else {
-    
-  }
-  mac_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), mac);
-  // @@protoc_insertion_point(field_set_allocated:ddam.Host.mac)
-}
+        networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+        // @@protoc_insertion_point(field_set:netsensor.NetworkInfo.networkName)
+    }
+    void NetworkInfo::set_networkname(const char* value) {
 
-// optional string gatewayName = 3;
-void Host::clear_gatewayname() {
-  gatewayname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& Host::gatewayname() const {
-  // @@protoc_insertion_point(field_get:ddam.Host.gatewayName)
-  return gatewayname_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Host::set_gatewayname(const ::std::string& value) {
-  
-  gatewayname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.Host.gatewayName)
-}
- void Host::set_gatewayname(const char* value) {
-  
-  gatewayname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.Host.gatewayName)
-}
- void Host::set_gatewayname(const char* value, size_t size) {
-  
-  gatewayname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.Host.gatewayName)
-}
- ::std::string* Host::mutable_gatewayname() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.Host.gatewayName)
-  return gatewayname_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* Host::release_gatewayname() {
-  
-  return gatewayname_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void Host::set_allocated_gatewayname(::std::string* gatewayname) {
-  if (gatewayname != NULL) {
-    
-  } else {
-    
-  }
-  gatewayname_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), gatewayname);
-  // @@protoc_insertion_point(field_set_allocated:ddam.Host.gatewayName)
-}
+        networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+        // @@protoc_insertion_point(field_set_char:netsensor.NetworkInfo.networkName)
+    }
+    void NetworkInfo::set_networkname(const char* value, size_t size) {
 
-// optional bool isDefault = 4;
-void Host::clear_isdefault() {
-  isdefault_ = false;
-}
- bool Host::isdefault() const {
-  // @@protoc_insertion_point(field_get:ddam.Host.isDefault)
-  return isdefault_;
-}
- void Host::set_isdefault(bool value) {
-  
-  isdefault_ = value;
-  // @@protoc_insertion_point(field_set:ddam.Host.isDefault)
-}
+        networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+            ::std::string(reinterpret_cast<const char*>(value), size));
+        // @@protoc_insertion_point(field_set_pointer:netsensor.NetworkInfo.networkName)
+    }
+    ::std::string* NetworkInfo::mutable_networkname() {
 
+        // @@protoc_insertion_point(field_mutable:netsensor.NetworkInfo.networkName)
+        return networkname_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    ::std::string* NetworkInfo::release_networkname() {
+        // @@protoc_insertion_point(field_release:netsensor.NetworkInfo.networkName)
+
+        return networkname_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    void NetworkInfo::set_allocated_networkname(::std::string* networkname) {
+        if (networkname != NULL) {
+
+        }
+        else {
+
+        }
+        networkname_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), networkname);
+        // @@protoc_insertion_point(field_set_allocated:netsensor.NetworkInfo.networkName)
+    }
+
+    // optional string networkNetmask = 2;
+    void NetworkInfo::clear_networknetmask() {
+        networknetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    const ::std::string& NetworkInfo::networknetmask() const {
+        // @@protoc_insertion_point(field_get:netsensor.NetworkInfo.networkNetmask)
+        return networknetmask_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    void NetworkInfo::set_networknetmask(const ::std::string& value) {
+
+        networknetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+        // @@protoc_insertion_point(field_set:netsensor.NetworkInfo.networkNetmask)
+    }
+    void NetworkInfo::set_networknetmask(const char* value) {
+
+        networknetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+        // @@protoc_insertion_point(field_set_char:netsensor.NetworkInfo.networkNetmask)
+    }
+    void NetworkInfo::set_networknetmask(const char* value, size_t size) {
+
+        networknetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+            ::std::string(reinterpret_cast<const char*>(value), size));
+        // @@protoc_insertion_point(field_set_pointer:netsensor.NetworkInfo.networkNetmask)
+    }
+    ::std::string* NetworkInfo::mutable_networknetmask() {
+
+        // @@protoc_insertion_point(field_mutable:netsensor.NetworkInfo.networkNetmask)
+        return networknetmask_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    ::std::string* NetworkInfo::release_networknetmask() {
+        // @@protoc_insertion_point(field_release:netsensor.NetworkInfo.networkNetmask)
+
+        return networknetmask_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    }
+    void NetworkInfo::set_allocated_networknetmask(::std::string* networknetmask) {
+        if (networknetmask != NULL) {
+
+        }
+        else {
+
+        }
+        networknetmask_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), networknetmask);
+        // @@protoc_insertion_point(field_set_allocated:netsensor.NetworkInfo.networkNetmask)
+    }
+
+    // optional uint32 interfaceIp = 3;
+    void NetworkInfo::clear_interfaceip() {
+        interfaceip_ = 0u;
+    }
+    ::google::protobuf::uint32 NetworkInfo::interfaceip() const {
+        // @@protoc_insertion_point(field_get:netsensor.NetworkInfo.interfaceIp)
+        return interfaceip_;
+    }
+    void NetworkInfo::set_interfaceip(::google::protobuf::uint32 value) {
+
+        interfaceip_ = value;
+        // @@protoc_insertion_point(field_set:netsensor.NetworkInfo.interfaceIp)
+    }
+
+    inline const NetworkInfo* NetworkInfo::internal_default_instance() {
+        return &NetworkInfo_default_instance_.get();
+    }
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
-// ===================================================================
+    // @@protoc_insertion_point(namespace_scope)
 
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int ReadableTopology::kNetworkNameFieldNumber;
-const int ReadableTopology::kSubnetMaskFieldNumber;
-const int ReadableTopology::kInternalsFieldNumber;
-const int ReadableTopology::kLocalGwsFieldNumber;
-const int ReadableTopology::kRemoteGwsFieldNumber;
-const int ReadableTopology::kExternalsFieldNumber;
-const int ReadableTopology::kTimestampFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+}  // namespace netsensor
 
-ReadableTopology::ReadableTopology()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:ddam.ReadableTopology)
-}
-
-void ReadableTopology::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
-  timestamp_ = const_cast< ::google::protobuf::Timestamp*>(&::google::protobuf::Timestamp::default_instance());
-}
-
-ReadableTopology::ReadableTopology(const ReadableTopology& from)
-  : ::google::protobuf::Message(),
-    _internal_metadata_(NULL) {
-  SharedCtor();
-  MergeFrom(from);
-  // @@protoc_insertion_point(copy_constructor:ddam.ReadableTopology)
-}
-
-void ReadableTopology::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  networkname_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  internals_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  internals_.SetEntryDescriptor(
-      &::ddam::ReadableTopology_InternalsEntry_descriptor_);
-  localgws_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  localgws_.SetEntryDescriptor(
-      &::ddam::ReadableTopology_LocalGwsEntry_descriptor_);
-  remotegws_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  remotegws_.SetEntryDescriptor(
-      &::ddam::ReadableTopology_RemoteGwsEntry_descriptor_);
-  externals_.SetAssignDescriptorCallback(
-      protobuf_AssignDescriptorsOnce);
-  externals_.SetEntryDescriptor(
-      &::ddam::ReadableTopology_ExternalsEntry_descriptor_);
-  timestamp_ = NULL;
-}
-
-ReadableTopology::~ReadableTopology() {
-  // @@protoc_insertion_point(destructor:ddam.ReadableTopology)
-  SharedDtor();
-}
-
-void ReadableTopology::SharedDtor() {
-  networkname_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-    delete timestamp_;
-  }
-}
-
-void ReadableTopology::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* ReadableTopology::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return ReadableTopology_descriptor_;
-}
-
-const ReadableTopology& ReadableTopology::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_topology_2eproto();
-  return *default_instance_;
-}
-
-ReadableTopology* ReadableTopology::default_instance_ = NULL;
-
-ReadableTopology* ReadableTopology::New(::google::protobuf::Arena* arena) const {
-  ReadableTopology* n = new ReadableTopology;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void ReadableTopology::Clear() {
-  networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  subnetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (GetArenaNoVirtual() == NULL && timestamp_ != NULL) delete timestamp_;
-  timestamp_ = NULL;
-  internals_.Clear();
-  localgws_.Clear();
-  remotegws_.Clear();
-  externals_.Clear();
-}
-
-bool ReadableTopology::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:ddam.ReadableTopology)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string networkName = 1;
-      case 1: {
-        if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_networkname()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->networkname().data(), this->networkname().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableTopology.networkName"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(18)) goto parse_subnetMask;
-        break;
-      }
-
-      // optional string subnetMask = 2;
-      case 2: {
-        if (tag == 18) {
-         parse_subnetMask:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_subnetmask()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->subnetmask().data(), this->subnetmask().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableTopology.subnetMask"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(26)) goto parse_internals;
-        break;
-      }
-
-      // map<string, .ddam.ReadableHost> internals = 3;
-      case 3: {
-        if (tag == 26) {
-         parse_internals:
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_internals:
-          ::google::protobuf::scoped_ptr<ReadableTopology_InternalsEntry> entry(internals_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_internals())[entry->key()].Swap(entry->mutable_value());
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            entry->key().data(), entry->key().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableTopology.InternalsEntry.key"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(26)) goto parse_loop_internals;
-        if (input->ExpectTag(34)) goto parse_loop_localGws;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // map<string, .ddam.ReadableHost> localGws = 4;
-      case 4: {
-        if (tag == 34) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_localGws:
-          ::google::protobuf::scoped_ptr<ReadableTopology_LocalGwsEntry> entry(localgws_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_localgws())[entry->key()].Swap(entry->mutable_value());
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            entry->key().data(), entry->key().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableTopology.LocalGwsEntry.key"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(34)) goto parse_loop_localGws;
-        if (input->ExpectTag(42)) goto parse_loop_remoteGws;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // map<string, .ddam.ReadableHost> remoteGws = 5;
-      case 5: {
-        if (tag == 42) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_remoteGws:
-          ::google::protobuf::scoped_ptr<ReadableTopology_RemoteGwsEntry> entry(remotegws_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_remotegws())[entry->key()].Swap(entry->mutable_value());
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            entry->key().data(), entry->key().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableTopology.RemoteGwsEntry.key"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(42)) goto parse_loop_remoteGws;
-        if (input->ExpectTag(50)) goto parse_loop_externals;
-        input->UnsafeDecrementRecursionDepth();
-        break;
-      }
-
-      // map<string, .ddam.ReadableHost> externals = 6;
-      case 6: {
-        if (tag == 50) {
-          DO_(input->IncrementRecursionDepth());
-         parse_loop_externals:
-          ::google::protobuf::scoped_ptr<ReadableTopology_ExternalsEntry> entry(externals_.NewEntry());
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-              input, entry.get()));
-          (*mutable_externals())[entry->key()].Swap(entry->mutable_value());
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            entry->key().data(), entry->key().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableTopology.ExternalsEntry.key"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(50)) goto parse_loop_externals;
-        input->UnsafeDecrementRecursionDepth();
-        if (input->ExpectTag(58)) goto parse_timestamp;
-        break;
-      }
-
-      // optional .google.protobuf.Timestamp timestamp = 7;
-      case 7: {
-        if (tag == 58) {
-         parse_timestamp:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_timestamp()));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectAtEnd()) goto success;
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
-        break;
-      }
-    }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:ddam.ReadableTopology)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:ddam.ReadableTopology)
-  return false;
-#undef DO_
-}
-
-void ReadableTopology::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:ddam.ReadableTopology)
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->networkname().data(), this->networkname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableTopology.networkName");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      1, this->networkname(), output);
-  }
-
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->subnetmask().data(), this->subnetmask().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableTopology.subnetMask");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->subnetmask(), output);
-  }
-
-  // map<string, .ddam.ReadableHost> internals = 3;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_InternalsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->internals().begin();
-        it != this->internals().end(); ++it) {
-      entry.reset(internals_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          3, *entry, output);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.InternalsEntry.key");
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> localGws = 4;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_LocalGwsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->localgws().begin();
-        it != this->localgws().end(); ++it) {
-      entry.reset(localgws_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          4, *entry, output);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.LocalGwsEntry.key");
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> remoteGws = 5;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_RemoteGwsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->remotegws().begin();
-        it != this->remotegws().end(); ++it) {
-      entry.reset(remotegws_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          5, *entry, output);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.RemoteGwsEntry.key");
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> externals = 6;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_ExternalsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->externals().begin();
-        it != this->externals().end(); ++it) {
-      entry.reset(externals_.NewEntryWrapper(it->first, it->second));
-      ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-          6, *entry, output);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.ExternalsEntry.key");
-    }
-  }
-
-  // optional .google.protobuf.Timestamp timestamp = 7;
-  if (this->has_timestamp()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      7, *this->timestamp_, output);
-  }
-
-  // @@protoc_insertion_point(serialize_end:ddam.ReadableTopology)
-}
-
-::google::protobuf::uint8* ReadableTopology::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ddam.ReadableTopology)
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->networkname().data(), this->networkname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableTopology.networkName");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->networkname(), target);
-  }
-
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->subnetmask().data(), this->subnetmask().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableTopology.subnetMask");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->subnetmask(), target);
-  }
-
-  // map<string, .ddam.ReadableHost> internals = 3;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_InternalsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->internals().begin();
-        it != this->internals().end(); ++it) {
-      entry.reset(internals_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              3, *entry, target);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.InternalsEntry.key");
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> localGws = 4;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_LocalGwsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->localgws().begin();
-        it != this->localgws().end(); ++it) {
-      entry.reset(localgws_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              4, *entry, target);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.LocalGwsEntry.key");
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> remoteGws = 5;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_RemoteGwsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->remotegws().begin();
-        it != this->remotegws().end(); ++it) {
-      entry.reset(remotegws_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              5, *entry, target);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.RemoteGwsEntry.key");
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> externals = 6;
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_ExternalsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->externals().begin();
-        it != this->externals().end(); ++it) {
-      entry.reset(externals_.NewEntryWrapper(it->first, it->second));
-      target = ::google::protobuf::internal::WireFormatLite::
-          WriteMessageNoVirtualToArray(
-              6, *entry, target);
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        it->first.data(), it->first.length(),
-        ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-        "ddam.ReadableTopology.ExternalsEntry.key");
-    }
-  }
-
-  // optional .google.protobuf.Timestamp timestamp = 7;
-  if (this->has_timestamp()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        7, *this->timestamp_, target);
-  }
-
-  // @@protoc_insertion_point(serialize_to_array_end:ddam.ReadableTopology)
-  return target;
-}
-
-int ReadableTopology::ByteSize() const {
-  int total_size = 0;
-
-  // optional string networkName = 1;
-  if (this->networkname().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->networkname());
-  }
-
-  // optional string subnetMask = 2;
-  if (this->subnetmask().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->subnetmask());
-  }
-
-  // optional .google.protobuf.Timestamp timestamp = 7;
-  if (this->has_timestamp()) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        *this->timestamp_);
-  }
-
-  // map<string, .ddam.ReadableHost> internals = 3;
-  total_size += 1 * this->internals_size();
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_InternalsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->internals().begin();
-        it != this->internals().end(); ++it) {
-      entry.reset(internals_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> localGws = 4;
-  total_size += 1 * this->localgws_size();
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_LocalGwsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->localgws().begin();
-        it != this->localgws().end(); ++it) {
-      entry.reset(localgws_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> remoteGws = 5;
-  total_size += 1 * this->remotegws_size();
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_RemoteGwsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->remotegws().begin();
-        it != this->remotegws().end(); ++it) {
-      entry.reset(remotegws_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
-    }
-  }
-
-  // map<string, .ddam.ReadableHost> externals = 6;
-  total_size += 1 * this->externals_size();
-  {
-    ::google::protobuf::scoped_ptr<ReadableTopology_ExternalsEntry> entry;
-    for (::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >::const_iterator
-        it = this->externals().begin();
-        it != this->externals().end(); ++it) {
-      entry.reset(externals_.NewEntryWrapper(it->first, it->second));
-      total_size += ::google::protobuf::internal::WireFormatLite::
-          MessageSizeNoVirtual(*entry);
-    }
-  }
-
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void ReadableTopology::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  const ReadableTopology* source = 
-      ::google::protobuf::internal::DynamicCastToGenerated<const ReadableTopology>(
-          &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
-
-void ReadableTopology::MergeFrom(const ReadableTopology& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  internals_.MergeFrom(from.internals_);
-  localgws_.MergeFrom(from.localgws_);
-  remotegws_.MergeFrom(from.remotegws_);
-  externals_.MergeFrom(from.externals_);
-  if (from.networkname().size() > 0) {
-
-    networkname_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.networkname_);
-  }
-  if (from.subnetmask().size() > 0) {
-
-    subnetmask_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.subnetmask_);
-  }
-  if (from.has_timestamp()) {
-    mutable_timestamp()->::google::protobuf::Timestamp::MergeFrom(from.timestamp());
-  }
-}
-
-void ReadableTopology::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void ReadableTopology::CopyFrom(const ReadableTopology& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool ReadableTopology::IsInitialized() const {
-
-  return true;
-}
-
-void ReadableTopology::Swap(ReadableTopology* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
-void ReadableTopology::InternalSwap(ReadableTopology* other) {
-  networkname_.Swap(&other->networkname_);
-  subnetmask_.Swap(&other->subnetmask_);
-  internals_.Swap(&other->internals_);
-  localgws_.Swap(&other->localgws_);
-  remotegws_.Swap(&other->remotegws_);
-  externals_.Swap(&other->externals_);
-  std::swap(timestamp_, other->timestamp_);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  std::swap(_cached_size_, other->_cached_size_);
-}
-
-::google::protobuf::Metadata ReadableTopology::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = ReadableTopology_descriptor_;
-  metadata.reflection = ReadableTopology_reflection_;
-  return metadata;
-}
-
-#if PROTOBUF_INLINE_NOT_IN_HEADERS
-// ReadableTopology
-
-// optional string networkName = 1;
-void ReadableTopology::clear_networkname() {
-  networkname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& ReadableTopology::networkname() const {
-  // @@protoc_insertion_point(field_get:ddam.ReadableTopology.networkName)
-  return networkname_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableTopology::set_networkname(const ::std::string& value) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.ReadableTopology.networkName)
-}
- void ReadableTopology::set_networkname(const char* value) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.ReadableTopology.networkName)
-}
- void ReadableTopology::set_networkname(const char* value, size_t size) {
-  
-  networkname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.ReadableTopology.networkName)
-}
- ::std::string* ReadableTopology::mutable_networkname() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.ReadableTopology.networkName)
-  return networkname_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* ReadableTopology::release_networkname() {
-  
-  return networkname_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableTopology::set_allocated_networkname(::std::string* networkname) {
-  if (networkname != NULL) {
-    
-  } else {
-    
-  }
-  networkname_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), networkname);
-  // @@protoc_insertion_point(field_set_allocated:ddam.ReadableTopology.networkName)
-}
-
-// optional string subnetMask = 2;
-void ReadableTopology::clear_subnetmask() {
-  subnetmask_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& ReadableTopology::subnetmask() const {
-  // @@protoc_insertion_point(field_get:ddam.ReadableTopology.subnetMask)
-  return subnetmask_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableTopology::set_subnetmask(const ::std::string& value) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.ReadableTopology.subnetMask)
-}
- void ReadableTopology::set_subnetmask(const char* value) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.ReadableTopology.subnetMask)
-}
- void ReadableTopology::set_subnetmask(const char* value, size_t size) {
-  
-  subnetmask_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.ReadableTopology.subnetMask)
-}
- ::std::string* ReadableTopology::mutable_subnetmask() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.ReadableTopology.subnetMask)
-  return subnetmask_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* ReadableTopology::release_subnetmask() {
-  
-  return subnetmask_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableTopology::set_allocated_subnetmask(::std::string* subnetmask) {
-  if (subnetmask != NULL) {
-    
-  } else {
-    
-  }
-  subnetmask_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), subnetmask);
-  // @@protoc_insertion_point(field_set_allocated:ddam.ReadableTopology.subnetMask)
-}
-
-// map<string, .ddam.ReadableHost> internals = 3;
-int ReadableTopology::internals_size() const {
-  return internals_.size();
-}
-void ReadableTopology::clear_internals() {
-  internals_.Clear();
-}
- const ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >&
-ReadableTopology::internals() const {
-  // @@protoc_insertion_point(field_map:ddam.ReadableTopology.internals)
-  return internals_.GetMap();
-}
- ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >*
-ReadableTopology::mutable_internals() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.ReadableTopology.internals)
-  return internals_.MutableMap();
-}
-
-// map<string, .ddam.ReadableHost> localGws = 4;
-int ReadableTopology::localgws_size() const {
-  return localgws_.size();
-}
-void ReadableTopology::clear_localgws() {
-  localgws_.Clear();
-}
- const ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >&
-ReadableTopology::localgws() const {
-  // @@protoc_insertion_point(field_map:ddam.ReadableTopology.localGws)
-  return localgws_.GetMap();
-}
- ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >*
-ReadableTopology::mutable_localgws() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.ReadableTopology.localGws)
-  return localgws_.MutableMap();
-}
-
-// map<string, .ddam.ReadableHost> remoteGws = 5;
-int ReadableTopology::remotegws_size() const {
-  return remotegws_.size();
-}
-void ReadableTopology::clear_remotegws() {
-  remotegws_.Clear();
-}
- const ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >&
-ReadableTopology::remotegws() const {
-  // @@protoc_insertion_point(field_map:ddam.ReadableTopology.remoteGws)
-  return remotegws_.GetMap();
-}
- ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >*
-ReadableTopology::mutable_remotegws() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.ReadableTopology.remoteGws)
-  return remotegws_.MutableMap();
-}
-
-// map<string, .ddam.ReadableHost> externals = 6;
-int ReadableTopology::externals_size() const {
-  return externals_.size();
-}
-void ReadableTopology::clear_externals() {
-  externals_.Clear();
-}
- const ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >&
-ReadableTopology::externals() const {
-  // @@protoc_insertion_point(field_map:ddam.ReadableTopology.externals)
-  return externals_.GetMap();
-}
- ::google::protobuf::Map< ::std::string, ::ddam::ReadableHost >*
-ReadableTopology::mutable_externals() {
-  // @@protoc_insertion_point(field_mutable_map:ddam.ReadableTopology.externals)
-  return externals_.MutableMap();
-}
-
-// optional .google.protobuf.Timestamp timestamp = 7;
-bool ReadableTopology::has_timestamp() const {
-  return !_is_default_instance_ && timestamp_ != NULL;
-}
-void ReadableTopology::clear_timestamp() {
-  if (GetArenaNoVirtual() == NULL && timestamp_ != NULL) delete timestamp_;
-  timestamp_ = NULL;
-}
-const ::google::protobuf::Timestamp& ReadableTopology::timestamp() const {
-  // @@protoc_insertion_point(field_get:ddam.ReadableTopology.timestamp)
-  return timestamp_ != NULL ? *timestamp_ : *default_instance_->timestamp_;
-}
-::google::protobuf::Timestamp* ReadableTopology::mutable_timestamp() {
-  
-  if (timestamp_ == NULL) {
-    timestamp_ = new ::google::protobuf::Timestamp;
-  }
-  // @@protoc_insertion_point(field_mutable:ddam.ReadableTopology.timestamp)
-  return timestamp_;
-}
-::google::protobuf::Timestamp* ReadableTopology::release_timestamp() {
-  
-  ::google::protobuf::Timestamp* temp = timestamp_;
-  timestamp_ = NULL;
-  return temp;
-}
-void ReadableTopology::set_allocated_timestamp(::google::protobuf::Timestamp* timestamp) {
-  delete timestamp_;
-  if (timestamp != NULL && timestamp->GetArena() != NULL) {
-    ::google::protobuf::Timestamp* new_timestamp = new ::google::protobuf::Timestamp;
-    new_timestamp->CopyFrom(*timestamp);
-    timestamp = new_timestamp;
-  }
-  timestamp_ = timestamp;
-  if (timestamp) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_set_allocated:ddam.ReadableTopology.timestamp)
-}
-
-#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
-
-// ===================================================================
-
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int ReadableHost::kIpFieldNumber;
-const int ReadableHost::kMacFieldNumber;
-const int ReadableHost::kGatewayNameFieldNumber;
-const int ReadableHost::kIsDefaultFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
-
-ReadableHost::ReadableHost()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:ddam.ReadableHost)
-}
-
-void ReadableHost::InitAsDefaultInstance() {
-  _is_default_instance_ = true;
-}
-
-ReadableHost::ReadableHost(const ReadableHost& from)
-  : ::google::protobuf::Message(),
-    _internal_metadata_(NULL) {
-  SharedCtor();
-  MergeFrom(from);
-  // @@protoc_insertion_point(copy_constructor:ddam.ReadableHost)
-}
-
-void ReadableHost::SharedCtor() {
-    _is_default_instance_ = false;
-  ::google::protobuf::internal::GetEmptyString();
-  _cached_size_ = 0;
-  ip_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  mac_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  gatewayname_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  isdefault_ = false;
-}
-
-ReadableHost::~ReadableHost() {
-  // @@protoc_insertion_point(destructor:ddam.ReadableHost)
-  SharedDtor();
-}
-
-void ReadableHost::SharedDtor() {
-  ip_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  mac_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  gatewayname_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (this != default_instance_) {
-  }
-}
-
-void ReadableHost::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* ReadableHost::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return ReadableHost_descriptor_;
-}
-
-const ReadableHost& ReadableHost::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_topology_2eproto();
-  return *default_instance_;
-}
-
-ReadableHost* ReadableHost::default_instance_ = NULL;
-
-ReadableHost* ReadableHost::New(::google::protobuf::Arena* arena) const {
-  ReadableHost* n = new ReadableHost;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
-}
-
-void ReadableHost::Clear() {
-  ip_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  mac_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  gatewayname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  isdefault_ = false;
-}
-
-bool ReadableHost::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:ddam.ReadableHost)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string ip = 1;
-      case 1: {
-        if (tag == 10) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_ip()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->ip().data(), this->ip().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableHost.ip"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(18)) goto parse_mac;
-        break;
-      }
-
-      // optional string mac = 2;
-      case 2: {
-        if (tag == 18) {
-         parse_mac:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_mac()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->mac().data(), this->mac().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableHost.mac"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(26)) goto parse_gatewayName;
-        break;
-      }
-
-      // optional string gatewayName = 3;
-      case 3: {
-        if (tag == 26) {
-         parse_gatewayName:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_gatewayname()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->gatewayname().data(), this->gatewayname().length(),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "ddam.ReadableHost.gatewayName"));
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectTag(32)) goto parse_isDefault;
-        break;
-      }
-
-      // optional bool isDefault = 4;
-      case 4: {
-        if (tag == 32) {
-         parse_isDefault:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &isdefault_)));
-
-        } else {
-          goto handle_unusual;
-        }
-        if (input->ExpectAtEnd()) goto success;
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0 ||
-            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
-        break;
-      }
-    }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:ddam.ReadableHost)
-  return true;
-failure:
-  // @@protoc_insertion_point(parse_failure:ddam.ReadableHost)
-  return false;
-#undef DO_
-}
-
-void ReadableHost::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:ddam.ReadableHost)
-  // optional string ip = 1;
-  if (this->ip().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->ip().data(), this->ip().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableHost.ip");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      1, this->ip(), output);
-  }
-
-  // optional string mac = 2;
-  if (this->mac().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->mac().data(), this->mac().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableHost.mac");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->mac(), output);
-  }
-
-  // optional string gatewayName = 3;
-  if (this->gatewayname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->gatewayname().data(), this->gatewayname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableHost.gatewayName");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      3, this->gatewayname(), output);
-  }
-
-  // optional bool isDefault = 4;
-  if (this->isdefault() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->isdefault(), output);
-  }
-
-  // @@protoc_insertion_point(serialize_end:ddam.ReadableHost)
-}
-
-::google::protobuf::uint8* ReadableHost::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ddam.ReadableHost)
-  // optional string ip = 1;
-  if (this->ip().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->ip().data(), this->ip().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableHost.ip");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->ip(), target);
-  }
-
-  // optional string mac = 2;
-  if (this->mac().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->mac().data(), this->mac().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableHost.mac");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->mac(), target);
-  }
-
-  // optional string gatewayName = 3;
-  if (this->gatewayname().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->gatewayname().data(), this->gatewayname().length(),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "ddam.ReadableHost.gatewayName");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        3, this->gatewayname(), target);
-  }
-
-  // optional bool isDefault = 4;
-  if (this->isdefault() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(4, this->isdefault(), target);
-  }
-
-  // @@protoc_insertion_point(serialize_to_array_end:ddam.ReadableHost)
-  return target;
-}
-
-int ReadableHost::ByteSize() const {
-  int total_size = 0;
-
-  // optional string ip = 1;
-  if (this->ip().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->ip());
-  }
-
-  // optional string mac = 2;
-  if (this->mac().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->mac());
-  }
-
-  // optional string gatewayName = 3;
-  if (this->gatewayname().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->gatewayname());
-  }
-
-  // optional bool isDefault = 4;
-  if (this->isdefault() != 0) {
-    total_size += 1 + 1;
-  }
-
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void ReadableHost::MergeFrom(const ::google::protobuf::Message& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  const ReadableHost* source = 
-      ::google::protobuf::internal::DynamicCastToGenerated<const ReadableHost>(
-          &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
-
-void ReadableHost::MergeFrom(const ReadableHost& from) {
-  if (GOOGLE_PREDICT_FALSE(&from == this)) MergeFromFail(__LINE__);
-  if (from.ip().size() > 0) {
-
-    ip_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ip_);
-  }
-  if (from.mac().size() > 0) {
-
-    mac_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.mac_);
-  }
-  if (from.gatewayname().size() > 0) {
-
-    gatewayname_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.gatewayname_);
-  }
-  if (from.isdefault() != 0) {
-    set_isdefault(from.isdefault());
-  }
-}
-
-void ReadableHost::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void ReadableHost::CopyFrom(const ReadableHost& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool ReadableHost::IsInitialized() const {
-
-  return true;
-}
-
-void ReadableHost::Swap(ReadableHost* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
-void ReadableHost::InternalSwap(ReadableHost* other) {
-  ip_.Swap(&other->ip_);
-  mac_.Swap(&other->mac_);
-  gatewayname_.Swap(&other->gatewayname_);
-  std::swap(isdefault_, other->isdefault_);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  std::swap(_cached_size_, other->_cached_size_);
-}
-
-::google::protobuf::Metadata ReadableHost::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = ReadableHost_descriptor_;
-  metadata.reflection = ReadableHost_reflection_;
-  return metadata;
-}
-
-#if PROTOBUF_INLINE_NOT_IN_HEADERS
-// ReadableHost
-
-// optional string ip = 1;
-void ReadableHost::clear_ip() {
-  ip_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& ReadableHost::ip() const {
-  // @@protoc_insertion_point(field_get:ddam.ReadableHost.ip)
-  return ip_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableHost::set_ip(const ::std::string& value) {
-  
-  ip_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.ReadableHost.ip)
-}
- void ReadableHost::set_ip(const char* value) {
-  
-  ip_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.ReadableHost.ip)
-}
- void ReadableHost::set_ip(const char* value, size_t size) {
-  
-  ip_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.ReadableHost.ip)
-}
- ::std::string* ReadableHost::mutable_ip() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.ReadableHost.ip)
-  return ip_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* ReadableHost::release_ip() {
-  
-  return ip_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableHost::set_allocated_ip(::std::string* ip) {
-  if (ip != NULL) {
-    
-  } else {
-    
-  }
-  ip_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ip);
-  // @@protoc_insertion_point(field_set_allocated:ddam.ReadableHost.ip)
-}
-
-// optional string mac = 2;
-void ReadableHost::clear_mac() {
-  mac_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& ReadableHost::mac() const {
-  // @@protoc_insertion_point(field_get:ddam.ReadableHost.mac)
-  return mac_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableHost::set_mac(const ::std::string& value) {
-  
-  mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.ReadableHost.mac)
-}
- void ReadableHost::set_mac(const char* value) {
-  
-  mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.ReadableHost.mac)
-}
- void ReadableHost::set_mac(const char* value, size_t size) {
-  
-  mac_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.ReadableHost.mac)
-}
- ::std::string* ReadableHost::mutable_mac() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.ReadableHost.mac)
-  return mac_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* ReadableHost::release_mac() {
-  
-  return mac_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableHost::set_allocated_mac(::std::string* mac) {
-  if (mac != NULL) {
-    
-  } else {
-    
-  }
-  mac_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), mac);
-  // @@protoc_insertion_point(field_set_allocated:ddam.ReadableHost.mac)
-}
-
-// optional string gatewayName = 3;
-void ReadableHost::clear_gatewayname() {
-  gatewayname_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- const ::std::string& ReadableHost::gatewayname() const {
-  // @@protoc_insertion_point(field_get:ddam.ReadableHost.gatewayName)
-  return gatewayname_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableHost::set_gatewayname(const ::std::string& value) {
-  
-  gatewayname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:ddam.ReadableHost.gatewayName)
-}
- void ReadableHost::set_gatewayname(const char* value) {
-  
-  gatewayname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:ddam.ReadableHost.gatewayName)
-}
- void ReadableHost::set_gatewayname(const char* value, size_t size) {
-  
-  gatewayname_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:ddam.ReadableHost.gatewayName)
-}
- ::std::string* ReadableHost::mutable_gatewayname() {
-  
-  // @@protoc_insertion_point(field_mutable:ddam.ReadableHost.gatewayName)
-  return gatewayname_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- ::std::string* ReadableHost::release_gatewayname() {
-  
-  return gatewayname_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
- void ReadableHost::set_allocated_gatewayname(::std::string* gatewayname) {
-  if (gatewayname != NULL) {
-    
-  } else {
-    
-  }
-  gatewayname_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), gatewayname);
-  // @@protoc_insertion_point(field_set_allocated:ddam.ReadableHost.gatewayName)
-}
-
-// optional bool isDefault = 4;
-void ReadableHost::clear_isdefault() {
-  isdefault_ = false;
-}
- bool ReadableHost::isdefault() const {
-  // @@protoc_insertion_point(field_get:ddam.ReadableHost.isDefault)
-  return isdefault_;
-}
- void ReadableHost::set_isdefault(bool value) {
-  
-  isdefault_ = value;
-  // @@protoc_insertion_point(field_set:ddam.ReadableHost.isDefault)
-}
-
-#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
-
-// @@protoc_insertion_point(namespace_scope)
-
-}  // namespace ddam
-
-// @@protoc_insertion_point(global_scope)
+   // @@protoc_insertion_point(global_scope)

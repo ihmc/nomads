@@ -10,14 +10,14 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/Socket.cpp,v 1.29 2016/06/09 20:02:45 gbenincasa Exp $
- * Revision: $Revision: 1.29 $
+ * RCSInfo: $Header$
+ * Revision: $Revision$
  */
 
 #include "Socket.h"
@@ -203,7 +203,7 @@ int Socket::receiveBlock (void *pBuf, int iMaxSize)
     unsigned long ulSize;
     char *pszBuf = (char*) &ulSize;
     int rc;
-    
+
     if ((rc = receiveBytes (pszBuf, sizeof (ulSize))) <= 0) {
         if ((rc == SE_DISCONNECT) || (rc == SE_TIMEOUT)) {
             return rc;
@@ -238,7 +238,7 @@ void * Socket::receiveBlock (void)
     unsigned long ulSize;
     char *pszBuf = (char*) &ulSize;
     int rc;
-    
+
     if ((rc = receiveBytes (pszBuf, sizeof (ulSize))) <= 0) {
         return NULL;
     }

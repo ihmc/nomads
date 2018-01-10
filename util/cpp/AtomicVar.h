@@ -54,7 +54,9 @@ namespace NOMADSUtil
         
         //Increment and decrement operators
         AtomicVar<Type, Lock> & operator++ (void);
+        AtomicVar<Type, Lock> operator++ (int);       // postfix increment
         AtomicVar<Type, Lock> & operator-- (void);
+        AtomicVar<Type, Lock> operator-- (int);       // postfix decrement
 
         // Type conversion operator
         operator const Type&() const { return _var; };
@@ -183,6 +185,22 @@ namespace NOMADSUtil
         return *this;
     }
 
+    template <class Type, class Lock> AtomicVar<Type, Lock> AtomicVar<Type, Lock>::operator++ (int)
+    {
+    #ifndef ANDROID
+        if (_lock.lock() != Mutex::RC_Ok) {
+            throw std::runtime_error("Impossible to acquire lock()");
+        }
+    #else
+        _lock.lock();
+    #endif
+
+        AtomicVar<Type, Lock> temp = _var++;
+        _lock.unlock();
+
+        return temp;
+    }
+
     template <class Type, class Lock> AtomicVar<Type, Lock> & AtomicVar<Type, Lock>::operator-- (void)
     {
         #ifndef ANDROID
@@ -197,6 +215,22 @@ namespace NOMADSUtil
         _lock.unlock();
 
         return *this;
+    }
+
+    template <class Type, class Lock> AtomicVar<Type, Lock> AtomicVar<Type, Lock>::operator-- (int)
+    {
+    #ifndef ANDROID
+        if (_lock.lock() != Mutex::RC_Ok) {
+            throw std::runtime_error("Impossible to acquire lock()");
+        }
+    #else
+        _lock.lock();
+    #endif
+
+        AtomicVar<Type, Lock> temp = _var--;
+        _lock.unlock();
+
+        return temp;
     }
 
 }

@@ -1,18 +1,18 @@
 /*
  * Receiver.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -81,7 +81,7 @@ Receiver::Receiver (Mocket *pMocket, bool bEnableRecvLogging)
         String localIPAddr = localAddr.getIPAsString();
         InetAddr remoteAddr (_ui32RemoteAddress);
         String remoteIPAddr = remoteAddr.getIPAsString();
-        sprintf (szLogFileName, "mmrecv_%s_%d_%s_%d.log",
+		sprintf (szLogFileName, "mmrecv_%s_%d_%s_%d.log",
                  (const char*) localIPAddr, _pMocket->getLocalPort(), (const char*) remoteIPAddr, _ui16RemotePort);
         if (NULL != (_filePacketRecvLog = fopen (szLogFileName, "a"))) {
             fprintf (_filePacketRecvLog, "********** Starting logging at %s", logStartTime.ctime());
@@ -161,14 +161,14 @@ int Receiver::freeze (ObjectFreezer &objectFreezer)
     if (0 != _unreliableSequencedPacketQueue.freeze (objectFreezer)) {
         return -4;
     }
-    
+
     return objectFreezer.endObject();
 }
 
 int Receiver::defrost (ObjectDefroster &objectDefroster)
 {
     objectDefroster.beginNewObject ("Receiver");
-    
+
     if (0 != _ctrlPacketQueue.defrost (objectDefroster)) {
         return -2;
     }
@@ -178,7 +178,7 @@ int Receiver::defrost (ObjectDefroster &objectDefroster)
     if (0 != _unreliableSequencedPacketQueue.defrost (objectDefroster)) {
         return -4;
     }
-    
+
     return objectDefroster.endObject();
 }
 
@@ -197,7 +197,7 @@ void Receiver::run (void)
         InetAddr remoteAddr;
         Packet *pRecvPacket = NULL;
         int rc = _pCommInterface->receive (pRecBuf, _pMocket->getMaximumMTU(), &remoteAddr);
-        
+
         // Check the return value of receive
         if (rc < 0) {
             checkAndLogMsg ("Receiver::run", Logger::L_LowDetailDebug,
@@ -218,7 +218,7 @@ void Receiver::run (void)
         // Check the packet itself
         else {
             pRecvPacket = new Packet (pRecBuf, rc);
-            
+
             if (pRecvPacket->getValidation() != _ui32IncomingValidation) {
                 checkAndLogMsg ("Receiver::run", Logger::L_Warning,
                                 "error receiving a packet; received a packet with an incorrect validation - expecting %lu, got %lu\n",
@@ -228,8 +228,8 @@ void Receiver::run (void)
                 bReceiveError = true;
             }
             else if((remoteAddr.getIPAddress() != _ui32RemoteAddress) || (remoteAddr.getPort() != _ui16RemotePort)) {
-                
-                // It is possible that this is not an error condition if current node 
+
+                // It is possible that this is not an error condition if current node
                 // is in suspend_received and the received packet is a resume
                 // or if the message is a Reestablish message due to a change in the network attachment
                 if (((_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_SUSPEND_RECEIVED) &&
@@ -297,6 +297,7 @@ void Receiver::run (void)
             sleepForMilliseconds (10);
         }
         else {
+
             // At this point, we have a validated packet
             // If the state is S_SUSPEND_RECEIVED accept only resume and suspend packets
             if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_SUSPEND_RECEIVED) {
@@ -327,6 +328,7 @@ void Receiver::run (void)
                     // Reset callback time
                     i64LastAppCallbackTime = 0;
                 }
+
                 _i64LastRecvTime = getTimeInMilliseconds();
                 _pMocket->getMocketStatusNotifier()->setLastContactTime (_i64LastRecvTime);
                 checkAndLogMsg ("Receiver::run", Logger::L_MediumDetailDebug,
@@ -367,6 +369,12 @@ void Receiver::run (void)
                 // Check for SAck Chunks and update the Transmitter
                 pRecvPacket->resetChunkIterator();
                 while (true) {
+
+
+					//printf("Packet size: %d!\n", pRecvPacket->getPacketSize());
+
+					//printf("\nTTTEEEEEEEEEEEST!!: %d\n", pRecvPacket->getChunkType());
+
                     switch (pRecvPacket->getChunkType()) {
                         case Packet::CT_Init:
                         case Packet::CT_InitAck:
@@ -400,7 +408,7 @@ void Receiver::run (void)
                             //printf ("Receiver::run Received timestampAck chunk\n");
                             _pMocket->getTransmitter()->processTimestampAckChunk (pRecvPacket->getTimestampAckChunk());
                             break;
-                            
+
                         // Suspend/Resume process messages
                         case Packet::CT_SimpleSuspend:
                             //printf ("Receiver::run Received simpleSuspend packet\n");
@@ -439,7 +447,7 @@ void Receiver::run (void)
                         break;
                     }
                 }
-  
+
                 // Check the window size to see if there is room to accept this packet
                 /*if (getWindowSize() < pRecvPacket->getPacketSizeWithoutPiggybackChunks()) {
                     checkAndLogMsg ("Receiver::run", Logger::L_LowDetailDebug,
@@ -549,7 +557,9 @@ void Receiver::run (void)
         if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_SUSPENDED) {
             bDone = true;
         }
+
     }
+
     free (pRecBuf);
     _pMocket->receiverTerminating();
 }

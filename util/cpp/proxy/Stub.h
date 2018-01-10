@@ -84,7 +84,7 @@ namespace NOMADSUtil
 
         protected:
             SimpleCommHelper2 *_pCommHelper;
-            Mutex _stubMutex;
+            mutable Mutex _stubMutex;
 
         private:
             const bool _bUsingBackgroundReconnect;

@@ -1,6 +1,6 @@
 #ifndef INCL_WIN32_SERVICE_H
 #define INCL_WIN32_SERVICE_H
-
+#define NOMINMAX
 #include <winsock2.h>
 #include <windows.h>
 

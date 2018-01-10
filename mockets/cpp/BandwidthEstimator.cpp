@@ -2,7 +2,7 @@
  * BandwidthEstimator.cpp
  * 
  * This file is part of the IHMC Mockets Library/Component
- * Copyright (c) 2002-2014 IHMC.
+ * Copyright (c) 2002-2016 IHMC.
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,7 +21,6 @@
 #include "NLFLib.h"
 #include "Logger.h"
 #include <stdio.h>
-
 
 using namespace NOMADSUtil;
 
@@ -77,6 +76,7 @@ int32 BandwidthEstimator::addSample (uint64 ui64Timestamp, uint64 ui64Acknowledg
 
         double dBandwidthEstimation = computeNewBandwidthEstimation (_pACKSamplesList, _pBandwidthSamplesList, _pBandwidthEstimationsList, ui32PacketInQueue);
         _pBandwidthEstimationsList->pushTail (dBandwidthEstimation);
+
         return (int32)(dBandwidthEstimation * 1000);
     }
 }
@@ -107,18 +107,22 @@ double BandwidthEstimator::computeNewBandwidthSample (DLList<ACKSample> *pACKLis
             // Update oldest timestamp and acknowldged data
             ui64OldestTimestamp = tempAck.ui64Timestamp;
             ui64OldestAcknowledgedData = tempAck.ui64AcknowledgedData;
-            //checkAndLogMsg ("BandwidthEstimator::computeNewBandwidthSample", Logger::L_MediumDetailDebug,
-            //                " ui64ackDataSum %llu ui64OldestTimestamp %llu\n", ui64ackDataSum, ui64OldestTimestamp);
+			/*
+				checkAndLogMsg ("BandwidthEstimator::computeNewBandwidthSample", Logger::L_MediumDetailDebug,
+                           " ui64ackDataSum %llu ui64OldestTimestamp %llu\n", ui64ackDataSum, ui64OldestTimestamp);
+			*/
         }
         else {
             break;
         }
     }
 
-    // Note that we are summing the number of acknowledged bytes over a period
-    // of time from the most recent sack to the oldest one within the time interval,
-    // so the most recent sack sample should be added to the sum but the oldest one
-    // is out of the interval we are considering
+	/*
+     Note that we are summing the number of acknowledged bytes over a period
+     of time from the most recent sack to the oldest one within the time interval,
+     so the most recent sack sample should be added to the sum but the oldest one
+     is out of the interval we are considering
+	*/
     ui64ackDataSum -= ui64OldestAcknowledgedData;
     ui64ackDataSum += lastAck.ui64AcknowledgedData;
 
@@ -268,10 +272,10 @@ double WestwoodBandwidthEstimator::computeNewBandwidthSample (DLList<ACKSample> 
     // If, for some reason, the time difference between the two ack samples is zero no division is
     // performed and the current amount of acknowledged data is returned
     if (ui64Delta) {
-	return currentAck.ui64AcknowledgedData / (double)ui64Delta;
+	    return currentAck.ui64AcknowledgedData / (double)ui64Delta;
     }
     else {
-	return (double)currentAck.ui64AcknowledgedData;
+	    return (double)currentAck.ui64AcknowledgedData;
     }
 }
 

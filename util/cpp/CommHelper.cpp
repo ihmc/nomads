@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -26,7 +26,7 @@
 
 #if defined (WIN32)
     #if _MCS_VER<1900
-        #define snprintf _snprintf    
+        #define snprintf _snprintf
     #endif
 #endif
 
@@ -81,7 +81,7 @@ unsigned long CommHelper::receive (void *pBuf, unsigned long ulSize) throw (Comm
 {
     int rc;
     if ((rc = _pSocket->receive (pBuf, (int)ulSize)) <= 0) {
-        sprintf (_szErrorMsgBuf, "CommHelper::receive socket error %d:%d", rc, _pSocket->error());   
+        sprintf (_szErrorMsgBuf, "CommHelper::receive socket error %d:%d", rc, _pSocket->error());
         throw CommException (_szErrorMsgBuf);
     }
     return rc;
@@ -91,7 +91,7 @@ void CommHelper::sendBlob (const void *pBuf, unsigned long ulSize) throw (CommEx
 {
     int rc;
     if (0 != (rc = _pSocket->sendBytes (pBuf, (int)ulSize))) {
-        sprintf (_szErrorMsgBuf, "CommHelper::sendBlob socket error %d:%d", rc, _pSocket->error());      
+        sprintf (_szErrorMsgBuf, "CommHelper::sendBlob socket error %d:%d", rc, _pSocket->error());
         throw CommException (_szErrorMsgBuf);
     }
 }
@@ -101,7 +101,7 @@ void CommHelper::receiveBlob (void *pBuf, unsigned long ulSize) throw (CommExcep
     int rc;
     int iSize = (int) ulSize;
     if (iSize != (rc = _pSocket->receiveBytes (pBuf, iSize))) {
-        sprintf (_szErrorMsgBuf, "CommHelper::receiveBlob socket error %d:%d", rc, _pSocket->error());      
+        sprintf (_szErrorMsgBuf, "CommHelper::receiveBlob socket error %d:%d", rc, _pSocket->error());
         throw CommException (_szErrorMsgBuf);
     }
 }
@@ -139,7 +139,7 @@ void CommHelper::sendLine (const char *pszMsg, ...) throw (CommException)
     //     with the line terminator
     strcat (_pszLineBuf, "\r\n");
     if (0 != (rc = (int) _pSocket->sendBytes (_pszLineBuf, (int) strlen (_pszLineBuf)))) {
-        sprintf (_szErrorMsgBuf, "CommHelper::sendLine socket error %d:%d", rc, _pSocket->error());    
+        sprintf (_szErrorMsgBuf, "CommHelper::sendLine socket error %d:%d", rc, _pSocket->error());
         throw CommException (_szErrorMsgBuf);
     }
 }
@@ -148,7 +148,7 @@ int CommHelper::receiveLine (char *pszBuf, int iBufSize) throw (CommException)
 {
     int rc;
     if ((rc = _pSocket->receiveLine (pszBuf, iBufSize)) <= 0) {
-        sprintf (_szErrorMsgBuf, "CommHelper::receiveLine socket error %d:%d", rc, _pSocket->error());      
+        sprintf (_szErrorMsgBuf, "CommHelper::receiveLine socket error %d:%d", rc, _pSocket->error());
         throw CommException (_szErrorMsgBuf);
     }
     stripCRLF (pszBuf);
@@ -178,7 +178,7 @@ void CommHelper::receiveMatch (const char *pszMsg, ...) throw (CommException, Pr
         snprintf (_szErrorMsgBuf, sizeof (_szErrorMsgBuf), "CommHelper::receive Match mismatch in expected (%s) and received (%s) strings", pszMatchStr, _pszLineBuf);
         _szErrorMsgBuf[sizeof(_szErrorMsgBuf)-1] = '\0';
         delete[] pszMatchStr;
-        throw ProtocolException (_szErrorMsgBuf);   
+        throw ProtocolException (_szErrorMsgBuf);
     }
 }
 
@@ -232,7 +232,7 @@ int CommHelper::receiveMatchIndex (const char *apszAlternatives[], unsigned shor
             return us;
         }
     }
-        
+
     throw ProtocolException ("CommHelper::receiveMatchIndex received line does not match any alternatives");
 }
 
@@ -253,7 +253,7 @@ int CommHelper::receiveRemainingMatchIndex (unsigned short usAltCount, ...) thro
 
     // Get the remaining line next
     char *pszRemainingLine = new char [_usLineBufSize];
-    
+
     try {
         receiveRemainingLine (pszRemainingLine, _usLineBufSize, pszMsg, msgArgs);
     }
@@ -363,8 +363,9 @@ const char ** CommHelper::receiveParsed (int* pCount) throw (CommException)
         pszToken = strtok_mt (NULL, " \t", &pszTemp);
     }
     _parsedTokens[i] = NULL;
-	if (NULL != pCount) 
-		*pCount = i;
+    if (NULL != pCount) {
+        *pCount = i;
+    }
     return (const char **) &_parsedTokens[0];
 }
 
@@ -383,8 +384,9 @@ const char ** CommHelper::receiveParsedDelimited (const char* pszDelimiters, int
         pszToken = strtok_mt (NULL, pszDelimiters, &pszTemp);
     }
     _parsedTokens[i] = NULL;
-	if (NULL != pCount)	
-		*pCount = i;
+    if (NULL != pCount) {
+        *pCount = i;
+    }
     return (const char **) &_parsedTokens[0];
 }
 

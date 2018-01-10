@@ -25,7 +25,8 @@
 #if defined (WIN32)
     #include <io.h>
     #include <process.h>
-#include <winsock2.h>
+	#define NOMINMAX
+	#include <winsock2.h>
     #include <windows.h>
 
     #define strdup _strdup

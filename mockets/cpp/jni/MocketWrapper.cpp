@@ -78,7 +78,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad (JavaVM *pJvm, void * pReserved)
         return JNI_ERR;
     }
 
-/*    // Initialize the Logger
+    // Initialize the Logger
     if (pLogger == NULL) {
         ATime startTime;
         char szLogFileName[80];
@@ -87,11 +87,10 @@ JNIEXPORT jint JNICALL JNI_OnLoad (JavaVM *pJvm, void * pReserved)
                  startTime.h24(), startTime.min(), startTime.sec());
         pLogger = new Logger();
         pLogger->initLogFile (szLogFileName, false);
-        pLogger->disableFileOutput();
+        pLogger->enableFileOutput();
         pLogger->disableScreenOutput();
         pLogger->setDebugLevel (Logger::L_LowDetailDebug);
     }
-*/
     return JNI_VERSION_1_2;
 }
 
@@ -114,6 +113,38 @@ JNIEXPORT void JNICALL Java_us_ihmc_mockets_Mocket_init (JNIEnv *pEnv, jobject j
     }
     pEnv->SetLongField (joThis, jfMocket, UtilWrapper::toJLong (pMocket));
 }
+
+
+JNIEXPORT void JNICALL Java_us_ihmc_mockets_Mocket_initDtls (JNIEnv *pEnv, jobject joThis, jstring jsConfigFile, jstring jsCertificatePath, jstring jsPrivateKeyPath)
+{
+    // bAbortConnection = false;
+    jclass jcMocket = pEnv->GetObjectClass (joThis);
+    jfieldID jfMocket = pEnv->GetFieldID (jcMocket, "_mocket", "J");
+    const char *pszConfigFile = NULL;
+    const char *pszPathToCertificate = NULL;
+    const char *pszPathToPrivateKey = NULL;
+
+    if (jsConfigFile != NULL) {
+        pszConfigFile = pEnv->GetStringUTFChars (jsConfigFile, NULL);
+    }
+    if (jsCertificatePath != NULL) {
+        pszPathToCertificate = pEnv->GetStringUTFChars (jsCertificatePath, NULL);
+    }
+    if (jsPrivateKeyPath != NULL) {
+        pszPathToPrivateKey = pEnv->GetStringUTFChars (jsPrivateKeyPath, NULL);
+    }
+
+    Mocket *pMocket = new Mocket (pszConfigFile, NULL, false, true, pszPathToCertificate, pszPathToPrivateKey);
+    if (pszConfigFile != NULL) {
+        pEnv->ReleaseStringUTFChars (jsConfigFile, pszConfigFile);
+    }
+    if (pMocket == NULL) {
+        pEnv->ThrowNew (pEnv->FindClass ("java/lang/NullPointerException"), "MocketsJavaWrapper not initialized - mocket is null");
+        return;
+    }
+    pEnv->SetLongField (joThis, jfMocket, UtilWrapper::toJLong (pMocket));
+}
+
 
 JNIEXPORT void JNICALL Java_us_ihmc_mockets_Mocket_dispose (JNIEnv *pEnv, jobject joThis)
 {

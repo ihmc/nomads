@@ -10,14 +10,14 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * RCSInfo: $Header: /export/cvs/nomads.root/util/cpp/Socket.h,v 1.26 2016/08/08 15:50:41 rfronteddu Exp $
- * Revision: $Revision: 1.26 $
+ * RCSInfo: $Header$
+ * Revision: $Revision$
  */
 
 #ifndef INCL_SOCKET_H
@@ -41,6 +41,7 @@
 #include <winsock2.h>
     #include <windows.h>
 #elif defined (WIN32)
+	#define NOMINMAX
 	#include <winsock2.h>
     #include <windows.h>
 #elif defined (OS2)
@@ -106,7 +107,7 @@ namespace NOMADSUtil
                 virtual int disableReceiveNotification (void) = 0;
             #endif
         protected:
-            static bool isNumber (const char* szNum);  
+            static bool isNumber (const char* szNum);
             virtual int sendImpl (const void *pBuf, int iSize) = 0;
             virtual int receiveImpl (void *pBuf, int iSize) = 0;
             #if defined (OS2)
