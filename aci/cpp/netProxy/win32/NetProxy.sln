@@ -23,12 +23,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "securitylib", "..\..\..\..\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "..\..\..\..\externals\zlib\win32\zlib.vcxproj", "{544A0007-9CE2-4A8B-B24D-3AA18924FD15}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TapInterfaceTest", "NetProxyWindowsInstaller\TapInterfaceTest\TapInterfaceTest.vcxproj", "{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}"
-	ProjectSection(ProjectDependencies) = postProject
-		{8B739421-E28C-4FC1-B6ED-26D635617F7B} = {8B739421-E28C-4FC1-B6ED-26D635617F7B}
-		{CB203F46-8586-4ACA-A5E0-F87D5BC56C11} = {CB203F46-8586-4ACA-A5E0-F87D5BC56C11}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetSensor", "..\..\..\..\misc\cpp\netsensor\win\vs2015\NetSensor\NetSensor.vcxproj", "{7A110DE9-306E-4DAB-8709-7221E402627D}"
 EndProject
 Global
@@ -55,19 +49,20 @@ Global
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Debug|Win32.Build.0 = Debug|Win32
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Debug|x64.ActiveCfg = Debug|x64
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Debug|x64.Build.0 = Debug|x64
-		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|Any CPU.ActiveCfg = Installer|Win32
+		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|Any CPU.ActiveCfg = Static Release|x64
+		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|Any CPU.Build.0 = Static Release|x64
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|Win32.ActiveCfg = Release|Win32
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|Win32.Build.0 = Release|Win32
-		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|x64.ActiveCfg = Installer|x64
-		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|x64.Build.0 = Installer|x64
+		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|x64.ActiveCfg = Static Release|x64
+		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Installer|x64.Build.0 = Static Release|x64
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Profiling|Any CPU.ActiveCfg = Profiling|Win32
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Profiling|Win32.ActiveCfg = Profiling|Win32
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Profiling|Win32.Build.0 = Profiling|Win32
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Profiling|x64.ActiveCfg = Profiling|x64
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Profiling|x64.Build.0 = Profiling|x64
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Release|Any CPU.ActiveCfg = Release|Win32
-		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Release|Win32.ActiveCfg = Release|Win32
-		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Release|Win32.Build.0 = Release|Win32
+		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Release|Win32.ActiveCfg = Profiling|Win32
+		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Release|Win32.Build.0 = Profiling|Win32
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Release|x64.ActiveCfg = Release|x64
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Release|x64.Build.0 = Release|x64
 		{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}.Static Release|Any CPU.ActiveCfg = Release|Win32
@@ -175,22 +170,6 @@ Global
 		{544A0007-9CE2-4A8B-B24D-3AA18924FD15}.Static Release|Win32.Build.0 = Static Release|Win32
 		{544A0007-9CE2-4A8B-B24D-3AA18924FD15}.Static Release|x64.ActiveCfg = Static Release|x64
 		{544A0007-9CE2-4A8B-B24D-3AA18924FD15}.Static Release|x64.Build.0 = Static Release|x64
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Debug|Win32.ActiveCfg = Debug|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Debug|x64.ActiveCfg = Debug|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Installer|Any CPU.ActiveCfg = Static Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Installer|Win32.ActiveCfg = Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Installer|Win32.Build.0 = Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Installer|x64.ActiveCfg = Static Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Profiling|Any CPU.ActiveCfg = Static Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Profiling|Win32.ActiveCfg = Static Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Profiling|x64.ActiveCfg = Static Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Release|Any CPU.ActiveCfg = Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Release|Win32.ActiveCfg = Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Release|x64.ActiveCfg = Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Static Release|Any CPU.ActiveCfg = Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Static Release|Win32.ActiveCfg = Static Release|Win32
-		{3A51F7DC-FF16-468A-ABCF-B63F3F99B8F4}.Static Release|x64.ActiveCfg = Static Release|Win32
 		{7A110DE9-306E-4DAB-8709-7221E402627D}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{7A110DE9-306E-4DAB-8709-7221E402627D}.Debug|Win32.ActiveCfg = Debug|Win32
 		{7A110DE9-306E-4DAB-8709-7221E402627D}.Debug|Win32.Build.0 = Debug|Win32

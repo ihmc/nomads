@@ -3,7 +3,7 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
-/* @(#) $Id: zconf.h.in,v 1.1 2011/11/29 00:21:16 ecasini Exp $ */
+/* @(#) $Id$ */
 
 #ifndef ZCONF_H
 #define ZCONF_H
@@ -356,7 +356,7 @@ typedef uLong FAR uLongf;
    typedef Byte       *voidp;
 #endif
 
-#if 1    /* was set to #if 1 by ./configure */
+#ifdef HAVE_UNISTD_H    /* may be set to #if 1 by ./configure */
 #  define Z_HAVE_UNISTD_H
 #endif
 
