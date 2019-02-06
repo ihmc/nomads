@@ -3,7 +3,7 @@ linux/netProxy
 win32/conf
 win32/Profiling
 win32/enc_temp_folder/
-version.cpp
+/version.cpp
 
 ## DTLS related
 *.pem
