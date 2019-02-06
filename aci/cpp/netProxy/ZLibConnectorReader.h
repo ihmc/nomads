@@ -5,7 +5,7 @@
  * ZLibConnectorReader.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,9 +22,10 @@
  * ConnectorReader decompresses data compressed using the ZLib library.
  */
 
+#include <mutex>
+
 #include "zlib.h"
 
-#include "Mutex.h"
 #include "ConnectorReader.h"
 
 #define DEFAULT_IN_BUF_SIZE 1024U
@@ -36,7 +37,7 @@ namespace ACMNetProxy
     class ZLibConnectorReader : public ConnectorReader
     {
     public:
-        virtual const ProxyMessage::CompressionType getCompressionFlag (void) const;
+        virtual const CompressionType getCompressionFlag (void) const;
         using ConnectorReader::getCompressionLevel;
         using ConnectorReader::getCompressionName;
 
@@ -54,28 +55,29 @@ namespace ACMNetProxy
         //     mode should be used for compatibility with .zip files
         // NOTE: If bNoWrapMode is set to true, then the data that is passed in must be padded with
         //       an extra byte in order to prevent the zlib library from complaining with a Z_BUF_ERROR
-        ZLibConnectorReader (const CompressionSetting * const pCompressionSetting, unsigned int ulInBufSize = DEFAULT_IN_BUF_SIZE, unsigned int ulOutBufSize = DEFAULT_OUT_BUF_SIZE, bool bNoWrapMode = false);
+        ZLibConnectorReader (const CompressionSettings & compressionSettings, unsigned int ulInBufSize = DEFAULT_IN_BUF_SIZE,
+                             unsigned int ulOutBufSize = DEFAULT_OUT_BUF_SIZE, bool bNoWrapMode = false);
         virtual ~ZLibConnectorReader (void);
 
-        virtual int lockConnectorReader (void);
-        virtual int unlockConnectorReader (void);
+        virtual void lockConnectorReader (void) const;
+        virtual void unlockConnectorReader (void) const;
         virtual int resetConnectorReader (void);
         void resetDecompStream (void);
 
-        unsigned char *_pInputBuffer;
+        unsigned char * _pInputBuffer;
         unsigned int _ulInBufSize;
-        unsigned char *_pOutputBuffer;
+        unsigned char * _pOutputBuffer;
         unsigned int _ulOutBufSize;
         const bool _bNoWrapMode;
         z_stream _zsDecompStream;
 
-        NOMADSUtil::Mutex _m;
+        mutable std::mutex _mtx;
     };
 
 
-    inline const ProxyMessage::CompressionType ZLibConnectorReader::getCompressionFlag (void) const
+    inline const CompressionType ZLibConnectorReader::getCompressionFlag (void) const
     {
-        return ProxyMessage::PMC_ZLibCompressedData;
+        return CompressionType::PMC_ZLibCompressedData;
     }
 
     inline int ZLibConnectorReader::resetAndUnlockConnectorReader (void)
@@ -83,18 +85,19 @@ namespace ACMNetProxy
         if (0 != resetConnectorReader()) {
             return -1;
         }
+        _mtx.unlock();
 
-        return unlockConnectorReader();
+        return 0;
     }
 
-    inline int ZLibConnectorReader::lockConnectorReader (void)
+    inline void ZLibConnectorReader::lockConnectorReader (void) const
     {
-        return _m.lock();
+        return _mtx.lock();
     }
 
-    inline int ZLibConnectorReader::unlockConnectorReader (void)
+    inline void ZLibConnectorReader::unlockConnectorReader (void) const
     {
-        return _m.unlock();
+        return _mtx.unlock();
     }
 
 }

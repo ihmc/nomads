@@ -10,7 +10,7 @@ else
 CXXFLAGS = -m32
 endif
 
-CXXFLAGS += -g -Wall -Wno-unused-parameter -Wno-unknown-pragmas -fPIC -DUNIX -DLINUX -DENABLE_DEBUG -DERROR_CHECKING \
+CXXFLAGS += -std=c++11 -g -Wall -Wno-unused-parameter -Wno-unknown-pragmas -fPIC -DUNIX -DLINUX -DENABLE_DEBUG -DERROR_CHECKING \
 	    -DLITTLE_ENDIAN_SYSTEM \
 	    -I.. -I../../../util/cpp \
 	    -I../../../externals/openssl/1.0.2h/linux/include \

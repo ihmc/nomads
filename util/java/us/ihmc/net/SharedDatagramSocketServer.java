@@ -32,8 +32,8 @@ import us.ihmc.ipc.MasterSlaveCoordinator;
 
 /*******************************************************
  * @author Marco Carvalho <mcarvalho@ai.uwf.edu>
- * @version $Revision: 1.5 $
- * $Date: 2016/06/09 20:02:46 $
+ * @version $Revision$
+ * $Date$
  * 
  * SharedDatagramSocket 
  *****************************************************/

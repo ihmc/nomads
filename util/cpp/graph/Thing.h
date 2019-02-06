@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -58,7 +58,7 @@ namespace NOMADSUtil
             virtual Thing * getParent (void)=0;
 
             /**
-             * Return true if the thing with the id pszKey is reachable 
+             * Return true if the thing with the id pszKey is reachable
              */
             virtual bool isReachable (const char * pszKey)=0;
             // pList is the list of thing that I know for sure that don't contain the thing pszKey

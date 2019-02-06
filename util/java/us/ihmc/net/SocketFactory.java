@@ -24,8 +24,8 @@
  *
  * @author      Adrian Granados <agranados@ai.uwf.edu>
  *
- * @version     $Revision: 1.4 $
- *              $Date: 2016/06/09 20:02:46 $
+ * @version     $Revision$
+ *              $Date$
  *
  * Created on October 17, 2003, 11:00 AM.
  */

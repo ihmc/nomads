@@ -24,6 +24,7 @@
 * and proceeds in populating the stats tables
 *
 */
+#include "HTCfg.h"
 #include "ICMPInterfaceTable.h"
 #include "InterfaceInfo.h"
 #include "InterfacesInfoTable.h"
@@ -52,17 +53,18 @@ public:
     /*
     *
     */
-    void addInterfaceInfo(InterfaceInfo *pII);
+    void addInterfaceInfo (InterfaceInfo *pII);
 
     /*
     * Pointers are owned by NetSensor
     *
     */
-    HandlerThread(NetSensorPacketQueue *pQueue, NetSensorPacketQueue *pRttQueue,
-        TrafficTable *pTrT, TopologyTable *pTopT, ICMPInterfaceTable *pIcmpTable,
-        TopologyCache *pTopCache, TCPRTTInterfaceTable *pTRIT, bool storeExternals,
-        bool calculateTCPRTT);
-    ~HandlerThread();
+    HandlerThread (void);
+
+    ~HandlerThread (void);
+
+    bool init (HTCfg * pHTC);
+
 
     void startDiagnostic(void);
 
@@ -72,7 +74,7 @@ public:
 
     void run();
 private:
-    TrafficElement::Classification getClassification(
+    TrafficElement::Classification getClassification (
         const char* interfaceName,
         const uint32 sa, const uint32 da,
         const NOMADSUtil::EtherMACAddr smac,
@@ -110,12 +112,12 @@ private:
 //<---------------------------------------------------------------------------->
 public:
     //NetSensor owns the pointers
-    NetSensorPacketQueue *_pQueue;
-    NetSensorPacketQueue *_pRttQueue;
-    TrafficTable         *_pTrt;
-    TopologyTable        *_pTopt;
-    ICMPInterfaceTable   *_pIcmpTable;
-    TCPRTTInterfaceTable *_pTcpRTable;
+    NetSensorPacketQueue * _pQueue;
+    NetSensorPacketQueue * _pRttQueue;
+    TrafficTable         * _pTrt;
+    TopologyTable        * _pTopt;
+    ICMPInterfaceTable   * _pIcmpTable;
+    TCPRTTInterfaceTable * _pTcpRTable;
     TopologyCache *_pTopCache;
 private:
     InterfacesInfoTable      _iit;
@@ -132,9 +134,9 @@ inline void HandlerThread::TopologyManager(const NetSensorPacket & p)
     populateTopologyTable(p);
 }
 
-inline void HandlerThread::TrafficManager(const NetSensorPacket & p)
+inline void HandlerThread::TrafficManager (const NetSensorPacket & p)
 {
-    populateTrafficTables(p);
+    populateTrafficTables (p);
 }
 
 inline void HandlerThread::changeExternalNodeStorage(void)

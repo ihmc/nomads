@@ -181,9 +181,6 @@
     <ClInclude Include="..\StreamServerMocket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\TimeIntervalAverage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\TransmissionRateModulation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -215,6 +212,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\DTLSConstants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\PeerStatusCallbacks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

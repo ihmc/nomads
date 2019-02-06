@@ -3,22 +3,22 @@
 
 /*
  * TSNRangeHandler.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
- 
+
  * NOTE: The TSNRangeHandler and its subclasses do not use a mutex
  * Therefore, the caller must handle mutual exclusion and ensure that only one thread
  * invokes methods in these classes at any given time.
@@ -43,7 +43,7 @@ class TSNRangeHandler
         bool haveInformation (void);
 
         int appendTSNInformation (TSNChunkMutator *pTCM);
-        
+
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
         int defrost (NOMADSUtil::ObjectDefroster &objectDefroster);
 
@@ -68,7 +68,7 @@ class TSNRangeHandler
 
 class SAckTSNRangeHandler : public TSNRangeHandler
 {
-	//TSN means Transmission Sequence Number
+    //TSN means Transmission Sequence Number
     public:
         SAckTSNRangeHandler (void);
 
@@ -77,7 +77,7 @@ class SAckTSNRangeHandler : public TSNRangeHandler
 
         // Returns 0 in case of a duplicate TSN or 1 if the TSN was successfully added
         int addTSN (uint32 ui32TSN);
-        
+
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
         int defrost (NOMADSUtil::ObjectDefroster &objectDefroster);
 
@@ -121,12 +121,12 @@ class ReceivedTSNRangeHandler : public TSNRangeHandler
 
 inline bool TSNRangeHandler::haveInformation (void)
 {
-    return (_pFirstNode != NULL);
+    return (_pFirstNode != nullptr);
 }
 
 inline TSNRangeHandler::Node::Node (void)
 {
-    pPrev = pNext = NULL;
+    pPrev = pNext = nullptr;
     ui32Begin = ui32End = 0;
 }
 

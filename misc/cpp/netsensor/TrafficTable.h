@@ -36,15 +36,20 @@ namespace IHMC_NETSENSOR
 class TrafficTable
 {
 public:
-    void cleanTable(uint32 ui32CleaningNumber);
-    void fillTrafficProtoObject(
-        const char* pcIname, 
-        const char *pszInterfaceAddr,
+    void cleanTable (uint32 ui32CleaningNumber);
+    void fillTrafficProtoObject (
+        const char * pcIname, 
+        const char * pszInterfaceAddr,
         netsensor::TrafficByInterface * pT);
     bool mutexTest(void);
-    bool put(const char* interfaceName, const MicroflowId & microflowId);
-    void printContent(void);
-    TrafficTable(uint32 timeInterval);
+    bool lockedPut (const char * interfaceName, const MicroflowId & microflowId);
+    void printContent (void);
+    TrafficTable (uint32 timeInterval);
+private:
+    TrafficElement * getNewTrafficElementIfNull(
+        MicroflowNestedHashTable * pTrafficElementsContainer,
+        const MicroflowId & microflowId);
+    MicroflowNestedHashTable * getTrafficElementsContainer (const char * pszInterfaceName);
 //<--------------------------------------------------------------------------->
 private:
     NOMADSUtil::StringHashtable<MicroflowNestedHashTable> _trafficTablesContainer;
@@ -53,17 +58,17 @@ private:
 };
 
 
-inline void TrafficTable::fillTrafficProtoObject(
-    const char* pszIname, 
-    const char *pszInterfaceAddr,
-    netsensor::TrafficByInterface *pT)
+inline void TrafficTable::fillTrafficProtoObject (
+    const char * pszIname, 
+    const char * pszInterfaceAddr,
+    netsensor::TrafficByInterface * pT)
 {
     if ((_pTMutex.lock() == NOMADSUtil::Mutex::RC_Ok)) {
         //printf("Interface name: %s\n", pcIname);
-        MicroflowNestedHashTable *pMfwT = _trafficTablesContainer.get(pszIname);
-        if (pMfwT != NULL) {
-            pMfwT->fillTrafficProto(pT);
-            pT->set_monitoringinterface(pszInterfaceAddr);
+        auto pMFWT = _trafficTablesContainer.get (pszIname);
+        if (pMFWT != nullptr) {
+            pMFWT->fillTrafficProto (pT);
+            pT->set_monitoringinterface (pszInterfaceAddr);
         }
         _pTMutex.unlock();
     }
@@ -86,17 +91,16 @@ inline void TrafficTable::printContent(void)
         for (NOMADSUtil::StringHashtable<MicroflowNestedHashTable>::Iterator i
             = _trafficTablesContainer.getAllElements();
             !i.end(); i.nextElement()) {
-            MicroflowNestedHashTable *mnht = i.getValue();
-          
-            printf("%s : \n", i.getKey());
-            mnht->print();
+            auto pMNHT = i.getValue();
+            printf ("%s : \n", i.getKey());
+            pMNHT->print();
         }
         _pTMutex.unlock();
     }
 }
 
-inline TrafficTable::TrafficTable(uint32 timeInterval)
-    : _trafficTablesContainer(true, true, true, true)
+inline TrafficTable::TrafficTable (uint32 timeInterval)
+    : _trafficTablesContainer (true, true, true, true)
 {
     _uint32msResolution = timeInterval;
 }

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package rtt;
+
+option go_package = "rtt";
+option java_package = "us.ihmc.sensei.proto.subjects.rtt";
+option java_generate_equals_and_hash = true;
+option java_outer_classname = "RoundTripTime";
+
+// all keys are lowercase, words separated by _
+enum Str {
+    sensor_ip = 0; //the ip of the sensor
+    src_ip = 1; // Ip of the source of this traffic
+    dest_ip = 2; // Ip of the destination of this traffic
+    protocol = 3; // Traffic protocol that this rtt was calculated from (TCP, UDP, mockets)
+    src_port = 4; // Source port of this traffic
+    dest_port = 5; // Destination port of this traffic
+}
+
+enum Int{
+	min_rtt = 0; // Minimum rtt within the resolution
+	max_rtt = 1; // Maximum rtt within the resolution
+	resolution = 2; // Resolution of the captured rtt values
+}
+
+// all values are expressed in bytes
+enum Double {
+    avg_rtt = 0; // Avg RTT value within the resolution
+}

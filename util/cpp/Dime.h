@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,20 +27,20 @@
 #include "Writer.h"
 
 /*
- * Direct Internet Message Encapsulation (DIME) is a lightweight, binary message format 
- * that can be used to encapsulate one or more application-defined payloads of arbitrary 
+ * Direct Internet Message Encapsulation (DIME) is a lightweight, binary message format
+ * that can be used to encapsulate one or more application-defined payloads of arbitrary
  * type and size into a single message construct.
  *
- * Each payload is described by a type, a length, and an optional identifier. Both URIs 
- * and MIME media type constructs are supported as type identifiers. 
+ * Each payload is described by a type, a length, and an optional identifier. Both URIs
+ * and MIME media type constructs are supported as type identifiers.
  *
  * The payload length is an integer indicating the number of octets of the payload. The
- * optional payload identifier is a URI enabling cross-referencing between payloads. 
+ * optional payload identifier is a URI enabling cross-referencing between payloads.
  *
- * DIME payloads may include nested DIME messages or chains of linked chunks of unknown 
- * length at the time the data is generated. 
+ * DIME payloads may include nested DIME messages or chains of linked chunks of unknown
+ * length at the time the data is generated.
  *
- * DIME is strictly a message format: it provides no concept of a connection or of a 
+ * DIME is strictly a message format: it provides no concept of a connection or of a
  * logical circuit, nor does it address head-of-line problems.
  */
 
@@ -63,24 +63,24 @@ namespace NOMADSUtil
             int init (void *pDimeMsg, uint32 pMsgLength);
             int init (Reader *pReader);
 
-            //TODO: implement a private method for checking the integrity of a DIME message. 
+            //TODO: implement a private method for checking the integrity of a DIME message.
             //This method will be invoked from the contructor and the init() for checking
             //the DIME integrity before processing it.
-            
+
             /*
-             * A DIME record contains a payload described by a type, a 
+             * A DIME record contains a payload described by a type, a
              * length, and an optional identifier.
              *
-             * The usage of the payload types is entirely at the discretion 
-             * of the user application. 
+             * The usage of the payload types is entirely at the discretion
+             * of the user application.
              */
-            int addRecord (const char *pszPayloadType, 
+            int addRecord (const char *pszPayloadType,
                            void *pPayload,
                            uint32 ui32PayloadSize,
                            bool bChunk = false,
                            const char *pszPayloadIdentifier = NULL);
             int getDime (void *pDime);
-            
+
             int getDime (Writer *pWriter);
 
             uint16 getRecordsNum (void);
@@ -105,7 +105,7 @@ namespace NOMADSUtil
             ~DimeRecord(void);
 
             void setMessageBeginFlag (bool value);
-            void setMessageEndFlag (bool value); 
+            void setMessageEndFlag (bool value);
             void setChunkFlag (bool value);
 
             bool getMessageBeginFlag (void);
@@ -144,7 +144,7 @@ namespace NOMADSUtil
 
 
     ////////////////////////////////////////////////////////////////////////////
-    // Dime 
+    // Dime
     ////////////////////////////////////////////////////////////////////////////
 
     inline uint8 Dime::getVersion (void)
@@ -152,19 +152,19 @@ namespace NOMADSUtil
         return _ui8Version;
     }
 
-    inline uint32 Dime::getLength (void) 
+    inline uint32 Dime::getLength (void)
     {
         return _ui32DimeLength;
     }
 
-    inline uint16 Dime::getRecordsNum (void) 
+    inline uint16 Dime::getRecordsNum (void)
     {
         return _ui16RecordsNum;
     }
 
 
     ////////////////////////////////////////////////////////////////////////////
-    // DimeRecord 
+    // DimeRecord
     ////////////////////////////////////////////////////////////////////////////
 
     inline DimeRecord * Dime::getRecord (uint16 ui16Idx)
@@ -187,17 +187,17 @@ namespace NOMADSUtil
         _bChunkFlag = value;
     }
 
-    inline bool DimeRecord::getMessageBeginFlag (void) 
+    inline bool DimeRecord::getMessageBeginFlag (void)
     {
         return _bMessageBeginFlag;
     }
 
-    inline bool DimeRecord::getMessageEndFlag (void) 
+    inline bool DimeRecord::getMessageEndFlag (void)
     {
         return _bMessageEndFlag;
     }
 
-    inline bool DimeRecord::getChunkFlag (void) 
+    inline bool DimeRecord::getChunkFlag (void)
     {
         return _bChunkFlag;
     }
@@ -212,12 +212,12 @@ namespace NOMADSUtil
         _id = pszID;
     }
 
-    inline String DimeRecord::getType (void) 
+    inline String DimeRecord::getType (void)
     {
         return _type;
     }
 
-    inline String DimeRecord::getID (void) 
+    inline String DimeRecord::getID (void)
     {
         return _id;
     }
@@ -228,12 +228,12 @@ namespace NOMADSUtil
         _ui32PayloadLength = ui32PayloadLength;
     }
 
-    inline void* DimeRecord::getPayload (void) 
+    inline void* DimeRecord::getPayload (void)
     {
         return _pPayload;
     }
 
-    inline uint32 DimeRecord::getPayloadLength (void) 
+    inline uint32 DimeRecord::getPayloadLength (void)
     {
         return _ui32PayloadLength;
     }

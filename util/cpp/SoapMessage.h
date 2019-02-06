@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -36,18 +36,18 @@ namespace NOMADSUtil
             bool init (DOMDocument *pDOMDocument);
 
             static bool validateSoapMessage (DOMDocument *pDOMDocument);
-            
+
             // Note that the SOAP header is optional
             bool setHeader (const char *pszBuf);
             bool setHeader (DOMDocument *pDOMDocument);
-            
+
             bool setBody (const char *pszBuf);
             bool setBody (DOMDocument *pDOMDocument);
 
             DOMDocument * getHeader (void);
             DOMDocument * getBody (void);
             DOMDocument * getMessage (void);
-            
+
             String getHeaderAsString (void);
             String getBodyAsString (void);
             String getMessageAsString (void);
@@ -57,7 +57,7 @@ namespace NOMADSUtil
 
         private:
             static bool createDOMDocument (const char *pszBuf, DOMDocument *pDOMDocument);
-            static String serializeDOMDocument (DOMDocument *pDOMDocument); 
+            static String serializeDOMDocument (DOMDocument *pDOMDocument);
             DOMDocument * buildSoapMessage (void);
 
         private:
@@ -66,12 +66,12 @@ namespace NOMADSUtil
             char *pszVersion;
     };
 
-    inline bool SoapMessage::setHeader (const char *pszBuf) 
+    inline bool SoapMessage::setHeader (const char *pszBuf)
     {
         if (!_pSoapHeader) {
             _pSoapHeader = new DOMDocument();
         }
-        
+
         if (createDOMDocument (pszBuf, _pSoapHeader)) {
             return true;
         }

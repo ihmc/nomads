@@ -26,7 +26,7 @@ DataBuffer::~DataBuffer (void)
 {
     if (_pPacket) {
         delete _pPacket;
-        _pPacket = NULL;
+        _pPacket = nullptr;
     }
     else if (_pFragments) {
         Packet *pPacket;
@@ -35,6 +35,6 @@ DataBuffer::~DataBuffer (void)
             delete pPacket;
         }
         delete _pFragments;
-        _pFragments = NULL;
+        _pFragments = nullptr;
     }
 }

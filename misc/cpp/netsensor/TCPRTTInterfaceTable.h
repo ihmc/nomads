@@ -1,10 +1,10 @@
-#ifndef NETSENSOR_TCPRTTHandler__INCLUDED
-#define NETSENSOR_TCPRTTHandler__INCLUDED
+#ifndef NETSENSOR_TCPRTTInterfaceTable__INCLUDED
+#define NETSENSOR_TCPRTTInterfaceTable__INCLUDED
 /*
 * TCPRTTInterfaceTable.h
 * Author: bordway@ihmc.us rfronteddu@ihmc.us
 * This file is part of the IHMC NetSensor Library/Component
-* Copyright (c) 2010-2017 IHMC.
+* Copyright (c) 2010-2018 IHMC.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -20,8 +20,10 @@
 *
 */
 
-#include "TCPRTTTable.h"
-#include "NetSensorPacket.h"
+#include "StringHashtable.h"
+#include "TCPStream.h"
+#include "PtrLList.h"
+#include "NLFLib.h"
 
 namespace IHMC_NETSENSOR
 {
@@ -34,12 +36,14 @@ namespace IHMC_NETSENSOR
         ~TCPRTTInterfaceTable(void);
 
         void cleanTable(const uint32 ui32CleaningNumber);
-        void put(const char *pInterfaceName, TCPRTTData & tcpData, bool isSent);
+        void put(const char *pInterfaceName, TCPStream & tcpStream);
         void printContent(void);
+        TCPStream* getStream(TCPStreamData data);
+        NOMADSUtil::PtrLList<TCPStream>* getTCPStreamsOnInterface(const char *pInterfaceName);
         bool mutexTest(void);
 
     private:
-        NOMADSUtil::StringHashtable<TCPRTTTable> _tcpRTTInterfaceTable;
+        NOMADSUtil::StringHashtable<NOMADSUtil::PtrLList<TCPStream>> _tcpStreamListInterfaceTable;
         NOMADSUtil::Mutex _mutex;
         uint32 _ui32msResolution;
     };

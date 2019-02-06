@@ -1,0 +1,72 @@
+group 'us.ihmc'
+version '1.0-SNAPSHOT'
+
+buildscript {
+    ext.kotlin_version = '1.2.21'
+
+    repositories {
+        maven{
+            url "https://plugins.gradle.org/m2/"
+        }
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.13"
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'kotlin'
+//apply plugin: "net.ltgt.errorprone"
+
+sourceCompatibility = 1.8
+
+repositories {
+    flatDir {
+        dirs "../externals/java", "../externals/java/nodemon/kryo"
+    }
+    maven{
+        url 'http://www.mygrid.org.uk/maven/repository/'
+    }
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+	    srcDirs = ['java']
+            exclude 'us/ihmc/ds/fgraph/**'
+            exclude 'us/ihmc/util/MocketCommHelper.java'
+        }
+    }
+}
+
+dependencies {
+    compile group: 'uk.org.mygrid.resources', name: 'puretls', version: '0.9b4'
+    compile group: 'uk.org.mygrid.resources', name: 'cryptix32', version: '3.2.0'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.1'
+    compile group: 'bouncycastle', name: 'bcprov-jdk14', version: '140'
+    compile files ('../externals/java/comm.jar')
+    compile group: 'jfree', name: 'jcommon', version: '1.0.6'
+    compile group: 'dom4j', name: 'dom4j', version: '1.6.1'
+    compile group: 'com.esotericsoftware', name: 'kryo-shaded', version: '3.0.3'
+
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+jar {
+    from{configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }} {
+        // remove all signature files
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+}

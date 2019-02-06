@@ -1,0 +1,5 @@
+MAKEFILE_FOLDER=linux
+LIB_FOLDER=linux
+ARCH_FLAGS=-DLINUX -DARM -DLINUX64
+LD_FLAGS+=-lnsl -ldl
+EXTERNALS_LIB ?= $(NOMADS_HOME)/externals/lib/linux64-arm

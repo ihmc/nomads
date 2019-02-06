@@ -56,6 +56,20 @@ public class Mocket
     }
 
     /**
+     * Creates a new, unconnected Mocket DTLS endpoint and uses
+     * the specified file to load the configuration for the Mocket.
+     *
+     * @param configFile the path to the configuration file that should be loaded
+     * @param pathToCertificate the path to the certificate file that should be loaded
+     * @param pathToPrivateKey the path to the Private Key file that should be loaded
+     */
+    public Mocket (String configFile, String pathToCertificate, String pathToPrivateKey)
+            throws IOException
+    {
+        initDtls (configFile, pathToCertificate, pathToPrivateKey);
+    }
+
+    /**
      * The class used to send messages over Mockets.
      * Obtained by calling <code>getSender</code> on an instance of Mocket.
      * Note: messages may also be sent using the Mocket class directly, this class makes it
@@ -2244,6 +2258,12 @@ public class Mocket
      * with the specified config file.
      */
     private native void init (String configFile) throws IOException;
+
+    /**
+     * Native method that initializes an object <code>mocket</code>DTLS
+     * with the specified config file.
+     */
+    private native void initDtls (String configFile, String pathToCertificate, String pathToPrivateKey) throws IOException;
 
 //    /**
 //     * Native method that removes <code>mocket</code> object.

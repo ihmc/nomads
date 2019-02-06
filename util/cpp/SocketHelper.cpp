@@ -36,8 +36,10 @@ using namespace NOMADSUtil;
 int SocketHelper::getLastError()
 {
     #ifdef WIN32
-	    return WSAGetLastError();
+        return WSAGetLastError();
     #else
+        // TODO: may want to implement this for UNIX systems...
+        return 0;
     #endif
 }
 

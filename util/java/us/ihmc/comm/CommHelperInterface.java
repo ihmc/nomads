@@ -28,7 +28,7 @@ package us.ihmc.comm;
  */
 public interface CommHelperInterface
 {
-    public void sendLine (String buf) throws CommException;
+    public int sendLine (String buf) throws CommException;
 
     public void sendBlob (byte[] buf) throws CommException;
 

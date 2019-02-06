@@ -60,7 +60,7 @@ namespace NOMADSUtil
             void removeAll (bool bDeleteValues = false);
 
             T * getFirst (void);
-            T * getTail (void);
+            T * getTail (void) const;
             T * getNext (void);
             T * search (const T * const pel) const;
             void resetGet (void);
@@ -424,7 +424,7 @@ namespace NOMADSUtil
         return NULL;
     }
 
-     template <class T> inline T * PtrLList<T>::getTail (void)
+     template <class T> inline T * PtrLList<T>::getTail (void) const
      {
         if (pTail != NULL) {
             return pTail->pel;
@@ -517,9 +517,8 @@ namespace NOMADSUtil
         if (pList == NULL) {
             return;
         }
-        for (T *pEl; (pEl = pList->removeFirst()) != NULL; ) {
-            delete pEl;
-        }
+
+        pList->removeAll (true);
     }
 }
 

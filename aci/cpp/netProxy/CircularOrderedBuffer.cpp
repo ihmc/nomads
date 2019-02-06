@@ -2,7 +2,7 @@
  * CircularOrderedBuffer.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,46 +18,40 @@
  */
 
 #include <cstring>
+#include <algorithm>
 
 #include "net/NetworkHeaders.h"
 #include "Logger.h"
 
 #include "CircularOrderedBuffer.h"
 
-#ifndef max
-#define max(a,b)    (((a) >= (b)) ? (a) : (b))
-#endif
 
-#ifndef min
-#define min(a,b)    (((a) <= (b)) ? (a) : (b))
-#endif
-
-
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    CircularOrderedBuffer::CircularOrderedBuffer (unsigned int &uiStartingSequenceNumber, unsigned int uiMaxSize, unsigned int uiMinSize) :
-        _pBuf (new unsigned char[uiMinSize]), _uiDataReaderPointer (0), _uiBufMinSize (uiMinSize), _uiBufMaxSize (uiMaxSize),
-        _uiBufCurrentSize (uiMinSize), _uiReadingSequenceNumber (0), _uiNextExpectedSequenceNumber (uiStartingSequenceNumber),
-        _iReadyBytesInBuffer (0), _iTotalBytesInBuffer (0), _SeparateNodesList (false) { }
+    CircularOrderedBuffer::CircularOrderedBuffer (unsigned int & uiStartingSequenceNumber, unsigned int uiMaxSize, unsigned int uiMinSize) :
+        _pui8Buf{new unsigned char[uiMinSize]}, _uiDataReaderPointer{0}, _uiBufMinSize{uiMinSize}, _uiBufMaxSize{uiMaxSize},
+        _uiBufCurrentSize{uiMinSize}, _uiReadingSequenceNumber{0}, _uiNextExpectedSequenceNumber{uiStartingSequenceNumber},
+        _iReadyBytesInBuffer{0}, _iTotalBytesInBuffer{0}, _plSeparateNodesList{false}
+    { }
 
     CircularOrderedBuffer::~CircularOrderedBuffer (void)
     {
-        if (_pBuf) {
-            delete[] _pBuf;
+        if (_pui8Buf) {
+            delete[] _pui8Buf;
         }
-        _pBuf = nullptr;
+        _pui8Buf = nullptr;
 
         TCPSegment *pOBW = nullptr;
-        while ((pOBW = _SeparateNodesList.getFirst())) {
-            delete _SeparateNodesList.remove (pOBW);
+        while ((pOBW = _plSeparateNodesList.getFirst())) {
+            delete _plSeparateNodesList.remove (pOBW);
         }
     }
 
-    int CircularOrderedBuffer::insertData (TCPSegment *pOrderableItem, bool bOverwriteData)
+    int CircularOrderedBuffer::insertData (TCPSegment * const pOrderableItem, bool bOverwriteData)
     {
         if (!pOrderableItem) {
             delete pOrderableItem;
@@ -80,9 +74,9 @@ namespace ACMNetProxy
         }
 
         int insertedBytes = 0;
-        uint8 ui8Flags = pOrderableItem->getTCPFlags();
-        if (SequentialArithmetic::greaterThan (_uiNextExpectedSequenceNumber, pOrderableItem->getSequenceNumber())) {
-            unsigned int uiUselessData = SequentialArithmetic::delta (_uiNextExpectedSequenceNumber, pOrderableItem->getSequenceNumber());
+        auto ui8Flags = pOrderableItem->getTCPFlags();
+        if (NOMADSUtil::SequentialArithmetic::greaterThan (_uiNextExpectedSequenceNumber, pOrderableItem->getSequenceNumber())) {
+            unsigned int uiUselessData = NOMADSUtil::SequentialArithmetic::delta (_uiNextExpectedSequenceNumber, pOrderableItem->getSequenceNumber());
             if (uiUselessData > pOrderableItem->getItemLength()) {
                 delete pOrderableItem;
                 return -4;
@@ -90,7 +84,7 @@ namespace ACMNetProxy
             pOrderableItem->incrementValues (uiUselessData);
         }
 
-        TCPSegment *pOBW = _SeparateNodesList.getFirst();
+        auto * pOBW = _plSeparateNodesList.getFirst();
         if (!pOBW) {
             // No items in the buffer
             if (pOrderableItem->getItemLength() != copyBytesToCircularBuffer (pOrderableItem)) {
@@ -104,14 +98,14 @@ namespace ACMNetProxy
                             getPositionInBuffer (pOrderableItem->getSequenceNumber()),
                             pOrderableItem->getFollowingSequenceNumber());*/
             pOrderableItem->setData (getPositionInBuffer (pOrderableItem->getSequenceNumber()));
-            _SeparateNodesList.append (pOrderableItem);
+            _plSeparateNodesList.append (pOrderableItem);
             insertedBytes = pOrderableItem->getItemLength();
         }
         else if (pOrderableItem->getSequenceNumber() == _uiNextExpectedSequenceNumber) {
             // The newly received item is the expected one
             if (pOrderableItem->follows (*pOBW)) {
                 // An item is already in the buffer and the one that immediately follows it has been received
-                TCPSegment *pOBWNext = _SeparateNodesList.getNext();
+                TCPSegment *pOBWNext = _plSeparateNodesList.getNext();
                 if (!pOBWNext || (!pOrderableItem->overlaps (*pOBWNext) && !pOrderableItem->isFollowedBy (*pOBWNext))) {
                     // No out-of-order items were previously received or they cannot be joined with the new one --> enqueuing new item and joining it with the previously buffered one
                     if (pOrderableItem->getItemLength() != copyBytesToCircularBuffer (pOrderableItem)) {
@@ -139,21 +133,21 @@ namespace ACMNetProxy
                     }
                     while (pOBWNext && (pOrderableItem->overlaps (*pOBWNext) || pOrderableItem->isFollowedBy (*pOBWNext))) {
                         ui8Flags |= pOBW->getTCPFlags();
-                        delete _SeparateNodesList.remove (pOBW);
+                        delete _plSeparateNodesList.remove (pOBW);
                         pOBW = pOBWNext;
-                        pOBWNext = _SeparateNodesList.getNext();
+                        pOBWNext = _plSeparateNodesList.getNext();
                     }
                     ui8Flags |= pOBW->getTCPFlags();
-                    unsigned int uiHighestSequenceNumber = SequentialArithmetic::greaterThanOrEqual (pOrderableItem->getFollowingSequenceNumber(), pOBW->getFollowingSequenceNumber()) ?
-                                                            pOrderableItem->getFollowingSequenceNumber() : pOBW->getFollowingSequenceNumber();
-                    delete _SeparateNodesList.replace (pOBW, new TCPSegment (_uiReadingSequenceNumber, SequentialArithmetic::delta (uiHighestSequenceNumber, _uiReadingSequenceNumber),
-                                                                             getPositionInBuffer (_uiReadingSequenceNumber), ui8Flags));
+                    unsigned int uiHighestSequenceNumber = NOMADSUtil::SequentialArithmetic::greaterThanOrEqual (pOrderableItem->getFollowingSequenceNumber(), pOBW->getFollowingSequenceNumber()) ?
+                        pOrderableItem->getFollowingSequenceNumber() : pOBW->getFollowingSequenceNumber();
+                    delete _plSeparateNodesList.replace (pOBW, new TCPSegment (_uiReadingSequenceNumber, NOMADSUtil::SequentialArithmetic::delta (uiHighestSequenceNumber, _uiReadingSequenceNumber),
+                                                                               getPositionInBuffer (_uiReadingSequenceNumber), ui8Flags));
                     insertedBytes = pOrderableItem->getItemLength();
                     delete pOrderableItem;
                 }
                 else {
                     // Inserting new data between pOBW (_uiNextExpectedSequenceNumber) and pOBWNext
-                    unsigned int uiBytesToWrite = SequentialArithmetic::delta (pOBWNext->getSequenceNumber(), _uiNextExpectedSequenceNumber);
+                    unsigned int uiBytesToWrite = NOMADSUtil::SequentialArithmetic::delta (pOBWNext->getSequenceNumber(), _uiNextExpectedSequenceNumber);
                     if (uiBytesToWrite != copyBytesToCircularBuffer (pOrderableItem, _uiNextExpectedSequenceNumber, pOBWNext->getSequenceNumber())) {
                         delete pOrderableItem;
                         return -8;
@@ -169,11 +163,11 @@ namespace ACMNetProxy
                                     pOBW->getSequenceNumber(), pOBW->getItemLength(), pOBW->getData(), pOBW->getFollowingSequenceNumber(),
                                     pOBWNext->getSequenceNumber(), pOBWNext->getItemLength(), pOBWNext->getData(),
                                     pOBWNext->getFollowingSequenceNumber());*/
-                    pOBW->setItemLength (SequentialArithmetic::delta (pOBWNext->getFollowingSequenceNumber(), _uiReadingSequenceNumber));
+                    pOBW->setItemLength (NOMADSUtil::SequentialArithmetic::delta (pOBWNext->getFollowingSequenceNumber(), _uiReadingSequenceNumber));
                     ui8Flags |= pOBWNext->getTCPFlags();
                     pOBW->addTCPFlags (ui8Flags);
                     insertedBytes = uiBytesToWrite;
-                    delete _SeparateNodesList.remove (pOBWNext);
+                    delete _plSeparateNodesList.remove (pOBWNext);
                     delete pOrderableItem;
                 }
             }
@@ -187,16 +181,16 @@ namespace ACMNetProxy
                     }
 
                     TCPSegment *pOBWNext = nullptr;
-                    while ((pOBWNext = _SeparateNodesList.getNext()) && (pOrderableItem->overlaps (*pOBWNext) || pOrderableItem->isFollowedBy (*pOBWNext))) {
+                    while ((pOBWNext = _plSeparateNodesList.getNext()) && (pOrderableItem->overlaps (*pOBWNext) || pOrderableItem->isFollowedBy (*pOBWNext))) {
                         ui8Flags |= pOBW->getTCPFlags();
-                        delete _SeparateNodesList.remove (pOBW);
+                        delete _plSeparateNodesList.remove (pOBW);
                         pOBW = pOBWNext;
                     }
                     ui8Flags |= pOBW->getTCPFlags();
-                    unsigned int uiHighestSequenceNumber = SequentialArithmetic::greaterThanOrEqual (pOrderableItem->getFollowingSequenceNumber(), pOBW->getFollowingSequenceNumber()) ?
-                                                            pOrderableItem->getFollowingSequenceNumber() : pOBW->getFollowingSequenceNumber();
+                    unsigned int uiHighestSequenceNumber = NOMADSUtil::SequentialArithmetic::greaterThanOrEqual (pOrderableItem->getFollowingSequenceNumber(), pOBW->getFollowingSequenceNumber()) ?
+                        pOrderableItem->getFollowingSequenceNumber() : pOBW->getFollowingSequenceNumber();
                     pOBW->setSequenceNumber (_uiNextExpectedSequenceNumber);
-                    pOBW->setItemLength (SequentialArithmetic::delta (uiHighestSequenceNumber, _uiNextExpectedSequenceNumber));
+                    pOBW->setItemLength (NOMADSUtil::SequentialArithmetic::delta (uiHighestSequenceNumber, _uiNextExpectedSequenceNumber));
                     pOBW->setData (getPositionInBuffer (_uiNextExpectedSequenceNumber));
                     pOBW->addTCPFlags (ui8Flags);
                     insertedBytes = pOrderableItem->getItemLength();
@@ -204,7 +198,7 @@ namespace ACMNetProxy
                 }
                 else {
                     // Overlapping data won't be overwritten - inserting new item before the old one pOBW
-                    unsigned int uiBytesToWrite = SequentialArithmetic::delta (pOBW->getSequenceNumber(), _uiNextExpectedSequenceNumber);
+                    unsigned int uiBytesToWrite = NOMADSUtil::SequentialArithmetic::delta (pOBW->getSequenceNumber(), _uiNextExpectedSequenceNumber);
                     if (uiBytesToWrite != copyBytesToCircularBuffer (pOrderableItem, _uiNextExpectedSequenceNumber, pOBW->getSequenceNumber())) {
                         delete pOrderableItem;
                         return -10;
@@ -218,7 +212,7 @@ namespace ACMNetProxy
                                     pOrderableItem->getFollowingSequenceNumber(), pOBW->getSequenceNumber(), pOBW->getItemLength(),
                                     pOBW->getData(), pOBW->getFollowingSequenceNumber());*/
                     ui8Flags |= pOBW->getTCPFlags();
-                    const unsigned int uiNewItemLength = SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), _uiNextExpectedSequenceNumber);       // Necessary because we are changing the SEQ number of the segment pointed by pOBW
+                    const unsigned int uiNewItemLength = NOMADSUtil::SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), _uiNextExpectedSequenceNumber);       // Necessary because we are changing the SEQ number of the segment pointed by pOBW
                     pOBW->setSequenceNumber (_uiNextExpectedSequenceNumber);
                     pOBW->setItemLength (uiNewItemLength);
                     pOBW->setData (getPositionInBuffer (_uiNextExpectedSequenceNumber));
@@ -241,7 +235,7 @@ namespace ACMNetProxy
                                 getPositionInBuffer (pOrderableItem->getSequenceNumber()), pOrderableItem->getFollowingSequenceNumber(),
                                 pOBW->getSequenceNumber(), pOBW->getItemLength(), pOBW->getData(), pOBW->getFollowingSequenceNumber());*/
                 pOrderableItem->setData (getPositionInBuffer (_uiNextExpectedSequenceNumber));
-                _SeparateNodesList.insert (pOrderableItem);
+                _plSeparateNodesList.insert (pOrderableItem);
                 insertedBytes = pOrderableItem->getItemLength();
             }
         }
@@ -250,7 +244,7 @@ namespace ACMNetProxy
             TCPSegment *pPreviousItem = nullptr;
             while (pOBW && (*pOBW <= *pOrderableItem)) {
                 pPreviousItem = pOBW;
-                pOBW = _SeparateNodesList.getNext();
+                pOBW = _plSeparateNodesList.getNext();
             }
             // pPreviousItem might still be null, in case pOBW had a sequence number which was higher than pOrderableItem
 
@@ -265,22 +259,22 @@ namespace ACMNetProxy
                 if (pOBW && (pOrderableItem->overlaps (*pOBW) || pOrderableItem->isFollowedBy (*pOBW))) {
                     // Remove all the items included within the new one and join it with partial overlapping items
                     TCPSegment *pOBWNext = nullptr;
-                    while ((pOBWNext = _SeparateNodesList.getNext()) && (pOrderableItem->overlaps (*pOBWNext) || pOrderableItem->isFollowedBy (*pOBWNext))) {
+                    while ((pOBWNext = _plSeparateNodesList.getNext()) && (pOrderableItem->overlaps (*pOBWNext) || pOrderableItem->isFollowedBy (*pOBWNext))) {
                         ui8Flags |= pOBW->getTCPFlags();
-                        delete _SeparateNodesList.remove (pOBW);
+                        delete _plSeparateNodesList.remove (pOBW);
                         pOBW = pOBWNext;
                     }
                     ui8Flags |= pOBW->getTCPFlags();
                     if (pPreviousItem && (pOrderableItem->overlaps (*pPreviousItem) || pOrderableItem->follows (*pPreviousItem))) {
                         // pPreviousItem <= pOrderable and they overlap --> join
-                        pPreviousItem->setItemLength (SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
+                        pPreviousItem->setItemLength (NOMADSUtil::SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
                         pPreviousItem->addTCPFlags (ui8Flags);
-                        delete _SeparateNodesList.remove (pOBW);
+                        delete _plSeparateNodesList.remove (pOBW);
                         delete pOrderableItem;
                     }
                     else {
                         // pPreviousItem < pOrderableItem or pOrderableItem is the new first item of the queue --> only join with following item
-                        const unsigned int uiNewItemLength = SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber());       // Necessary because we are changing the SEQ number of the segment pointed by pOBW
+                        const unsigned int uiNewItemLength = NOMADSUtil::SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber());       // Necessary because we are changing the SEQ number of the segment pointed by pOBW
                         pOBW->setSequenceNumber (pOrderableItem->getSequenceNumber());
                         pOBW->setItemLength (uiNewItemLength);
                         pOBW->setData (getPositionInBuffer (pOrderableItem->getSequenceNumber()));
@@ -292,30 +286,30 @@ namespace ACMNetProxy
                     // Newly received item is the one with the highest Sequence number, or it cannot be joined with subsequent items
                     if (pPreviousItem && (pOrderableItem->overlaps (*pPreviousItem) || pOrderableItem->follows (*pPreviousItem))) {
                         // pPreviousItem <= pOrderable and they overlap --> join
-                        pPreviousItem->setItemLength (SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
+                        pPreviousItem->setItemLength (NOMADSUtil::SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
                         pPreviousItem->addTCPFlags (ui8Flags);
                         delete pOrderableItem;
                     }
                     else {
                         // pPreviousItem < pOrderableItem or pOrderableItem is the new first item of the queue --> impossible to join with any received item
                         pOrderableItem->setData (getPositionInBuffer (pOrderableItem->getSequenceNumber()));
-                        _SeparateNodesList.insert (pOrderableItem);
+                        _plSeparateNodesList.insert (pOrderableItem);
                     }
                 }
             }
             else if (pOBW) {
                 // Filling the gap in between pPreviousItem and pOBW - do not overwrite data
-                unsigned int uiHighEnd = SequentialArithmetic::lessThanOrEqual (pOrderableItem->getFollowingSequenceNumber(), pOBW->getSequenceNumber()) ?
+                unsigned int uiHighEnd = NOMADSUtil::SequentialArithmetic::lessThanOrEqual (pOrderableItem->getFollowingSequenceNumber(), pOBW->getSequenceNumber()) ?
                                             pOrderableItem->getFollowingSequenceNumber() : pOBW->getSequenceNumber();
                 unsigned int uiLowEnd;
                 if (pPreviousItem) {
-                    uiLowEnd = SequentialArithmetic::greaterThanOrEqual (pPreviousItem->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber()) ?
+                    uiLowEnd = NOMADSUtil::SequentialArithmetic::greaterThanOrEqual (pPreviousItem->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber()) ?
                                 pPreviousItem->getFollowingSequenceNumber() : pOrderableItem->getSequenceNumber();
                 }
                 else {
                     uiLowEnd = pOrderableItem->getSequenceNumber();
                 }
-                unsigned int uiBytesToWrite = SequentialArithmetic::delta (uiHighEnd, uiLowEnd);
+                unsigned int uiBytesToWrite = NOMADSUtil::SequentialArithmetic::delta (uiHighEnd, uiLowEnd);
                 if (uiBytesToWrite != copyBytesToCircularBuffer (pOrderableItem, uiLowEnd, uiHighEnd)) {
                     delete pOrderableItem;
                     return -13;
@@ -335,9 +329,9 @@ namespace ACMNetProxy
                                         pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber(),
                                         pPreviousItem->getItemLength(), pPreviousItem->getData(), pPreviousItem->getFollowingSequenceNumber(),
                                         pOBW->getSequenceNumber(), pOBW->getItemLength(), pOBW->getData(), pOBW->getFollowingSequenceNumber());*/
-                        pPreviousItem->setItemLength (SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
+                        pPreviousItem->setItemLength (NOMADSUtil::SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
                         pPreviousItem->addTCPFlags (pOBW->getTCPFlags());       // Flags from the current item (*pOrderableItem) added above
-                        delete _SeparateNodesList.remove (pOBW);
+                        delete _plSeparateNodesList.remove (pOBW);
                         delete pOrderableItem;
                     }
                     else {
@@ -351,7 +345,7 @@ namespace ACMNetProxy
                                         pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber(),
                                         pPreviousItem->getItemLength(), pPreviousItem->getData(),
                                         pPreviousItem->getFollowingSequenceNumber());*/
-                        pPreviousItem->setItemLength (SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
+                        pPreviousItem->setItemLength (NOMADSUtil::SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
                         delete pOrderableItem;
                     }
                 }
@@ -367,7 +361,7 @@ namespace ACMNetProxy
                                         getPositionInBuffer (pOrderableItem->getSequenceNumber()),
                                         pOrderableItem->getFollowingSequenceNumber(), pOBW->getSequenceNumber(),
                                         pOBW->getItemLength(), pOBW->getData(), pOBW->getFollowingSequenceNumber());*/
-                        const unsigned int uiNewItemLength = SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber());       // Necessary because we are changing the SEQ number of the segment pointed by pOBW
+                        const unsigned int uiNewItemLength = NOMADSUtil::SequentialArithmetic::delta (pOBW->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber());       // Necessary because we are changing the SEQ number of the segment pointed by pOBW
                         pOBW->setSequenceNumber (pOrderableItem->getSequenceNumber());
                         pOBW->setItemLength (uiNewItemLength);
                         pOBW->setData (getPositionInBuffer (pOrderableItem->getSequenceNumber()));
@@ -383,16 +377,16 @@ namespace ACMNetProxy
                                         getPositionInBuffer (pOrderableItem->getSequenceNumber()),
                                         pOrderableItem->getFollowingSequenceNumber());*/
                         pOrderableItem->setData (getPositionInBuffer (pOrderableItem->getSequenceNumber()));
-                        _SeparateNodesList.insert (pOrderableItem);
+                        _plSeparateNodesList.insert (pOrderableItem);
                     }
                 }
                 insertedBytes = uiBytesToWrite;
             }
             else {
                 // Newly received item fits at the end of the list - do not overwrite data
-                unsigned int uiLowEnd = SequentialArithmetic::greaterThanOrEqual (pPreviousItem->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber()) ?
+                unsigned int uiLowEnd = NOMADSUtil::SequentialArithmetic::greaterThanOrEqual (pPreviousItem->getFollowingSequenceNumber(), pOrderableItem->getSequenceNumber()) ?
                                             pPreviousItem->getFollowingSequenceNumber() : pOrderableItem->getSequenceNumber();
-                unsigned int uiBytesToWrite = SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), uiLowEnd);
+                unsigned int uiBytesToWrite = NOMADSUtil::SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), uiLowEnd);
                 if (uiBytesToWrite != copyBytesToCircularBuffer (pOrderableItem, uiLowEnd)) {
                     delete pOrderableItem;
                     return -14;
@@ -408,7 +402,7 @@ namespace ACMNetProxy
                                     pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber(),
                                     pPreviousItem->getItemLength(), pPreviousItem->getData(),
                                     pPreviousItem->getFollowingSequenceNumber());*/
-                    pPreviousItem->setItemLength (SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
+                    pPreviousItem->setItemLength (NOMADSUtil::SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), pPreviousItem->getSequenceNumber()));
                     pPreviousItem->addTCPFlags (ui8Flags);
                     delete pOrderableItem;
                 }
@@ -421,39 +415,40 @@ namespace ACMNetProxy
                                     getPositionInBuffer (pOrderableItem->getSequenceNumber()),
                                     pOrderableItem->getFollowingSequenceNumber());*/
                     pOrderableItem->setData (getPositionInBuffer (pOrderableItem->getSequenceNumber()));
-                    _SeparateNodesList.append (pOrderableItem);
+                    _plSeparateNodesList.append (pOrderableItem);
                 }
                 insertedBytes = uiBytesToWrite;
             }
         }
 
-        unsigned int iPacketCount = _SeparateNodesList.getCount();
-        pOrderableItem = _SeparateNodesList.getFirst();
-        _uiNextExpectedSequenceNumber = (pOrderableItem->getSequenceNumber() == _uiReadingSequenceNumber) ?
-            pOrderableItem->getFollowingSequenceNumber() : _uiReadingSequenceNumber;
-        _iReadyBytesInBuffer = SequentialArithmetic::delta (_uiNextExpectedSequenceNumber, _uiReadingSequenceNumber);
-        _iTotalBytesInBuffer = SequentialArithmetic::delta (_SeparateNodesList.getTail()->getFollowingSequenceNumber(), _uiReadingSequenceNumber);
-        checkAndLogMsg ("CircularOrderedBuffer::insertData", Logger::L_HighDetailDebug,
+        unsigned int iPacketCount = _plSeparateNodesList.getCount();
+        auto * pOrderableItemInList = _plSeparateNodesList.getFirst();
+        _uiNextExpectedSequenceNumber = (pOrderableItemInList->getSequenceNumber() == _uiReadingSequenceNumber) ?
+            pOrderableItemInList->getFollowingSequenceNumber() : _uiReadingSequenceNumber;
+        _iReadyBytesInBuffer = NOMADSUtil::SequentialArithmetic::delta (_uiNextExpectedSequenceNumber, _uiReadingSequenceNumber);
+        _iTotalBytesInBuffer = NOMADSUtil::SequentialArithmetic::delta (_plSeparateNodesList.getTail()->getFollowingSequenceNumber(), _uiReadingSequenceNumber);
+        checkAndLogMsg ("CircularOrderedBuffer::insertData", NOMADSUtil::Logger::L_HighDetailDebug,
                         "Inserted %d bytes into the circular buffer; current buffer size is %u and reader pointer offset is %u; "
                         "there are %u total bytes (of which %u are ready to be processed, beginning with SEQ number %u); "
                         "there are %d distinct packets in the buffer and the next expected one has SEQ number %u\n",
                         insertedBytes, _uiBufCurrentSize, _uiDataReaderPointer, _iTotalBytesInBuffer, _iReadyBytesInBuffer,
                         _uiReadingSequenceNumber, iPacketCount, _uiNextExpectedSequenceNumber);
-
+        /*
         unsigned int index = 0;
-        while (pOrderableItem) {
-            /*checkAndLogMsg ("CircularOrderedBuffer::insertData", Logger::L_HighDetailDebug,
+        while (pOrderableItemInList) {
+            checkAndLogMsg ("CircularOrderedBuffer::insertData", Logger::L_HighDetailDebug,
                             "buffer summary: packet #%u - SEQ number %u, byte size %u (address in buffer %p), "
                             "following packet has SEQ number %u\n", index++, pOrderableItem->getSequenceNumber(),
                             pOrderableItem->getItemLength(), pOrderableItem->getData(),
-                            pOrderableItem->getFollowingSequenceNumber());*/
-            pOrderableItem = _SeparateNodesList.getNext();
+                            pOrderableItem->getFollowingSequenceNumber());
+            pOrderableItemInList = _plSeparateNodesList.getNext();
         }
+        */
 
         return insertedBytes;
     }
 
-    int CircularOrderedBuffer::peekData (TCPSegment *pTCPSegment)
+    int CircularOrderedBuffer::peekData (TCPSegment * const pTCPSegment) const
     {
         unsigned int uiSequenceNumber = 0;
         unsigned char *pBuf = const_cast<unsigned char *> (pTCPSegment->getData());
@@ -467,17 +462,19 @@ namespace ACMNetProxy
         return uiPeekedBytes;
     }
 
-    int CircularOrderedBuffer::peekData (unsigned int *uiSequenceNumber, unsigned char *pBuf, unsigned int uiBytesToRead, uint8 *ui8Flag)
+    int CircularOrderedBuffer::peekData (unsigned int * uiSequenceNumber, unsigned char * pBuf,
+                                         unsigned int uiBytesToRead, uint8 * ui8Flag) const
     {
         unsigned int peekedBytes;
-        TCPSegment *pOBW = _SeparateNodesList.getFirst();
+        TCPSegment *pOBW = _plSeparateNodesList.getFirst();
         if ((pOBW != nullptr) && (_iReadyBytesInBuffer > 0)) {
             if (_uiReadingSequenceNumber == pOBW->getSequenceNumber()) {
-                peekedBytes = min (uiBytesToRead, pOBW->getItemLength());
+                peekedBytes = std::min (uiBytesToRead, pOBW->getItemLength());
 
                 if (copyBytesFromCircularBuffer (pBuf, peekedBytes) == 0) {
                     *uiSequenceNumber = _uiReadingSequenceNumber;
-                    *ui8Flag = (peekedBytes == pOBW->getItemLength()) ? pOBW->getTCPFlags() : TCPHeader::TCPF_ACK;
+                    *ui8Flag = (peekedBytes == pOBW->getItemLength()) ?
+                        pOBW->getTCPFlags() : NOMADSUtil::TCPHeader::TCPF_ACK;
                     return peekedBytes;
                 }
                 else {
@@ -493,7 +490,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int CircularOrderedBuffer::extractData (TCPSegment *pTCPSegment)
+    int CircularOrderedBuffer::extractData (TCPSegment * const pTCPSegment)
     {
         unsigned int uiSequenceNumber = 0;
         unsigned char *pBuf = const_cast<unsigned char *> (pTCPSegment->getData());
@@ -507,26 +504,27 @@ namespace ACMNetProxy
         return uiExtractedBytes;
     }
 
-    int CircularOrderedBuffer::extractData (unsigned int *uiSequenceNumber, unsigned char *pBuf, unsigned int uiBytesToRead, uint8 *ui8Flag)
+    int CircularOrderedBuffer::extractData (unsigned int * const uiSequenceNumber, unsigned char * const pBuf,
+                                            unsigned int uiBytesToRead, uint8 * const ui8Flag)
     {
         TCPSegment *pOBW;
         if (_iReadyBytesInBuffer <= 0) {
-            if ((pOBW = _SeparateNodesList.getFirst()) != nullptr) {
+            if ((pOBW = _plSeparateNodesList.getFirst()) != nullptr) {
                 // An empty packet was received when buffer was empty --> retrieving flags
                 *ui8Flag = pOBW->getTCPFlags();
-                delete _SeparateNodesList.remove (pOBW);
+                delete _plSeparateNodesList.remove (pOBW);
             }
             return 0;
         }
 
-       pOBW = _SeparateNodesList.getFirst();
+       pOBW = _plSeparateNodesList.getFirst();
         if (!pOBW) {
             return -1;
         }
 
         int iExtractedBytes = peekData (uiSequenceNumber, pBuf, uiBytesToRead, ui8Flag);
         if (iExtractedBytes <= 0) {
-            checkAndLogMsg ("CircularOrderedBuffer::extractData", Logger::L_MildError,
+            checkAndLogMsg ("CircularOrderedBuffer::extractData", NOMADSUtil::Logger::L_MildError,
                             "peekData() called with uiSequenceNumber = %u and uiBytesToRead = %u returned with error code %d\n",
                             uiSequenceNumber, uiBytesToRead, iExtractedBytes);
             return -2;
@@ -538,7 +536,7 @@ namespace ACMNetProxy
         }
         else if (pOBW->getItemLength() == iExtractedBytes) {
             // All the available bytes have been extracted
-            delete _SeparateNodesList.remove (pOBW);
+            delete _plSeparateNodesList.remove (pOBW);
         }
         else if (iExtractedBytes != pOBW->incrementValues (iExtractedBytes)) {
             // Error incrementing values, since it must be true that extractedBytes < pOBW->getItemLength()
@@ -547,10 +545,10 @@ namespace ACMNetProxy
 
         int rc;
         if (0 != (rc = removeData (iExtractedBytes))) {
-            checkAndLogMsg ("CircularOrderedBuffer::extractData", Logger::L_MildError,
+            checkAndLogMsg ("CircularOrderedBuffer::extractData", NOMADSUtil::Logger::L_MildError,
                             "removeData() failed with error code %d\n", rc);
         }
-        checkAndLogMsg ("CircularOrderedBuffer::extractData", Logger::L_HighDetailDebug,
+        checkAndLogMsg ("CircularOrderedBuffer::extractData", NOMADSUtil::Logger::L_HighDetailDebug,
                         "extracted %d bytes from the circular buffer; current buffer size is %u and reader pointer offset is %u; "
                         "there are %u total bytes (of which %u are ready to be processed, beginning with SEQ num %u); "
                         "next expected packet has SEQ number %u\n", iExtractedBytes, _uiBufCurrentSize, _uiDataReaderPointer,
@@ -581,12 +579,12 @@ namespace ACMNetProxy
 
     void CircularOrderedBuffer::resetBuffer (void)
     {
-        if (_pBuf && (_uiBufCurrentSize != _uiBufMinSize)) {
-            delete[] _pBuf;
-            _pBuf = new unsigned char[_uiBufMinSize];
+        if (_pui8Buf && (_uiBufCurrentSize != _uiBufMinSize)) {
+            delete[] _pui8Buf;
+            _pui8Buf = new unsigned char[_uiBufMinSize];
         }
-        else if (!_pBuf) {
-            _pBuf = new unsigned char[_uiBufMinSize];
+        else if (!_pui8Buf) {
+            _pui8Buf = new unsigned char[_uiBufMinSize];
         }
         _uiBufCurrentSize = _uiBufMinSize;
 
@@ -596,10 +594,10 @@ namespace ACMNetProxy
         _iReadyBytesInBuffer = 0;
         _iTotalBytesInBuffer = 0;
 
-        TCPSegment *pOBW = _SeparateNodesList.getFirst();
+        TCPSegment *pOBW = _plSeparateNodesList.getFirst();
         while (pOBW) {
-            delete _SeparateNodesList.remove (pOBW);
-            pOBW = _SeparateNodesList.getFirst();
+            delete _plSeparateNodesList.remove (pOBW);
+            pOBW = _plSeparateNodesList.getFirst();
         }
     }
 
@@ -615,7 +613,7 @@ namespace ACMNetProxy
         }
 
         // Look for any group of data which may overlaps new packet of data completely
-        OrderableBufferWrapper<unsigned char> *pOBW = _SeparateNodesList.getFirst();
+        OrderableBufferWrapper<unsigned char> *pOBW = _plSeparateNodesList.getFirst();
         while (pOBW && (*pOBW <= *pOrderableItem)) {
             if (pOBW->overlaps (*pOrderableItem)) {
                 // Data is useless only in the moment that existing items include the new one
@@ -625,7 +623,7 @@ namespace ACMNetProxy
                 // New item is not included into any existing one --> new data is useful
                 return true;
             }
-            pOBW = _SeparateNodesList.getNext();
+            pOBW = _plSeparateNodesList.getNext();
         }
 
         return true;
@@ -636,10 +634,10 @@ namespace ACMNetProxy
         if (!pOrderableItem) {
             return false;
         }
-        if (SequentialArithmetic::lessThan (pOrderableItem->getFollowingSequenceNumber(), _uiNextExpectedSequenceNumber)) {
+        if (NOMADSUtil::SequentialArithmetic::lessThan (pOrderableItem->getFollowingSequenceNumber(), _uiNextExpectedSequenceNumber)) {
             return false;
         }
-        if (SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), _uiReadingSequenceNumber) > _uiBufMaxSize) {
+        if (NOMADSUtil::SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), _uiReadingSequenceNumber) > _uiBufMaxSize) {
             return false;
         }
 
@@ -652,8 +650,8 @@ namespace ACMNetProxy
             return false;
         }
 
-        unsigned int uiFirstEnd = _uiDataReaderPointer + SequentialArithmetic::delta (uiStartingSequenceNumber, _uiReadingSequenceNumber);
-        unsigned int uiFinalEnd = _uiDataReaderPointer + SequentialArithmetic::delta ((uiStartingSequenceNumber + uiBytesToRead), _uiReadingSequenceNumber);
+        unsigned int uiFirstEnd = _uiDataReaderPointer + NOMADSUtil::SequentialArithmetic::delta (uiStartingSequenceNumber, _uiReadingSequenceNumber);
+        unsigned int uiFinalEnd = _uiDataReaderPointer + NOMADSUtil::SequentialArithmetic::delta ((uiStartingSequenceNumber + uiBytesToRead), _uiReadingSequenceNumber);
 
         if ((uiFirstEnd < _uiBufCurrentSize) && (uiFinalEnd > _uiBufCurrentSize)) {
             return true;
@@ -667,7 +665,7 @@ namespace ACMNetProxy
             return -1;
         }
 
-        unsigned int uiMinNewSize = SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), _uiReadingSequenceNumber);
+        unsigned int uiMinNewSize = NOMADSUtil::SequentialArithmetic::delta (pOrderableItem->getFollowingSequenceNumber(), _uiReadingSequenceNumber);
         if ((uiMinNewSize <= _uiBufCurrentSize) || (_uiBufCurrentSize == _uiBufMaxSize)) {
             return _uiBufCurrentSize;
         }
@@ -693,22 +691,22 @@ namespace ACMNetProxy
             return -4;
         }
 
-        checkAndLogMsg ("CircularOrderedBuffer::growBufferIfNecessary", Logger::L_MediumDetailDebug,
+        checkAndLogMsg ("CircularOrderedBuffer::growBufferIfNecessary", NOMADSUtil::Logger::L_MediumDetailDebug,
                         "CircularBuffer grown from %u to %u bytes; old buffer at position %p and new one at position %p; "
                         "old reader pointer offset was %u, pointing to data with SEQ num %u; there are %u bytes in buffer "
                         "(of which %u are ready to be read) and a packet with SEQ num %u and %hu bytes of data needs to be enqueued\n",
-                        _uiBufCurrentSize, uiNewBufSize, _pBuf, pBufNew, _uiDataReaderPointer, _uiReadingSequenceNumber,
+                        _uiBufCurrentSize, uiNewBufSize, _pui8Buf, pBufNew, _uiDataReaderPointer, _uiReadingSequenceNumber,
                         _iTotalBytesInBuffer, _iReadyBytesInBuffer, pOrderableItem->getSequenceNumber(), pOrderableItem->getItemLength());
-        delete[] _pBuf;
-        _pBuf = pBufNew;
+        delete[] _pui8Buf;
+        _pui8Buf = pBufNew;
         _uiBufCurrentSize = uiNewBufSize;
         _uiDataReaderPointer = 0;
 
         // Updating pointers to data of the items in the list
-        OrderableBufferWrapper<unsigned char> *pOBW = _SeparateNodesList.getFirst();
+        OrderableBufferWrapper<unsigned char> *pOBW = _plSeparateNodesList.getFirst();
         while (pOBW) {
             pOBW->setData (getPositionInBuffer (pOBW->getSequenceNumber()));
-            pOBW = _SeparateNodesList.getNext();
+            pOBW = _plSeparateNodesList.getNext();
         }
 
         return _uiBufCurrentSize;
@@ -716,26 +714,26 @@ namespace ACMNetProxy
 
     unsigned char * CircularOrderedBuffer::getPositionInBuffer (unsigned int uiSequenceNumber) const
     {
-        if (SequentialArithmetic::lessThan (uiSequenceNumber, _uiReadingSequenceNumber)) {
+        if (NOMADSUtil::SequentialArithmetic::lessThan (uiSequenceNumber, _uiReadingSequenceNumber)) {
             return nullptr;
         }
 
-        unsigned int uiDisplacement = SequentialArithmetic::delta (uiSequenceNumber, _uiReadingSequenceNumber);
+        unsigned int uiDisplacement = NOMADSUtil::SequentialArithmetic::delta (uiSequenceNumber, _uiReadingSequenceNumber);
         if (uiDisplacement >= _uiBufCurrentSize) {
             return nullptr;
         }
 
         unsigned int uiPositionInBuffer = (_uiDataReaderPointer + uiDisplacement) % _uiBufCurrentSize;
-        return &(_pBuf[uiPositionInBuffer]);
+        return &(_pui8Buf[uiPositionInBuffer]);
     }
 
     int CircularOrderedBuffer::availableBytesBeforeWrappingAround (unsigned int uiSequenceNumber) const
     {
-        if (SequentialArithmetic::lessThan (uiSequenceNumber, _uiReadingSequenceNumber)) {
+        if (NOMADSUtil::SequentialArithmetic::lessThan (uiSequenceNumber, _uiReadingSequenceNumber)) {
             return -1;
         }
 
-        unsigned int uiDisplacement = SequentialArithmetic::delta (uiSequenceNumber, _uiReadingSequenceNumber);
+        unsigned int uiDisplacement = NOMADSUtil::SequentialArithmetic::delta (uiSequenceNumber, _uiReadingSequenceNumber);
         if (uiDisplacement >= _uiBufCurrentSize) {
             return -2;
         }
@@ -748,18 +746,19 @@ namespace ACMNetProxy
         return (_uiBufCurrentSize - uiPositionInBuffer);
     }
 
-    int CircularOrderedBuffer::copyBytesToCircularBuffer (const OrderableBufferWrapper<unsigned char> * const pOrderableItem, unsigned int uiStartingSequenceNumber, unsigned int uiFinalSequenceNumber)
+    int CircularOrderedBuffer::copyBytesToCircularBuffer (const OrderableBufferWrapper<unsigned char> * const pOrderableItem,
+                                                          unsigned int uiStartingSequenceNumber, unsigned int uiFinalSequenceNumber)
     {
         if (!pOrderableItem) {
             return -1;
         }
-        if (SequentialArithmetic::greaterThan (uiStartingSequenceNumber, pOrderableItem->getFollowingSequenceNumber())) {
+        if (NOMADSUtil::SequentialArithmetic::greaterThan (uiStartingSequenceNumber, pOrderableItem->getFollowingSequenceNumber())) {
             return -2;
         }
-        if (SequentialArithmetic::lessThan (uiFinalSequenceNumber, pOrderableItem->getSequenceNumber())) {
+        if (NOMADSUtil::SequentialArithmetic::lessThan (uiFinalSequenceNumber, pOrderableItem->getSequenceNumber())) {
             return -3;
         }
-        if (SequentialArithmetic::greaterThan (uiStartingSequenceNumber, uiFinalSequenceNumber)) {
+        if (NOMADSUtil::SequentialArithmetic::greaterThan (uiStartingSequenceNumber, uiFinalSequenceNumber)) {
             return -4;
         }
 
@@ -767,14 +766,14 @@ namespace ACMNetProxy
             return 0;
         }
 
-        if (SequentialArithmetic::lessThan (uiStartingSequenceNumber, pOrderableItem->getSequenceNumber())) {
+        if (NOMADSUtil::SequentialArithmetic::lessThan (uiStartingSequenceNumber, pOrderableItem->getSequenceNumber())) {
             uiStartingSequenceNumber = pOrderableItem->getSequenceNumber();
         }
-        if (SequentialArithmetic::greaterThan (uiFinalSequenceNumber, pOrderableItem->getFollowingSequenceNumber())) {
+        if (NOMADSUtil::SequentialArithmetic::greaterThan (uiFinalSequenceNumber, pOrderableItem->getFollowingSequenceNumber())) {
             uiFinalSequenceNumber = pOrderableItem->getFollowingSequenceNumber();
         }
 
-        unsigned int uiBytesToCopy = SequentialArithmetic::delta (uiFinalSequenceNumber, uiStartingSequenceNumber);
+        unsigned int uiBytesToCopy = NOMADSUtil::SequentialArithmetic::delta (uiFinalSequenceNumber, uiStartingSequenceNumber);
         unsigned char *pCopyPosition = getPositionInBuffer (uiStartingSequenceNumber);
         if (!pCopyPosition) {
             return -5;
@@ -786,14 +785,14 @@ namespace ACMNetProxy
             if ((iAvailableBytesBeforeWrapping < 0) || ((unsigned int) iAvailableBytesBeforeWrapping >= uiBytesToCopy)) {
                 return -6;
             }
-            checkAndLogMsg ("CircularOrderedBuffer::copyBytesToCircularBuffer", Logger::L_HighDetailDebug,
+            checkAndLogMsg ("CircularOrderedBuffer::copyBytesToCircularBuffer", NOMADSUtil::Logger::L_HighDetailDebug,
                             "Copying %u bytes starting with SEQ num %u to Circularbuffer; %d bytes copied from address %p "
                             "to address %p in the circular buffer, and remaining %u bytes are copied from address %p to "
                             "address %p in the circular buffer\n", uiBytesToCopy, uiStartingSequenceNumber, iAvailableBytesBeforeWrapping,
                             pOrderableItem->getData(), pCopyPosition, (uiBytesToCopy - iAvailableBytesBeforeWrapping),
-                            &(pOrderableItem->getData()[iAvailableBytesBeforeWrapping]), _pBuf);
+                            &(pOrderableItem->getData()[iAvailableBytesBeforeWrapping]), _pui8Buf);
             memcpy (pCopyPosition, pOrderableItem->getData(), iAvailableBytesBeforeWrapping);
-            memcpy (_pBuf, &(pOrderableItem->getData()[iAvailableBytesBeforeWrapping]), (uiBytesToCopy - iAvailableBytesBeforeWrapping));
+            memcpy (_pui8Buf, &(pOrderableItem->getData()[iAvailableBytesBeforeWrapping]), (uiBytesToCopy - iAvailableBytesBeforeWrapping));
         }
         else {
             // No need to wrap around the buffer or it wrapped around with another item
@@ -803,13 +802,13 @@ namespace ACMNetProxy
         return uiBytesToCopy;
     }
 
-    int CircularOrderedBuffer::copyBytesFromCircularBuffer (unsigned char *pDest, unsigned int uiBytesToRead)
+    int CircularOrderedBuffer::copyBytesFromCircularBuffer (unsigned char * const pDest, unsigned int uiBytesToRead) const
     {
         if (!pDest) {
             return -1;
         }
 
-        OrderableBufferWrapper<unsigned char> *pOBW = _SeparateNodesList.getFirst();
+        OrderableBufferWrapper<unsigned char> *pOBW = _plSeparateNodesList.getFirst();
         if (pOBW == nullptr) {
             return -2;
         }
@@ -824,14 +823,14 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int CircularOrderedBuffer::rawCopyFromCircularBuffer (unsigned char *pDest, unsigned int uiBytesToRead)
+    int CircularOrderedBuffer::rawCopyFromCircularBuffer (unsigned char * const pDest, unsigned int uiBytesToRead) const
     {
         if (!pDest) {
             return -1;
         }
 
         if (!isDataWrappingAround (_uiReadingSequenceNumber, uiBytesToRead)) {
-            memcpy (pDest, &_pBuf[_uiDataReaderPointer], uiBytesToRead);
+            memcpy (pDest, &_pui8Buf[_uiDataReaderPointer], uiBytesToRead);
             return 0;
         }
         else {
@@ -839,14 +838,14 @@ namespace ACMNetProxy
             if ((iFirstBlockOfBytes < 0) || (uiBytesToRead <= (unsigned int) iFirstBlockOfBytes)) {
                 return -4;
             }
-            checkAndLogMsg ("CircularOrderedBuffer::rawCopyFromCircularBuffer", Logger::L_HighDetailDebug,
+            checkAndLogMsg ("CircularOrderedBuffer::rawCopyFromCircularBuffer", NOMADSUtil::Logger::L_HighDetailDebug,
                             "Copying %u bytes to buffer with address %p; copying %d bytes from address %p in the source buffer to address "
                             "%p in the destination buffer, and the remaining %hu bytes from address %p in the source buffer to address "
-                            "%p in the destination buffer\n", uiBytesToRead, pDest, iFirstBlockOfBytes, (&_pBuf[_uiDataReaderPointer]),
-                            pDest, (uiBytesToRead - iFirstBlockOfBytes), _pBuf, &pDest[iFirstBlockOfBytes]);
+                            "%p in the destination buffer\n", uiBytesToRead, pDest, iFirstBlockOfBytes, (&_pui8Buf[_uiDataReaderPointer]),
+                            pDest, (uiBytesToRead - iFirstBlockOfBytes), _pui8Buf, &pDest[iFirstBlockOfBytes]);
 
-            memcpy (pDest, &_pBuf[_uiDataReaderPointer], iFirstBlockOfBytes);
-            memcpy (&pDest[iFirstBlockOfBytes], _pBuf, (uiBytesToRead - iFirstBlockOfBytes));
+            memcpy (pDest, &_pui8Buf[_uiDataReaderPointer], iFirstBlockOfBytes);
+            memcpy (&pDest[iFirstBlockOfBytes], _pui8Buf, (uiBytesToRead - iFirstBlockOfBytes));
             return 0;
         }
     }

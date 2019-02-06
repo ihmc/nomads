@@ -5,7 +5,7 @@
  * TCPManager.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,53 +28,66 @@
 
 namespace ACMNetProxy
 {
-    class NetworkInterface;
+    class PacketBufferManager;
     class Entry;
     class TCPConnTable;
+    class LocalTCPTransmitterThread;
+    class RemoteTCPTransmitterThread;
     class ConnectionManager;
-    class NetProxyConfigManager;
+    class ConfigurationManager;
+    class StatisticsManager;
     class PacketRouter;
+
 
     class TCPManager
     {
-        public:
-            static TCPManager * const getTCPManager (void);
-            ~TCPManager (void);
+    public:
+        TCPManager (PacketBufferManager & rPBM, TCPConnTable & rTCPConnTable, ConnectionManager & rConnectionManager,
+                    ConfigurationManager & rConfigurationManager, StatisticsManager & rStatisticsManager,
+                    PacketRouter & rPacketRouter);
+        explicit TCPManager (const TCPManager & rTCPManager) = delete;
+        ~TCPManager (void);
 
-            static int handleTCPPacketFromHost (const uint8 *pPacket, uint16 ui16PacketLen);
-            static int sendTCPPacketToHost (Entry * const pEntry, uint8 ui8TCPFlags, uint32 ui32SeqNum,
-                                            const uint8 * const pui8Payload = nullptr, uint16 ui16PayloadLen = 0);
+        int handleTCPPacketFromHost (const uint8 * const pPacket, uint16 ui16PacketLen, LocalTCPTransmitterThread & rLocalTCPTransmitterThread,
+                                     RemoteTCPTransmitterThread & rRemoteTCPTransmitterThread);
 
-            static int openTCPConnectionToHost (uint32 ui32RemoteProxyIP, uint32 ui32RemoteProxyUniqueID, uint16 ui16RemoteID,
-                                                uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP,
-                                                uint16 ui16RemotePort, uint8 ui8CompressionTypeAndLevel);
-            static int tcpConnectionToHostOpened (uint16 ui16LocalID, uint16 ui16RemoteID, uint32 ui32RemoteProxyUniqueID,
-                                                  uint8 ui8CompressionTypeAndLevel);
-            static int sendTCPDataToHost (uint16 ui16LocalID, uint16 ui16RemoteID, const uint8 * const pui8CompData,
-                                          uint16 ui16CompDataLen, uint8 ui8Flags);
-            static int closeTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID);
-            static int resetTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID);
+        int sendTCPPacketToHost (Entry * const pEntry, uint8 ui8TCPFlags, uint32 ui32SeqNum,
+                                 const uint8 * const pui8Payload = nullptr, uint16 ui16PayloadLen = 0);
 
-        private:
-            TCPManager (void);
-            explicit TCPManager (const TCPManager& rTCPManager);
+        int openTCPConnectionToHost (uint32 ui32RemoteProxyIP, uint32 ui32RemoteProxyUniqueID, uint16 ui16RemoteID,
+                                     uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP,
+                                     uint16 ui16RemotePort, uint8 ui8CompressionTypeAndLevel);
+        int confirmTCPConnectionToHostOpened (uint16 ui16LocalID, uint16 ui16RemoteID, uint32 ui32RemoteProxyUniqueID,
+                                              uint8 ui8CompressionTypeAndLevel);
+        int sendTCPDataToHost (uint16 ui16LocalID, uint16 ui16RemoteID, const uint8 * const pui8CompData, uint16 ui16CompDataLen,
+                               uint8 ui8Flags, LocalTCPTransmitterThread & rLocalTCPTransmitterThread);
+        int closeTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID, RemoteTCPTransmitterThread & rRemoteTCPTransmitterThread);
+        int resetTCPConnectionToHost (uint16 ui16LocalID, uint16 ui16RemoteID);
 
-            static TCPConnTable * const _pTCPConnTable;
-            static ConnectionManager * const _pConnectionManager;
-            static NetProxyConfigManager * const _pConfigurationManager;
-            static PacketRouter * const _pPacketRouter;
+        static int flushAndSendCloseConnectionRequest (Entry * const pEntry);
+        static int sendRemoteResetRequestIfNeeded (Entry * const pEntry);
+
+
+    private:
+        PacketBufferManager & _rPBM;
+
+        TCPConnTable & _rTCPConnTable;
+        ConnectionManager & _rConnectionManager;
+        ConfigurationManager & _rConfigurationManager;
+        PacketRouter & _rPacketRouter;
+        StatisticsManager & _rStatisticsManager;
     };
 
-    inline TCPManager::TCPManager (void) {}
 
-    inline TCPManager::~TCPManager (void) {}
+    inline TCPManager::TCPManager (PacketBufferManager & rPBM, TCPConnTable & rTCPConnTable, ConnectionManager & rConnectionManager,
+                                   ConfigurationManager & rConfigurationManager, StatisticsManager & rStatisticsManager,
+                                   PacketRouter & rPacketRouter) :
+        _rPBM{rPBM}, _rTCPConnTable{rTCPConnTable}, _rConnectionManager{rConnectionManager},
+        _rConfigurationManager{rConfigurationManager}, _rPacketRouter{rPacketRouter},
+        _rStatisticsManager{rStatisticsManager}
+    { }
 
-    inline TCPManager * const TCPManager::getTCPManager (void)
-    {
-        static TCPManager tcpManager;
-
-        return &tcpManager;
-    }
+    inline TCPManager::~TCPManager (void) { }
 
 }
 

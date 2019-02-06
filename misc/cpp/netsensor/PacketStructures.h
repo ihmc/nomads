@@ -214,9 +214,9 @@ namespace IHMC_NETSENSOR_NET_UTILS
 
     struct NS_ICMPPacket
     {
-        NS_EtherFrameHeader *pMacHeader;
-        NS_IPHeader         *pIpHeader;
-        NS_ICMP             *pIcmpData;
+        NS_EtherFrameHeader * pMacHeader;
+        NS_IPHeader         * pIpHeader;
+        NS_ICMP             * pIcmpData;
         uint64               i64RcvTimeStamp;
     };
 

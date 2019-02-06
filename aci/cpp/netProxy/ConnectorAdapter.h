@@ -5,7 +5,7 @@
  * ConnectorAdapter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,28 +24,33 @@
  */
 
 #include <stdarg.h>
+#include <mutex>
 
 #include "FTypes.h"
 #include "InetAddr.h"
-#include "UInt64Hashtable.h"
-#include "Mutex.h"
-#include "Mocket.h"
-#include "TCPSocket.h"
-#include "UDPDatagramSocket.h"
+#include "PeerStatusCallbacks.h"
 
 #include "Utilities.h"
 
 
+class Mocket;
+
+
+namespace NOMADSUtil
+{
+    class TCPSocket;
+    class UDPDatagramSocket;
+}
+
+
 namespace ACMNetProxy
 {
-    class CompressionSetting;
+    class ConnectionManager;
+
 
     class ConnectorAdapter
     {
     public:
-        ConnectorAdapter (ConnectorType connectorType, uint8 * const pui8MemBuf, uint16 ui16MemBufSize);
-        ConnectorAdapter (ConnectorType connectorType, uint32 ui32RemoteProxyIP, uint16 ui16RemoteProxyPort,
-                          uint8 * const pui8MemBuf, uint16 ui16MemBufSize);
         virtual ~ConnectorAdapter (void);
 
         virtual int bufferingMode (int iMode) = 0;
@@ -54,15 +59,15 @@ namespace ACMNetProxy
 
         virtual bool isConnected (void) const = 0;
         virtual EncryptionType getEncryptionType (void) const = 0;
-        virtual uint32 getOutgoingBufferSize (void) = 0;
+        virtual uint32 getOutgoingBufferSize (void) const = 0;
 
         virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort) = 0;
         // Single buffer version of send
-        virtual int send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
-                          const void *pBuf, uint32 ui32BufSize) = 0;
+        virtual int send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
+                          bool bReliable, bool bSequenced, const void *pBuf, uint32 ui32BufSize) = 0;
         // Variable argument version of send (to handle a gather write)
-        int gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
-                   const void *pBuf1, uint32 ui32BufSize1, ...);
+        int gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
+                   bool bReliable, bool bSequenced, const void *pBuf1, uint32 ui32BufSize1, ...);
         // Retrieves the data from next message that is ready to be delivered to the application
         virtual int receiveMessage (void * const pBuf, uint32 ui32BufSize) = 0;
         virtual int shutdown (bool bReadMode, bool bWriteMode) = 0;
@@ -70,46 +75,56 @@ namespace ACMNetProxy
 
         ConnectorType getConnectorType (void) const;
         const char * const getConnectorTypeAsString (void) const;
-        NOMADSUtil::InetAddr * const getRemoteInetAddr (void) const;
-        uint32 getRemoteIPAddr (void) const;
+        const NOMADSUtil::InetAddr & getLocalInetAddr (void) const;
+        virtual uint16 getLocalPort (void) const = 0;
+        const NOMADSUtil::InetAddr & getRemoteInetAddr (void) const;
 
-        static ConnectorAdapter * const ConnectorAdapterFactory (ConnectorType connectorType, EncryptionType encryptionType,
-                                                                 const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr);
-        static ConnectorAdapter * const ConnectorAdapterFactory (Mocket * const pMocket, ConnectorType connectorType);
-        static ConnectorAdapter * const ConnectorAdapterFactory (NOMADSUtil::TCPSocket * const pTCPSocket, ConnectorType connectorType);
-        static ConnectorAdapter * const ConnectorAdapterFactory (NOMADSUtil::UDPDatagramSocket * const pUDPSocket, ConnectorType connectorType);
+
+        static ConnectorAdapter * const ConnectorAdapterFactory (ConnectionManager & rConnectionManager, ConnectorType connectorType,
+                                                                 EncryptionType encryptionType, const NOMADSUtil::InetAddr & iaLocalProxyAddr,
+                                                                 const NOMADSUtil::InetAddr & iaRemoteProxyAddr);
+        static ConnectorAdapter * const ConnectorAdapterFactory (Mocket * const pMocket, const NOMADSUtil::InetAddr & iaLocalProxyAddr,
+                                                                 ConnectorType connectorType);
+        static ConnectorAdapter * const ConnectorAdapterFactory (NOMADSUtil::TCPSocket * const pTCPSocket, const NOMADSUtil::InetAddr & iaLocalProxyAddr,
+                                                                 ConnectorType connectorType);
+        static ConnectorAdapter * const ConnectorAdapterFactory (NOMADSUtil::UDPDatagramSocket * const pUDPSocket, const NOMADSUtil::InetAddr & iaLocalProxyAddr,
+                                                                 ConnectorType connectorType);
 
 
     protected:
+        ConnectorAdapter (ConnectorType connectorType, const NOMADSUtil::InetAddr & iaLocalProxyAddr,
+                          const NOMADSUtil::InetAddr & iaRemoteProxyAddr, uint8 * const pui8Buffer, uint16 ui16BufferSize);
+
         bool checkCorrectHeader (const void * const pBuf, int32 i32BufSize) const;
-        virtual int gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
-                           const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2) = 0;
+
+        virtual int gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr, bool bReliable,
+                           bool bSequenced, const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2) = 0;
         virtual int receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout = 0) = 0;
 
-        NOMADSUtil::InetAddr _remoteProxyInetAddr;
-        uint8 * const _pui8MemBuf;
-        const uint16 _ui16MemBufSize;
-        NOMADSUtil::Mutex _m;
+
+        NOMADSUtil::InetAddr _iaLocalProxyAddr;
+        NOMADSUtil::InetAddr _iaRemoteProxyAddr;
+        std::unique_ptr<uint8> _upui8Buffer;
+        const uint16 _ui16BufferSize;
+
+        std::mutex _mtx;
 
 
     private:
-        explicit ConnectorAdapter (const ConnectorAdapter& rConnectorAdapter);
+        explicit ConnectorAdapter (const ConnectorAdapter & rConnectorAdapter);
+
 
         const ConnectorType _connectorType;
-        //NOMADSUtil::UInt64Hashtable<Connection> _pConnections;
-        //NOMADSUtil::Mutex _mConnections;
     };
 
 
-    inline ConnectorAdapter::ConnectorAdapter (ConnectorType connectorType, uint8 * const pui8MemBuf, uint16 ui16MemBufSize) :
-        _pui8MemBuf(pui8MemBuf), _ui16MemBufSize(ui16MemBufSize), _connectorType(connectorType) { }
+    inline ConnectorAdapter::ConnectorAdapter (ConnectorType connectorType, const NOMADSUtil::InetAddr & iaLocalProxyAddr,
+                                               const NOMADSUtil::InetAddr & iaRemoteProxyAddr, uint8 * const pui8Buffer, uint16 ui16BufferSize) :
+        _iaLocalProxyAddr{iaLocalProxyAddr}, _iaRemoteProxyAddr{iaRemoteProxyAddr}, _upui8Buffer{pui8Buffer},
+        _ui16BufferSize{ui16BufferSize}, _connectorType{connectorType}
+    { }
 
-    inline ConnectorAdapter::ConnectorAdapter (ConnectorType connectorType, uint32 ui32RemoteProxyIP, uint16 ui16RemoteProxyPort,
-                                               uint8 * const pui8MemBuf, uint16 ui16MemBufSize) :
-        _pui8MemBuf(pui8MemBuf), _ui16MemBufSize(ui16MemBufSize), _connectorType(connectorType)
-    {
-        _remoteProxyInetAddr = NOMADSUtil::InetAddr (ui32RemoteProxyIP, ui16RemoteProxyPort);
-    }
+    inline ConnectorAdapter::~ConnectorAdapter (void) { }
 
     // Default implementation of a pure virtual method
     inline int ConnectorAdapter::readConfigFile (const char * const pszConfigFile)
@@ -118,15 +133,15 @@ namespace ACMNetProxy
         return 0;
     }
 
-    inline int ConnectorAdapter::gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
-                                        bool bSequenced, const void *pBuf1, uint32 ui32BufSize1, ...)
+    inline int ConnectorAdapter::gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
+                                        bool bReliable, bool bSequenced, const void *pBuf1, uint32 ui32BufSize1, ...)
     {
         int rc;
         va_list valist1, valist2;
 
         va_start (valist1, ui32BufSize1);
         va_start (valist2, ui32BufSize1);
-        rc = gsend (pInetAddr, ui32DestVirtualIPAddr, bReliable, bSequenced, pBuf1, ui32BufSize1, valist1, valist2);
+        rc = gsend (pInetAddr, ui32SourceIPAddr, ui32DestIPAddr, bReliable, bSequenced, pBuf1, ui32BufSize1, valist1, valist2);
         va_end (valist1);
         va_end (valist2);
 
@@ -143,15 +158,21 @@ namespace ACMNetProxy
         return connectorTypeToString (_connectorType);
     }
 
-    inline NOMADSUtil::InetAddr * const ConnectorAdapter::getRemoteInetAddr (void) const
+    inline const NOMADSUtil::InetAddr & ConnectorAdapter::getLocalInetAddr (void) const
     {
-        return const_cast<NOMADSUtil::InetAddr * const> (&_remoteProxyInetAddr);
+        return _iaLocalProxyAddr;
     }
 
-    inline uint32 ConnectorAdapter::getRemoteIPAddr (void) const
+    inline uint16 ConnectorAdapter::getLocalPort (void) const
     {
-        return _remoteProxyInetAddr.getIPAddress();
+        return _iaLocalProxyAddr.getPort();
     }
+
+    inline const NOMADSUtil::InetAddr & ConnectorAdapter::getRemoteInetAddr (void) const
+    {
+        return _iaRemoteProxyAddr;
+    }
+
 }
 
 #endif //INCL_CONNECTOR_ADAPTER_H

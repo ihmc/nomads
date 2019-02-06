@@ -28,7 +28,7 @@ using namespace NOMADSUtil;
 namespace IHMC_NETSENSOR
 {
 
-void tokenizeStr(const char *str, const char separator, LList<String>* tokens)
+void tokenizeStr (const char *str, const char separator, LList<String>* tokens)
 {
     String tmp;
     tmp = str;
@@ -49,14 +49,13 @@ void tokenizeStr(const char *str, const char separator, LList<String>* tokens)
     } while (0 != *str++);
 }
 
-void printStringList(LList<String> *list)
+void printStringList (LList<String> *list)
 {
     list->resetGet();
     String supportString;
     while (list->getNext(supportString))
     {
-        checkAndLogMsg("printStringList()", Logger::L_Info,
-            "\t\t\t\t %s\n", supportString.c_str());
+        checkAndLogMsg ("printStringList()", Logger::L_Info, "%s\n", supportString.c_str());
     }
 }
 

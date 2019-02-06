@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -96,7 +96,7 @@ namespace NOMADSUtil
                         return 0;
                     }
 
-                    Iterator (UInt32Hashset *pSet) {
+                    Iterator (const UInt32Hashset *pSet) {
                         _pSet = pSet;
                         _ulIndex = 0;
                         _pCurrElement = NULL;
@@ -110,7 +110,7 @@ namespace NOMADSUtil
                     }
 
                 private:
-                    UInt32Hashset *_pSet;
+                    const UInt32Hashset *_pSet;
                     unsigned long _ulIndex;
                     void *_pCurrElement;
                 private:
@@ -128,7 +128,7 @@ namespace NOMADSUtil
             // Returns the current size of the Hashset (NOTE: this is NOT the number of elements in the Hashset)
             virtual unsigned long getSetSize (void) const;
 
-            virtual Iterator getAllElements (void);
+            virtual Iterator getAllElements (void) const;
 
             virtual void printStructure (void) const;
 
@@ -188,14 +188,14 @@ namespace NOMADSUtil
         unsigned long ulThreshold = (unsigned long) (_ulSetSize * F_THRESHOLD);
         if (_ulCount >= ulThreshold) {
             if (pLogger) {
-                pLogger->logMsg ("UInt32Hashset::put", Logger::L_MediumDetailDebug, 
+                pLogger->logMsg ("UInt32Hashset::put", Logger::L_MediumDetailDebug,
                                  "this UInt32Hashset has %lu elems with set size: %lu and threshold %lu\n", _ulCount, _ulSetSize, ulThreshold);
             }
             if (_ulSetSize > MAXTABLESIZE) {
                 // HERE WE RUN INTO AN OUT OF MEMORY ERROR
                 // We can't have a larger set
                 if (pLogger) {
-                    pLogger->logMsg ("UInt32Hashset::put", Logger::L_SevereError, 
+                    pLogger->logMsg ("UInt32Hashset::put", Logger::L_SevereError,
                                      "this is too large a set, with %lu\n", _ulSetSize);
                 }
             }
@@ -217,7 +217,7 @@ namespace NOMADSUtil
             // First element in bucket has the key
             return;
         }
-        // Search the bucket for an entry with that key 
+        // Search the bucket for an entry with that key
         while (pHTE->pNext) {
             pHTE = pHTE->pNext;
             if (pHTE->ui32Key == ui32Key) {
@@ -278,7 +278,7 @@ namespace NOMADSUtil
             //     the value is returned
             return true;
         }
-        // Search the bucket for an entry with that key 
+        // Search the bucket for an entry with that key
         HashsetEntry *pPrev = pHTE;
         pHTE = pHTE->pNext;
         while (pHTE) {
@@ -318,7 +318,7 @@ namespace NOMADSUtil
         return _ulSetSize;
     }
 
-    inline UInt32Hashset::Iterator UInt32Hashset::getAllElements (void)
+    inline UInt32Hashset::Iterator UInt32Hashset::getAllElements (void) const
     {
         return Iterator (this);
     }

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -28,16 +28,16 @@ using namespace NOMADSUtil;
 ZipFileReader::ZipFileReader (bool bCloseFile)
     : _bCloseFile (bCloseFile)
 {
-    fileInput = NULL;
+    _pFileInput = NULL;
     lLastFileHeaderSeekPos = 0;
     pEntries = NULL;
 }
 
 ZipFileReader::~ZipFileReader (void)
 {
-    if (fileInput && _bCloseFile) {
-        fclose (fileInput);
-        fileInput = NULL;
+    if (_pFileInput && _bCloseFile) {
+        fclose (_pFileInput);
+        _pFileInput = NULL;
     }
     if (pEntries) {
         delete[] pEntries;
@@ -59,18 +59,18 @@ int ZipFileReader::init (FILE *Input, bool bCacheDir)
     if (Input == NULL) {
         return RC_FileAccessError;
     }
-    fileInput = Input;
+    _pFileInput = Input;
     u4 u4Count = 0;
     u4 u4Index = 0;
     bool bDone = false;
     while (!bDone) {
-        switch (readSignature (fileInput)) {
+        switch (readSignature (_pFileInput)) {
             case T_LocalFileHeader:
                 //if (lfh.skip (fileInput)) {
-                if (lfh.read (fileInput)) {
+                if (lfh.read (_pFileInput)) {
                     return RC_FileFormatError;
                 }
-                if (fseek (fileInput, lfh.u4BytesToSkipToNextHeader, SEEK_CUR)) {
+                if (fseek (_pFileInput, lfh.u4BytesToSkipToNextHeader, SEEK_CUR)) {
                     return RC_FileFormatError;
                 }
                 u4Count++;
@@ -87,7 +87,7 @@ int ZipFileReader::init (FILE *Input, bool bCacheDir)
                             return RC_FileFormatError;     // Should not be running out of memory
                         }
                     }
-                    if (fh.read (fileInput)) {
+                    if (fh.read (_pFileInput)) {
                         return RC_FileFormatError;
                     }
                     if (pEntries[u4Index].init (fh)) {    // For efficiency, FileEntry::init steals the
@@ -100,14 +100,14 @@ int ZipFileReader::init (FILE *Input, bool bCacheDir)
                     u4Index++;
                 }
                 else {
-                    if (fh.skip (fileInput)) {
+                    if (fh.skip (_pFileInput)) {
                         return RC_FileFormatError;
                     }
                 }
                 break;
 
             case T_EndOfCentralDir:
-                if (ecd.read (fileInput)) {
+                if (ecd.read (_pFileInput)) {
                     return RC_FileFormatError;
                 }
                 if (bCacheDir) {
@@ -135,31 +135,31 @@ int ZipFileReader::getFileCount (void)
 
 const char * ZipFileReader::getFirstFileName (void)
 {
-    if (fseek (fileInput, ecd.u4CentralDirOffset, SEEK_SET)) {
+    if (fseek (_pFileInput, ecd.u4CentralDirOffset, SEEK_SET)) {
         return NULL;
     }
-    if (T_FileHeader != readSignature (fileInput)) {
+    if (T_FileHeader != readSignature (_pFileInput)) {
         return NULL;
     }
-    if (fh.read (fileInput)) {
+    if (fh.read (_pFileInput)) {
         return NULL;
     }
-    lLastFileHeaderSeekPos = ftell (fileInput);
+    lLastFileHeaderSeekPos = ftell (_pFileInput);
     return fh.pszFileName;
 }
 
 const char * ZipFileReader::getNextFileName (void)
 {
-    if (fseek (fileInput, lLastFileHeaderSeekPos, SEEK_SET)) {
+    if (fseek (_pFileInput, lLastFileHeaderSeekPos, SEEK_SET)) {
         return NULL;
     }
-    if (T_FileHeader != readSignature (fileInput)) {
+    if (T_FileHeader != readSignature (_pFileInput)) {
         return NULL;
     }
-    if (fh.read (fileInput)) {
+    if (fh.read (_pFileInput)) {
         return NULL;
     }
-    lLastFileHeaderSeekPos = ftell (fileInput);
+    lLastFileHeaderSeekPos = ftell (_pFileInput);
     return fh.pszFileName;
 }
 
@@ -171,7 +171,7 @@ bool ZipFileReader::checkForFile (const char *pszFileName)
         }
     }
     else {
-        if (findFileHeader (pszFileName, fileInput)) {
+        if (findFileHeader (pszFileName, _pFileInput)) {
             return false;
         }
     }
@@ -186,14 +186,12 @@ ZipFileReader::Entry * ZipFileReader::getEntry (const char *pszName) const
         if (NULL == (pfe = ((ZipFileReader*)this)->findFileEntry (pszName))) {
             return NULL;
         }
-        return ((ZipFileReader*)this)->getEntry (pfe, fileInput);
+        return ((ZipFileReader*)this)->getEntry (pfe, _pFileInput);
     }
-    else {
-        if (((ZipFileReader*)this)->findFileHeader (pszName, fileInput)) {
-            return NULL;
-        }
-        return ((ZipFileReader*)this)->getEntry (&((ZipFileReader*)this)->fh, fileInput);
+    if (((ZipFileReader*)this)->findFileHeader (pszName, _pFileInput)) {
+        return NULL;
     }
+    return ((ZipFileReader*)this)->getEntry (&((ZipFileReader*)this)->fh, _pFileInput);
 }
 
 ZipFileReader::Entry * ZipFileReader::getEntry (int iIndex) const
@@ -207,14 +205,12 @@ ZipFileReader::Entry * ZipFileReader::getEntry (int iIndex) const
         if (NULL == (pfe = ((ZipFileReader*)this)->getFileEntry (iIndex))) {
             return NULL;
         }
-        return ((ZipFileReader*)this)->getEntry (pfe, fileInput);
+        return ((ZipFileReader*)this)->getEntry (pfe, _pFileInput);
     }
-    else {
-        if (((ZipFileReader*)this)->gotoFileHeader (iIndex, fileInput)) {
-            return NULL;
-        }
-        return ((ZipFileReader*)this)->getEntry (&((ZipFileReader*)this)->fh, fileInput);
+    if (((ZipFileReader*)this)->gotoFileHeader (iIndex, _pFileInput)) {
+        return NULL;
     }
+    return ((ZipFileReader*)this)->getEntry (&((ZipFileReader*)this)->fh, _pFileInput);
 }
 
 int ZipFileReader::readSignature (FILE *fileInput)
@@ -355,7 +351,7 @@ ZipFileReader::Entry * ZipFileReader::getEntry (FileEntry *pfe, FILE *fileInput)
 
     if (pEntry->ui32CompSize > 0) {
         // Read the data for the entry
-        if (NULL == (pEntry->pBuf = new char [lfh.u4CompSize+1])) {      // Note that the allocated buffer size 
+        if (NULL == (pEntry->pBuf = new char [lfh.u4CompSize+1])) {      // Note that the allocated buffer size
             delete pEntry;                                               //     is one more than the actual size
             return NULL;                                                 // See the .h file for details
         }
@@ -410,7 +406,7 @@ ZipFileReader::Entry * ZipFileReader::getEntry (FileHeader *pfh, FILE *fileInput
 
     if (pEntry->ui32CompSize > 0) {
         // Read the data for the entry
-        if (NULL == (pEntry->pBuf = new char [lfh.u4CompSize+1])) {      // Note that the allocated buffer size 
+        if (NULL == (pEntry->pBuf = new char [lfh.u4CompSize+1])) {      // Note that the allocated buffer size
             delete pEntry;                                               //     is one more than the actual size
             return NULL;                                                 // See the .h file for details
         }
@@ -719,7 +715,7 @@ int ZipFileReader::FileHeader::read (FILE *fileInput)
     u2IntFileAttr = ZipFileReader::swapBytes (u2IntFileAttr);
     u4ExtFileAttr = ZipFileReader::swapBytes (u4ExtFileAttr);
     i4LocalHdrRelOffset = ZipFileReader::swapBytes (i4LocalHdrRelOffset);
-    
+
     if (u2FileNameLen > 0) {
         pszFileName = new char [u2FileNameLen+1];
         if (1 != fread (pszFileName, u2FileNameLen, 1, fileInput)) {
@@ -877,3 +873,5 @@ int ZipFileReader::FileEntry::compare (const void *pElem1, const void *pElem2)
     return strcmp (((FileEntry*)pElem1)->pszName,
                    ((FileEntry*)pElem2)->pszName);
 }
+
+

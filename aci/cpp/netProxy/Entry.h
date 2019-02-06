@@ -2,7 +2,7 @@
  * Entry.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,70 +23,70 @@
 #ifndef INCL_ENTRY_H
 #define INCL_ENTRY_H
 
-#include <climits>
+#include <limits>
+#include <string>
+#include <deque>
+#include <mutex>
 
 #include "FTypes.h"
 #include "net/NetworkHeaders.h"
-#include "PtrQueue.h"
-#include "Mutex.h"
 
 #include "ConfigurationParameters.h"
 #include "ProxyMessages.h"
-#include "TCPSegment.h"
-#include "MutexBuffer.h"
 #include "CircularOrderedBuffer.h"
-#include "ConnectorWriter.h"
+
+#ifdef max
+#undef max
+#endif
 
 
 namespace ACMNetProxy
 {
-    class Connector;
-    class Connection;
+    class MutexBuffer;
+    class TCPSegment;
     class ConnectorReader;
-    class CompressionSetting;
-    class Entry;
+    class ConnectorWriter;
+    class Connection;
 
 
-    enum LocalStatus
+    enum LocalState
     {
-        TCTLS_Unused,       // = 0
-        TCTLS_LISTEN,       // = 1
-        TCTLS_SYN_RCVD,     // = 2
-        TCTLS_SYN_SENT,     // = 3
-        TCTLS_ESTABLISHED,  // = 4
-        TCTLS_CLOSE_WAIT,   // = 5
-        TCTLS_LAST_ACK,     // = 6
-        TCTLS_FIN_WAIT_1,   // = 7
-        TCTLS_FIN_WAIT_2,   // = 8
-        TCTLS_CLOSING,      // = 9
-        TCTLS_TIME_WAIT,    // = 10
-        TCTLS_CLOSED        // = 11
+        TCTLS_LISTEN,           // 0
+        TCTLS_SYN_RCVD,         // 1
+        TCTLS_SYN_SENT,         // 2
+        TCTLS_ESTABLISHED,      // 3
+        TCTLS_CLOSE_WAIT,       // 4
+        TCTLS_LAST_ACK,         // 5
+        TCTLS_FIN_WAIT_1,       // 6
+        TCTLS_FIN_WAIT_2,       // 7
+        TCTLS_CLOSING,          // 8
+        TCTLS_TIME_WAIT,        // 9
+        TCTLS_CLOSED            // 10
     };
 
 
-    enum RemoteStatus
+    enum RemoteState
     {
-        TCTRS_Unknown,
-        TCTRS_WaitingConnEstablishment,
-        TCTRS_ConnRequested,
-        TCTRS_ConnEstablished,
-        TCTRS_DisconnRequestSent,
-        TCTRS_DisconnRequestReceived,
-        TCTRS_Disconnected
+        TCTRS_Unknown,                      // 0
+        TCTRS_WaitingConnEstablishment,     // 1
+        TCTRS_ConnRequestSent,              // 2
+        TCTRS_ConnRequestReceived,          // 3
+        TCTRS_ConnEstablished,              // 4
+        TCTRS_DisconnRequestSent,           // 5
+        TCTRS_DisconnRequestReceived,       // 6
+        TCTRS_Disconnected                  // 7
     };
 
 
-    struct Connectors
+    struct DataCompressors
     {
-        Connectors (void);
-        ~Connectors (void);
+        DataCompressors (void);
+        ~DataCompressors (void);
 
-        void reset (Entry * const pEntry);
+        void reset (void);
 
-        Connector *pConnector;
-        Connection *pConnection;
-        ConnectorReader *pConnectorReader;
-        ConnectorWriter *pConnectorWriter;
+        ConnectorReader * pConnectorReader;
+        ConnectorWriter * pConnectorWriter;
     };
 
 
@@ -97,22 +97,22 @@ namespace ACMNetProxy
         Entry (void);
         ~Entry (void);
 
-        bool operator== (const Entry &rEntry) const;
+        bool operator== (const Entry & rEntry) const;
 
         // NOTE: For the next methods we assume that the caller has already locked the entry
         void clear (void);
         void reset (void);
 
-        void prepareNewConnection (void);  // Generates outgoing SEQ number and set local status to LISTEN
+        void prepareNewConnection (void);  // Generates outgoing SEQ number and set the local state to LISTEN
         uint32 ackOutgoingDataUpto (uint32 ui32AckNum);
-        void updateOutgoingWindow (const NOMADSUtil::TCPHeader *pTCPHeader);
+        void updateOutgoingWindow (const NOMADSUtil::TCPHeader * const pTCPHeader);
         void calculateRTO (int64 rtt);
         const bool isRemoteConnectionFlushed (void) const;
         TCPSegment * const dequeueLocallyReceivedData (uint16 ui16RequestedBytesNum);
 
         bool isOutgoingBufferEmpty (void) const;
-        bool isOutgoingDataReady (void);
-        bool areThereHolesInOutgoingDataBuffer (void) const;
+        bool areDataAvailableInTheIncomingBuffer (void);
+        bool areThereHolesInTheIncomingDataBuffer (void) const;
         unsigned int getOutgoingReadyBytesCount (void) const;
         unsigned int getOutgoingTotalBytesCount (void) const;
         unsigned int getOutgoingBufferedBytesCount (void) const;
@@ -120,35 +120,31 @@ namespace ACMNetProxy
         uint16 getCurrentTCPWindowSize (void) const;
         double getOutgoingBufferRemainingSpacePercentage (void) const;
         void setNextExpectedInSeqNum (unsigned int uiNextExpectedInSeqNum);
-        int insertTCPSegmentIntoOutgoingBuffer (TCPSegment *pTCPSegment);
+        int insertTCPSegmentIntoOutgoingBuffer (TCPSegment * const pTCPSegment);
         const TCPSegment * const getLastOutgoingQueuedPacket (void);
 
-        Connector * const getConnector (void) const;
+        bool areThereUntransmittedPacketsInUDPTransmissionQueue (void) const;
+
         Connection * const getConnection (void) const;
         ConnectorReader * const getConnectorReader (void) const;
         ConnectorWriter * const getConnectorWriter (void) const;
-        Connector * const setConnector (const Connector * const pConnector);
         Connection * const setConnection (Connection * const pConnection);
-        ConnectorReader * const setProperConnectorReader (const ConnectorReader * const pNewConnectorReader);
-        ConnectorWriter * const setProperConnectorWriter (const CompressionSetting * const pCompressionSetting);
+        ConnectorReader * const setProperConnectorReader (ConnectorReader * const pNewConnectorReader);
+        ConnectorWriter * const setProperConnectorWriter (ConnectorWriter * const pNewConnectorWriter);
         void resetConnectors (void);
 
-        ProxyMessage::Protocol getProtocol (void) const;
-        const NOMADSUtil::String & getMocketConfFile (void) const;
-        void setProtocol (ProxyMessage::Protocol prot);
-        void setMocketConfFile (const char * const pcConfigFile);
-        void setMocketConfFile (const NOMADSUtil::String &configFile);
+        Protocol getProtocol (void) const;
+        void setProtocol (Protocol protocol);
 
-        int lock (void) const;
-        int tryLock (void) const;
-        int unlock (void) const;
+        std::mutex & getMutexRef (void) const;
 
         uint16 ui16ID;
         uint16 ui16RemoteID;
         uint32 ui32RemoteProxyUniqueID;
-        NOMADSUtil::InetAddr remoteProxyAddr;
-        LocalStatus localStatus;
-        RemoteStatus remoteStatus;
+        NOMADSUtil::InetAddr iaLocalInterfaceAddr;
+        NOMADSUtil::InetAddr iaRemoteProxyAddr;
+        LocalState localState;
+        RemoteState remoteState;
         uint32 ui32LocalIP;
         uint16 ui16LocalPort;
         uint32 ui32RemoteIP;
@@ -156,52 +152,64 @@ namespace ACMNetProxy
 
         uint32 ui32StartingInSeqNum;
         uint32 ui32StartingOutSeqNum;
-        uint32 ui32NextExpectedInSeqNum;                        // Expected SEQ number of the next incoming packet
-        uint32 ui32LastACKedSeqNum;                             // SEQ number of the last packet which was ACKed
+        uint32 ui32NextExpectedInSeqNum;                            // Expected SEQ number of the next incoming packet
+        uint32 ui32LastACKedSeqNum;                                 // SEQ number of the last packet which was ACKed
         uint32 ui32LastAckSeqNum;
         int64 i64LastAckTime;
         uint32 ui32ReceivedDataSeqNum;
-        uint32 ui32OutSeqNum;                                   // Next sequence number to be used when sending new data to the host
+        uint32 ui32OutSeqNum;                                       // Next sequence number to be used when sending new data to the host
         uint16 ui16ReceiverWindowSize;
-        uint16 ui16RTO;                                         // Retransmission TimeOut
-        uint16 ui16SRTT;                                        // Smoothed Round Trip Time
-        uint8 ui8RetransmissionAttempts;                        // Number of retransmitted packets sent
-        int64 i64LastCalculatedRTOTime;                         // Time when RTO has been calculated
-        int64 i64LocalActionTime;                               // Time when a local action, such as a request to connect, was taken
-        int64 i64RemoteActionTime;                              // Time when a remote action, such as a request to connect, was taken
-        int64 i64IdleTime;                                      // Last time the connection was detected as idle
+        uint16 ui16RTO;                                             // Retransmission TimeOut
+        uint16 ui16SRTT;                                            // Smoothed Round Trip Time
+        uint8 ui8RetransmissionAttempts;                            // Number of retransmitted packets sent
+        int64 i64LastCalculatedRTOTime;                             // Time when RTO has been calculated
+        int64 i64LocalActionTime;                                   // Time when a local action, such as a request to connect, was taken
+        int64 i64RemoteActionTime;                                  // Time when a remote action, such as a request to connect, was taken
+        int64 i64IdleTime;                                          // Last time the connection was detected as idle
 
         uint32 assignedPriority;
         uint32 currentPriority;
-        TCPSegment *pTCPSegment;
+        TCPSegment * pTCPSegment;
 
-        NOMADSUtil::PtrQueue<ReceivedData> outBuf;              // Packets received from local host and outgoing onto the network
+        std::deque<ReceivedData> dqLocalHostOutBuf;                 // Queue of packets received from the remote application and ready to be sent to the local one
+
+        static const uint32 STANDARD_MSL = 2 * 60 * 1000;           // Standard Maximum Segment Lifetime of 2 minutes (RFC 793)
+        static const uint16 LB_RTO = 1 * 100;                       // Retransmission TimeOut Lower Bound of 100 milliseconds (in RFC 793 is 1 second)
+        static const uint16 UB_RTO = 3 * 1000;                      // Retransmission TimeOut Upper Bound of 60 seconds (RFC 793)
+        static const uint16 RTO_RECALCULATION_TIME = 1 * 1000;      // Time that has to pass before recalculating RTO (RFC 793)
+        static const double ALPHA_RTO;                              // Alpha constant for RTO calculation (RFC 793)
+        static const double BETA_RTO;                               // Beta constant for RTO calculation (RFC 793)
+
 
     private:
-        friend class TCPConnTable;
+        void releaseMemory (void);
+
         int removePacketsFromUDPTransmissionQueue (void) const;
 
-        static const uint16 MAX_TCP_WINDOW_SIZE = USHRT_MAX;
+        Protocol _protocol;
+        DataCompressors _dataCompressors;
+        MutexBuffer * _pMutexBuffer;                                // Always nullptr, except when data is remapped over a UDP Connection
+        TCPSegment * _pAvailableData;
+        TCPSegment * _pTempTCPSegment;
+        Connection * _pRemoteConnection;                            // The Connection to the remote NetProxy to which this entry is remapped
 
-        Connectors _connectors;
-        ProxyMessage::Protocol _protocol;
-        NOMADSUtil::String _sMocketConfFileName;
-        MutexBuffer *_pMutexBuffer;                             // nullptr except if the UDP connector is used to send data to remote proxy
-        TCPSegment *_pAvailableData;
-        TCPSegment *_pTempTCPSegment;
+        CircularOrderedBuffer inQueue;                              // To handle the TCP window of incoming packets with support for out-of-order packets
 
-        CircularOrderedBuffer inQueue;                          // To handle TCP window (with support to out-of-order packets)
+        mutable std::mutex _mtx;
 
-        mutable NOMADSUtil::Mutex _m;
+        static const uint16 MAX_TCP_WINDOW_SIZE = std::numeric_limits<uint16>::max();
     };
 
 
-    inline Connectors::Connectors (void) :
-        pConnector(nullptr), pConnection(nullptr), pConnectorReader(nullptr), pConnectorWriter(nullptr) { }
+    inline DataCompressors::DataCompressors (void) :
+        pConnectorReader{nullptr}, pConnectorWriter{nullptr}
+    { }
 
-    inline Connectors::~Connectors (void)
+    inline Entry::Entry (void) :
+        pTCPSegment{nullptr}, _pMutexBuffer{nullptr}, _pAvailableData{nullptr}, _pTempTCPSegment{nullptr},
+        _pRemoteConnection{nullptr}, inQueue{ui32NextExpectedInSeqNum, NetworkConfigurationSettings::TCP_WINDOW_SIZE}
     {
-        reset (nullptr);
+        clear();
     }
 
     inline bool Entry::operator== (const Entry &rEntry) const
@@ -209,29 +217,17 @@ namespace ACMNetProxy
         return (ui16ID == rEntry.ui16ID) && (ui16RemoteID == rEntry.ui16RemoteID);
     }
 
-    inline const bool Entry::isRemoteConnectionFlushed (void) const
-    {
-        return _connectors.pConnectorWriter->isFlushed() && (_pAvailableData ? _pAvailableData->getItemLength() == 0 : true);
-    }
-
-    inline Entry::Entry (void) :
-		pTCPSegment(nullptr), _pMutexBuffer(nullptr), _pAvailableData(nullptr),
-        _pTempTCPSegment(nullptr), inQueue(ui32NextExpectedInSeqNum, NetProxyApplicationParameters::TCP_WINDOW_SIZE)
-    {
-        clear();
-    }
-
     inline bool Entry::isOutgoingBufferEmpty (void) const
     {
         return (inQueue.isEmpty() && (_pAvailableData ? (_pAvailableData->getItemLength() == 0) : true));
     }
 
-    inline bool Entry::isOutgoingDataReady (void)
+    inline bool Entry::areDataAvailableInTheIncomingBuffer (void)
     {
         return (inQueue.isDataReady() || (_pAvailableData ? (_pAvailableData->getItemLength() > 0) : false));
     }
 
-    inline bool Entry::areThereHolesInOutgoingDataBuffer (void) const
+    inline bool Entry::areThereHolesInTheIncomingDataBuffer (void) const
     {
         return inQueue.isDataOutOfOrder();
     }
@@ -272,7 +268,7 @@ namespace ACMNetProxy
         inQueue.setBeginningSequenceNumber (uiNextExpectedInSeqNum);
     }
 
-    inline int Entry::insertTCPSegmentIntoOutgoingBuffer (TCPSegment *pTCPSegment)
+    inline int Entry::insertTCPSegmentIntoOutgoingBuffer (TCPSegment * const pTCPSegment)
     {
         return pTCPSegment ? inQueue.insertData (pTCPSegment) : -1;
     }
@@ -282,83 +278,61 @@ namespace ACMNetProxy
         return inQueue.getLastSegment() ? inQueue.getLastSegment() : _pAvailableData;
     }
 
-    inline Connector * const Entry::getConnector (void) const
-    {
-        return _connectors.pConnector;
-    }
-
     inline Connection * const Entry::getConnection (void) const
     {
-        return _connectors.pConnection;
+        return _pRemoteConnection;
     }
 
     inline ConnectorReader * const Entry::getConnectorReader (void) const
     {
-        return _connectors.pConnectorReader;
+        return _dataCompressors.pConnectorReader;
     }
 
     inline ConnectorWriter * const Entry::getConnectorWriter (void) const
     {
-        return _connectors.pConnectorWriter;
+        return _dataCompressors.pConnectorWriter;
     }
 
-    inline ConnectorReader * const Entry::setProperConnectorReader (const ConnectorReader * const pNewConnectorReader)
+    inline Connection * const Entry::setConnection (Connection * const pConnection)
     {
-        ConnectorReader * const pOldConnectorReader = _connectors.pConnectorReader;
-        _connectors.pConnectorReader = const_cast<ConnectorReader *> (pNewConnectorReader);
+        Connection * const pOldConnection = _pRemoteConnection;
+        _pRemoteConnection = pConnection;
+
+        return pOldConnection;
+    }
+
+    inline ConnectorReader * const Entry::setProperConnectorReader (ConnectorReader * const pNewConnectorReader)
+    {
+        ConnectorReader * const pOldConnectorReader = _dataCompressors.pConnectorReader;
+        _dataCompressors.pConnectorReader = pNewConnectorReader;
         return pOldConnectorReader;
     }
 
-    inline ConnectorWriter * const Entry::setProperConnectorWriter (const CompressionSetting * const pCompressionSetting)
+    inline ConnectorWriter * const Entry::setProperConnectorWriter (ConnectorWriter * const pNewConnectorWriter)
     {
-        ConnectorWriter * const pOldConnectorWriter = _connectors.pConnectorWriter;
-        _connectors.pConnectorWriter = ConnectorWriter::connectorWriterFactory (pCompressionSetting);
+        ConnectorWriter * const pOldConnectorWriter = _dataCompressors.pConnectorWriter;
+        _dataCompressors.pConnectorWriter = pNewConnectorWriter;
         return pOldConnectorWriter;
     }
 
     inline void Entry::resetConnectors (void)
     {
-        _connectors.reset (this);
+        _dataCompressors.reset();
     }
 
-    inline ProxyMessage::Protocol Entry::getProtocol (void) const
+    inline Protocol Entry::getProtocol (void) const
     {
         return _protocol;
     }
 
-    inline const NOMADSUtil::String & Entry::getMocketConfFile (void) const
-    {
-        return _sMocketConfFileName;
-    }
-
-    inline void Entry::setProtocol (ProxyMessage::Protocol protocol)
+    inline void Entry::setProtocol (Protocol protocol)
     {
         _protocol = protocol;
     }
 
-    inline void Entry::setMocketConfFile (const char * const pcConfigFile)
+    inline std::mutex & Entry::getMutexRef (void) const
     {
-        _sMocketConfFileName = NOMADSUtil::String (pcConfigFile);
-    }
-
-    inline void Entry::setMocketConfFile (const NOMADSUtil::String &configFile)
-    {
-        _sMocketConfFileName = configFile;
-    }
-
-    inline int Entry::lock (void) const
-    {
-        return _m.lock();
-    }
-
-    inline int Entry::tryLock (void) const
-    {
-        return _m.tryLock();
-    }
-
-    inline int Entry::unlock (void) const
-    {
-        return _m.unlock();
+        return _mtx;
     }
 }
 

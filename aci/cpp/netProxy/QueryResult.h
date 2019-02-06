@@ -5,7 +5,7 @@
  * QueryResult.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,79 +23,73 @@
  * solution to reach a remote host or NetProxy.
  */
 
+#include "InetAddr.h"
+
+#include "ConfigurationParameters.h"
 #include "Utilities.h"
-#include "Connection.h"
 
-
-namespace NOMADSUtil
-{
-    class InetAddr;
-}
 
 namespace ACMNetProxy
 {
+    class Connection;
+
+
     struct QueryResult
     {
     public:
         QueryResult (void);
+        QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr & rLocalProxyInterfaceAddress,
+                     const NOMADSUtil::InetAddr & rRemoteProxyServerAddress, ConnectorType connectorType,
+                     EncryptionType _encryptionType, Connection * const pActiveConnectionToRemoteProxy);
         QueryResult (const QueryResult & queryResult);
 
-        QueryResult & operator= (const QueryResult & queryResult);
-
         bool isValid (void) const;
-        const NOMADSUtil::InetAddr * const getBestConnectionSolution (void) const;
+        const NOMADSUtil::InetAddr getBestConnectionAddressSolution (void) const;
 
         uint32 getRemoteProxyUniqueID (void) const;
-        const NOMADSUtil::InetAddr * const getRemoteProxyServerAddress (void) const;
-        const EncryptionType getQueryEncryptionType (void) const;
+        const NOMADSUtil::InetAddr & getLocalProxyInterfaceAddress (void) const;
+        const NOMADSUtil::InetAddr & getRemoteProxyServerAddress (void) const;
+        const ConnectorType getQueriedConnectorType (void) const;
+        const EncryptionType getQueriedEncryptionType (void) const;
         Connection * const getActiveConnectionToRemoteProxy (void) const;
-
-
-    private:
-        friend class ConnectivitySolutions;
-        friend class ConnectionManager;
-
-        QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr * const pRemoteProxyServerAddress,
-                     EncryptionType _encryptionType, Connection * const pActiveConnectionToRemoteProxy);
 
         static const QueryResult & getInvalidQueryResult (void);
 
-        uint32 _ui32RemoteProxyUniqueID;
-        const NOMADSUtil::InetAddr *_pRemoteProxyServerAddress;
-        EncryptionType _encryptionType;
-        Connection *_pActiveConnectionToRemoteProxy;
+
+    private:
+        const uint32 _ui32RemoteProxyUniqueID;
+        const NOMADSUtil::InetAddr _iaLocalProxyInterfaceAddress;
+        const NOMADSUtil::InetAddr _iaRemoteProxyServerAddress;
+        const ConnectorType _connectorType;
+        const EncryptionType _encryptionType;
+        Connection * const _pActiveConnectionToRemoteProxy;
     };
 
 
     inline QueryResult::QueryResult (void) :
-        _ui32RemoteProxyUniqueID (0), _pRemoteProxyServerAddress (nullptr), _encryptionType(ET_UNDEF),
-        _pActiveConnectionToRemoteProxy (nullptr) { }
+        _ui32RemoteProxyUniqueID{0}, _iaLocalProxyInterfaceAddress{}, _iaRemoteProxyServerAddress{},
+        _connectorType{CT_UNDEF}, _encryptionType{ET_UNDEF}, _pActiveConnectionToRemoteProxy{nullptr}
+    { }
 
-    inline QueryResult::QueryResult (const QueryResult &queryResult) :
-        _ui32RemoteProxyUniqueID (queryResult._ui32RemoteProxyUniqueID),
-        _pRemoteProxyServerAddress (queryResult._pRemoteProxyServerAddress),
-        _encryptionType(queryResult._encryptionType),
-        _pActiveConnectionToRemoteProxy (queryResult._pActiveConnectionToRemoteProxy) { }
+    inline QueryResult::QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr & rLocalProxyInterfaceAddress,
+                                     const NOMADSUtil::InetAddr & rRemoteProxyServerAddress, ConnectorType connectorType,
+                                     EncryptionType encryptionType, Connection * const pActiveConnectionToRemoteProxy) :
+        _ui32RemoteProxyUniqueID{ui32RemoteProxyUniqueID}, _iaLocalProxyInterfaceAddress{rLocalProxyInterfaceAddress},
+        _iaRemoteProxyServerAddress{rRemoteProxyServerAddress}, _connectorType{connectorType},
+        _encryptionType{encryptionType}, _pActiveConnectionToRemoteProxy{pActiveConnectionToRemoteProxy}
+    { }
 
-    inline QueryResult & QueryResult::operator= (const QueryResult & rhs)
-    {
-        _ui32RemoteProxyUniqueID = rhs._ui32RemoteProxyUniqueID;
-        _pRemoteProxyServerAddress = rhs._pRemoteProxyServerAddress;
-        _encryptionType = rhs._encryptionType;
-        _pActiveConnectionToRemoteProxy = rhs._pActiveConnectionToRemoteProxy;
-
-        return *this;
-    }
+    inline QueryResult::QueryResult (const QueryResult & queryResult) :
+        _ui32RemoteProxyUniqueID{queryResult._ui32RemoteProxyUniqueID},
+        _iaLocalProxyInterfaceAddress{queryResult._iaLocalProxyInterfaceAddress},
+        _iaRemoteProxyServerAddress{queryResult._iaRemoteProxyServerAddress},
+        _connectorType{queryResult._connectorType}, _encryptionType{queryResult._encryptionType},
+        _pActiveConnectionToRemoteProxy{queryResult._pActiveConnectionToRemoteProxy}
+    { }
 
     inline bool QueryResult::isValid (void) const
     {
         return _ui32RemoteProxyUniqueID != 0;
-    }
-
-    inline const NOMADSUtil::InetAddr * const QueryResult::getBestConnectionSolution (void) const
-    {
-        return (_pActiveConnectionToRemoteProxy && (_pActiveConnectionToRemoteProxy->getConnectorType() != CT_UDPSOCKET)) ?
-            _pActiveConnectionToRemoteProxy->getRemoteProxyInetAddr() : _pRemoteProxyServerAddress;
     }
 
     inline uint32 QueryResult::getRemoteProxyUniqueID (void) const
@@ -103,12 +97,22 @@ namespace ACMNetProxy
         return _ui32RemoteProxyUniqueID;
     }
 
-    inline const NOMADSUtil::InetAddr * const QueryResult::getRemoteProxyServerAddress (void) const
+    inline const NOMADSUtil::InetAddr & QueryResult::getLocalProxyInterfaceAddress (void) const
     {
-        return _pRemoteProxyServerAddress;
+        return _iaLocalProxyInterfaceAddress;
     }
 
-    inline const EncryptionType QueryResult::getQueryEncryptionType (void) const
+    inline const NOMADSUtil::InetAddr & QueryResult::getRemoteProxyServerAddress (void) const
+    {
+        return _iaRemoteProxyServerAddress;
+    }
+
+    inline const ConnectorType QueryResult::getQueriedConnectorType (void) const
+    {
+        return _connectorType;
+    }
+
+    inline const EncryptionType QueryResult::getQueriedEncryptionType (void) const
     {
         return _encryptionType;
     }
@@ -118,18 +122,14 @@ namespace ACMNetProxy
         return _pActiveConnectionToRemoteProxy;
     }
 
-    inline QueryResult::QueryResult (uint32 ui32RemoteProxyUniqueID, const NOMADSUtil::InetAddr * const pRemoteProxyServerAddress,
-                                     EncryptionType encryptionType, Connection * const pActiveConnectionToRemoteProxy) :
-        _ui32RemoteProxyUniqueID (ui32RemoteProxyUniqueID), _pRemoteProxyServerAddress (pRemoteProxyServerAddress),
-        _encryptionType (encryptionType), _pActiveConnectionToRemoteProxy (pActiveConnectionToRemoteProxy) { }
-
     inline const QueryResult & QueryResult::getInvalidQueryResult (void)
     {
-        static const QueryResult invalidQueryResult (0, nullptr, ET_UNDEF, nullptr);
+        static const QueryResult invalidQueryResult{0, NetProxyApplicationParameters::IA_INVALID_ADDR,
+                                                    NetProxyApplicationParameters::IA_INVALID_ADDR,
+                                                    CT_UNDEF, ET_UNDEF, nullptr};
 
         return invalidQueryResult;
     }
-
 }
 
 #endif  // INCL_QUERY_RESULT_H

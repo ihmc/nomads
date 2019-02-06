@@ -5,7 +5,7 @@
  * TapInterface.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,13 +22,13 @@
  * The TAPInterface class manages the access to the TUN/TAP Driver.
  */
 
+#include <mutex>
+
 #include "FTypes.h"
 #include "net/NetworkHeaders.h"
-#include "Mutex.h"
 
-#include "NetworkInterface.h"
 #include "ConfigurationParameters.h"
-#include "PacketBufferManager.h"
+#include "NetworkInterface.h"
 
 #if defined (WIN32)
     #include <winsock2.h>    // To avoid conflicts occurring if some other file includes winsock2.h after windows.h is included below
@@ -44,34 +44,35 @@ namespace ACMNetProxy
 {
     class TapInterface : public NetworkInterface
     {
-        public:
-            virtual ~TapInterface (void);
-            static TapInterface * const getTAPInterface (void);
+    public:
+        TapInterface (const TapInterface & rCopy) = delete;
+        virtual ~TapInterface (void);
 
-            int init (void);
-            void requestTermination (void);
-            bool checkMACAddress (void);
+        static TapInterface * const createAndInitTAPInterface (void);
 
-            int readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen);
-            int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen);
+        void requestTermination (void);
+
+        int readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen);
+        int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen);
 
 
-        private:
-            TapInterface (void);
-            explicit TapInterface (const TapInterface& rCopy);
+    private:
+        explicit TapInterface (void);
 
-            #if defined (WIN32)
-                HANDLE _hInterface;
-                OVERLAPPED _oRead, _oWrite;
-            #elif defined (LINUX)
-                int _fdTAP;
-                fd_set fdSet;
-                struct timeval tvTimeout;
-            #endif
-            PacketBufferManager * const pPBM;
+        int init (void);
 
-            NOMADSUtil::Mutex _mWrite;
-            uint8 ui8Buf[NetProxyApplicationParameters::ETHERNET_MAX_MFS];
+        bool _bInitDone;
+        #if defined (WIN32)
+            HANDLE _hInterface;
+            OVERLAPPED _oRead, _oWrite;
+        #elif defined (LINUX)
+            int _fdTAP;
+            fd_set fdSet;
+            struct timeval tvTimeout;
+        #endif
+
+        std::mutex _mtxWrite;
+        uint8 ui8Buf[NetProxyApplicationParameters::ETHERNET_MAX_MFS];
     };
 
 
@@ -80,12 +81,15 @@ namespace ACMNetProxy
         NetworkInterface::requestTermination();
     }
 
-    inline TapInterface * const TapInterface::getTAPInterface (void)
+    inline TapInterface * const TapInterface::createAndInitTAPInterface (void)
     {
-        static TapInterface tapInterface;
-        tapInterface.init();
+        auto * const pTAPInterface = new TapInterface;
+        if (pTAPInterface->init() != 0) {
+            delete pTAPInterface;
+            return nullptr;
+        }
 
-        return &tapInterface;
+        return pTAPInterface;
     }
 
 }

@@ -45,9 +45,9 @@ namespace NOMADSUtil
             Json * clone (void) const;
 
             /**
-            * NB: JsonObject return a pointer to the search object. The returned
-            *     pointer should not be modified (nor deallocated)
-            */
+             * NB: JsonObject return a pointer to the search object. The returned
+             *     pointer should not be modified (nor deallocated)
+             */
             const JsonArray * getArray (const char *pszName) const;
             JsonObject * getObject (const char *pszName) const;
 
@@ -120,6 +120,7 @@ namespace NOMADSUtil
             ~JsonArray (void);
 
             int addObject (JsonObject *pValue);
+            int removeObject (int iIdx);
             int addString (const char *pszValue);
             int addNumber (uint32 ui32Value);
             int setObject (JsonObject *pValue);

@@ -24,12 +24,12 @@
 namespace IHMC_NETSENSOR
 {
     //static  const char* DEFAULT_MONITORED_INTERFACE        = "Local Area Connection";
-    static const char*    DEFAULT_MONITORED_INTERFACE = "Ethernet";
-    static const char*    DEFAULT_DELIVERY_IP = "127.0.0.1";
+    static const char *   DEFAULT_MONITORED_INTERFACE = "Ethernet";
+    static const char *   DEFAULT_DELIVERY_IP = "127.0.0.1";
     static const uint32   DEFAULT_VERSION = 2;
     static const uint32   DEFAULT_MTU = 1400;
-    static const uint32   DEFAULT_TRAFFIC_DELIVERY_PERIOD = 3500;
-    static const uint32   DEFAULT_TOPOLOGY_DELIVERY_PERIOD = 3500;
+    static const uint32   DEFAULT_TRAFFIC_DELIVERY_PERIOD = 1000;
+    static const uint32   DEFAULT_TOPOLOGY_DELIVERY_PERIOD = 1000;
     static const uint32   DEFAULT_DELIVERY_PORT = 7777;
     static const bool     DEFAULT_TOPOLOGY_LAX_ACTIVE = false;
     static const bool     DEFAULT_TOPOLOGY_ARP_ACTIVE = false;
@@ -40,5 +40,6 @@ namespace IHMC_NETSENSOR
     static const bool     DEFAULT_EXTERNAL_TOPOLOGY_IGNORE = false;
     static const bool     DEFAULT_OUTPUT_COMPRESSION_ACTIVE = false;
     static const bool     DEFAULT_TCP_RTT_CALCULATION_ACTIVE = false;
+    static const uint32   DEFAULT_NOT_ACTIVE = 0;
 }
 #endif

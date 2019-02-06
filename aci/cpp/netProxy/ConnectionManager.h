@@ -5,7 +5,7 @@
  * ConnectionManager.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,72 +27,116 @@
  */
 
 #include <mutex>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
-#include "UInt32Hashtable.h"
-#include "UInt64Hashtable.h"
-#include "NPDArray2.h"
-#include "StrClass.h"
 #include "InetAddr.h"
 
-#include "Utilities.h"
-#include "AddressRangeDescriptor.h"
+#include "TuplesHashFunction.h"
+#include "NetworkAddressRange.h"
 #include "QueryResult.h"
 #include "ConnectivitySolutions.h"
 #include "AutoConnectionEntry.h"
-#include "Connection.h"
-#include "Connector.h"
+#include "Utilities.h"
 
 
 namespace ACMNetProxy
 {
+    class RemoteProxyInfo;
+    class TCPConnTable;
+    class Connection;
+    class Connector;
     class PacketRouter;
+
 
     class ConnectionManager
     {
     public:
-        static ConnectionManager * const getConnectionManagerInstance (void);
+        ConnectionManager (void);
+        explicit ConnectionManager (const ConnectionManager & connectionManager) = delete;
+        ~ConnectionManager (void);
 
-        Connector * const getConnectorForType (ConnectorType connectorType) const;
-        int registerConnector (Connector * const pConnector);
-        Connector * const deregisterConnector (ConnectorType connectorType);
+        // Connectors
+        Connector * const getConnectorBoundToAddressForType (uint32 ui32LocalIPv4Address, ConnectorType connectorType) const;
+        int registerConnector (const std::shared_ptr <Connector> && spConnector);
+        int deregisterConnector (uint32 ui32LocalIPv4Address, ConnectorType connectorType);
+        unsigned int getNumberOfConnectors (void) const;
 
+        // RemoteProxyInfos
+        int addNewRemoteProxyInfo (const RemoteProxyInfo & remoteProxyInfo);
+        int addNewRemoteProxyInfo (RemoteProxyInfo && remoteProxyInfo);
+        int updateRemoteProxyInfo (Connection * const pConnectionToRemoteProxy, const uint32 ui32RemoteProxyUniqueID,
+                                   const std::vector<uint32> & vui32InterfaceIPv4AddressList, uint16 ui16MocketsServerPort,
+                                   uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
+        uint32 findUniqueIDOfRemoteNetProxyWithMainIPv4Address (uint32 ui32IPv4Address) const;
+        uint32 findUniqueIDOfRemoteNetProxyWithIPAddress (uint32 ui32InterfaceIPv4Address) const;
+        const RemoteProxyInfo * const getRemoteProxyInfoForNetProxyWithID (uint32 ui32RemoteProxyUniqueID) const;
+        uint32 findBestMatchingUniqueIDOfRemoteNetProxyWithInterfaceIPs (const std::vector<uint32> & vui32InterfaceIPv4AddressList,
+                                                                         bool & bClashingConfiguration) const;
+
+        // Remapping rules
+        Connection * const addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy);
+        Connection * const removeActiveConnectionFromRemoteProxyConnectivityTable (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                                   uint32 ui32RemoteInterfaceIPv4Address,
+                                                                                   const Connection * const pClosedConnection);
+        void prepareForDelete (TCPConnTable & rTCPConnTable, Connection * const pConnectionToDelete,
+                               Connection * const pConnectionToSubstitute = nullptr);
+
+        int addNewAddressMappingToBook (const std::pair<NetworkAddressRange, NetworkAddressRange> & pardardMappingFilter,
+                                        const std::tuple<uint32, NOMADSUtil::InetAddr, NOMADSUtil::InetAddr> & tui32iaiaMappingRule);
+        void finalizeMappingRules (void);
         void clearAllConnectionMappings (void);
 
-        int addNewRemoteProxyInfo (const RemoteProxyInfo &remoteProxyInfo);
-        int updateAddressMappingBook (const AddressRangeDescriptor & addressRange, uint32 ui32RemoteProxyID);
-        int updateRemoteProxyUniqueID (uint32 ui32RemoteProxyOldID, uint32 ui32RemoteProxyNewID);
-        int updateRemoteProxyInfo (uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr * const pRemoteProxyAddress, uint16 ui16MocketsServerPort,
-                                   uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
-        Connection * const updateRemoteProxyInfo (Connection * const pConnectionToRemoteProxy, uint32 ui32RemoteProxyID, uint16 ui16MocketsServerPort,
-                                                  uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
-
-        Connection * const addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy);
-        Connection * const addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy, uint32 ui32RemoteProxyID);
-        Connection * const addNewActiveConnectionToRemoteProxyIfNone (Connection * const pConnectionToRemoteProxy);
-        Connection * const addNewActiveConnectionToRemoteProxyIfNone (Connection * const pConnectionToRemoteProxy, uint32 ui32RemoteProxyID);
-        Connection * const removeActiveConnectionFromTable (const Connection * const pClosedConnection);
-
-        bool isRemoteHostIPMapped (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort = 0) const;
-        const QueryResult queryConnectionToRemoteHostForConnectorType (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort,
+        bool isFlowPotentiallyMapped (uint32 ui32SourceIP, uint32 ui32DestinationIP) const;
+        bool isFlowMapped (uint32 ui32SourceIP, uint16 ui16SourcePort, uint32 ui32DestinationIP, uint16 ui16DestinationPort) const;
+        bool isFlowMapped (uint32 ui32SourceIP, uint32 ui32DestinationIP, uint16 ui16SourcePort, uint16 ui16DestinationPort) const = delete;
+        const QueryResult queryConnectionToRemoteHostForConnectorType (uint32 ui32SourceIPAddress, uint32 ui32DestinationIPAddress,
                                                                        ConnectorType connectorType, EncryptionType encryptionType) const;
-        const NPDArray2<QueryResult> queryAllConnectionsToRemoteHostForConnectorType (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort,
-                                                                                      ConnectorType connectorType, EncryptionType encryptionType) const;
-        const QueryResult queryConnectionToRemoteProxyIDForConnectorTypeAndEncryptionType (uint32 ui32RemoteProxyID, ConnectorType connectorType,
-                                                                                           EncryptionType encryptionType) const;
-        const bool isConnectionToRemoteProxyOpenedForConnector (uint32 ui32RemoteProxyID, ConnectorType connectorType, EncryptionType encryptionType) const;
-        const bool isConnectionToRemoteProxyOpeningForConnector (uint32 ui32RemoteProxyID, ConnectorType connectorType, EncryptionType encryptionType) const;
+        const QueryResult queryConnectionToRemoteHostForConnectorType (uint32 ui32SourceIPAddress, uint16 ui16SourcePort,
+                                                                       uint32 ui32DestinationIPAddress, uint16 ui16DestinationPort,
+                                                                       ConnectorType connectorType, EncryptionType encryptionType) const;
+        const std::vector<QueryResult> queryAllConnectivitySolutionsToMulticastAddressForConnectorType (uint32 ui32SourceIP, uint16 ui16SourcePort,
+                                                                                                        uint32 ui32DestinationIP, uint16 ui16DestinationPort,
+                                                                                                        ConnectorType connectorType,
+                                                                                                        EncryptionType encryptionType) const;
+        const QueryResult queryConnectionToRemoteProxyIDAndInterfaceIPv4AddressForConnectorTypeAndEncryptionType (uint32 ui32RemoteProxyUniqueID,
+                                                                                                                  uint32 ui32LocalInterfaceIPv4Address,
+                                                                                                                  uint32 ui32RemoteInterfaceIPv4Address,
+                                                                                                                  ConnectorType connectorType,
+                                                                                                                  EncryptionType encryptionType) const;
+        ConnectivitySolutions * const
+            findConnectivitySolutionsToNetProxyWithIDAndIPv4Address (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                     uint32 ui32RemoteInterfaceIPv4Address) const;
+        std::unordered_set<ConnectivitySolutions *>
+            findAllConnectivitySolutionsToNetProxyWithIDAndIPv4Address (uint32 ui32RemoteProxyUniqueID, uint32 ui32RemoteInterfaceIPv4Address) const;
+        std::vector<const ConnectivitySolutions *>
+            findConnectivitySolutionsForRemappedMulticastAddress (uint32 ui32SourceIP, uint16 ui16SourcePort,
+                                                                  uint32 ui32DestinationIP, uint16 ui16DestinationPort) const;
+        std::vector<ConnectivitySolutions *> getAllConnectivitySolutions (void) const;
 
-        const uint32 getIPAddressForRemoteProxyWithID (uint32 ui32RemoteProxyID) const;
-        const char * const getIPAddressAsStringForProxyWithID (uint32 ui32RemoteProxyID) const;
-        const NOMADSUtil::InetAddr * getInetAddressForProtocolAndProxyWithID (ConnectorType connectorType, uint32 ui32RemoteProxyID) const;
-        const bool getReachabilityFromRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
-        const bool getReachabilityFromRemoteProxyWithID (uint32 ui32RemoteProxyID) const;
-        const char * const getMocketsConfigFileForProxyWithID (uint32 ui32RemoteProxyID) const;
-        const char * const getMocketsConfigFileForConnectionsToRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
+        // Connections
+        bool isConnectionToRemoteProxyOpenedForConnector (uint32 ui32RemoteProxyUniqueID, ConnectorType connectorType,
+                                                                EncryptionType encryptionType) const;
+        bool isConnectionToRemoteProxyOpeningForConnector (uint32 ui32RemoteProxyUniqueID, ConnectorType connectorType,
+                                                                 EncryptionType encryptionType) const;
 
-        const NPDArray2<AutoConnectionEntry> * const getAutoConnectionTable (void) const;
-        AutoConnectionEntry * const getAutoConnectionEntryToRemoteProxyID (uint32 ui32RemoteProxyID) const;
+        bool getReachabilityFromRemoteProxyWithIDAndIPv4Address (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                       uint32 ui32RemoteInterfaceIPv4Address) const;
+        const char * const getMocketsConfigFileForProxyWithIDAndIPv4Address (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                             uint32 ui32RemoteInterfaceIPv4Address) const;
+
+        // AutoConnections
+        int addOrUpdateAutoConnectionToList (const AutoConnectionEntry & autoConnectionEntry);
+        void updateRemoteProxyIDForAutoConnectionWithID (uint32 ui32OldRemoteProxyID, uint32 ui32NewRemoteProxyID);
+        void updateAutoConnectionEntries (void);
+        std::shared_ptr<AutoConnectionEntry> getAutoConnectionEntryToRemoteProxyWithID (uint32 ui32RemoteProxyUniqueID, uint32 ui32RemoteInterfaceIPv4Address,
+                                                                                        ConnectorType ct) const;
+        const std::unordered_set<std::shared_ptr<AutoConnectionEntry>> getSetOfAutoConnectionEntriesToRemoteProxyWithID (uint32 ui32RemoteProxyUniqueID) const;
+        std::unordered_map<uint32, std::unordered_set<std::pair<uint32, uint8>>> getAutoConnectionKeysMap (void) const;
+        unsigned int getNumberOfValidAutoConnectionEntries (void) const;
         void clearAutoConnectionTable (void);
 
         int getNumberOfOpenConnections (void);
@@ -100,208 +144,224 @@ namespace ACMNetProxy
         /*
         * This method returns a list containing the statically configured remote NetProxies IPs
         */
-		NOMADSUtil::LList<uint32> getRemoteProxyAddrList (void) const;
+        std::unordered_set<uint32> getRemoteProxyAddrList (void) const;
+
+        static std::vector<uint32> getListOfLocalInterfacesIPv4Addresses (void);
 
     private:
-        friend class NetProxyConfigManager;
-        friend class AutoConnectionEntry;
-        friend class PacketRouter;
+        friend class Connection;
 
-        ConnectionManager (void);
-        explicit ConnectionManager (const ConnectionManager & connectionManager);
-        ~ConnectionManager (void);
 
-        int addNewAddressMappingToBook (const AddressRangeDescriptor & addressRange, uint32 ui32RemoteProxyID);
-        int addOrUpdateAutoConnectionToList (const AutoConnectionEntry & autoConnectionEntry);
+        Connection * const addNewActiveConnectionToRemoteProxy_NoLock (Connection * const pConnectionToRemoteProxy);
+        Connection * const addNewActiveConnectionToRemoteProxy_Impl (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                     uint32 ui32RemoteInterfaceIPv4Address, Connection * const pConnectionToRemoteProxy);
+        Connection * const addNewActiveConnectionToRemoteProxyIfNone (Connection * const pConnectionToRemoteProxy);
+        Connection * const addNewActiveConnectionToRemoteProxyIfNone (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                      uint32 ui32RemoteInterfaceIPv4Address, Connection * const pConnectionToRemoteProxy);
+        Connection * const addNewActiveConnectionToRemoteProxyIfNone_Impl (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                           uint32 ui32RemoteInterfaceIPv4Address, Connection * const pConnectionToRemoteProxy);
+        Connection * const switchActiveConnectionInRemoteProxyConnectivityTable_NoLock (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                                        uint32 ui32RemoteInterfaceIPv4Address, Connection * const pClosedConnection,
+                                                                                        Connection * const pNewConnection) const;
+        Connection * const removeActiveConnectionFromRemoteProxyConnectivityTable_NoLock (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                                          uint32 ui32RemoteInterfaceIPv4Address,
+                                                                                          const Connection * const pClosedConnection) const;
+        void resetAutoConnectionInstances_NoLock (Connection * const pConnectionToDelete);
 
-        bool isAddressAMatchInTheMappingBook (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
-        ConnectivitySolutions * const findConnectivitySolutionsToProxyWithID (uint32 ui32RemoteProxyID) const;
-        ConnectivitySolutions * const findConnectivitySolutionsToRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
-        /*ConnectivitySolutions * const findConnectivitySolutionsFromTableWithConnection (const Connection * const pConnection) const;*/
-        const NOMADSUtil::DArray<const ConnectivitySolutions *> findAllConnectivitySolutionsToRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
-        std::pair<AddressRangeDescriptor, ConnectivitySolutions *> * const findConnectivitySolutionsInTheMappingBook (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const;
-        NPDArray2<std::pair<AddressRangeDescriptor, ConnectivitySolutions *> > const * const getRemoteHostAddressMappingBook (void) const;
+        bool isMulticastAddressPotentiallyMapped (uint32 ui32SourceIP, uint32 ui32DestinationIP) const;
+        bool isMulticastAddressMapped (uint32 ui32SourceIP, uint16 ui16SourcePort, uint32 ui32DestinationIP, uint16 ui16DestinationPort) const;
+        bool isMulticastAddressMapped (uint32 ui32SourceIP, uint32 ui32DestinationIP, uint16 ui16SourcePort, uint16 ui16DestinationPort) const = delete;
+        ConnectivitySolutions * const findMappedConnectivitySolutions (uint32 ui32SourceIP, uint32 ui32DestinationIP) const;
+        ConnectivitySolutions * const findMappedConnectivitySolutions (uint32 ui32SourceIP, uint16 ui16SourcePort,
+                                                                       uint32 ui32DestinationIP, uint16 ui16DestinationPort) const;
+        const bool getReachabilityFromRemoteProxyWithIDAndIPv4Address_NoLock (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                              uint32 ui32RemoteInterfaceIPv4Address) const;
 
-        RemoteProxyInfo * const getRemoteProxyInfoForProxyWithID (uint32 ui32RemoteProxyID) const;
-        AutoConnectionEntry * const getAutoConnectionEntryForProxyWithID (uint32 ui32RemoteProxyID) const;
+        std::shared_ptr<AutoConnectionEntry> getAutoConnectionEntryToRemoteProxyWithID_NoLock (uint32 ui32RemoteProxyUniqueID, uint32 ui32RemoteInterfaceIPv4Address,
+                                                                                               ConnectorType ct) const;
 
-        static void updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, const RemoteProxyInfo & updatedRemoteProxyInfo);
-        static void updateRemoteProxyInfo (RemoteProxyInfo & currentRemoteProxyInfo, const NOMADSUtil::InetAddr * const pInetAddr, uint16 ui16MocketsServerPort,
-                                           uint16 ui16TCPServerPort, uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
+        static void updateRemoteProxyInfo (std::shared_ptr<RemoteProxyInfo> & spRemoteProxyInfo, uint32 ui32RemoteProxyUniqueID,
+                                           const std::vector<uint32> & vui32InterfaceIPv4AddressList,
+                                           uint16 ui16MocketsServerPort, uint16 ui16TCPServerPort,
+                                           uint16 ui16UDPServerPort, bool bRemoteProxyReachability);
+        static void resetTCPConnectionEntriesWithConnection_NoLock (TCPConnTable & rTCPConnTable, Connection * const pConnectionToDelete);
 
-        /* A list of all enabled connectors; their index in the list is the integer representation of their ConnectorType */
-        NOMADSUtil::DArray<Connector *> _connectorsTable;
-        NOMADSUtil::UInt32Hashtable<ConnectivitySolutions> _remoteProxyConnectivityTable;                       // The Key is the 32-bits GUID of the remote NetProxy
-        NPDArray2<std::pair<AddressRangeDescriptor, ConnectivitySolutions *> > _remoteHostAddressMappingBook;   // A list of all mapped remote host addresses
-        mutable NOMADSUtil::UInt32Hashtable<std::pair<AddressRangeDescriptor, ConnectivitySolutions *> >
-            _remoteHostAddressMappingCache;                                                                     // The Key is the 32-bits encoding of the IP address of remote hosts
-        NPDArray2<AutoConnectionEntry> _autoConnectionList;                                                     // A list of all AutoConnection instances
+        // A map of all connectors, keyed with the 32-bit representation of the IPv4 address they are bound to and the 8-bit representation of their ConnectorType
+        std::unordered_map<uint32, std::unordered_map<uint8, std::shared_ptr<Connector>>> _umConnectorsTable;
+        // Keys are the remote NetProxy UniqueID and the pair <LocalIPv4Address, RemoteIPv4Address>, respectively
+        mutable std::unordered_map<uint32, std::unordered_map<std::pair<uint32, uint32>, std::shared_ptr<ConnectivitySolutions>>>
+            _umRemoteProxyConnectivityTable;
+        // Key is the 32-bits UniqueID of the remote NetProxy
+        mutable std::unordered_map<uint32, std::shared_ptr<RemoteProxyInfo>> _umRemoteProxyInfoTable;
+        std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>, std::shared_ptr<ConnectivitySolutions>>>
+            _addressMappingList;
+        // List of all mappings to multi/broad-cast addresses
+        std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>, std::shared_ptr<ConnectivitySolutions>>>
+            _multiBroadCastAddressMappingList;
+        // Map that organizes all AutoConnectionEntry instances
+        std::unordered_map<uint32, std::unordered_map<uint32, std::unordered_map<uint8, std::shared_ptr<AutoConnectionEntry>>>>
+            _umAutoConnectionTable;
 
-        mutable std::mutex _m;
+        mutable std::mutex _mtx;
+        mutable std::mutex _mtxAutoConnectionTable;
     };
 
 
-    inline ConnectionManager * const ConnectionManager::getConnectionManagerInstance (void)
-    {
-        static ConnectionManager connectionManagerSingleton;
+    inline ConnectionManager::ConnectionManager (void) { }
 
-        return &connectionManagerSingleton;
+    inline ConnectionManager::~ConnectionManager (void) { }
+
+    inline Connector * const ConnectionManager::getConnectorBoundToAddressForType (uint32 ui32LocalIPv4Address, ConnectorType connectorType) const
+    {
+        return ((_umConnectorsTable.count (ui32LocalIPv4Address) > 0) &&
+            (_umConnectorsTable.at (ui32LocalIPv4Address).count (static_cast<uint8> (connectorType)) > 0)) ?
+            _umConnectorsTable.at (ui32LocalIPv4Address).at (static_cast<uint8> (connectorType)).get() : nullptr;
     }
 
-    inline Connector * const ConnectionManager::getConnectorForType (ConnectorType connectorType) const
+    inline int ConnectionManager::deregisterConnector (uint32 ui32LocalIPv4Address, ConnectorType connectorType)
     {
-        return (static_cast<int> (connectorType) <= _connectorsTable.getHighestIndex()) ?
-            _connectorsTable.get (static_cast<int> (connectorType)) : nullptr;
-    }
-
-    inline int ConnectionManager::registerConnector (Connector * const pConnector)
-    {
-        if (!pConnector) {
-            return -1;
+        std::lock_guard<std::mutex> lg{_mtx};
+        if (getConnectorBoundToAddressForType (ui32LocalIPv4Address, connectorType) != nullptr) {
+            _umConnectorsTable[ui32LocalIPv4Address].erase (static_cast<uint8> (connectorType));
+            return 0;
         }
 
-        _connectorsTable[static_cast<int> (pConnector->getConnectorType())] = pConnector;
+        return -1;
+    }
+
+    inline unsigned int ConnectionManager::getNumberOfConnectors (void) const
+    {
+        unsigned int uiRes = 0;
+
+        std::lock_guard<std::mutex> lg{_mtx};
+        for (const auto & u32mEntry : _umConnectorsTable) {
+            std::for_each (u32mEntry.second.cbegin(), u32mEntry.second.cend(),
+                           [&uiRes] (const std::pair<uint8, std::shared_ptr<Connector>> & pucsp) {
+                uiRes += pucsp.second ? 1 : 0;
+            });
+        }
+
+        return uiRes;
+    }
+
+    inline uint32 ConnectionManager::findUniqueIDOfRemoteNetProxyWithMainIPv4Address (uint32 ui32IPv4Address) const
+    {
+        for (const auto & pui32sp : _umRemoteProxyInfoTable) {
+            if (pui32sp.second->getRemoteProxyMainInetAddr().getIPAddress() == ui32IPv4Address) {
+                return pui32sp.first;
+            }
+        }
+
         return 0;
     }
 
-    inline Connector * const ConnectionManager::deregisterConnector (ConnectorType connectorType)
+    inline const RemoteProxyInfo * const ConnectionManager::getRemoteProxyInfoForNetProxyWithID (uint32 ui32RemoteProxyUniqueID) const
     {
-        Connector * const pConnector = getConnectorForType (connectorType);
-        if (pConnector) {
-            _connectorsTable[static_cast<int> (connectorType)] = nullptr;
+        return _umRemoteProxyInfoTable.count (ui32RemoteProxyUniqueID) > 0 ?
+            _umRemoteProxyInfoTable.at (ui32RemoteProxyUniqueID).get() : nullptr;
+    }
+
+    inline ConnectivitySolutions * const
+        ConnectionManager::findConnectivitySolutionsToNetProxyWithIDAndIPv4Address (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                                    uint32 ui32RemoteInterfaceIPv4Address) const
+    {
+        std::lock_guard<std::mutex> lg (_mtx);
+        if ((_umRemoteProxyConnectivityTable.count (ui32RemoteProxyUniqueID) == 0) ||
+            _umRemoteProxyConnectivityTable.at (ui32RemoteProxyUniqueID).count ({ui32LocalInterfaceIPv4Address, ui32RemoteInterfaceIPv4Address}) == 0) {
+            return nullptr;
         }
 
-        return pConnector;
+        return _umRemoteProxyConnectivityTable.at (ui32RemoteProxyUniqueID).at ({ui32LocalInterfaceIPv4Address, ui32RemoteInterfaceIPv4Address}).get();
     }
 
-    inline Connection * const ConnectionManager::addNewActiveConnectionToRemoteProxy (Connection * const pConnectionToRemoteProxy)
+    inline bool ConnectionManager::getReachabilityFromRemoteProxyWithIDAndIPv4Address (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                                       uint32 ui32RemoteInterfaceIPv4Address) const
     {
-        return addNewActiveConnectionToRemoteProxy (pConnectionToRemoteProxy, pConnectionToRemoteProxy->getRemoteProxyID());
+        std::lock_guard<std::mutex> lg (_mtx);
+        return getReachabilityFromRemoteProxyWithIDAndIPv4Address_NoLock (ui32LocalInterfaceIPv4Address, ui32RemoteProxyUniqueID, ui32RemoteInterfaceIPv4Address);
     }
 
-    inline Connection * const ConnectionManager::addNewActiveConnectionToRemoteProxyIfNone (Connection * const pConnectionToRemoteProxy)
+    inline std::shared_ptr<AutoConnectionEntry> ConnectionManager::getAutoConnectionEntryToRemoteProxyWithID (uint32 ui32RemoteProxyUniqueID,
+                                                                                                              uint32 ui32RemoteInterfaceIPv4Address,
+                                                                                                              ConnectorType ct) const
     {
-        return addNewActiveConnectionToRemoteProxyIfNone (pConnectionToRemoteProxy, pConnectionToRemoteProxy->getRemoteProxyID());
+        std::lock_guard<std::mutex> lg (_mtxAutoConnectionTable);
+        return getAutoConnectionEntryToRemoteProxyWithID_NoLock (ui32RemoteProxyUniqueID, ui32RemoteInterfaceIPv4Address, ct);
     }
 
-    inline const NOMADSUtil::InetAddr * ConnectionManager::getInetAddressForProtocolAndProxyWithID (ConnectorType connectorType, uint32 ui32RemoteProxyID) const
+    inline const std::unordered_set<std::shared_ptr<AutoConnectionEntry>>
+        ConnectionManager::getSetOfAutoConnectionEntriesToRemoteProxyWithID (uint32 ui32RemoteProxyUniqueID) const
     {
-        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
-        {
-            std::lock_guard<std::mutex> lg (_m);
-            pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
+        std::unordered_set<std::shared_ptr<AutoConnectionEntry>> usRes;
+        std::lock_guard<std::mutex> lg (_mtxAutoConnectionTable);
+        if (_umAutoConnectionTable.count (ui32RemoteProxyUniqueID) == 0) {
+            return usRes;
         }
 
-        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (connectorType) : nullptr;
-    }
-
-    inline const uint32 ConnectionManager::getIPAddressForRemoteProxyWithID (uint32 ui32RemoteProxyID) const
-    {
-        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
-        {
-            std::lock_guard<std::mutex> lg (_m);
-            pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
+        for (auto & pui32ctAutoConn : _umAutoConnectionTable.at (ui32RemoteProxyUniqueID)) {
+            for (auto & pctAutoConn : pui32ctAutoConn.second) {
+                usRes.insert (pctAutoConn.second);
+            }
         }
-
-        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (CT_MOCKETS)->getIPAddress() : 0;
-    }
-
-    inline const char * const ConnectionManager::getIPAddressAsStringForProxyWithID (uint32 ui32RemoteProxyID) const
-    {
-        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
-        {
-            std::lock_guard<std::mutex> lg (_m);
-            pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-        }
-
-        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getRemoteProxyInetAddr (CT_MOCKETS)->getIPAsString() : "";
-    }
-
-    inline const bool ConnectionManager::getReachabilityFromRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
-    {
-        const ConnectivitySolutions * const pConnectivitySolutions = findConnectivitySolutionsToRemoteHost (ui32RemoteHostIP, ui16RemoteHostPort);
-
-        return pConnectivitySolutions ? pConnectivitySolutions->_remoteProxyInfo.isLocalProxyReachableFromRemote() :
-            NetProxyApplicationParameters::DEFAULT_LOCAL_PROXY_REACHABILITY_FROM_REMOTE;
-    }
-
-    inline const bool ConnectionManager::getReachabilityFromRemoteProxyWithID (uint32 ui32RemoteProxyID) const
-    {
-        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
-        {
-            std::lock_guard<std::mutex> lg (_m);
-            pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-        }
-
-        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().isLocalProxyReachableFromRemote() :
-            NetProxyApplicationParameters::DEFAULT_LOCAL_PROXY_REACHABILITY_FROM_REMOTE;
-    }
-
-    inline const char * const ConnectionManager::getMocketsConfigFileForProxyWithID (uint32 ui32RemoteProxyID) const
-    {
-        const ConnectivitySolutions *pConnectivitySolutions = nullptr;
-        {
-            std::lock_guard<std::mutex> lg (_m);
-            pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
-        }
-
-        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getMocketsConfFileName() : "";
-    }
-
-    inline const char * const ConnectionManager::getMocketsConfigFileForConnectionsToRemoteHost (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
-    {
-        const ConnectivitySolutions * const pConnectivitySolutions = findConnectivitySolutionsToRemoteHost (ui32RemoteHostIP, ui16RemoteHostPort);
-
-        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().getMocketsConfFileName() : "";
-    }
-
-    inline const NPDArray2<AutoConnectionEntry> * const ConnectionManager::getAutoConnectionTable (void) const
-	{
-        return &_autoConnectionList;
+        return usRes;
     }
 
     inline void ConnectionManager::clearAutoConnectionTable (void)
     {
-        _autoConnectionList.trimSize (0);
+        std::lock_guard<std::mutex> lg (_mtxAutoConnectionTable);
+        _umAutoConnectionTable.clear();
     }
 
-    inline ConnectionManager::ConnectionManager (void) : _remoteProxyConnectivityTable (true) { }
-
-    inline ConnectionManager::~ConnectionManager (void)
+    inline bool ConnectionManager::isMulticastAddressPotentiallyMapped (uint32 ui32SourceIP, uint32 ui32DestinationIP) const
     {
-        clearAllConnectionMappings();
-    }
-
-    inline bool ConnectionManager::isAddressAMatchInTheMappingBook (uint32 ui32RemoteHostIP, uint16 ui16RemoteHostPort) const
-    {
-        return findConnectivitySolutionsInTheMappingBook (ui32RemoteHostIP, ui16RemoteHostPort) != nullptr;
-    }
-
-    inline NPDArray2<std::pair<AddressRangeDescriptor, ConnectivitySolutions*> > const * const ConnectionManager::getRemoteHostAddressMappingBook (void) const
-    {
-        return &_remoteHostAddressMappingBook;
-    }
-
-    inline ConnectivitySolutions * const ConnectionManager::findConnectivitySolutionsToProxyWithID (uint32 ui32RemoteProxyID) const
-    {
-        ConnectivitySolutions *pConnectivitySolutions = nullptr;
-        {
-            std::lock_guard<std::mutex> lg (_m);
-            pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
+        for (auto & ppADRADRui32 : _multiBroadCastAddressMappingList) {
+            if (ppADRADRui32.first.first.matchesAddress (ui32SourceIP) &&
+                ppADRADRui32.first.second.matchesAddress (ui32DestinationIP) && ppADRADRui32.second) {
+                return true;
+            }
         }
 
-        return pConnectivitySolutions;
+        return false;
     }
 
-    inline RemoteProxyInfo * const ConnectionManager::getRemoteProxyInfoForProxyWithID (uint32 ui32RemoteProxyID) const
+    inline bool ConnectionManager::isMulticastAddressMapped (uint32 ui32SourceIP, uint16 ui16SourcePort,
+                                                             uint32 ui32DestinationIP, uint16 ui16DestinationPort) const
     {
-        ConnectivitySolutions *pConnectivitySolutions = nullptr;
-        {
-            std::lock_guard<std::mutex> lg (_m);
-            pConnectivitySolutions = _remoteProxyConnectivityTable.get (ui32RemoteProxyID);
+        for (auto & ppADRADRui32 : _multiBroadCastAddressMappingList) {
+            if (ppADRADRui32.first.first.matches (ui32SourceIP, ui16SourcePort) &&
+                ppADRADRui32.first.second.matches (ui32DestinationIP, ui16DestinationPort) && ppADRADRui32.second) {
+                return true;
+            }
         }
 
-        return pConnectivitySolutions ? &(pConnectivitySolutions->_remoteProxyInfo) : nullptr;
+        return false;
+    }
+
+    inline const bool ConnectionManager::getReachabilityFromRemoteProxyWithIDAndIPv4Address_NoLock (uint32 ui32RemoteProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                                                    uint32 ui32RemoteInterfaceIPv4Address) const
+    {
+        if ((_umRemoteProxyConnectivityTable.count (ui32RemoteProxyUniqueID) == 0) ||
+            _umRemoteProxyConnectivityTable.at (ui32RemoteProxyUniqueID).count ({ui32LocalInterfaceIPv4Address, ui32RemoteInterfaceIPv4Address}) == 0) {
+            return NetworkConfigurationSettings::DEFAULT_LOCAL_PROXY_REACHABILITY_FROM_REMOTE;
+        }
+
+        auto const pConnectivitySolutions = _umRemoteProxyConnectivityTable.at (ui32RemoteProxyUniqueID).at ({ui32LocalInterfaceIPv4Address,
+                                                                                                              ui32RemoteInterfaceIPv4Address}).get();
+        return pConnectivitySolutions ? pConnectivitySolutions->getRemoteProxyInfo().isLocalProxyReachableFromRemote() :
+            NetworkConfigurationSettings::DEFAULT_LOCAL_PROXY_REACHABILITY_FROM_REMOTE;
+    }
+
+    inline std::shared_ptr<AutoConnectionEntry> ConnectionManager::getAutoConnectionEntryToRemoteProxyWithID_NoLock (uint32 ui32RemoteProxyUniqueID,
+                                                                                                                     uint32 ui32RemoteInterfaceIPv4Address,
+                                                                                                                     ConnectorType ct) const
+    {
+        if ((_umAutoConnectionTable.count (ui32RemoteProxyUniqueID) > 0) &&
+            (_umAutoConnectionTable.at (ui32RemoteProxyUniqueID).count (ui32RemoteInterfaceIPv4Address) > 0) &&
+            (_umAutoConnectionTable.at (ui32RemoteProxyUniqueID).at (ui32RemoteInterfaceIPv4Address).count (static_cast<uint8> (ct)) > 0)) {
+            return _umAutoConnectionTable.at (ui32RemoteProxyUniqueID).at (ui32RemoteInterfaceIPv4Address).at (static_cast<uint8> (ct));
+        }
+
+        return nullptr;
     }
 
 }

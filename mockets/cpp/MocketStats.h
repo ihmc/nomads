@@ -3,22 +3,22 @@
 
 /*
  * MocketStats.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
- 
+
  * MocketStats
  *
  * The class that contains statistics about an active mocket connection
@@ -87,8 +87,8 @@ class MocketStats
         float getEstimatedRTT (void);
 
         // Returns the estimated bandwidth in bytes per second
-	// return value is -2.0 if bandwidth estimation was not activate
-	// return value is -1.0 if bandwidth estimation is active but no estimate is available yet
+    // return value is -2.0 if bandwidth estimation was not activate
+    // return value is -1.0 if bandwidth estimation is active but no estimate is available yet
         int32 getEstimatedBandwidth (void);
 
         void setEstimatedBandwidth (int32 dBandwidthEstimation);
@@ -161,7 +161,7 @@ class MocketStats
         NOMADSUtil::DArray2<MessageStats> _perTypeMessageStats;
         NOMADSUtil::Mutex _m;    // NOTE: Currently, the mutex is not used when reading or when just incrementing a value
 
-	    int32 _i32BandwidthEstimation;
+        int32 _i32BandwidthEstimation;
 
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
         int defrost (NOMADSUtil::ObjectDefroster &objectDefroster);
@@ -325,7 +325,7 @@ inline int MocketStats::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
     objectFreezer.putUInt32 (_ui32ReliableUnsequencedDataSize);
     objectFreezer.putUInt32 (_ui32ReliableUnsequencedPacketQueueSize);
     // Do not freeze _dBandwidthEstimation since the connection from a new node will have a different bandwidth value
-    
+
 /*    printf ("MocketStats\n");
     printf ("_ui32Retransmits %lu\n", _ui32Retransmits);
     printf ("_ui32SentPackets %lu\n", _ui32SentPackets);
@@ -342,12 +342,12 @@ inline int MocketStats::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
     printf ("_ui32ReliableSequencedPacketQueueSize %lu\n", _ui32ReliableSequencedPacketQueueSize);
     printf ("_ui32ReliableUnsequencedDataSize %lu\n", _ui32ReliableUnsequencedDataSize);
     printf ("_ui32ReliableUnsequencedPacketQueueSize %lu\n", _ui32ReliableUnsequencedPacketQueueSize);*/
-    
+
     if (0 != _globalMessageStats.freeze (objectFreezer)) {
         // return -1 is if objectFreezer.endObject() don't end with success
         return -2;
     }
-    
+
     // DArray2<MessageStats> _perTypeMessageStats;
     //printf ("PerTypeMessageStats\n");
     for (uint16 ui16Tag = 1; ui16Tag <= _perTypeMessageStats.getHighestIndex(); ui16Tag++) {
@@ -385,7 +385,7 @@ inline int MocketStats::defrost (NOMADSUtil::ObjectDefroster &objectDefroster)
     objectDefroster >> _ui32ReliableSequencedPacketQueueSize;
     objectDefroster >> _ui32ReliableUnsequencedDataSize;
     objectDefroster >> _ui32ReliableUnsequencedPacketQueueSize;
-    
+
 /*    printf ("MocketStats\n");
     printf ("_ui32Retransmits %lu\n", _ui32Retransmits);
     printf ("_ui32SentPackets %lu\n", _ui32SentPackets);
@@ -402,11 +402,11 @@ inline int MocketStats::defrost (NOMADSUtil::ObjectDefroster &objectDefroster)
     printf ("_ui32ReliableSequencedPacketQueueSize %lu\n", _ui32ReliableSequencedPacketQueueSize);
     printf ("_ui32ReliableUnsequencedDataSize %lu\n", _ui32ReliableUnsequencedDataSize);
     printf ("_ui32ReliableUnsequencedPacketQueueSize %lu\n", _ui32ReliableUnsequencedPacketQueueSize);*/
-    
+
     if (_globalMessageStats.defrost (objectDefroster)) {
         return -2;
     }
-    
+
     //printf ("PerTypeMessageStats\n");
     unsigned char moreData;
     uint16 ui16Tag;
@@ -423,7 +423,7 @@ inline int MocketStats::defrost (NOMADSUtil::ObjectDefroster &objectDefroster)
     /*if (objectDefroster.endObject()) {
         return -3;
     }
-    
+
     if (objectDefroster.endObject()) {
         return -1;
     }*/
@@ -454,7 +454,7 @@ inline int MocketStats::MessageStats::freeze (NOMADSUtil::ObjectFreezer &objectF
     objectFreezer.putUInt32 (ui32ReceivedUnreliableSequencedMsgs);
     objectFreezer.putUInt32 (ui32ReceivedUnreliableUnsequencedMsgs);
     objectFreezer.putUInt32 (ui32CancelledPackets);
-    
+
 /*    printf ("MessageStats\n");
     printf ("ui32SentReliableSequencedMsgs %lu\n", ui32SentReliableSequencedMsgs);
     printf ("ui32SentReliableUnsequencedMsgs %lu\n", ui32SentReliableUnsequencedMsgs);
@@ -465,7 +465,7 @@ inline int MocketStats::MessageStats::freeze (NOMADSUtil::ObjectFreezer &objectF
     printf ("ui32ReceivedUnreliableSequencedMsgs %lu\n", ui32ReceivedUnreliableSequencedMsgs);
     printf ("ui32ReceivedUnreliableUnsequencedMsgs %lu\n", ui32ReceivedUnreliableUnsequencedMsgs);
     printf ("ui32CancelledPackets %lu\n", ui32CancelledPackets);*/
-      
+
     return 0;
 }
 
@@ -480,7 +480,7 @@ inline int MocketStats::MessageStats::defrost (NOMADSUtil::ObjectDefroster &obje
     objectDefroster >> ui32ReceivedUnreliableSequencedMsgs;
     objectDefroster >> ui32ReceivedUnreliableUnsequencedMsgs;
     objectDefroster >> ui32CancelledPackets;
-    
+
 /*    printf ("MessageStats\n");
     printf ("ui32SentReliableSequencedMsgs %lu\n", ui32SentReliableSequencedMsgs);
     printf ("ui32SentReliableUnsequencedMsgs %lu\n", ui32SentReliableUnsequencedMsgs);
@@ -491,7 +491,7 @@ inline int MocketStats::MessageStats::defrost (NOMADSUtil::ObjectDefroster &obje
     printf ("ui32ReceivedUnreliableSequencedMsgs %lu\n", ui32ReceivedUnreliableSequencedMsgs);
     printf ("ui32ReceivedUnreliableUnsequencedMsgs %lu\n", ui32ReceivedUnreliableUnsequencedMsgs);
     printf ("ui32CancelledPackets %lu\n", ui32CancelledPackets);*/
-    
+
     return 0;
 }
 

@@ -28,7 +28,7 @@ import java.io.* ;
  * option of not outputting newlines in the encoded string.
  * <p>
  * Base64Encoder.java
- * $Id: Base64Encoder.java,v 1.8 2016/06/09 20:02:46 gbenincasa Exp $
+ * $Id$
  * (c) COPYRIGHT MIT and INRIA, 1996.
  * Please first read the full copyright statement in file COPYRIGHT.html
  *

@@ -2,7 +2,7 @@
  * AutoConnectionEntry.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,109 +17,105 @@
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
+#include "Logger.h"
+
 #include "AutoConnectionEntry.h"
-#include "Connector.h"
+#include "Connection.h"
 #include "ConnectionManager.h"
 
 
-using namespace NOMADSUtil;
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    AutoConnectionEntry::AutoConnectionEntry (const uint32 ui32RemoteProxyID, const ConnectorType connectorType,
-                                              const uint32 ui32AutoReconnectTimeInMillis) :
-        _ui32RemoteProxyID(ui32RemoteProxyID), _connectorType(connectorType), _ucAutoConnectionEncryptionDescriptor(ET_UNDEF),
-        _ui32AutoReconnectTimeInMillis(ui32AutoReconnectTimeInMillis), _ui64LastConnectionAttemptTime{},
-        _bSynchronized{false}, _bValid{true} { }
-
-    const AutoConnectionEntry & AutoConnectionEntry::operator = (const AutoConnectionEntry &rhs)
-    {
-        _ui32RemoteProxyID = rhs._ui32RemoteProxyID;
-        _connectorType = rhs._connectorType;
-        _ucAutoConnectionEncryptionDescriptor = rhs._ucAutoConnectionEncryptionDescriptor;
-        _ui32AutoReconnectTimeInMillis = rhs._ui32AutoReconnectTimeInMillis;
-        memcpy (_ui64LastConnectionAttemptTime, rhs._ui64LastConnectionAttemptTime, sizeof(_ui64LastConnectionAttemptTime));
-        for (unsigned int i = 0; i < ET_SIZE; ++i) {
-            _bSynchronized[i] = rhs._bSynchronized[i];
-            _bValid[i] = rhs._bValid[i];
-        }
-
-        return *this;
-    }
-
-    void AutoConnectionEntry::updateEncryptionDescriptor (void)
-    {
-        auto * pConnectivitySolutions = P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
-        _ucAutoConnectionEncryptionDescriptor |= pConnectivitySolutions ?
-            pConnectivitySolutions->getEncryptionDescription (_connectorType) : ET_UNDEF;
-    }
-
-    int AutoConnectionEntry::synchronize (EncryptionType encryptionType)
+    int AutoConnectionEntry::synchronize (EncryptionType encryptionType, ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable,
+                                          TCPManager & rTCPManager, PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager)
     {
         if ((_ui32RemoteProxyID == 0) || (_connectorType == CT_UNDEF)) {
             return -1;
         }
 
-        auto * pConnectivitySolutions = P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
+        auto * const pConnectivitySolutions =
+            rConnectionManager.findConnectivitySolutionsToNetProxyWithIDAndIPv4Address (_ui32RemoteProxyID, _iaLocalInterfaceIPv4Address.getIPAddress(),
+                                                                                        _iaRemoteInterfaceIPv4Address.getIPAddress());
         if (!pConnectivitySolutions) {
             return -2;
         }
 
-        QueryResult query (pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType, encryptionType));
-        Connection *pActiveConnection = query.getActiveConnectionToRemoteProxy();
+        auto query{pConnectivitySolutions->getBestConnectionSolutionForConnectorAndEncryptionType (_connectorType, encryptionType)};
+        auto * pActiveConnection = query.getActiveConnectionToRemoteProxy();
         if (!pActiveConnection && !pConnectivitySolutions->getRemoteProxyInfo().isRemoteProxyReachableFromLocalHost()) {
             // It is impossible to open a connection to the remote NetProxy from the local host
+            setInvalid (encryptionType);
             return -3;
         }
+
+        // Check if the Connection instance exists; if it is nullptr, open a new connection
+        pActiveConnection = pActiveConnection ?
+            pActiveConnection : Connection::openNewConnectionToRemoteProxy (rConnectionManager, rTCPConnTable, rTCPManager, rPacketRouter,
+                                                                            rStatisticsManager, query, false);
+        // Check if a new Connection instance was returned; if it is nullptr, retrieve any available connection, regardless of the status
+        pActiveConnection = pActiveConnection ?
+            pActiveConnection : Connection::getAvailableConnectionToRemoteNetProxy (query.getRemoteProxyUniqueID(), query.getLocalProxyInterfaceAddress(),
+                                                                                    query.getRemoteProxyServerAddress(), _connectorType, encryptionType);
         if (!pActiveConnection) {
-            Connector * const pConnector = P_CONNECTION_MANAGER->getConnectorForType (_connectorType);
-            if (!pConnector) {
-                // Critical error!
-                return -4;
-            }
-
-            pActiveConnection = pConnector->openNewConnectionToRemoteProxy (query, false);
-            if (!pActiveConnection && pConnector->isConnectingToRemoteAddr (query.getRemoteProxyServerAddress(), encryptionType)) {
-                // Connection still establishing!
-                return 0;
-            }
-            query = pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType, encryptionType);
-            if (!(pActiveConnection = query.getActiveConnectionToRemoteProxy())) {
-                // Connection failed
-                return -5;
-            }
+            // Connection still nullptr --> return an error!
+            return -4;
         }
-
-        pActiveConnection->lock();
-        if (!pActiveConnection->isConnected()) {
-            // Unexpected case
-            pActiveConnection->unlock();
-            return -6;
-        }
-
-        if (isSynchronized (encryptionType)) {
-            // Nothing to do here
-            pActiveConnection->unlock();
+        if (pActiveConnection->isConnecting()) {
+            // Connection still being established
             return 0;
         }
-        bool bReachable = pConnectivitySolutions->getRemoteProxyInfo().isLocalProxyReachableFromRemote();
-        if (0 != pActiveConnection->openConnectionWithRemoteProxy (query.getBestConnectionSolution(), bReachable)) {
-            pActiveConnection->unlock();
-            resetSynch (encryptionType);
-            return -7;
+        if (!pActiveConnection->isConnected()) {
+            // Unexpected case
+            resetSynchronization (encryptionType);
+            return -5;
         }
-        pActiveConnection->unlock();
-        synchronized (encryptionType);
 
+        // If we get here, connection was established successfully --> synchronize for this specific EncryptionType
+        setAsSynchronized (encryptionType);
         return 0;
     }
 
-    const NOMADSUtil::InetAddr * const AutoConnectionEntry::getRemoteProxyInetAddress (EncryptionType encryptionType) const
+    void AutoConnectionEntry::updateEncryptionDescriptor (ConnectionManager & rConnectionManager)
     {
-        auto * pConnectivitySolutions = P_CONNECTION_MANAGER->findConnectivitySolutionsToProxyWithID (_ui32RemoteProxyID);
-        return pConnectivitySolutions ?
-            pConnectivitySolutions->getBestConnectionSolutionForConnectorType (_connectorType,
-                                                                               encryptionType).getBestConnectionSolution() :
-            nullptr;
+        auto * const pConnectivitySolutions =
+            rConnectionManager.findConnectivitySolutionsToNetProxyWithIDAndIPv4Address (_ui32RemoteProxyID, _iaLocalInterfaceIPv4Address.getIPAddress(),
+                                                                                        _iaRemoteInterfaceIPv4Address.getIPAddress());
+        _ucAutoConnectionEncryptionDescriptor |= pConnectivitySolutions ?
+            pConnectivitySolutions->getEncryptionDescription (_connectorType) : ET_UNDEF;
+    }
+
+    bool AutoConnectionEntry::areConnectivitySolutionsAvailableWithEncryption (EncryptionType encryptionType, ConnectionManager & rConnectionManager) const
+    {
+        auto * const pConnectivitySolutions =
+            rConnectionManager.findConnectivitySolutionsToNetProxyWithIDAndIPv4Address (_ui32RemoteProxyID, _iaLocalInterfaceIPv4Address.getIPAddress(),
+                                                                                        _iaRemoteInterfaceIPv4Address.getIPAddress());
+        return pConnectivitySolutions != nullptr;
+    }
+
+    void AutoConnectionEntry::resetAutoConnectionEntry (Connection * const pConnectionToReset)
+    {
+        std::lock_guard<std::mutex> lg{_mtx};
+        if ((getConnectorType() == pConnectionToReset->getConnectorType()) &&
+            isEncryptionTypeInDescriptor (getConnectionEncryptionDescriptor(), pConnectionToReset->getEncryptionType())) {
+            resetSynchronization (pConnectionToReset->getEncryptionType());
+            checkAndLogMsg ("AutoConnectionEntry::resetAutoConnectionEntry", NOMADSUtil::Logger::L_MediumDetailDebug,
+                            "successfully reset synchronization of the AutoConnectionEntry instance "
+                            "for the remote NetProxy with UniqueID %u and address <%s:%hu>\n",
+                            pConnectionToReset->getRemoteNetProxyID(),
+                            pConnectionToReset->getRemoteInterfaceLocalInetAddr()->getIPAsString(),
+                            pConnectionToReset->getRemoteInterfaceLocalInetAddr()->getPort());
+        }
+        else {
+            checkAndLogMsg ("AutoConnectionEntry::resetAutoConnectionEntry", NOMADSUtil::Logger::L_LowDetailDebug,
+                            "the AutoConnectionEntry instance found for the remote NetProxy with UniqueID %u "
+                            "and address <%s:%hu> did not match the ConnectorType and/or the EncryptionType\n",
+                            pConnectionToReset->getRemoteNetProxyID(),
+                            pConnectionToReset->getRemoteInterfaceLocalInetAddr()->getIPAsString(),
+                            pConnectionToReset->getRemoteInterfaceLocalInetAddr()->getPort());
+        }
     }
 }

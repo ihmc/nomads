@@ -5,7 +5,7 @@
  * PCapInterface.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,6 +23,9 @@
  * network interface using the pcap library.
  */
 
+#include <string>
+#include <mutex>
+
 #if defined (WIN32)
     #include <pcap.h>
 #elif defined (LINUX)
@@ -31,8 +34,6 @@
 
 #include "FTypes.h"
 #include "net/NetworkHeaders.h"
-#include "StrClass.h"
-#include "Mutex.h"
 
 #include "NetworkInterface.h"
 
@@ -41,30 +42,31 @@ namespace ACMNetProxy
 {
     class PCapInterface : public NetworkInterface
     {
-        public:
-            virtual ~PCapInterface (void);
-            static PCapInterface * const getPCapInterface (const char * const pszDevice);
+    public:
+        virtual ~PCapInterface (void);
+        static PCapInterface * const getPCapInterface (const char * const pszDevice);
 
-            int init (void);
-            void requestTermination (void);
-            bool checkMACAddress (void);
+        int init (void);
+        void requestTermination (void);
 
-            int readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen);
-            int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen);
+        int readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen);
+        int writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen);
 
-        private:
-            PCapInterface (const NOMADSUtil::String &sAdapterName);
-            explicit PCapInterface (const PCapInterface &rCopy);
 
-            static pcap_t * const createAndActivateReadHandler (const NOMADSUtil::String &sAdapterName);
-            static pcap_t * const createAndActivateWriteHandler (const NOMADSUtil::String &sAdapterName);
+    private:
+        PCapInterface (const std::string & sInterfaceName, const std::string & sUserFriendlyInterfaceName);
+        explicit PCapInterface (const PCapInterface & rCopy);
 
-            void retrieveAndSetIPv4Addr (void);
+        void retrieveAndSetIPv4Addr (void);
 
-            pcap_t * _pPCapReadHandler;
-            pcap_t * _pPCapWriteHandler;
+        static pcap_t * const createAndActivateReadHandler (const std::string & sInterfaceName);
+        static pcap_t * const createAndActivateWriteHandler (const std::string & sInterfaceName);
 
-            NOMADSUtil::Mutex _mWrite;
+
+        pcap_t * _pPCapReadHandler;
+        pcap_t * _pPCapWriteHandler;
+
+        std::mutex _mtxWrite;
     };
 
 

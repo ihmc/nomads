@@ -24,7 +24,7 @@ import java.io.Serializable;
  * FGVertexMessage
  * 
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.7 $ Created on May 18, 2004 at 1:39:53 PM $Date: 2016/06/09 20:02:46 $ Copyright (c) 2004, The
+ * @version $Revision$ Created on May 18, 2004 at 1:39:53 PM $Date$ Copyright (c) 2004, The
  *          Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class FGVertexMessage extends FGraphMessage

@@ -24,6 +24,8 @@ import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
 import us.ihmc.io.LineReaderInputStream;
@@ -36,7 +38,7 @@ import us.ihmc.util.ByteConverter;
  * <p/>
  * modified by author: Maggie Breedy 01/21/04
  *
- * @version $Revision: 1.54 $
+ * @version $Revision$
  */
 public class CommHelper implements CommHelperInterface
 {
@@ -83,7 +85,7 @@ public class CommHelper implements CommHelperInterface
                 _socket.setTcpNoDelay(true);
             }
             _bufferedOutputStream = new BufferedOutputStream (s.getOutputStream());
-            _outputWriter = new OutputStreamWriter (_bufferedOutputStream);
+            _outputWriter = new OutputStreamWriter (_bufferedOutputStream, Charset.defaultCharset());
             BufferedInputStream bis = new BufferedInputStream (s.getInputStream());
             _lineReaderInputStream = new LineReaderInputStream (bis);
         }
@@ -121,7 +123,7 @@ public class CommHelper implements CommHelperInterface
             }
             if (os != null) {
                 _bufferedOutputStream = new BufferedOutputStream (os);
-                _outputWriter = new OutputStreamWriter (_bufferedOutputStream);
+                _outputWriter = new OutputStreamWriter (_bufferedOutputStream, Charset.defaultCharset());
             }
         }
         catch (Exception e) {
@@ -154,14 +156,20 @@ public class CommHelper implements CommHelperInterface
     /**
      * Send a line terminated terminated by \r\n
      * @param buf line to be sent
+     * @return the number of bytes sent
      * @throws CommException if problems occur in the writing process
      */
-    public synchronized void sendLine (String buf) throws CommException
+    @Override
+    public synchronized int sendLine (String buf) throws CommException
     {
         try {
             _outputWriter.write (buf);
-            _outputWriter.write ("\r\n");
+            String endLine = "\r\n";
+            _outputWriter.write (endLine);
             _outputWriter.flush();
+
+            return buf.getBytes(StandardCharsets.UTF_8).length +
+                    endLine.getBytes(StandardCharsets.UTF_8).length;
         }
         catch (Exception e) {
             throw new CommException ("Filed to send a line", e);
@@ -210,7 +218,7 @@ public class CommHelper implements CommHelperInterface
                 _bufferedOutputStream.flush();
             }
             else {
-                sendBlock (string.getBytes());
+                sendBlock (string.getBytes(Charset.defaultCharset()));
             }
         }
         catch (Exception e) {
@@ -272,6 +280,21 @@ public class CommHelper implements CommHelperInterface
             throw new CommException ("Other end closed socket");
         }
         return buff;
+    }
+
+    public String receiveString()
+            throws CommException, ProtocolException
+    {
+        int idLen = read32();
+        if (idLen <= 0) {
+            return "";
+        }
+        byte[] buf = new byte[idLen];
+        receiveBlob (buf, 0, idLen);
+        if (buf == null || buf.length == 0) {
+            return "";
+        }
+        return new String(buf, Charset.defaultCharset());
     }
 
     /**
@@ -571,6 +594,7 @@ public class CommHelper implements CommHelperInterface
      * @throws CommException in case an error occurs while reading the data
      * @throws ProtocolException in case no match is found
      */
+    @Override
     public String[] receiveRemainingParsed (String startsWith)
             throws CommException, ProtocolException
     {
@@ -622,10 +646,10 @@ public class CommHelper implements CommHelperInterface
         String[] formatSpecifiers = parse (format);
         String[] res = new String[formatSpecifiers.length];
         int spec;
-        StringBuffer strBuf;
+        StringBuilder strBuf;
         for (int i = 0; i < formatSpecifiers.length; i++) {
-            spec = (new Integer (formatSpecifiers[i])).intValue();
-            strBuf = new StringBuffer();
+            spec = (Integer.valueOf (formatSpecifiers[i])).intValue();
+            strBuf = new StringBuilder();
             if (spec == 0) {
                 while (st.hasMoreTokens()) {
                     strBuf.append (st.nextToken() + " ");
@@ -975,6 +999,27 @@ public class CommHelper implements CommHelperInterface
         return (int) value;
     }
 
+    public long readUI32()
+            throws CommException, ProtocolException
+    {
+        byte[] buf = new byte[4];
+        int index = 0;
+        int read;
+        try {
+            while (index < 4) {
+                read = _lineReaderInputStream.read (buf, 0, 4 - index);
+                index += read;
+            }
+        }
+        catch (IOException ioe) {
+            ioe.printStackTrace();
+            if (ioe instanceof SocketException) {
+                throw new CommException(ioe);
+            }
+        }
+        return ByteConverter.from4BytesToUnsignedInt (buf, 0);
+    }
+
     /**
      * Reads an signed int
      * @return the signed int just read
@@ -1065,6 +1110,7 @@ public class CommHelper implements CommHelperInterface
     /**
      * Closes the <code>Socket</code> connection
      */
+    @Override
     public void closeConnection ()
     {
         try {

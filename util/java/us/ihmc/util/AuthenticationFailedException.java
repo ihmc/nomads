@@ -24,7 +24,7 @@ package us.ihmc.util;
  *  fails.
  * 
  *   @author: Maggie Breedy
- *   @version $Revision: 1.5 $ 
+ *   @version $Revision$ 
  */
 
 public class AuthenticationFailedException extends Exception

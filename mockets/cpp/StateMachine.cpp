@@ -1,32 +1,23 @@
 /*
  * StateMachine.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
 #include "StateMachine.h"
-
-StateMachine::StateMachine (void)
-{
-    _state = S_CLOSED;
-}
-
-StateMachine::~StateMachine (void)
-{
-}
 
 bool StateMachine::receivedInit (void)
 {
@@ -39,7 +30,17 @@ bool StateMachine::receivedInit (void)
 
 bool StateMachine::abort (void)
 {
+    _m.lock();
     _state = S_CLOSED;
+    _m.unlock();
+    return true;
+}
+
+bool StateMachine::applicationAbort (void)
+{
+    _m.lock();
+    _state = S_APPLICATION_ABORT;
+    _m.unlock();
     return true;
 }
 
@@ -196,7 +197,7 @@ bool StateMachine::receivedSuspend (void)
         return true;
     }
     _m.unlock();
-    return false;    
+    return false;
 }
 
 bool StateMachine::receivedSuspendAck (void)
@@ -333,9 +334,9 @@ const char * StateMachine::getCurrentStateAsString (void)
         case S_SHUTDOWN_ACK_SENT:
             return "SHUTDOWN_ACK_SENT";
         case S_SUSPEND_PENDING:
-            return "SUSPEND_PENDING";  
+            return "SUSPEND_PENDING";
         case S_SUSPEND_SENT:
-            return "SUSPEND_SENT";  
+            return "SUSPEND_SENT";
         case S_SUSPENDED:
             return "SUSPENDED";
         case S_SUSPEND_RECEIVED:

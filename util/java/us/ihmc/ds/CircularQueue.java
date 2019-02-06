@@ -28,7 +28,7 @@ import java.util.Enumeration;
  * Implementation of a Circular Queue.
  *
  * @author: Maggie Breedy
- * @version $Revision: 1.5 $
+ * @version $Revision$
  *
  */
 public class CircularQueue implements Serializable
@@ -207,11 +207,13 @@ public class CircularQueue implements Serializable
             _cq = cq;
         }
 
+        @Override
         public boolean hasMoreElements()
         {
             return (!_cq.isEmpty());
         }
 
+        @Override
         public Object nextElement()
         {
             return _cq.dequeue();

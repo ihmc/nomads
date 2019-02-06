@@ -30,61 +30,19 @@ namespace IHMC_NETSENSOR
 class InterfacesInfoTable
 {
 public:
-    InterfaceInfo *getElementAndSetLock(const char* interfaceName);
-    InterfacesInfoTable();
+
+    InterfacesInfoTable (void);
+    ~InterfacesInfoTable (void);
+    int fillElementWithCopy (InterfaceInfo & interfaceInfo, const char * interfaceName);
     /*
     * The II table owns the pointer
     */
-    void put(InterfaceInfo *ii);
-    void releaseLock(void);
+    void put (InterfaceInfo * ii);
 //<--------------------------------------------------------------------------->
 
 private:
     NOMADSUtil::StringHashtable<InterfaceInfo> _interfacesInfoTable;
     NOMADSUtil::Mutex _pTMutex;
-
 };
-
-
-inline InterfacesInfoTable::InterfacesInfoTable()
-{
-    _interfacesInfoTable.configure(true, true, true, true);
-}
-
-inline void InterfacesInfoTable::put(InterfaceInfo *pII)
-{
-    if ((_pTMutex.lock() == NOMADSUtil::Mutex::RC_Ok)) {
-        InterfaceInfo *newPII = _interfacesInfoTable.get(pII->sInterfaceName);
-        if (newPII == NULL) {
-            newPII = pII;
-            _interfacesInfoTable.put(pII->sInterfaceName, pII);
-        }
-        else {
-            delete _interfacesInfoTable.remove(pII->sInterfaceName);
-            _interfacesInfoTable.put(pII->sInterfaceName, pII);
-        }
-        _pTMutex.unlock();
-    }
-}
-
-inline InterfaceInfo* InterfacesInfoTable::getElementAndSetLock(
-    const char* interfaceName)
-{
-    if ((_pTMutex.lock() == NOMADSUtil::Mutex::RC_Ok)) {
-        InterfaceInfo *tmp = _interfacesInfoTable.get(interfaceName);
-        if (tmp != NULL) { return tmp; }
-        else {
-            _pTMutex.unlock();
-            return NULL;
-        }
-    }
-    else { return NULL; }
-}
-
-inline void InterfacesInfoTable::releaseLock(void)
-{
-    _pTMutex.unlock();
-}
-
 }
 #endif

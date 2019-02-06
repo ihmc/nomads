@@ -17,7 +17,7 @@
 #include "Socket.h"
 #include "TCPSocket.h"
 #include "SCTPSocket.h"
-#include "udt/udt.h"
+#include "udt.h"
 #include "Thread.h"
 #include "Statistics.h"
 #include <netinet/in.h>
@@ -38,6 +38,8 @@
 #define DEFAULT_MESSAGE_SIZE_IN_BYTES 1400
 #define SECS_TO_SLEEP 5
 
+//flag for enbling DTLS
+bool bDtls = false;
 using namespace std;
 using namespace NOMADSUtil;
 
@@ -182,12 +184,18 @@ ServerMocketThread::ServerMocketThread (int usServerPort)
     if (pConfigFile != NULL) {
         fclose (pConfigFile);
         _pServerMocket = new ServerMocket (szConfigFile);
-        printf ("Using config file %s\n", szConfigFile);
+        printf ("Using config file %s Waring To fix!!!\n", szConfigFile);
     }
-    else {
-        _pServerMocket = new ServerMocket();
+    else {	
+    	if(bDtls)
+    		printf("ServerMocket: DTLS enable\n");
+    	else
+    		printf("ServerMocket: DTLS not enable\n");
+       _pServerMocket = new ServerMocket(0, 0, false, bDtls);
     }
     _pServerMocket->listen (usServerPort);
+    printf("Listen on port %d\n",usServerPort);
+
 }
 
 void ServerMocketThread::run (void)
@@ -393,9 +401,14 @@ void ConnHandler::run (void)
 
         fclose (file);
         _pMocket->close();
-        delete _pMocket;
+        fprintf(stdout,"Deleteing _pMocket\n");
+        /*if(_pMocket)
+            delete _pMocket;*/
+        //delete _pMocket;
+        fprintf(stdout,"_pMocket delete\n");
     }
     else if (_useSockets) {
+        printf("Using Socket\n");
         printf ("ConnHandler::run: client handler thread started for an incoming sockets connection\n");
         if (sizeof (iBytesToRead) != _pSocket->receive (&iBytesToRead, sizeof (iBytesToRead))) {
             printf ("ConnHandler::run: receive failed to read size of data; terminating\n");
@@ -615,17 +628,25 @@ double doClientTask (const char *pszRemoteHost, unsigned short usRemotePort, con
 
     if (0 == stricmp (pProtocol, "mockets")) {
         printf ("***Protocol: mockets\n");
-        Mocket pm;
-        pm.setIdentifier ("IntDataTest-Client");
-        pm.registerPeerUnreachableWarningCallback (unreachablePeerCallback, NULL);
+        //Creating client mockets
+        Mocket  *pm;
+	if(bDtls)
+		printf("Mocket: DTLS is enable\n");
+	else
+		printf("Mocket: DTLS is not enable\n");
+	//Time must include handshake 
+        i64StartTime = getTimeInMilliseconds();
+        pm = new Mocket(0,0,false,bDtls);
+        pm->setIdentifier ("IntDataTest-Client");
+        pm->registerPeerUnreachableWarningCallback (unreachablePeerCallback, NULL);
         const char szConfigFile[] = "mockets.conf";
         FILE *pConfigFile = fopen (szConfigFile, "r");
         if (pConfigFile != NULL) {
             fclose (pConfigFile);
-            pm.readConfigFile (szConfigFile);
-            printf ("Read Mockets config file %s\n", szConfigFile);
+            pm->readConfigFile (szConfigFile);
+            printf ("Read Mockets config file %s Warning to fix!!!\n", szConfigFile);
         }
-        if (0 != (rc = pm.connect (pszRemoteHost, usRemotePort, bEnableKeyExchange))) {
+        if (0 != (rc = pm->connect (pszRemoteHost, usRemotePort, bEnableKeyExchange))) {
             fprintf (stderr, "doClientTask: failed to connect using Mockets to remote host %s on port %d; rc = %d\n",
                      pszRemoteHost, usRemotePort, rc);
             printf ("doClientTask: Unable to connect\n");
@@ -638,10 +659,10 @@ double doClientTask (const char *pszRemoteHost, unsigned short usRemotePort, con
         int iDataSizeInNBO = EndianHelper::htonl (ui32DataSize);
         char chReply = 0;
         
-        MessageSender sender = pm.getSender (true, true);
+        MessageSender sender = pm->getSender (true, true);
         sender.send (&iDataSizeInNBO, sizeof (iDataSizeInNBO));
         
-        pm.receive (&chReply, 1);
+        pm->receive (&chReply, 1);
         if (chReply != '.') {
             fprintf (stderr, "doClientTask: failed to receive '.' from remote host\n");
             delete[] buf;
@@ -649,7 +670,6 @@ double doClientTask (const char *pszRemoteHost, unsigned short usRemotePort, con
 
         }
         
-        i64StartTime = getTimeInMilliseconds();
         while (iBytesSent < ui32DataSize) {
             #if defined (UNIX)
             iBytesToSend = std::min ((int) ui16MessageSizeInBytes, (int)(ui32DataSize - iBytesSent));
@@ -657,12 +677,13 @@ double doClientTask (const char *pszRemoteHost, unsigned short usRemotePort, con
             iBytesToSend = min ((int) ui16MessageSizeInBytes, (ui32DataSize - iBytesSent));
             #endif
             //sender.send (buf, iBytesToSend);
-            pm.send (true, true, buf, iBytesToSend, 0, 5, 0, 0);
+            pm->send (true, true, buf, iBytesToSend, 0, 5, 0, 0);
             iBytesSent += iBytesToSend;
         }
-        rc = pm.receive (&chReply, 1);
+        rc = pm->receive (&chReply, 1);
         i64EndTime = getTimeInMilliseconds();
-        pm.close();
+        pm->close();
+        delete pm;
 
         if (chReply != '.') {
             mocketsStatsMutex.lock();
@@ -696,19 +717,19 @@ double doClientTask (const char *pszRemoteHost, unsigned short usRemotePort, con
             return -4;
         }
         fprintf (file, "%lu, %d, %d, %d, %d, %d, %d, %d, %d, %.2f\n", (unsigned long) (getTimeInMilliseconds() / 1000), iTime,
-                 pm.getStatistics()->getSentPacketCount(),
-                 pm.getStatistics()->getSentByteCount(),
-                 pm.getStatistics()->getReceivedPacketCount(),
-                 pm.getStatistics()->getReceivedByteCount(),
-                 pm.getStatistics()->getRetransmitCount(),
-                 pm.getStatistics()->getDuplicatedDiscardedPacketCount(),
-                 pm.getStatistics()->getNoRoomDiscardedPacketCount(),
+                 pm->getStatistics()->getSentPacketCount(),
+                 pm->getStatistics()->getSentByteCount(),
+                 pm->getStatistics()->getReceivedPacketCount(),
+                 pm->getStatistics()->getReceivedByteCount(),
+                 pm->getStatistics()->getRetransmitCount(),
+                 pm->getStatistics()->getDuplicatedDiscardedPacketCount(),
+                 pm->getStatistics()->getNoRoomDiscardedPacketCount(),
                  dThroughput);
-                 /*pm.getStatistics()->getDiscardedPacketCounts()._iBelowWindow,
-                 pm.getStatistics()->getDiscardedPacketCounts()._iNoRoom,
-                 pm.getStatistics()->getDiscardedPacketCounts()._iOverlap,
-                 pm.getStatistics()->getTransmitterWaitCounts()._iPacketQueueFull,
-                 pm.getStatistics()->getTransmitterWaitCounts()._iRemoteWindowFull);*/
+                 /*pm->getStatistics()->getDiscardedPacketCounts()._iBelowWindow,
+                 pm->getStatistics()->getDiscardedPacketCounts()._iNoRoom,
+                 pm->getStatistics()->getDiscardedPacketCounts()._iOverlap,
+                 pm->getStatistics()->getTransmitterWaitCounts()._iPacketQueueFull,
+                 pm->getStatistics()->getTransmitterWaitCounts()._iRemoteWindowFull);*/
         fclose (file);
 
         mocketsStatsMutex.unlock();
@@ -1073,6 +1094,9 @@ int main (int argc, char *argv[])
         else if (0 == stricmp (argv[i], "-enableMocketKeyExchange")) {
             bEnableKeyExchange = true;
         }
+        else if (0 == stricmp (argv[i], "-enableDtls")) {
+            bDtls = true;
+        }
         i++;
     }
 
@@ -1131,6 +1155,7 @@ int main (int argc, char *argv[])
     }
     if (bServer) {
         // On a server - start up MessageMocket, socket and SCTPsocket
+        printf("bServer\n");
         if (bLogging) {
             pLogger = new Logger();
             pLogger->initLogFile ("intDataTest-server.log", false);
@@ -1187,9 +1212,11 @@ int main (int argc, char *argv[])
             pSUDT.run();
 	}
         if ((bMockets) && (!bSockets) && (!bSCTPSockets) && !bUDT) {
-		ServerMocketThread pSMT(ui16Port);
-		pSMT.run();
-
+		printf("Starting Mockets Server thread\n");
+        ServerMocketThread pSMT(ui16Port);
+		printf("ServerMocketThread\n");
+        pSMT.run();
+        printf("Run passed\n");
 	}
        if ((!bMockets) && (bSockets) && (!bSCTPSockets) && !bUDT) {
 		ServerSocketThread pSST(ui16Port);

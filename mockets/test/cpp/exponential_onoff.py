@@ -3,8 +3,8 @@
 # Helper script to simulate exponential blackouts with NistNET
 #
 # Author: Mauro Tortonesi <mauro.tortonesi@unife.it>
-# Revision: $Revision: 1.1 $
-# Last updated: $Date: 2006/04/13 21:53:37 $
+# Revision: $Revision$
+# Last updated: $Date$
 #
 
 import getopt, sys

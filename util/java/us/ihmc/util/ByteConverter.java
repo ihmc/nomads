@@ -63,7 +63,7 @@ public class ByteConverter
     {
         short value = b;
         if (value < 0) {
-            value += 256;
+            value += (short)256;
         }
         return value;
     }

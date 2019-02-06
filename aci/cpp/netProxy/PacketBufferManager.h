@@ -5,7 +5,7 @@
  * PacketBufferManager.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,8 @@
  * of memory buffers with mutually exclusive access.
  */
 
-#include "Mutex.h"
+#include <array>
+#include <mutex>
 
 #include "ConfigurationParameters.h"
 
@@ -32,30 +33,25 @@ namespace ACMNetProxy
 {
     class PacketBufferManager
     {
-        public:
-            static PacketBufferManager * const getPacketBufferManagerInstance (void);
+    public:
+        PacketBufferManager (void);
+        PacketBufferManager (const PacketBufferManager & rhPBM) = delete;
+        PacketBufferManager & operator = (const PacketBufferManager & rhPBM) = delete;
 
-            char * const getAndLockWriteBuf (void);
-            int findAndUnlockWriteBuf (const void * const pui8Buf) const;
+        char * const getAndLockWriteBuf (void);
+        int findAndUnlockWriteBuf (const void * const pui8Buf) const;
 
-        private:
-            PacketBufferManager (void);
-            PacketBufferManager (const PacketBufferManager &rhPBM);
 
-            PacketBufferManager & operator = (const PacketBufferManager &rhPBM);
+    private:
+        char _cTAPBuf[NetProxyApplicationParameters::WRITE_PACKET_BUFFERS][NetProxyApplicationParameters::ETHERNET_MAX_MFS];
 
-            char _cTAPBuf[NetProxyApplicationParameters::WRITE_PACKET_BUFFERS][NetProxyApplicationParameters::ETHERNET_MAX_MFS];
-
-            mutable NOMADSUtil::Mutex _mTAPBuf[NetProxyApplicationParameters::WRITE_PACKET_BUFFERS];
+        mutable std::array<std::mutex, NetProxyApplicationParameters::WRITE_PACKET_BUFFERS> _amtxTAPBuf;
     };
 
 
-    inline PacketBufferManager * const PacketBufferManager::getPacketBufferManagerInstance (void)
-    {
-        static PacketBufferManager packetBufferManager;
-
-        return &packetBufferManager;
-    }
+    inline PacketBufferManager::PacketBufferManager (void) :
+        _cTAPBuf{}, _amtxTAPBuf{}
+    { }
 }
 
 #endif   // #ifndef INCL_PACKET_BUFFER_MANAGER_H

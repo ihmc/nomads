@@ -19,6 +19,8 @@
 
 package us.ihmc.util;
 
+import java.nio.charset.Charset;
+
 /**
  * ByteArray
  * These are some accumulated utilities for ByteArray manipulation. The primary purpose
@@ -27,7 +29,7 @@ package us.ihmc.util;
  * 
  * @author Tom Cowin <tcowin@ai.uwf.edu>
  * @version 1.0
- * $Revision: 1.16 $
+ * $Revision$
  */
 public class ByteArray
 {
@@ -49,7 +51,6 @@ public class ByteArray
         return bytes;
     }
 
-
     /**
      * Convert a byte array to a short integer, byte array is assumed to be big-endian
      *
@@ -62,7 +63,6 @@ public class ByteArray
         return byteArrayToShort (bytes, 0);
     }
 
-    
     /**
      * Convert a byte array to a short integer, byte array is assumed to be big-endian
      *
@@ -94,10 +94,10 @@ public class ByteArray
     {
         byte newBytearray[] = new byte[4];
         
-        newBytearray[3] = new Integer (i & 0x000000FF).byteValue();
-        newBytearray[2] = new Integer ((i & 0x0000FF00) >> 8).byteValue();
-        newBytearray[1] = new Integer ((i & 0x00FF0000) >> 16).byteValue();
-        newBytearray[0] = new Integer ((i & 0xFF000000) >> 24).byteValue();
+        newBytearray[3] = Integer.valueOf (i & 0x000000FF).byteValue();
+        newBytearray[2] = Integer.valueOf ((i & 0x0000FF00) >> 8).byteValue();
+        newBytearray[1] = Integer.valueOf ((i & 0x00FF0000) >> 16).byteValue();
+        newBytearray[0] = Integer.valueOf ((i & 0xFF000000) >> 24).byteValue();
         return newBytearray;
     }
 
@@ -302,7 +302,7 @@ public class ByteArray
             }
         }
 
-        return new String (buf, off, strLen);
+        return new String (buf, off, strLen, Charset.defaultCharset());
     }
 
     /**

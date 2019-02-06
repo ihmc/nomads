@@ -19,12 +19,14 @@
 */
 
 #include "TCPRTTInterfaceTable.h"
+#include <forward_list>
+
 
 using namespace NOMADSUtil;
 namespace IHMC_NETSENSOR
 {
     TCPRTTInterfaceTable::TCPRTTInterfaceTable(void) : 
-        _tcpRTTInterfaceTable(true, true, true, true)
+        _tcpStreamListInterfaceTable(true, true, true, true)
 
     {
 
@@ -32,27 +34,53 @@ namespace IHMC_NETSENSOR
 
     TCPRTTInterfaceTable::~TCPRTTInterfaceTable(void)
     {
-        _tcpRTTInterfaceTable.removeAll();
+        _tcpStreamListInterfaceTable.removeAll();
     }
 
     TCPRTTInterfaceTable::TCPRTTInterfaceTable(uint32 ui32Resolution) :
         _ui32msResolution(ui32Resolution),
-        _tcpRTTInterfaceTable(true, true, true, true)
+        _tcpStreamListInterfaceTable(true, true, true, true)
     {
 
     }
 
     void TCPRTTInterfaceTable::cleanTable(const uint32 ui32MaxCleaningNumber)
     {
+        int64 currentTime = getTimeInMilliseconds();
+        //TCPStream* streamCleaner[C_MAX_CLEANING_NUMBER];
+        std::forward_list <TCPStream *> list;
         if (_mutex.lock() == Mutex::RC_Ok) {
-            if (_tcpRTTInterfaceTable.getCount() > 0) {
+            if (_tcpStreamListInterfaceTable.getCount() > 0) {
                 uint32 ui32CleaningCounter = 0;
-                for (StringHashtable<TCPRTTTable>::Iterator i = _tcpRTTInterfaceTable.getAllElements();
+                for (StringHashtable<PtrLList<TCPStream>>::Iterator i = _tcpStreamListInterfaceTable.getAllElements();
                     !i.end() && ui32CleaningCounter < ui32MaxCleaningNumber; i.nextElement()) {
-                    TCPRTTTable *pTRT = i.getValue();
-                    if (pTRT != nullptr) {
-                        ui32CleaningCounter += pTRT->cleanTables(ui32MaxCleaningNumber - ui32CleaningCounter);
+
+                    uint32 ui32StreamCleaningCounter = 0;
+                    PtrLList<TCPStream> *pStreamList = i.getValue();
+                    TCPStream *pStream;
+                    pStreamList->resetGet();
+                    while((pStream = pStreamList->getNext()) != nullptr) {
+                        if (pStream != nullptr) {
+                            ui32CleaningCounter += pStream->clean(ui32MaxCleaningNumber - ui32CleaningCounter);
+
+                            int64 expiredT = pStream->i64LastUpdateTime + C_ENTRY_TIME_VALIDITY;
+                            if (pStream->getCount() == 0 && 
+                                (pStream->hasClosed() || currentTime > expiredT)) {
+                                //streamCleaner[ui32StreamCleaningCounter] = pStream;
+                                list.push_front (pStream);
+                                ui32StreamCleaningCounter++;
+                            }
+                        }
                     }
+
+                    for (auto iter = list.begin(); iter != list.end(); iter++)
+                    {
+                        delete pStreamList->remove(*iter);
+                    }
+                    /*for (uint32 counter = 0; counter < ui32StreamCleaningCounter; counter++)
+                    {
+                        delete pStreamList->remove(streamCleaner[counter]);
+                    }*/
                 }
             }
             _mutex.unlock();
@@ -72,39 +100,69 @@ namespace IHMC_NETSENSOR
     void TCPRTTInterfaceTable::printContent(void)
     {
         if (_mutex.lock() == Mutex::RC_Ok) {
-            for (StringHashtable<TCPRTTTable>::Iterator i = _tcpRTTInterfaceTable.getAllElements();
+            for (StringHashtable<PtrLList<TCPStream>>::Iterator i = _tcpStreamListInterfaceTable.getAllElements();
                 !i.end(); i.nextElement()) {
-                TCPRTTTable *pTRT = i.getValue();
-                
-                if (pTRT->getCount() > 0) {
-                    printf("\n%s :\n------------------\n", i.getKey());
-                    pTRT->print();
-                }
+                PtrLList<TCPStream> *pStreamList = i.getValue();
+                TCPStream *pStream;
+                pStreamList->resetGet();
+                printf("\n%s :\n------------------\n", i.getKey());
+                while ((pStream = pStreamList->getNext()) != nullptr) {
+                    if (pStream->getCount() > 0) {
+                        pStream->print();
+                    }
+                }                
             }
-
             _mutex.unlock();
         }
     }
 
     // Pass the tcpData to the proper TCPRTTTable
-    void TCPRTTInterfaceTable::put(const char *pInterfaceName, TCPRTTData & tcpData, bool isSent)
+    void TCPRTTInterfaceTable::put(const char *pInterfaceName, TCPStream & tcpStream)
     {
         if (pInterfaceName == nullptr) {
             printf("TCPRTTHandler:put::Null interface name\n");
         }
 
         if (_mutex.lock() == Mutex::RC_Ok) {
-            TCPRTTTable *pTRT = _tcpRTTInterfaceTable.get(pInterfaceName);
-            if (pTRT == nullptr) {
-                pTRT = new TCPRTTTable();
-                               
-                _tcpRTTInterfaceTable.put(pInterfaceName, pTRT);
-                pTRT->put(tcpData, isSent);
+            PtrLList<TCPStream> *pStreamList = _tcpStreamListInterfaceTable.get(pInterfaceName);
+            if (pStreamList == nullptr) {
+                PtrLList<TCPStream> *pStreamList = new PtrLList<TCPStream>();
+                pStreamList->append(&tcpStream);
+                _tcpStreamListInterfaceTable.put(pInterfaceName, pStreamList);
             }
             else {
-                pTRT->put(tcpData, isSent);
+                pStreamList->append(&tcpStream);
             }
             _mutex.unlock();
         }
+    }
+
+    TCPStream* TCPRTTInterfaceTable::getStream(TCPStreamData data)
+    {
+        if (_mutex.lock() == Mutex::RC_Ok) {
+            for (StringHashtable<PtrLList<TCPStream>>::Iterator i = _tcpStreamListInterfaceTable.getAllElements();
+                !i.end(); i.nextElement()) {
+                PtrLList<TCPStream> *pStreamList = i.getValue();
+                TCPStream *pStream;
+                pStreamList->resetGet();
+                while ((pStream = pStreamList->getNext()) != nullptr) {
+                    if (pStream->getData() == data) {
+                        _mutex.unlock();
+                        return pStream;
+                    }
+                }
+            }
+            _mutex.unlock();
+        }
+        return nullptr;
+    }
+    PtrLList<TCPStream>* TCPRTTInterfaceTable::getTCPStreamsOnInterface(const char * pInterfaceName)
+    {
+        if (_mutex.lock() == Mutex::RC_Ok) {
+            PtrLList<TCPStream> *pList = _tcpStreamListInterfaceTable.get(pInterfaceName);
+            _mutex.unlock();
+            return pList;
+        }
+        return nullptr;
     }
 }

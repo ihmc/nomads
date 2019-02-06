@@ -2,7 +2,7 @@
  * MutexBuffer.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,25 +22,21 @@
 #include "MutexBuffer.h"
 
 
-using namespace NOMADSUtil;
-
 namespace ACMNetProxy
 {
     MutexBuffer::MutexBuffer (bool bMutex, unsigned int uiMaxBufSize, unsigned int uiInitialBufSize) :
-        _uiMinBufSize ((uiInitialBufSize <= uiMaxBufSize) ? uiInitialBufSize : uiMaxBufSize),
-        _uiMaxBufSize ((uiMaxBufSize <= UI_BUFFER_SIZE_LIMIT) ? uiMaxBufSize : UI_BUFFER_SIZE_LIMIT),
-        _bResizable (uiInitialBufSize != uiMaxBufSize), _pMutex (bMutex ? new Mutex() : nullptr)
-    {
-        _pBuf = new unsigned char[_uiMinBufSize];
-        _uiCurrBufSize = _uiMinBufSize;
-    }
+        _uiMaxBufSize{(uiMaxBufSize <= UI_BUFFER_SIZE_LIMIT) ? uiMaxBufSize : UI_BUFFER_SIZE_LIMIT},
+        _uiMinBufSize{(uiInitialBufSize <= _uiMaxBufSize) ? uiInitialBufSize : uiMaxBufSize},
+        _bResizable{_uiMinBufSize != _uiMaxBufSize}, _uiCurrBufSize{_uiMinBufSize},
+        _pui8Buf{new unsigned char[_uiMinBufSize]}, _pMutex{bMutex ? new NOMADSUtil::Mutex{} : nullptr}
+    { }
 
     MutexBuffer::~MutexBuffer (void)
     {
         lock();
-        if (_pBuf) {
-            delete[] _pBuf;
-            _pBuf = nullptr;
+        if (_pui8Buf) {
+            delete[] _pui8Buf;
+            _pui8Buf = nullptr;
         }
         _uiCurrBufSize = 0;
 
@@ -55,8 +51,8 @@ namespace ACMNetProxy
     {
         lock();
         if (_bResizable && (_uiCurrBufSize > _uiMinBufSize)) {
-            delete[] _pBuf;
-            _pBuf = new unsigned char[_uiMinBufSize];
+            delete[] _pui8Buf;
+            _pui8Buf = new unsigned char[_uiMinBufSize];
             _uiCurrBufSize = _uiMinBufSize;
         }
         unlock();
@@ -85,11 +81,11 @@ namespace ACMNetProxy
             }
 
             if (bKeepData) {
-                _pBuf = (unsigned char *) realloc (_pBuf, _uiCurrBufSize);
+                _pui8Buf = (unsigned char *) realloc (_pui8Buf, _uiCurrBufSize);
             }
             else {
-                delete[] _pBuf;
-                _pBuf = new unsigned char[_uiCurrBufSize];
+                delete[] _pui8Buf;
+                _pui8Buf = new unsigned char[_uiCurrBufSize];
             }
             unlock();
         }

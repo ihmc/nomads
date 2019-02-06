@@ -27,7 +27,7 @@ import java.net.InetAddress;
  * Created on October 02, 2006
  *
  * @author Matteo Rebeschini <mrebeschini@ihmc.us>
- * @version $Revision: 1.6 $
+ * @version $Revision$
  * $Date: 2005/09/27 23:30:49
  */
 public class NICInfo
@@ -116,6 +116,7 @@ public class NICInfo
     public InetAddress netmask;
     public InetAddress broadcast;
 
+    @Override
     public String toString()
     {
         return ip.getHostAddress() + "/" + 

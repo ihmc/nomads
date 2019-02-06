@@ -34,9 +34,6 @@
 
 #include "FTypes.h"
 
-#define LF 10
-#define CR 13
-
 #ifdef __linux__
     #include <linux/limits.h>
 #endif
@@ -46,7 +43,6 @@
 
 namespace NOMADSUtil
 {
-
     int64 getTimeInMilliseconds (void);
     void sleepForMilliseconds (int64 i64MilliSec);
 

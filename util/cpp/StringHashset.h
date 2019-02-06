@@ -104,7 +104,7 @@ namespace NOMADSUtil
                         return NULL;
                     }
 
-                    Iterator (StringHashset *pTable, unsigned long ulState) {
+                    Iterator (const StringHashset *pTable, unsigned long ulState) {
                         _pTable = pTable;
                         _ulState = ulState;
                         _usIndex = 0;
@@ -119,7 +119,7 @@ namespace NOMADSUtil
                     }
 
                 private:
-                    StringHashset *_pTable;
+                    const StringHashset *_pTable;
                     unsigned long _ulState;
                     unsigned short _usIndex;
                     void *_pCurrElement;
@@ -149,7 +149,7 @@ namespace NOMADSUtil
             // Returns the number of elements in the hashset
             virtual unsigned short getCount (void) const;
 
-            virtual Iterator getAllElements (void);
+            virtual Iterator getAllElements (void) const;
 
             virtual void printStructure (void);
 

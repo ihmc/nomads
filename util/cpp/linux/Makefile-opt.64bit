@@ -1,7 +1,7 @@
 #include Makefile.inc
 cpp = g++
 
-cppflags = -O2 -DUNIX -DLINUX -DLINUX64 -DLITTLE_ENDIAN_SYSTEM -m64 -fPIC -I.. -I../.. -I../../../externals/include
+cppflags = -std=c++11 -O2 -DUNIX -DLINUX -DLINUX64 -DLITTLE_ENDIAN_SYSTEM -m64 -fPIC -lpthread -I.. -I../.. -I../../../externals/include
 
 sources = $(wildcard ../*.cpp) $(wildcard ../*.c)
 objects = $(sources:../%.cpp=%.o) $(sources:../%.c=%.o)
@@ -21,6 +21,9 @@ commobjects = $(commsources:../comm/%.cpp=%.o)
 mediasources = $(wildcard ../media/*.cpp)
 mediaobjects = $(mediasources:../media/%.cpp=%.o)
 
+proxysources = $(wildcard ../proxy/*.cpp)
+proxyobjects = $(proxysources:../proxy/%.cpp=%.o)
+
 %.o : ../%.cpp
 	$(cpp) -c $(cppflags) $<
 
@@ -39,19 +42,19 @@ mediaobjects = $(mediasources:../media/%.cpp=%.o)
 %.o : ../comm/%.cpp
 	$(cpp) -c $(cppflags) $<
 
-%.o : ../media/%.cpp
+%.o : ../proxy/%.cpp
 	$(cpp) -c $(cppflags) $<
 
 all: libutil.a libsecurity.a 
 
-libutil.a : $(objects) $(graphobjects) $(netobjects) $(commobjects) $(mediaobjects)
-	ar -rcv libutil.a $(objects) $(graphobjects) $(netobjects) $(commobjects)
+libutil.a : $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
+	ar -rcv libutil.a $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
 
 libsecurity.a :  $(securityobjects)
 	ar -rcv libsecurity.a $(securityobjects) 
 
-libutil.so: $(objects) $(graphobjects) $(netobjects) $(commobjects) $(mediaobjects)
-	$(cpp) -shared -o libutil.so $(objects) $(graphobjects) $(netobjects) $(commobjects)
+libutil.so: $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
+	$(cpp) -shared -o libutil.so $(objects) $(graphobjects) $(netobjects) $(commobjects) $(proxyobjects)
 
 libsecurity.so: $(securityobjects)
 	$(cpp) -shared -o libutil.so $(securityobjects)

@@ -483,7 +483,7 @@ const ::netsensor::NetworkInfo& NetProxyInfo::internal() const {
                          : *::netsensor::NetworkInfo::internal_default_instance();
 }
 ::netsensor::NetworkInfo* NetProxyInfo::mutable_internal() {
-
+  
   if (internal_ == NULL) {
     internal_ = new ::netsensor::NetworkInfo;
   }
@@ -492,7 +492,7 @@ const ::netsensor::NetworkInfo& NetProxyInfo::internal() const {
 }
 ::netsensor::NetworkInfo* NetProxyInfo::release_internal() {
   // @@protoc_insertion_point(field_release:netsensor.NetProxyInfo.internal)
-
+  
   ::netsensor::NetworkInfo* temp = internal_;
   internal_ = NULL;
   return temp;
@@ -501,9 +501,9 @@ void NetProxyInfo::set_allocated_internal(::netsensor::NetworkInfo* internal) {
   delete internal_;
   internal_ = internal;
   if (internal) {
-
+    
   } else {
-
+    
   }
   // @@protoc_insertion_point(field_set_allocated:netsensor.NetProxyInfo.internal)
 }
@@ -522,7 +522,7 @@ const ::netsensor::NetworkInfo& NetProxyInfo::external() const {
                          : *::netsensor::NetworkInfo::internal_default_instance();
 }
 ::netsensor::NetworkInfo* NetProxyInfo::mutable_external() {
-
+  
   if (external_ == NULL) {
     external_ = new ::netsensor::NetworkInfo;
   }
@@ -531,7 +531,7 @@ const ::netsensor::NetworkInfo& NetProxyInfo::external() const {
 }
 ::netsensor::NetworkInfo* NetProxyInfo::release_external() {
   // @@protoc_insertion_point(field_release:netsensor.NetProxyInfo.external)
-
+  
   ::netsensor::NetworkInfo* temp = external_;
   external_ = NULL;
   return temp;
@@ -540,9 +540,9 @@ void NetProxyInfo::set_allocated_external(::netsensor::NetworkInfo* external) {
   delete external_;
   external_ = external;
   if (external) {
-
+    
   } else {
-
+    
   }
   // @@protoc_insertion_point(field_set_allocated:netsensor.NetProxyInfo.external)
 }

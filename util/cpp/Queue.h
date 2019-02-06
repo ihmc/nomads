@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -39,7 +39,7 @@ namespace NOMADSUtil
             // Dequeue the specified element (from anywhere in the queue)
             int remove (T &x);
             // Return number of elements in queue
-            int size ();
+            int size();
             // Find the element (but leave it in the queue)
             bool find (T &x);
             // Replace the element in the queue with the new one
@@ -47,7 +47,7 @@ namespace NOMADSUtil
             // Check if queue is empty
             bool isEmpty (void);
 
-        protected:        
+        protected:
             struct Node
             {
                 T data;

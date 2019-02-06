@@ -3,19 +3,19 @@
 
 /*
  * PendingPacketQueue.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -73,7 +73,7 @@ class PendingPacketQueue
         // Deletes any packets that match the specified flow and contain the specified tag
         // Returns the number of packets deleted or a negative value in case of error
         // NOTE: The packets are deleted (i.e., the memory is deallocated)
-        int cancel (bool bReliable, bool bSequenced, uint16 ui16Tag, uint8 * pui8HigherPriority = NULL);
+        int cancel (bool bReliable, bool bSequenced, uint16 ui16Tag, uint8 * pui8HigherPriority = nullptr);
 
         // Indicates that no additional data will be extracted from this queue
         // Any threads blocked in insert() will be woken up and any future calls to insert() will fail
@@ -110,7 +110,7 @@ class PendingPacketQueue
 inline PendingPacketQueue::PendingPacketQueue (uint32 ui32MaximumSize, bool bEnableCrossSequencing)
     : _cv (&_m)
 {
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _ui32BytesInQueue = 0;
     _ui32MaximumSize = ui32MaximumSize;
@@ -120,14 +120,14 @@ inline PendingPacketQueue::PendingPacketQueue (uint32 ui32MaximumSize, bool bEna
 
 inline PendingPacketQueue::~PendingPacketQueue (void)
 {
-    while (_pFirstNode != NULL) {
+    while (_pFirstNode != nullptr) {
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode->pData->getPacket();
         delete pTempNode->pData;
         delete pTempNode;
     }
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _ui32BytesInQueue = 0;
     _ui32MaximumSize = 0;
@@ -196,7 +196,7 @@ inline bool PendingPacketQueue::insert (PacketWrapper *pWrapper, int64 i64Timeou
     Node *pNewNode = new Node;
     pNewNode->pData = pWrapper;
 
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // There are no other elements - just insert at the beginning which is also the end
         _pFirstNode = _pLastNode = pNewNode;
         _ui32BytesInQueue += pWrapper->getPacket()->getPacketSize();
@@ -211,7 +211,7 @@ inline bool PendingPacketQueue::insert (PacketWrapper *pWrapper, int64 i64Timeou
             // The new node to be inserted is an intermediate or a last fragment
             // Its place is after the last fragment in the queue with the same TSN// Check for the insertion starting at the end of the list
             Node *pTempNode = _pLastNode;
-            while (pTempNode != NULL) {
+            while (pTempNode != nullptr) {
                 if (pNewNode->pData->getMessageTSN() == pTempNode->pData->getMessageTSN()) {
                     // Insert after this node which is the last enqued fragment of the same packet
                     pNewNode->pPrev = pTempNode;
@@ -231,7 +231,7 @@ inline bool PendingPacketQueue::insert (PacketWrapper *pWrapper, int64 i64Timeou
                 pTempNode = pTempNode->pPrev;
             }
             // There are no other fragments with this TSN (they have already been sent)
-            // Enqueue this fragment at the beginning of the queue 
+            // Enqueue this fragment at the beginning of the queue
             pNewNode->pNext = _pFirstNode;
             _pFirstNode->pPrev = pNewNode;
             _pFirstNode = pNewNode;
@@ -244,7 +244,7 @@ inline bool PendingPacketQueue::insert (PacketWrapper *pWrapper, int64 i64Timeou
             // This is a whole packet or a first fragment
             // Insert it accordingly to its priority = after the last packet with the same or higher priority
             Node *pTempNode = _pLastNode;
-            while (pTempNode != NULL) {
+            while (pTempNode != nullptr) {
                 if (lowerOrSamePriority (pNewNode->pData, pTempNode->pData)) {
                     // Insert the packet after Temp which is the first one with higher or same priority
                     pNewNode->pPrev = pTempNode;
@@ -271,7 +271,7 @@ inline bool PendingPacketQueue::insert (PacketWrapper *pWrapper, int64 i64Timeou
                 // go to insert at the end of this fragmented packet
                 // check when the fragments of a single packet are finished using the messageTSN
                 uint32 ui32HeadMsgTSN = _pFirstNode->pData->getMessageTSN();
-                while (pTempNode != NULL) {
+                while (pTempNode != nullptr) {
                     if (pTempNode->pData->getMessageTSN() != ui32HeadMsgTSN) {
                         // We skipped the fragments insert before pTempNode
                         pNewNode->pPrev = pTempNode->pPrev;
@@ -311,9 +311,9 @@ inline bool PendingPacketQueue::insert (PacketWrapper *pWrapper, int64 i64Timeou
 inline PacketWrapper * PendingPacketQueue::peek (void)
 {
     _m.lock();
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
     else {
         PacketWrapper *pData = _pFirstNode->pData;
@@ -325,7 +325,7 @@ inline PacketWrapper * PendingPacketQueue::peek (void)
 inline int PendingPacketQueue::remove (PacketWrapper *pWrapper)
 {
     _m.lock();
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // List is empty
         _m.unlock();
         return -1;
@@ -335,12 +335,12 @@ inline int PendingPacketQueue::remove (PacketWrapper *pWrapper)
         // The node is the first node in the list
         Node *pNodeToDelete = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             // The list is now empty
-            _pLastNode = NULL;
+            _pLastNode = nullptr;
         }
         else {
-            _pFirstNode->pPrev = NULL;
+            _pFirstNode->pPrev = nullptr;
         }
         delete pNodeToDelete;
         _ui32BytesInQueue -= pWrapper->getPacket()->getPacketSize();
@@ -352,12 +352,12 @@ inline int PendingPacketQueue::remove (PacketWrapper *pWrapper)
     else {
         // We should never get into the else!!!
         Node *pTempNode = _pFirstNode->pNext;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             if (pTempNode->pData == pWrapper) {
                 // Found the node to delete
                 Node *pNodeToDelete = pTempNode;
                 pTempNode->pPrev->pNext = pTempNode->pNext;
-                if (pTempNode->pNext == NULL) {
+                if (pTempNode->pNext == nullptr) {
                     // Removed the last node in the list
                     _pLastNode = pTempNode->pPrev;
                 }
@@ -378,23 +378,23 @@ inline int PendingPacketQueue::remove (PacketWrapper *pWrapper)
     }
 }
 
-inline int PendingPacketQueue::cancel (bool bReliable, bool bSequenced, uint16 ui16TagId, uint8 *pui8HigherPriority)
-{    
+inline int PendingPacketQueue::cancel (bool bReliable, bool bSequenced, uint16 ui16TagId, uint8 * pui8HigherPriority)
+{
     int iPacketsDeleted = 0;
     _m.lock();
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // List is empty
         _m.unlock();
         return iPacketsDeleted;
     }
     // Check if the first node needs to be deleted
     while (true) {
-        Packet *pPacket = _pFirstNode->pData->getPacket();
+        Packet * pPacket = _pFirstNode->pData->getPacket();
         if ((pPacket->getTagId() == ui16TagId) && (pPacket->isReliablePacket() == bReliable) && (pPacket->isSequencedPacket() == bSequenced)) {
             Node *pNodeToDelete = _pFirstNode;
             uint8 ui8MsgPriority = _pFirstNode->pData->getPriority();
             // Keep track of the priority
-            if ((*pui8HigherPriority) < ui8MsgPriority) {
+            if ((pui8HigherPriority != nullptr) && ((*pui8HigherPriority) < ui8MsgPriority)) {
                 // Assign the priority of the message being cancelled if it is higher than the current one
                 *pui8HigherPriority = ui8MsgPriority;
             }
@@ -406,13 +406,13 @@ inline int PendingPacketQueue::cancel (bool bReliable, bool bSequenced, uint16 u
             delete pNodeToDelete;
             iPacketsDeleted++;
             _cv.notifyAll();
-            if (_pFirstNode == NULL) {
+            if (_pFirstNode == nullptr) {
                 // The list is now empty
-                _pLastNode = NULL;
+                _pLastNode = nullptr;
                 break;
             }
             else {
-                _pFirstNode->pPrev = NULL;
+                _pFirstNode->pPrev = nullptr;
             }
             // Now we want to loop again and check the (new) _pFirstNode
         }
@@ -423,14 +423,14 @@ inline int PendingPacketQueue::cancel (bool bReliable, bool bSequenced, uint16 u
     }
     if (_pFirstNode) {
         Node *pTempNode = _pFirstNode->pNext;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             Packet *pPacket = pTempNode->pData->getPacket();
             if ((pPacket->getTagId() == ui16TagId) && (pPacket->isReliablePacket() == bReliable) && (pPacket->isSequencedPacket() == bSequenced)) {
                 // Found a node to delete
                 Node *pNodeToDelete = pTempNode;
                 pTempNode = pTempNode->pNext;
                 pNodeToDelete->pPrev->pNext = pNodeToDelete->pNext;
-                if (pNodeToDelete->pNext == NULL) {
+                if (pNodeToDelete->pNext == nullptr) {
                     // Removed the last node in the list
                     _pLastNode = pNodeToDelete->pPrev;
                 }
@@ -467,11 +467,11 @@ inline int PendingPacketQueue::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
     objectFreezer.putUInt32 (_ui32MaximumSize);
     objectFreezer.putBool (_bCrossSequencing);
     objectFreezer.putUInt32 (_ui32PacketsInQueue);
-    
+
 /*    printf ("PendingPacketQueue\n");
     printf ("_ui32MaximumSize %lu\n", _ui32MaximumSize);
     printf ("_ui32PacketsInQueue %lu\n", _ui32PacketsInQueue);*/
-    
+
     // Do not freeze _ui32BytesInQueue it is computable
     // Go through the whole list of nodes
     Node *pCurrNode = _pFirstNode;
@@ -483,7 +483,7 @@ inline int PendingPacketQueue::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
         }
         pCurrNode = pCurrNode->pNext;
     }
-    
+
     return 0;
 }
 
@@ -492,11 +492,11 @@ inline int PendingPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDefro
     objectDefroster >> _ui32MaximumSize;
     objectDefroster >> _bCrossSequencing;
     objectDefroster >> _ui32PacketsInQueue;
-    
+
 /*    printf ("PendingPacketQueue\n");
     printf ("_ui32MaximumSize %lu\n", _ui32MaximumSize);
     printf ("_ui32PacketsInQueue %lu\n", _ui32PacketsInQueue);*/
-    
+
     // Reconstruct the queue
     for (uint32 i=0; i<_ui32PacketsInQueue; i++){
         //printf ("***** i = %d\n", i);
@@ -507,7 +507,7 @@ inline int PendingPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDefro
         }
         pNewNode->pData = pWrapper;
         _ui32BytesInQueue += pNewNode->pData->getPacket()->getPacketSize();
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             _pFirstNode = _pLastNode = pNewNode;
         }
         else {
@@ -516,7 +516,7 @@ inline int PendingPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDefro
             _pLastNode = pNewNode;
         }
     }
-    
+
     return 0;
 }
 
@@ -532,8 +532,8 @@ inline bool PendingPacketQueue::lowerOrSamePriority (PacketWrapper *pLHSWrapper,
 
 inline PendingPacketQueue::Node::Node (void)
 {
-    pPrev = pNext = NULL;
-    pData = NULL;
+    pPrev = pNext = nullptr;
+    pData = nullptr;
 }
 
 #endif   // #ifndef INCL_PENDING_PACKET_QUEUE_H

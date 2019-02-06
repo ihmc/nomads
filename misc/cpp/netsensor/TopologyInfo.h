@@ -23,12 +23,15 @@
 */
 
 
-#include"LList.h"
-#include"NLFLib.h"
-#include"StringHashtable.h"
-#include"StrClass.h"
-#include"topology.pb.h"
-#include"TopologyEntry.h"
+#include "LList.h"
+#include "NLFLib.h"
+#include "StringHashtable.h"
+#include "StrClass.h"
+#include "topology.pb.h"
+#include "TopologyEntry.h"
+
+#include <forward_list>
+
 
 namespace IHMC_NETSENSOR
 {
@@ -76,7 +79,8 @@ namespace IHMC_NETSENSOR
 
     inline uint32 TopologyInfo::cleanTable(uint32 ui32CleaningNumber)
     {
-        NOMADSUtil::String internalVals[C_MAX_CLEANING_NUMBER];
+        //NOMADSUtil::String internalVals[C_MAX_CLEANING_NUMBER];
+        std::forward_list <NOMADSUtil::String> list;
         bool bKeepCleaning = true;
         uint32 cleaningCounter = 0;
         int64 currentTime = NOMADSUtil::getTimeInMilliseconds();
@@ -89,16 +93,21 @@ namespace IHMC_NETSENSOR
 
                 int64 expTime = i.getValue()->i64TimeOfLastChange + C_ENTRY_TIME_VALIDITY;
                 if (currentTime > expTime) {
-                    internalVals[cleaningCounter] = i.getKey();
+                    //internalVals[cleaningCounter] = i.getKey();
+                    list.push_front (i.getKey());
                     cleaningCounter++;
 
                     bKeepCleaning = (cleaningCounter < ui32CleaningNumber);
                 }
             }
             // Clean internal nodes
+            for (auto iter = list.begin(); iter != list.end(); iter++) {
+                delete _shNodes.remove(*iter);
+            }
+            /*
             for (uint32 counter = 0; counter < cleaningCounter; counter++) {
                 delete _shNodes.remove(internalVals[counter]);
-            }
+            }*/
 
             _mxTop.unlock();
             return cleaningCounter;

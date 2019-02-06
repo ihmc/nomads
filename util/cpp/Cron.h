@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -63,11 +63,11 @@ namespace NOMADSUtil
                     String _name;
                     ATime _startTime;
                     int _count;                      // 0 means that this event should always occur
-                    DTime _period;                     
+                    DTime _period;
                     unsigned char _uchDaysOfWeek;    // LSB == Sunday, MSB-1 == Saturday
                     unsigned long _ulDaysOfMonth;    // LSB == 1st
                     int _currentCount;
-                    
+
              };
 
             int run (void);
@@ -79,7 +79,7 @@ namespace NOMADSUtil
             int addEvent (Event *e);
 
             int deleteEvent (int iEventId);
-            
+
         private:
             int getId (void);
             int _currentId;
@@ -89,5 +89,5 @@ namespace NOMADSUtil
     };
 
 }
- 
+
 #endif

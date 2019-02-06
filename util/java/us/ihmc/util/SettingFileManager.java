@@ -41,7 +41,7 @@ import java.util.NoSuchElementException;
 *   inner ht's keyed by the value as specified by the second 'key' parameter
 * 
 *   @author: Maggie Breedy
-*   @version $Revision: 1.14 $
+*   @version $Revision$
 */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class SettingFileManager

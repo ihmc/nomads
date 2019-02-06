@@ -134,7 +134,7 @@ uint16 ProxyDatagramSocket::getMTU (void)
     }
 }
 
-int ProxyDatagramSocket::getReceiveBufferSize (void)
+int ProxyDatagramSocket::getReceiveBufferSize (void) const
 {
     // TODO: implement this
     checkAndLogMsg ("ProxyDatagramSocket::getReceiveBufferSize", Logger::L_SevereError,
@@ -150,7 +150,7 @@ int ProxyDatagramSocket::setReceiveBufferSize (int iSize)
     return -1;
 }
 
-int ProxyDatagramSocket::getSendBufferSize (void)
+int ProxyDatagramSocket::getSendBufferSize (void) const
 {
     // TODO: implement this
     checkAndLogMsg ("ProxyDatagramSocket::getSendBufferSize", Logger::L_SevereError,

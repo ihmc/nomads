@@ -2,7 +2,7 @@
  * UDPConnector.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,65 +20,54 @@
 #include "Logger.h"
 
 #include "UDPConnector.h"
-#include "AutoConnectionEntry.h"
+#include "UDPSocketAdapter.h"
 #include "Connection.h"
-#include "ConnectorReader.h"
-#include "TCPManager.h"
 #include "ConnectionManager.h"
-#include "ConfigurationManager.h"
-#include "PacketRouter.h"
 
 
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    UDPConnector::UDPConnector (void) : Connector (CT_UDPSOCKET), _i32BytesInBuffer (0)
-    {
-        memset (_pucInBuf, 0, NetProxyApplicationParameters::PROXY_MESSAGE_MTU);
-    }
-
     UDPConnector::~UDPConnector (void)
     {
         requestTermination();
 
-        if (Mutex::RC_Ok == _mConnector.lock()) {
-            if (_pUDPSocketAdapter) {
-                _pUDPSocketAdapter->_udpConnectionThread.requestTermination();
-                _pUDPSocketAdapter->shutdown (true, true);
-                _pUDPSocketAdapter->close();
-                _pUDPSocketAdapter->_udpConnectionThread.requestTerminationAndWait();
-            }
-            _mConnector.unlock();
+        if (_upUDPSocketAdapter) {
+            _upUDPSocketAdapter->requestUDPConnectionThreadTermination();
+            _upUDPSocketAdapter->shutdown (true, true);
+            _upUDPSocketAdapter->close();
+            _upUDPSocketAdapter->requestUDPConnectionThreadTerminationAndWait();
         }
-
-        delete _pUDPSocketAdapter;
     }
 
-    int UDPConnector::init (uint16 ui16SocketPort)
+    int UDPConnector::init (uint16 ui16AcceptServerPort, uint32 ui32LocalIPv4Address)
     {
         int rc;
 
-        if ((rc = _pUDPSocketAdapter->_pUDPSocket->init (ui16SocketPort)) < 0) {
-            checkAndLogMsg ("UPDConnector::init", Logger::L_MildError,
-                            "listen() on ServerSocket failed - could not initialize to use port %d; rc = %d\n",
-                            (int) ui16SocketPort, rc);
+        _upUDPSocketAdapter = ::make_unique<UDPSocketAdapter> (::make_unique<NOMADSUtil::UDPDatagramSocket>(),
+                                                               NOMADSUtil::InetAddr{ui32LocalIPv4Address, ui16AcceptServerPort});
+        if ((rc = _upUDPSocketAdapter->initUDPSocket (ui16AcceptServerPort, ui32LocalIPv4Address)) < 0) {
+            checkAndLogMsg ("UPDConnector::init", NOMADSUtil::Logger::L_MildError,
+                            "listen() on ServerSocket failed - could not bind to address <%s:%hu>; rc = %d\n",
+                            NOMADSUtil::InetAddr{ui32LocalIPv4Address}.getIPAsString(), ui16AcceptServerPort, rc);
             return -1;
         }
+        Connector::init (ui16AcceptServerPort, ui32LocalIPv4Address);
+
         if (NetworkConfigurationSettings::UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS > 0) {
-            if (0 != (rc = _pUDPSocketAdapter->_pUDPSocket->setTransmitRateLimit (NetworkConfigurationSettings::UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS))) {
-                checkAndLogMsg ("UPDConnector::init", Logger::L_Warning,
+            if (0 != (rc = _upUDPSocketAdapter->setUDPSocketTransmissionRateLimit (NetworkConfigurationSettings::UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS))) {
+                checkAndLogMsg ("UPDConnector::init", NOMADSUtil::Logger::L_Warning,
                                 "setTransmitRateLimit() on UDP Socket failed with rc = %d; specified value was %u; no limit will be set\n",
                                 rc, NetworkConfigurationSettings::UDP_CONNECTION_THROUGHPUT_LIMIT_IN_BPS);
-                _pUDPSocketAdapter->_pUDPSocket->setTransmitRateLimit (0);
+                _upUDPSocketAdapter->setUDPSocketTransmissionRateLimit (0);
             }
         }
-
-        if ((rc = _pUDPSocketAdapter->_udpConnectionThread.start()) < 0) {
-            checkAndLogMsg ("UPDConnector::init", Logger::L_MildError,
-                            "start() on of UDPConnection failed - could not start Thread; rc = %d\n", rc);
+        if ((rc = _upUDPSocketAdapter->startUDPConnectionThread()) < 0) {
+            checkAndLogMsg ("UPDConnector::init", NOMADSUtil::Logger::L_MildError,
+                            "start() on the UDPConnection thread failed with rc = %d\n", rc);
             return -2;
         }
 
@@ -89,29 +78,26 @@ namespace ACMNetProxy
     {
         requestTermination();
 
-        if (Mutex::RC_Ok == _mConnector.lock()) {
-            if (_pUDPSocketAdapter) {
-                _pUDPSocketAdapter->_udpConnectionThread.requestTermination();
-                _pUDPSocketAdapter->shutdown (true, true);
-                _pUDPSocketAdapter->close();
-            }
-            _mConnector.unlock();
+        if (_upUDPSocketAdapter) {
+            _upUDPSocketAdapter->requestUDPConnectionThreadTermination();
+            _upUDPSocketAdapter->shutdown (true, true);
+            _upUDPSocketAdapter->close();
         }
     }
 
     void UDPConnector::run (void)
     {
         started();
-        static Connection * const pConnection = UDPConnector::getUDPConnection();
 
         int rc;
         uint32 ui32BufLen;
-        NOMADSUtil::InetAddr remoteProxyAddress;
+        NOMADSUtil::InetAddr iaRemoteProxyAddress, iaLocalProxyAddress;
 
         while (!terminationRequested()) {
-            if ((rc = _pUDPSocketAdapter->receiveMessage (_pucInBuf, NetProxyApplicationParameters::PROXY_MESSAGE_MTU, &remoteProxyAddress)) < 0) {
+            if ((rc = _upUDPSocketAdapter->receiveMessage (_pucInBuf, NetworkConfigurationSettings::PROXY_MESSAGE_MTU,
+                                                           iaLocalProxyAddress, iaRemoteProxyAddress)) < 0) {
                 if (!terminationRequested()) {
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_MildError,
                                     "receiveMessage() on UDPSocket failed with rc = %d\n", rc);
                     setTerminatingResultCode (-1);
                 }
@@ -121,269 +107,258 @@ namespace ACMNetProxy
                 continue;
             }
 
-            ProxyMessage * const pProxyMessage = (ProxyMessage * const) _pucInBuf;
-            checkAndLogMsg ("UDPConnector::run", Logger::L_HighDetailDebug,
-                            "received a packet of %d bytes with proxy message flag = %d from address %s\n",
-                            rc, pProxyMessage->getMessageType(), remoteProxyAddress.getIPAsString());
+            auto * const pProxyMessage = reinterpret_cast<ProxyMessage * const> (_pucInBuf);
+            checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_HighDetailDebug,
+                            "received a packet of %d bytes with ProxyMessage flag = %d from address %s\n",
+                            rc, pProxyMessage->getMessageType(), iaRemoteProxyAddress.getIPAsString());
+
+            const auto ui64UDPConnectionKey = generateUDPConnectionsTableKey (iaRemoteProxyAddress);
+            auto & spConnection = _umUDPConnections[ui64UDPConnectionKey];
+            if (spConnection && (spConnection->isTerminationRequested() ||
+                (pProxyMessage->getMessageType() == PacketType::PMT_InitializeConnection))) {
+                // If termination has been requested, remove the Connection instance from the table
+                spConnection->prepareForDelete();
+                spConnection.reset();
+            }
+
+            if (pProxyMessage->getMessageType() == PacketType::PMT_InitializeConnection) {
+                // Server-side initialization: add new UDP Connection to the UninitializedConnectionsTable (initialization will be done below)
+                spConnection = std::make_shared<Connection> (iaLocalProxyAddress, iaRemoteProxyAddress, _upUDPSocketAdapter.get(),
+                                                             _rConnectionManager, _rTCPConnTable, _rTCPManager,
+                                                             _rPacketRouter, _rStatisticsManager);
+                Connection::addNewUninitializedConnectionToTable (spConnection);
+            }
+            else if (!spConnection) {
+                if (pProxyMessage->getMessageType() == PacketType::PMT_ConnectionError) {
+                    // Ignore a ConnectionError ProxyMessage since there is not a Connection in the table
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "received a ConnectionError ProxyMessage from the remote NetProxy with the address <%s:%hu>, "
+                                    "but no UDP Connection instances were found connected to that NetProxy; ignoring the message\n",
+                                    iaRemoteProxyAddress.getIPAsString(), iaRemoteProxyAddress.getPort());
+                    continue;
+                }
+
+                // Connection not found in the table --> create a new one if it cannot be retrieved
+                uint32 ui32RemoteNetProxyUniqueID =
+                    _rConnectionManager.findUniqueIDOfRemoteNetProxyWithIPAddress (iaRemoteProxyAddress.getIPAddress());
+                if (ui32RemoteNetProxyUniqueID == 0) {
+                    // Send a ConnectionError ProxyMessage back to the remote NetProxy
+                    Connection::sendConnectionErrorProxyMessageToRemoteHost (_upUDPSocketAdapter.get(), iaRemoteProxyAddress,
+                                                                             NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
+                                                                             0, iaLocalProxyAddress.getIPAddress(),
+                                                                             iaRemoteProxyAddress.getIPAddress(), CT_UDPSOCKET);
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "received a packet of %d bytes with a ProxyMessage of PakcetType %hhu from address <%s:%hu>, but the "
+                                    "UDP connection is not initialized and the local configuration files contain no information about "
+                                    "remote NetProxies with that address. NetProxy has replied with a ConnectionError ProxyMessage "
+                                    "to the remote NetProxy\n", rc, static_cast<uint8> (pProxyMessage->getMessageType()),
+                                    iaRemoteProxyAddress.getIPAsString(), iaRemoteProxyAddress.getPort());
+                    continue;
+                }
+
+                // If the processing gets here, ui32RemoteNetProxyUniqueID contains the NPUID of the remote NetProxy
+                auto & spConnectionInTable = Connection::getConnectionFromTable (ui32RemoteNetProxyUniqueID, iaLocalProxyAddress,
+                                                                                 iaRemoteProxyAddress, CT_UDPSOCKET,
+                                                                                 _upUDPSocketAdapter->getEncryptionType());
+                if (!spConnectionInTable) {
+                    // Local and remote NetProxies out of sync --> send a ConnectionError ProxyMessage back to the remote NetProxy
+                    Connection::sendConnectionErrorProxyMessageToRemoteHost (_upUDPSocketAdapter.get(), iaRemoteProxyAddress,
+                                                                             NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
+                                                                             0, iaLocalProxyAddress.getIPAddress(),
+                                                                             iaRemoteProxyAddress.getIPAddress(), CT_UDPSOCKET);
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "NetProxy could not find an existing UDP Connection to the remote NetProxy with UniqueID %u and "
+                                    "address <%s:%hu> in the ConnectionsTable when it received a ProxyMessage of PacketType %hhu; "
+                                    "NetProxy replied with a ConnectionError ProxyMessage and will discard the message\n",
+                                    ui32RemoteNetProxyUniqueID, iaRemoteProxyAddress.getIPAsString(), iaRemoteProxyAddress.getPort(),
+                                    static_cast<uint8> (pProxyMessage->getMessageType()));
+                    continue;
+                }
+                if (pProxyMessage->getMessageType() != PacketType::PMT_ConnectionInitialized) {
+                    // Local and remote NetProxies out of sync --> send a ConnectionError ProxyMessage back to the remote NetProxy
+                    spConnectionInTable->prepareForDelete();
+                    Connection::sendConnectionErrorProxyMessageToRemoteHost (_upUDPSocketAdapter.get(), iaRemoteProxyAddress,
+                                                                             NetProxyApplicationParameters::NETPROXY_UNIQUE_ID,
+                                                                             0, iaLocalProxyAddress.getIPAddress(),
+                                                                             iaRemoteProxyAddress.getIPAddress(), CT_UDPSOCKET);
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "found an existing UDP Connection to the remote NetProxy with UniqueID %u and address <%s:%hu> "
+                                    "in the ConnectionsTable, but the received ProxyMessage is of PacketType %hhu; NetProxy replied "
+                                    "with a ConnectionError ProxyMessage and will discard the message\n", ui32RemoteNetProxyUniqueID,
+                                    iaRemoteProxyAddress.getIPAsString(), iaRemoteProxyAddress.getPort(),
+                                    static_cast<uint8> (pProxyMessage->getMessageType()));
+                    continue;
+                }
+
+                // Synchronize the _umUDPConnections table with the ConnectionsTable
+                _umUDPConnections[ui64UDPConnectionKey] = spConnectionInTable;
+                checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_LowDetailDebug,
+                                "added an existing UDP Connection to the remote NetProxy with UniqueID %u and "
+                                "address <%s:%hu> to the UDPConnections table\n", ui32RemoteNetProxyUniqueID,
+                                iaRemoteProxyAddress.getIPAsString(), iaRemoteProxyAddress.getPort());
+            }
 
             switch (pProxyMessage->getMessageType()) {
-                case ProxyMessage::PMT_InitializeConnection:
-                {
-                    InitializeConnectionProxyMessage *pICPM = (InitializeConnectionProxyMessage*) _pucInBuf;
-                    Connector::_pConnectionManager->updateRemoteProxyInfo (pICPM->_ui32ProxyUniqueID, &remoteProxyAddress, pICPM->_ui16LocalMocketsServerPort,
-                                                                           pICPM->_ui16LocalTCPServerPort, pICPM->_ui16LocalUDPServerPort,
-                                                                           pICPM->getRemoteProxyReachability());
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                    "received an InitializeConnectionProxyMessage from remote NetProxy at address %s\n",
-                                    remoteProxyAddress.getIPAsString());
+            case PacketType::PMT_InitializeConnection:
+            {
+                auto * const pICPM = reinterpret_cast<InitializeConnectionProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveInitializeConnectionProxyMessage (pICPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveInitializeConnectionProxyMessage returned with rc = %d\n", rc);
+                    _umUDPConnections[ui64UDPConnectionKey].reset();
+                }
+                break;
+            }
 
-                    _pPacketRouter->initializeRemoteConnection (pICPM->_ui32ProxyUniqueID, pConnection->getConnectorType(), _pUDPSocketAdapter->getEncryptionType());
+            case PacketType::PMT_ConnectionInitialized:
+            {
+                if (spConnection->getLocalHostRole() == Connection::CHR_Server) {
+                    // Simultaneous connection initialization --> ignore packet
                     break;
                 }
 
-                case ProxyMessage::PMT_ConnectionInitialized:
-                {
-                    ConnectionInitializedProxyMessage *pCIPM = (ConnectionInitializedProxyMessage*) _pucInBuf;
-                    Connector::_pConnectionManager->updateRemoteProxyInfo (pCIPM->_ui32ProxyUniqueID, &remoteProxyAddress, pCIPM->_ui16LocalMocketsServerPort,
-                                                                           pCIPM->_ui16LocalTCPServerPort, pCIPM->_ui16LocalUDPServerPort,
-                                                                           pCIPM->getRemoteProxyReachability());
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                    "received a ConnectionInitializedProxyMessage from remote NetProxy at address %s\n",
-                                    remoteProxyAddress.getIPAsString());
-                    break;
+                auto * const pCIPM  = reinterpret_cast<ConnectionInitializedProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveConnectionInitializedProxyMessage (pCIPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveConnectionInitializedProxyMessage returned with rc = %d\n", rc);
+                    _umUDPConnections[ui64UDPConnectionKey].reset();
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_ICMPMessage:
-                {
-                    ICMPProxyMessage *pICMPPM = (ICMPProxyMessage*) _pucInBuf;
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_MediumDetailDebug,
-                                    "received an ICMP ProxyMessage via %s of type %hhu, code %hhu, TTL %hhu, and %hu bytes of data from "
-                                    "the remote NetProxy with address %s\n", pConnection->getConnectorTypeAsString(), pICMPPM->_ui8Type,
-                                    pICMPPM->_ui8Code, pICMPPM->_ui8PacketTTL, pICMPPM->getPayloadLen(), remoteProxyAddress.getIPAsString());
-                    Connector::_pConnectionManager->updateRemoteProxyInfo (pICMPPM->_ui32ProxyUniqueID, &remoteProxyAddress, pICMPPM->_ui16LocalMocketsServerPort,
-                                                                           pICMPPM->_ui16LocalTCPServerPort, pICMPPM->_ui16LocalUDPServerPort,
-                                                                           pICMPPM->getRemoteProxyReachability());
-                    //Connector::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pICMPPM->_ui32LocalIP), pICMPPM->_ui32ProxyUniqueID);
-
-                    if ((pICMPPM->_ui8PacketTTL == 0) || ((pICMPPM->_ui8PacketTTL == 1) && !NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE)) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                        "the ICMP message contained in the ICMP ProxyMessage has reached a TTL value of %hhu "
-                                        "and it needs to be discarded", pICMPPM->_ui8PacketTTL);
-                        break;
-                    }
-                    pICMPPM->_ui8PacketTTL = NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE ? pICMPPM->_ui8PacketTTL : pICMPPM->_ui8PacketTTL - 1;
-                    if (0 != (rc = _pPacketRouter->forwardICMPMessageToHost (pICMPPM->_ui32RemoteIP, pICMPPM->_ui32LocalIP, remoteProxyAddress.getIPAddress(),
-                                                                             pICMPPM->_ui8PacketTTL, static_cast<ICMPHeader::Type> (pICMPPM->_ui8Type),
-                                                                             static_cast<ICMPHeader::Code_Destination_Unreachable> (pICMPPM->_ui8Code),
-                                                                             pICMPPM->_ui32RoH, pICMPPM->_aui8Data, pICMPPM->getPayloadLen()))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
-                                        "forwardICMPMessageToHost() failed with rc = %d\n", rc);
-                    }
-                    break;
+            case PacketType::PMT_ICMPMessage:
+            {
+                auto * const pICMPPM = reinterpret_cast<ICMPProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveICMPProxyMessageToRemoteHost (pICMPPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveICMPProxyMessageToRemoteHost returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_UDPUnicastData:
-                {
-                    UDPUnicastDataProxyMessage *pUDPUCDPM = (UDPUnicastDataProxyMessage*) _pucInBuf;
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_HighDetailDebug,
-                                    "received a UDPUnicastData ProxyMessage via %s with TTL %hhu and %hu bytes of data from the remote "
-                                    "NetProxy with address %s\n", pConnection->getConnectorTypeAsString(), pUDPUCDPM->_ui8PacketTTL,
-                                    pUDPUCDPM->getPayloadLen(), remoteProxyAddress.getIPAsString());
-
-                    unsigned char *pucBuf[1];
-                    //Connector::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pUDPUCDPM->_ui32LocalIP), pUDPUCDPM->_ui32ProxyUniqueID);
-                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pUDPUCDPM->_ui8CompressionTypeAndLevel);
-                    if ((pUDPUCDPM->_ui8PacketTTL == 0) || ((pUDPUCDPM->_ui8PacketTTL == 1) && !NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE)) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                        "the UDP datagram contained in the UDPUnicastData ProxyMessage has reached a TTL value of %hhu "
-                                        "and it needs to be discarded", pUDPUCDPM->_ui8PacketTTL);
-                        break;
-                    }
-                    pUDPUCDPM->_ui8PacketTTL = NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE ? pUDPUCDPM->_ui8PacketTTL : pUDPUCDPM->_ui8PacketTTL - 1;
-                    pConnectorReader->receiveTCPDataProxyMessage (pUDPUCDPM->_aui8Data, pUDPUCDPM->getPayloadLen(), pucBuf, ui32BufLen);
-                    if (0 != (rc = _pPacketRouter->sendUDPUniCastPacketToHost (pUDPUCDPM->_ui32LocalIP, pUDPUCDPM->_ui32RemoteIP,
-                                                                               pUDPUCDPM->_ui8PacketTTL, (UDPHeader*) pucBuf[0]))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
-                                        "sendUDPUniCastPacketToHost() failed with rc = %d\n", rc);
-                    }
-                    pConnectorReader->resetAndUnlockConnectorReader();
-                    break;
+            case PacketType::PMT_UDPUnicastData:
+            {
+                auto * const pUDPUCDPM = reinterpret_cast<UDPUnicastDataProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveUDPUnicastPacketToRemoteHost (pUDPUCDPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveUDPUnicastPacketToRemoteHost returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_MultipleUDPDatagrams:
-                {
-                    MultipleUDPDatagramsProxyMessage *pMUDPDPM = (MultipleUDPDatagramsProxyMessage*) _pucInBuf;
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_HighDetailDebug,
-                                    "received a MultipleUDPDatagrams ProxyMessage via %s containing %hhu UDP packets for a total of %hu bytes of data from "
-                                    "the remote NetProxy with address %s\n", pConnection->getConnectorTypeAsString(), pMUDPDPM->_ui8WrappedUDPDatagramsNum,
-                                    pMUDPDPM->getPayloadLen(), pConnection->getRemoteProxyInetAddr()->getIPAsString());
-
-                    unsigned char *pucBuf[1];
-                    const UDPHeader *pUDPHeader = nullptr;
-                    uint16 ui16UDPDatagramOffset = 0;
-                    //Connector::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pMUDPDPM->_ui32LocalIP), pMUDPDPM->_ui32ProxyUniqueID);
-
-                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pMUDPDPM->_ui8CompressionTypeAndLevel);
-                    pConnectorReader->receiveTCPDataProxyMessage (pMUDPDPM->_aui8Data, pMUDPDPM->getPayloadLen(), pucBuf, ui32BufLen);
-                    for (uint8 i = 0; i < pMUDPDPM->_ui8WrappedUDPDatagramsNum; ++i) {
-                        pUDPHeader = (UDPHeader*) (pucBuf[0] + pMUDPDPM->_ui8WrappedUDPDatagramsNum + ui16UDPDatagramOffset);
-                        ui16UDPDatagramOffset += pUDPHeader->ui16Len;
-
-                        if ((pucBuf[0][i] == 0) || ((pucBuf[0][i] == 1) && !NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE)) {
-                            checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                            "the UDP datagram with index %hhu contained in the MultipleUDPDatagrams ProxyMessage has reached a "
-                                            "TTL value of %hhu and it needs to be discarded", i, pucBuf[0][i]);
-                            continue;
-                        }
-                        pucBuf[0][i] = NetProxyApplicationParameters::TRANSPARENT_GATEWAY_MODE ? pucBuf[0][i] : pucBuf[0][i] - 1;
-
-                        if (0 != (rc = _pPacketRouter->sendUDPUniCastPacketToHost (pMUDPDPM->_ui32LocalIP, pMUDPDPM->_ui32RemoteIP, pucBuf[0][i], pUDPHeader))) {
-                            checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
-                                            "sendUDPUniCastPacketToHost() failed with rc = %d\n", rc);
-                        }
-                    }
-                    pConnectorReader->resetAndUnlockConnectorReader();
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_MediumDetailDebug,
-                                    "%hhu UDP datagrams, for a total of %u bytes, sent to local host\n",
-                                    pMUDPDPM->_ui8WrappedUDPDatagramsNum, ui32BufLen);
-                    break;
+            case PacketType::PMT_MultipleUDPDatagrams:
+            {
+                auto * const pMUDPDPM = reinterpret_cast<MultipleUDPDatagramsProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveMultipleUDPDatagramsToRemoteHost (pMUDPDPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveMultipleUDPDatagramsToRemoteHost returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_UDPBCastMCastData:
-                {
-                    unsigned char *pucBuf[1];
-                    UDPBCastMCastDataProxyMessage *pUDPBCMCDPM = (UDPBCastMCastDataProxyMessage*) _pucInBuf;
-                    ConnectorReader * const pConnectorReader = ConnectorReader::getAndLockUDPConnectorReader (pUDPBCMCDPM->_ui8CompressionTypeAndLevel);
-                    pConnectorReader->receiveTCPDataProxyMessage (pUDPBCMCDPM->_aui8Data, pUDPBCMCDPM->getPayloadLen(), pucBuf, ui32BufLen);
-                    if (0 != (rc = _pPacketRouter->sendUDPBCastMCastPacketToHost (pucBuf[0], ui32BufLen))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
-                                        "sendUDPBCastMCastPacketToHost() failed with rc = %d\n", rc);
-                    }
-                    pConnectorReader->resetAndUnlockConnectorReader();
-                    break;
+            case PacketType::PMT_UDPBCastMCastData:
+            {
+                auto * const pUDPBCMCDPM = reinterpret_cast<UDPBCastMCastDataProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveUDPBCastMCastPacketToRemoteHost (pUDPBCMCDPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveUDPBCastMCastPacketToRemoteHost returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_TCPOpenConnection:
-                {
-                    OpenConnectionProxyMessage *pOCPM = (OpenConnectionProxyMessage*) _pucInBuf;
-                    Connector::_pConnectionManager->updateRemoteProxyInfo (pOCPM->_ui32ProxyUniqueID, &remoteProxyAddress, pOCPM->_ui16LocalMocketsServerPort,
-                                                                           pOCPM->_ui16LocalTCPServerPort, pOCPM->_ui16LocalUDPServerPort,
-                                                                           pOCPM->getRemoteProxyReachability());
-                    //Connector::_pConnectionManager->updateAddressMappingBook (AddressRangeDescriptor(pOCPM->_ui32LocalIP, pOCPM->_ui16LocalPort), pOCPM->_ui32ProxyUniqueID);
-
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                    "L0-R%hu: received an OpenTCPConnection request from remote proxy; compression type code is %hhu and compression level is %hhu\n",
-                                    pOCPM->_ui16LocalID, pOCPM->_ui8CompressionTypeAndLevel & COMPRESSION_TYPE_FLAGS_MASK,
-                                    pOCPM->_ui8CompressionTypeAndLevel & COMPRESSION_LEVEL_FLAGS_MASK);
-
-                    if (0 != (rc = TCPManager::openTCPConnectionToHost (remoteProxyAddress.getIPAddress(), pOCPM->_ui32ProxyUniqueID, pOCPM->_ui16LocalID, pOCPM->_ui32RemoteIP,
-                                                                        pOCPM->_ui16RemotePort, pOCPM->_ui32LocalIP, pOCPM->_ui16LocalPort, pOCPM->_ui8CompressionTypeAndLevel))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
-                                        "L0-R%hu: openTCPConnectionToHost() failed with rc = %d\n",
-                                        pOCPM->_ui16LocalID, rc);
-                    }
-                    break;
+            case PacketType::PMT_TCPOpenConnection:
+            {
+                auto * const pOCPM = reinterpret_cast<OpenTCPConnectionProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveOpenTCPConnectionRequest (pOCPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveOpenTCPConnectionRequest returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_TCPConnectionOpened:
-                {
-                    ConnectionOpenedProxyMessage *pCOPM = (ConnectionOpenedProxyMessage*) _pucInBuf;
-                    Connector::_pConnectionManager->updateRemoteProxyInfo (pCOPM->_ui32ProxyUniqueID, &remoteProxyAddress, pCOPM->_ui16LocalMocketsServerPort,
-                                                                           pCOPM->_ui16LocalTCPServerPort, pCOPM->_ui16LocalUDPServerPort,
-                                                                           pCOPM->getRemoteProxyReachability());
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                    "L%hu-R%hu: received a TCPConnectionOpened response from remote proxy; compression type code is %hhu and compression level is %hhu\n",
-                                    pCOPM->_ui16RemoteID, pCOPM->_ui16LocalID, pCOPM->_ui8CompressionTypeAndLevel & COMPRESSION_TYPE_FLAGS_MASK,
-                                    pCOPM->_ui8CompressionTypeAndLevel & COMPRESSION_LEVEL_FLAGS_MASK);
-
-                    if (0 != (rc = TCPManager::tcpConnectionToHostOpened (pCOPM->_ui16RemoteID, pCOPM->_ui16LocalID, pCOPM->_ui32ProxyUniqueID, pCOPM->_ui8CompressionTypeAndLevel))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
-                                        "L%hu-R%hu: tcpConnectionToHostOpened() failed with rc = %d\n",
-                                        pCOPM->_ui16RemoteID, pCOPM->_ui16LocalID, rc);
-                        if (rc == -1) {
-                            // Entry not found (has proxy been reset?) --> sending back a ResetTCPConnectionRequest
-
-                            pConnection->sendResetTCPConnectionRequest (&remoteProxyAddress, 0, pCOPM->_ui16RemoteID, pCOPM->_ui16LocalID, ProxyMessage::PMP_UDP);
-                        }
-                    }
-                    break;
+            case PacketType::PMT_TCPConnectionOpened:
+            {
+                auto * const pCOPM = reinterpret_cast<TCPConnectionOpenedProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveTCPConnectionOpenedResponse (pCOPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveTCPConnectionOpenedResponse returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_TCPData:
-                {
-                    TCPDataProxyMessage *pTCPDPM = (TCPDataProxyMessage*) _pucInBuf;
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_HighDetailDebug,
-                                    "L%hu-R%hu: received a TCPData packet; packet has %hu data bytes and there are %d bytes in the buffer\n",
-                                    pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, pTCPDPM->getPayloadLen(), _i32BytesInBuffer);
-                    if (0 != (rc = TCPManager::sendTCPDataToHost (pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, pTCPDPM->_aui8Data,
-                                                                     pTCPDPM->getPayloadLen(), pTCPDPM->_ui8TCPFlags))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_MildError,
-                                        "L%hu-R%hu: sendTCPDataToHost() failed with rc = %d\n",
-                                        pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, rc);
-                        if (rc == -1) {
-                            // Entry not found (has proxy been reset?) --> sending back a ResetTCPConnectionRequest
-                            pConnection->sendResetTCPConnectionRequest (&remoteProxyAddress, 0, pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, ProxyMessage::PMP_UDP);
-                        }
+            case PacketType::PMT_TCPData:
+            {
+                auto * const pTCPDPM = reinterpret_cast<TCPDataProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveTCPDataAndSendToLocalHost (pTCPDPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveTCPDataAndSendToLocalHost returned with rc = %d\n", rc);
+                    if (rc == -1) {
+                        spConnection->sendResetTCPConnectionRequest (0, 0, pTCPDPM->_ui16RemoteID,
+                                                                     pTCPDPM->_ui16LocalID, true, true);
                     }
-                    break;
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_TCPCloseConnection:
-                {
-                    CloseConnectionProxyMessage *pCCPM = (CloseConnectionProxyMessage*) _pucInBuf;
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                    "L%hu-R%hu: received a CloseTCPConnection request from remote proxy\n",
-                                    pCCPM->_ui16RemoteID, pCCPM->_ui16LocalID);
-                    if (0 != (rc = TCPManager::closeTCPConnectionToHost (pCCPM->_ui16RemoteID, pCCPM->_ui16LocalID))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_Warning,
-                                        "L%hu-R%hu: closeTCPConnectionToHost() failed with rc = %d\n",
-                                        pCCPM->_ui16RemoteID, pCCPM->_ui16LocalID, rc);
-                        if (rc == -1) {
-                            // Entry not found (has proxy been reset?) --> sending back a ResetTCPConnectionRequest
-                            pConnection->sendResetTCPConnectionRequest (&remoteProxyAddress, 0, pCCPM->_ui16RemoteID, pCCPM->_ui16LocalID, ProxyMessage::PMP_UDP);
-                        }
-                    }
-                    break;
+            case PacketType::PMT_TCPCloseConnection:
+            {
+                auto * const pCCPM = reinterpret_cast<CloseTCPConnectionProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveCloseTCPConnectionRequest (pCCPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveCloseTCPConnectionRequest returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_TCPResetConnection:
-                {
-                    ResetConnectionProxyMessage *pRCPM = (ResetConnectionProxyMessage*) _pucInBuf;
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                    "L%hu-R%hu: received a ResetTCPconnection request from remote proxy\n",
-                                    pRCPM->_ui16RemoteID, pRCPM->_ui16LocalID);
-                    if (0 != (rc = TCPManager::resetTCPConnectionToHost (pRCPM->_ui16RemoteID, pRCPM->_ui16LocalID))) {
-                        checkAndLogMsg ("UDPConnector::run", Logger::L_Warning,
-                                        "resetTCPConnectionToHost() failed with rc = %d\n", rc);
-                    }
-                    break;
+            case PacketType::PMT_TCPResetConnection:
+            {
+                auto * const pRCPM = reinterpret_cast<ResetTCPConnectionProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveResetTCPConnectionRequest (pRCPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveResetTCPConnectionRequest returned with rc = %d\n", rc);
                 }
+                break;
+            }
 
-                case ProxyMessage::PMT_TunnelPacket:
-                {
-                    TunnelPacketProxyMessage * pTPPM = (TunnelPacketProxyMessage *) _pucInBuf;
-                    checkAndLogMsg ("UDPConnector::run", Logger::L_LowDetailDebug,
-                                    "received a TunnelPacketProxyMessage from remote proxy\n");
-
-                    if (0 != (rc = PacketRouter::sendTunneledPacketToHost (PacketRouter::_pInternalInterface, pTPPM->_aui8Data, pTPPM->getPayloadLen()))) {
-                        checkAndLogMsg ("Connection::IncomingMessageHandler::run", Logger::L_MildError,
-                                        "sendPacketToHost() failed with rc = %d\n", rc);
-                    }
-                    break;
+            case PacketType::PMT_TunnelPacket:
+            {
+                auto * const pTPPM = reinterpret_cast<TunnelPacketProxyMessage *> (_pucInBuf);
+                if ((rc = spConnection->receiveTunneledEthernetPacket (pTPPM)) < 0) {
+                    checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                    "receiveResetTCPConnectionRequest returned with rc = %d\n", rc);
                 }
+                break;
+            }
+
+            case PacketType::PMT_ConnectionError:
+            {
+                auto * const pCEPM = reinterpret_cast<ConnectionErrorProxyMessage *> (_pucInBuf);
+                checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Warning,
+                                "received a ConnectionError ProxyMessage from the remote NetProxy; "
+                                "preparing UDP Connection for delete\n");
+                spConnection->prepareForDelete();
+                // Delete the Connection instance by resetting the shared_ptr that owns it
+                _umUDPConnections[ui64UDPConnectionKey].reset();
+                break;
+            }
+
+            default:
+            {
+                checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_MildError,
+                                "received a ProxyMessage via %s of %u bytes and unknown type %hhu; the NetProxy will ignore it\n",
+                                spConnection->getConnectorTypeAsString(), static_cast<uint8> (pProxyMessage->getMessageType()), rc);
+            }
             }
 
             // Packet here has already been discarded or processed
             _i32BytesInBuffer = 0;
         }
-        checkAndLogMsg ("UDPConnector::run", Logger::L_Info,
+        checkAndLogMsg ("UDPConnector::run", NOMADSUtil::Logger::L_Info,
                         "UDPConnector terminated; termination code is %d\n",
                         getTerminatingResultCode());
-
-        Connector::_pConnectionManager->deregisterConnector (_connectorType);
-
+        setTerminatingResultCode (0);
         terminating();
-        delete this;
-    }
 
+        _rConnectionManager.deregisterConnector (getBoundIPv4Address(), _connectorType);
+    }
 }

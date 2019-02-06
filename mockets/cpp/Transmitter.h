@@ -3,19 +3,19 @@
 
 /*
  * Transmitter.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -78,7 +78,7 @@ class Transmitter : public NOMADSUtil::Thread
                    const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2);
 
         // See comments in Mocket
-        int cancel (bool bReliable, bool bSequenced, uint16 ui16TagId, uint8 * pui8HigherPriority = NULL);
+        int cancel (bool bReliable, bool bSequenced, uint16 ui16TagId, uint8 * pui8HigherPriority = nullptr);
 
         void run (void);
 
@@ -106,29 +106,29 @@ class Transmitter : public NOMADSUtil::Thread
 
         // Set the start time of the shutdown process. Called from Mocket::close()
         void setShutdownStartTime (void);
-        
+
         // Called from Mocket::suspend
         bool waitForFlush (void);
-        
+
         // Called from Mocket::suspend
         bool suspend (void);
-        
+
         // Check and resolve simultaneous suspensions and process the simpleSuspend packet
         void processSimpleSuspendPacket (SimpleSuspendChunkAccessor simpleSuspendChunkAccessor);
-        
+
         void processSimpleSuspendAckPacket (SimpleSuspendAckChunkAccessor simpleSuspendAckChunkAccessor);
-        
+
         // Called when a suspend packet is received.
         // Check and resolve simultaneous suspensions and process the suspend packet
         void processSuspendPacket (SuspendChunkAccessor suspendChunkAccessor);
-        
+
         // Extract, decrypt and save nonce (UUID) and Ks
         void processSuspendAckPacket (SuspendAckChunkAccessor suspendAckChunkAccessor);
-        
+
         // Extract, decrypt and check the nonce (UUID), IP and port
         // Go on with resume if the nonce is correct, abort otherwise
         void processResumePacket (ResumeChunkAccessor resumeChunkAccessor, uint32 ui32NewRemoteAddress, uint16 ui16NewRemotePort);
-        
+
         // Extract, decrypt and check the nonce (UUID), IP and port
         // Reestablish connection if all the values are correct, abort otherwise
         void processReEstablishPacket (ReEstablishChunkAccessor reEstablishChunkAccessor, uint32 ui32NewRemoteAddress, uint16 ui16NewRemotePort);
@@ -158,7 +158,7 @@ class Transmitter : public NOMADSUtil::Thread
         friend class Mocket;
         friend class CongestionController;
         friend class TransmissionRateModulation;
-        
+
 
         // Check to see if there are packets in the pending packet queue that need to be processed
         // Transmits at the most one packet
@@ -191,14 +191,14 @@ class Transmitter : public NOMADSUtil::Thread
         int sendSuspendAckPacket (void);
         int sendResumeAckPacket (void);
         int sendReEstablishAckPacket (void);
-        
+
         // When a resume message is received this cause to go in ESTABLISHED state,
         // so we need to force mocket to send a resumeAck message
         int requestResumeAckTransmission (void);
-        
+
         // When a reEstablish message is received we need to force mocket to send a reEstablishAck message
         int requestReEstablishAckTransmission (void);
-        
+
         // When a suspend is received this cause to go in SUSPEND_RECEIVED state
         // and in this state we want to send a suspend_ack only if we receive a suspend
         // message because this means that the first one was lost.
@@ -228,7 +228,7 @@ class Transmitter : public NOMADSUtil::Thread
         int computeAckBasedRTT (uint32 ui32MinAckTime);
         int computeTimestampBasedRTT (int64 i64Timestamp);
 
-        // Returns the BandwidthEstimator, or NULL if bandwidth estimation was not activated
+        // Returns the BandwidthEstimator, or nullptr if bandwidth estimation was not activated
         BandwidthEstimator * getBandwidthEstimator (void);
 
         // Methods used by congestion control mechanisms
@@ -239,7 +239,7 @@ class Transmitter : public NOMADSUtil::Thread
 
         int resetSRTT (void);
         int resetUnackPacketsRetransmitTimeoutRetransmitCount (uint32 ui32RetransmitTO);
-        
+
         void notify (void);
 
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
@@ -282,29 +282,29 @@ class Transmitter : public NOMADSUtil::Thread
         bool _bSendTimestampAck;
         int64 _i64Timestamp;
         int64 _i64TimestampReceiveTime;
-        
+
         // Condition variable and mutex for flushing data
         NOMADSUtil::ConditionVariable _cvFlushData;
         NOMADSUtil::Mutex _mFlushData;
         // Condition variable and mutex for waiting suspend_ack
         NOMADSUtil::ConditionVariable _cvSuspend;
         NOMADSUtil::Mutex _mSuspend;
-        
+
         // This variable is used to force mocket to send a resumeAck
         bool _bSendResumeAck;
-        
+
         // This variable is used to force mocket to send a reEstablishAck
         bool _bSendReEstablishAck;
-        
+
         // This variable is used to force mocket to send a simpleSuspendAck
         bool _bSendSimpleSuspendAck;
-        
+
         // This variable is used to force mocket to send a suspendAck
         bool _bSendSuspendAck;
 
         int64 _i64ShutdownStartTime;        // Time when a shutdown was requested (either by the local side or the remote side)
                                             // Used in conjunction with the linger time to determine how long to wait for data to be flushed
-        
+
         float _fSRTT;                       // Contains the smoothed RTT measure for this connection
         int64 _i64LastRTTEstimationTime;
         int64 _i64LastStatUpdateTime;
@@ -331,7 +331,7 @@ class Transmitter : public NOMADSUtil::Thread
         DLList<uint32> *_pFastRetransmitControlPackets;
         DLList<uint32> *_pFastRetransmitReliableSequencedPackets;
         DLList<uint32> *_pFastRetransmitReliableUnsequencedPackets;
-        
+
         TimeIntervalAverage<uint32> *_pByteSentPerInterval;
 
         // This is 2^32. It is used to check if the variable that contains the
@@ -450,13 +450,13 @@ inline int Transmitter::ResourceLimits::freeze (NOMADSUtil::ObjectFreezer &objec
     uint32 ui32ElapsedTime = (uint32) (NOMADSUtil::getTimeInMilliseconds() - i64IntervalStartTime);
     objectFreezer.putUInt32 (ui32ElapsedTime);
     objectFreezer.putUInt32 (ui32BytesWrittenInInterval);
-    
+
 /*    printf ("ResourceLimits\n");
     printf ("ui32RateLimit %lu\n", ui32RateLimit);
     printf ("ui32RateLimitInterval %lu\n", ui32RateLimitInterval);
     printf ("ui32BytesPerInterval %lu\n", ui32BytesPerInterval);
     printf ("ui32BytesWrittenInInterval %lu\n", ui32BytesWrittenInInterval);*/
-    
+
     //objectFreezer.endObject();
     return 0;
 }
@@ -471,13 +471,13 @@ inline int Transmitter::ResourceLimits::defrost (NOMADSUtil::ObjectDefroster &ob
     objectDefroster >> ui32ElapsedTime;
     i64IntervalStartTime = NOMADSUtil::getTimeInMilliseconds() - (int64) ui32ElapsedTime;
     objectDefroster >> ui32BytesWrittenInInterval;
-    
+
 /*    printf ("ResourceLimits\n");
     printf ("ui32RateLimit %lu\n", ui32RateLimit);
     printf ("ui32RateLimitInterval %lu\n", ui32RateLimitInterval);
     printf ("ui32BytesPerInterval %lu\n", ui32BytesPerInterval);
     printf ("ui32BytesWrittenInInterval %lu\n", ui32BytesWrittenInInterval);*/
-    
+
     //return objectDefroster.endObject();
     return 0;
 }

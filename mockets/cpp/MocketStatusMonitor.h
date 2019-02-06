@@ -52,7 +52,7 @@ class MocketStatusMonitor : public NOMADSUtil::ManageableThread
 
         // Initialize the MocketStatusMonitor to send messages to a file
         // If the log file is null, the output is written to STDOUT
-        int initFileOutput (FILE *fileLog = NULL);
+        int initFileOutput (FILE *fileLog = nullptr);
 
         int initRelaying (const char *pszRelayIP, uint16 ui16RelayPort);
 

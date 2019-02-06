@@ -52,6 +52,7 @@ BitArray::~BitArray()
 int BitArray::clearBit (unsigned int uiBitIndex)
 {
     BITCLEAR(_pui8BitArray, uiBitIndex);
+    return 0;
 }
 
 bool BitArray::isBitSet (unsigned int uiBitIndex)
@@ -62,6 +63,7 @@ bool BitArray::isBitSet (unsigned int uiBitIndex)
 int BitArray::setBit (unsigned int uiBitIndex)
 {
     BITSET(_pui8BitArray, uiBitIndex);
+    return 0;
 }
 
 int BitArray::read (Reader *pReader, uint32 ui32MaxLen)
@@ -85,7 +87,7 @@ int BitArray::read (Reader *pReader, uint32 ui32MaxLen)
         pReader->read8 (&ui8);
         _pui8BitArray[i] = ui8;
     }
-
+    return 0;
 }
 
 int BitArray::write (Writer *pWriter, uint32 ui32MaxLen)

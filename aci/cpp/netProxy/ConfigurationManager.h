@@ -2,10 +2,10 @@
 #define INCL_NETPROXY_CONFIG_MANAGER_H
 
 /*
- * NetProxyConfigManager.h
+ * ConfigurationManager.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,23 +22,30 @@
  * Classes to parse the configuration files and store the acquired settings.
  */
 
+#include <string>
+#include <tuple>
 #include <utility>
 
 #include "FTypes.h"
-#include "StrClass.h"
-#include "UInt32Hashtable.h"
+#include "UInt32Hashset.h"
 #include "ConfigManager.h"
 
 #include "ConfigurationParameters.h"
-#include "NPDArray2.h"
-#include "AddressRangeDescriptor.h"
+#include "NetworkAddressRange.h"
 #include "RemoteProxyInfo.h"
-#include "Connector.h"
+#include "ProtocolSetting.h"
+#include "measure.pb.h"
+#include "Utilities.h"
 
 
 namespace ACMNetProxy
 {
-    class NetProxyConfigManager : public NOMADSUtil::ConfigManager
+    class ARPCache;
+    class ARPTableMissCache;
+    class ConnectionManager;
+    class StatisticsManager;
+
+    class ConfigurationManager : public NOMADSUtil::ConfigManager
     {
     public:
         class EndpointConfigParameters
@@ -51,13 +58,15 @@ namespace ACMNetProxy
             int parse (char *pszParamsEntry);
 
             const ProtocolSetting & getProtocolSetting (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const;
-            const CompressionSetting & getCompressionSetting (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const;
+            const CompressionSettings & getCompressionSetting (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const;
+            EncryptionType getEncryptionType (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const;
 
 
         private:
-			static const uint8 readPriorityConfEntry (const char * const pcPriority);
-            static const EncryptionType readEncryptionValue (const String& sValue);
-            static const CompressionSetting readCompressionConfEntry (const char * const pcCompressionAlg);
+            static const uint8 readPriorityConfEntry (const char * const pcPriority);
+            static const EncryptionType readEncryptionValue (const ci_string & sValue);
+            static const CompressionSettings readCompressionConfEntry (const char * const pcCompressionAlg);
+
 
             ProtocolSetting _psICMPProtocolSetting;
             ProtocolSetting _psTCPProtocolSetting;
@@ -66,21 +75,67 @@ namespace ACMNetProxy
 
 
     private:
-        class AddressMappingConfigFileReader
+        class NetworkInterfaceDescriptionReader : public NOMADSUtil::ConfigManager
         {
         public:
-            AddressMappingConfigFileReader (void);
-            ~AddressMappingConfigFileReader (void);
+            NetworkInterfaceDescriptionReader (const std::string & sInterfaceName);
 
-            int parseAddressMappingConfigFile (const char * const pszPathToConfigFile);
+            int init (const std::string & sConfigFilePath);
+            NetworkInterfaceDescriptor parseConfigFile (const std::vector<std::string> & vComplementaryNetworkInterfacesList);
 
 
         private:
-            friend class NetProxyConfigManager;
+            const std::string _sInterfaceName;
+        };
 
+
+        class AddressMappingConfigFileReader
+        {
+        public:
+            AddressMappingConfigFileReader (ConnectionManager & rConnectionManager, StatisticsManager & rStatisticsManager);
+            ~AddressMappingConfigFileReader (void);
+
+            int parseAddressMappingConfigFile (const char * const pszPathToConfigFile);
+            void addAllAddressMappingEntriesToConnectionManager (void) const;
+
+            std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>,
+                                  std::tuple<uint32, NOMADSUtil::InetAddr, NOMADSUtil::InetAddr>>>
+                getRemoteHostMappingList (void);
+            std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>,
+                                  std::tuple<uint32, NOMADSUtil::InetAddr, NOMADSUtil::InetAddr>>>
+                getMulticastMappingList (void);
+
+            static void buildMeasure (measure::Measure & m, const NetworkAddressRangeDescriptor & nardSource,
+                                      const NetworkAddressRangeDescriptor & nardDestination, uint32 ui32RemoteProxyUID,
+                                      const NOMADSUtil::InetAddr & iaRemoteInterfaceIPv4Address);
+
+
+        private:
             int parseAndAddEntry (const char *pszEntry);
+            int addAddressMappingToList (const NetworkAddressRange & sourceAddressRangeDescriptor,
+                                         const NetworkAddressRange & destinationAddressRangeDescriptor,
+                                         uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr & iaLocalInterfaceIPv4Address,
+                                         const NOMADSUtil::InetAddr & iaRemoteInterfaceIPv4Address);
+
+            int enforceAddressMappingConsistency (void);
+            int enforceAddressMappingConsistencyImpl (void);
+
+            static bool addressMappingIsAValidSpecializationOfMapping (const NetworkAddressRange & ardSourceGeneral,
+                                                                       const NetworkAddressRange & ardDestinationGeneral,
+                                                                       const NetworkAddressRange & ardSourceSpecialization,
+                                                                       const NetworkAddressRange & ardDestinationSpecialization);
+
+
+            std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>, std::tuple<uint32, NOMADSUtil::InetAddr, NOMADSUtil::InetAddr>>>
+                _remoteHostAddressMappings;                                                                 // A list of all configured address mappings
+            std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>, std::tuple<uint32, NOMADSUtil::InetAddr, NOMADSUtil::InetAddr>>>
+                _multiBroadCastAddressMappings;                                                             // A list of all mappings for multi/broad-cast addresses
+
+            ConnectionManager & _rConnectionManager;
+            StatisticsManager & _rStatisticsManager;
 
             static const int MAX_LINE_LENGTH = 2048;
+            static const std::string DEFAULT_SOURCE_ADDRESS_MAPPING;
         };
 
 
@@ -99,36 +154,47 @@ namespace ACMNetProxy
                 const EndpointConfigParameters * const getConfigParams (void) const;
 
                 bool matches (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr, uint16 ui16SourcePort = 0, uint16 ui16DestPort = 0) const;
+                bool matches (const NetworkAddressRange & ardSource, const NetworkAddressRange & ardDestination) const;
                 bool matchesAsSource (uint32 ui32SourceIPAddr, uint16 ui16SourcePort = 0) const;
+                bool matchesAsSource (const NetworkAddressRange & ardSource) const;
                 bool matchesAsDestination (uint32 ui32DestIPAddr, uint16 ui16DestPort = 0) const;
-                bool matchesAsDestination (AddressRangeDescriptor ardDestination) const;
+                bool matchesAsDestination (const NetworkAddressRange & ardDestination) const;
+
+                const NetworkAddressRangeDescriptor & getNARDSource (void) const;
+                const NetworkAddressRangeDescriptor & getNARDDestination (void) const;
 
 
             private:
-                AddressRangeDescriptor _source;
-                AddressRangeDescriptor _destination;
+                NetworkAddressRangeDescriptor _nardSource;
+                NetworkAddressRangeDescriptor _nardDestination;
                 EndpointConfigParameters _configParams;
             };
 
 
         public:
-            EndpointConfigFileReader (void);
+            EndpointConfigFileReader (StatisticsManager & rStatisticsManager);
             virtual ~EndpointConfigFileReader (void);
 
             int parseEndpointConfigFile (const char * const pszPathToConfigFile);
-            const EndpointConfigParameters * const getConfigParams (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr, uint16 ui16SourcePort = 0, uint16 ui16DestPort = 0) const;
+
+            const std::vector <EndpointConfigEntry> & getEndpointConfigTable (void) const;
+            const EndpointConfigParameters * const getConfigParams (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
+                                                                    uint16 ui16SourcePort = 0, uint16 ui16DestPort = 0) const;
+
+            static void buildMeasure (measure::Measure & m, const EndpointConfigEntry & entry);
 
 
         private:
-            friend class NetProxyConfigManager;
-
             // To prevent erroneous method calls due to automatic type promotion
             template <typename InvalidT> const EndpointConfigParameters * const getConfigParams (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
                                                                                                  InvalidT ui16SourcePort = 0, InvalidT ui16DestPort = 0) = delete;
             template <typename InvalidT> const EndpointConfigParameters * const getConfigParams (uint32 ui32SourceIPAddr, InvalidT ui32DestIPAddr,
                                                                                                  uint32 ui16SourcePort = 0, InvalidT ui16DestPort = 0) = delete;
 
-            NPDArray2 <EndpointConfigEntry> _endpointConfigTable;
+
+            std::vector <EndpointConfigEntry> _vEndpointConfigTable;
+
+            StatisticsManager & _rStatisticsManager;
 
             static const int MAX_LINE_LENGTH = 2048;
         };
@@ -137,74 +203,72 @@ namespace ACMNetProxy
         class UniqueIDsConfigFileReader
         {
         public:
-            UniqueIDsConfigFileReader (void);
+            UniqueIDsConfigFileReader (ConnectionManager & rConnectionManager);
             ~UniqueIDsConfigFileReader (void);
 
             int parseUniqueIDsConfigFile (const char * const pszPathToConfigFile);
 
 
         private:
-            int parseAndAddEntry (const char *pszEntry);
-            int updateInfoWithKeyValuePair (RemoteProxyInfo & remoteProxyInfo, const NOMADSUtil::String & sKey, const NOMADSUtil::String & sValue);
-            int updateInfoWithMocketsConfigFilePath (RemoteProxyInfo & remoteProxyInfo, const NOMADSUtil::String & sMocketsConfigFilePath);
+            int parseAndAddEntry (const char * pszEntry);
+            int updateInfoWithKeyValuePair (RemoteProxyInfo & remoteProxyInfo, const std::string & sKey, const std::string & sValue);
+
+
+            ConnectionManager & _rConnectionManager;
 
             static const int MAX_LINE_LENGTH = 2048;
-            static const NOMADSUtil::String ACTIVE_CONNECTIVITY_CONFIG_PARAMETER;
-            static const NOMADSUtil::String PASSIVE_CONNECTIVITY_CONFIG_PARAMETER;
-            static const NOMADSUtil::String BIDIRECTIONAL_CONNECTIVITY_CONFIG_PARAMETER;
+            static const std::string ACTIVE_CONNECTIVITY_CONFIG_PARAMETER;
+            static const std::string PASSIVE_CONNECTIVITY_CONFIG_PARAMETER;
+            static const std::string BIDIRECTIONAL_CONNECTIVITY_CONFIG_PARAMETER;
         };
 
 
         class StaticARPTableConfigFileReader
         {
         public:
-            StaticARPTableConfigFileReader (void);
+            StaticARPTableConfigFileReader (ARPCache & rAC);
             ~StaticARPTableConfigFileReader (void);
 
             int parseStaticARPTableConfigFile (const char * const pszPathToConfigFile);
 
 
         private:
-            friend class NetProxyConfigManager;
-            friend class PacketRouter;
+            int parseAndAddEntry (const char * pszEntry);
 
-            int parseAndAddEntry (const char *pszEntry) const;
-            int parseEtherMACAddress (const char * const pcEtherMACAddressString, NOMADSUtil::EtherMACAddr * const pEtherMACAddress) const;
+
+            ARPCache & _rAC;
 
             static const int MAX_LINE_LENGTH = 2048;
         };
 
 
     public:
-        static NetProxyConfigManager * const getNetProxyConfigManager (void);
+        ConfigurationManager (ARPCache & rAC, ARPTableMissCache & rATMC, ConnectionManager & rConnectionManager,
+                              StatisticsManager & rStatisticsManager);
+        explicit ConfigurationManager (const ConfigurationManager & rNetProxyConfigManager) = delete;
+        ~ConfigurationManager (void);
 
-        int init (const char *pszHomeDir, const char *pszConfigFile);
+        int init (const std::string & sHomeDir, const std::string & sConfigFile);
         int processConfigFiles (void);
 
         NOMADSUtil::UInt32Hashset * const getEnabledConnectorsSet (void);
 
         const ProtocolSetting * const mapAddrToProtocol (uint32 ulSrcIP, uint32 ulDstIP, NOMADSUtil::IP_PROTO_TYPE networkProtocol) const;
-        const ProtocolSetting * const mapAddrToProtocol (uint32 ulSrcIP, uint16 uhSrcPort, uint32 ulDstIP, uint16 uhDstPort, NOMADSUtil::IP_PROTO_TYPE networkProtocol) const;
+        const ProtocolSetting * const mapAddrToProtocol (uint32 ulSrcIP, uint16 uhSrcPort, uint32 ulDstIP, uint16 uhDstPort,
+                                                         NOMADSUtil::IP_PROTO_TYPE networkProtocol) const;
 
 
     private:
-        friend class AddressRangeDescriptor;
-        friend class AddressMappingConfigFileReader;
-        friend class EndpointConfigFileReader;
-        friend class StaticARPTableConfigFileReader;
-        friend class PacketRouter;
-
-        NetProxyConfigManager (void);
-        explicit NetProxyConfigManager (const NetProxyConfigManager &rNetProxyConfigManager);       // Disallow object copy
-        ~NetProxyConfigManager (void);
-
-        int processNetProxyConfigFile (void);
+        int processMainConfigFile (void);
+        NetworkInterfaceDescriptor parseNetworkInterfaceDetails (const std::string & sInterfaceName,
+                                                                 const std::vector<std::string> & vComplementaryNetworkInterfacesList);
         void consolidateConfigurationSettings (void);
 
-        static unsigned int trimConfigLine (char *pConfigLine);
-        static int splitIPFromPort (NOMADSUtil::String sIPPortPair, char *pcKeyIPAddress, uint16 *pui16KeyPortNumber, bool bAllowWildcards = true);
+        static unsigned int trimConfigLine (char * const pConfigLine);
 
-        NOMADSUtil::String _homeDir;
+
+        std::string _sHomeDir;
+        std::string _sConfigDir;
         NOMADSUtil::UInt32Hashset _enabledConnectorsSet;
 
         AddressMappingConfigFileReader _amcfr;
@@ -212,22 +276,26 @@ namespace ACMNetProxy
         UniqueIDsConfigFileReader _uicfr;
         StaticARPTableConfigFileReader _satcfr;
 
-        static const NOMADSUtil::String S_TCP_CONNECTOR;
-        static const NOMADSUtil::String S_UDP_CONNECTOR;
-        static const NOMADSUtil::String S_MOCKETS_CONNECTOR;
-        static const NOMADSUtil::String S_CSR_CONNECTOR;
+        ARPCache & _rAC;
+        ARPTableMissCache & _rATMC;
+        ConnectionManager & _rConnectionManager;
+        StatisticsManager & _rStatisticsManager;
 
-        static ConnectionManager * const P_CONNECTION_MANAGER;
+        static const std::string S_TCP_CONNECTOR;
+        static const std::string S_UDP_CONNECTOR;
+        static const std::string S_MOCKETS_CONNECTOR;
+        static const std::string S_CSR_CONNECTOR;
     };
 
 
-    inline NetProxyConfigManager::EndpointConfigParameters::EndpointConfigParameters (void) :
-        _psICMPProtocolSetting (*ProtocolSetting::getDefaultICMPProtocolSetting()), _psTCPProtocolSetting (*ProtocolSetting::getDefaultTCPProtocolSetting()),
-        _psUDPProtocolSetting (*ProtocolSetting::getDefaultUDPProtocolSetting()) { }
+    inline ConfigurationManager::EndpointConfigParameters::EndpointConfigParameters (void) :
+        _psICMPProtocolSetting{*ProtocolSetting::getDefaultICMPProtocolSetting()}, _psTCPProtocolSetting{*ProtocolSetting::getDefaultTCPProtocolSetting()},
+        _psUDPProtocolSetting{*ProtocolSetting::getDefaultUDPProtocolSetting()}
+    { }
 
-    inline NetProxyConfigManager::EndpointConfigParameters::~EndpointConfigParameters (void) { }
+    inline ConfigurationManager::EndpointConfigParameters::~EndpointConfigParameters (void) { }
 
-    inline const ProtocolSetting & NetProxyConfigManager::EndpointConfigParameters::getProtocolSetting (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
+    inline const ProtocolSetting & ConfigurationManager::EndpointConfigParameters::getProtocolSetting (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
     {
         switch (networkProtocol) {
         case NOMADSUtil::IP_PROTO_ICMP:
@@ -243,12 +311,17 @@ namespace ACMNetProxy
         return ProtocolSetting::getInvalidProtocolSetting();
     }
 
-    inline const CompressionSetting & NetProxyConfigManager::EndpointConfigParameters::getCompressionSetting (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
+    inline const CompressionSettings & ConfigurationManager::EndpointConfigParameters::getCompressionSetting (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
     {
         return getProtocolSetting (networkProtocol).getCompressionSetting();
     }
 
-    inline const EncryptionType NetProxyConfigManager::EndpointConfigParameters::readEncryptionValue (const String& sValue)
+    inline EncryptionType ConfigurationManager::EndpointConfigParameters::getEncryptionType (NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
+    {
+        return getProtocolSetting (networkProtocol).getEncryptionType();
+    }
+
+    inline const EncryptionType ConfigurationManager::EndpointConfigParameters::readEncryptionValue (const ci_string & sValue)
     {
         if (sValue == "dtls") {
             return ET_DTLS;
@@ -260,74 +333,141 @@ namespace ACMNetProxy
         return ET_UNDEF;
     }
 
-    inline NetProxyConfigManager::AddressMappingConfigFileReader::AddressMappingConfigFileReader (void) {}
+    inline ConfigurationManager::NetworkInterfaceDescriptionReader::NetworkInterfaceDescriptionReader (const std::string & sInterfaceName) :
+        _sInterfaceName{sInterfaceName}
+    { }
 
-    inline NetProxyConfigManager::AddressMappingConfigFileReader::~AddressMappingConfigFileReader (void) {}
+    inline ConfigurationManager::AddressMappingConfigFileReader::AddressMappingConfigFileReader (ConnectionManager & rConnectionManager,
+                                                                                                 StatisticsManager & rStatisticsManager) :
+        _rConnectionManager{rConnectionManager}, _rStatisticsManager{rStatisticsManager}
+    { }
 
-    inline NetProxyConfigManager::UniqueIDsConfigFileReader::UniqueIDsConfigFileReader (void) { }
+    inline ConfigurationManager::AddressMappingConfigFileReader::~AddressMappingConfigFileReader (void) { }
 
-    inline NetProxyConfigManager::UniqueIDsConfigFileReader::~UniqueIDsConfigFileReader (void) { }
+    inline std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>, std::tuple<uint32, NOMADSUtil::InetAddr, NOMADSUtil::InetAddr>>>
+        ConfigurationManager::AddressMappingConfigFileReader::getRemoteHostMappingList (void)
+    {
+        return _remoteHostAddressMappings;
+    }
 
-    inline NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::EndpointConfigEntry (void) {}
+    inline std::vector<std::pair<std::pair<NetworkAddressRange, NetworkAddressRange>, std::tuple<uint32, NOMADSUtil::InetAddr, NOMADSUtil::InetAddr>>>
+        ConfigurationManager::AddressMappingConfigFileReader::getMulticastMappingList (void)
+    {
+        return _multiBroadCastAddressMappings;
+    }
 
-    inline NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::~EndpointConfigEntry (void) {}
+    inline int ConfigurationManager::AddressMappingConfigFileReader::enforceAddressMappingConsistency (void)
+    {
+        int rc;
+        while ((rc = enforceAddressMappingConsistencyImpl()) > 0);
 
-    inline const NetProxyConfigManager::EndpointConfigParameters * const
-        NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::getConfigParams (void) const
+        return rc;
+    }
+
+    inline ConfigurationManager::UniqueIDsConfigFileReader::UniqueIDsConfigFileReader (ConnectionManager & rConnectionManager) :
+        _rConnectionManager{rConnectionManager}
+    { }
+
+    inline ConfigurationManager::UniqueIDsConfigFileReader::~UniqueIDsConfigFileReader (void) { }
+
+    inline ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::EndpointConfigEntry (void) { }
+
+    inline ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::~EndpointConfigEntry (void) { }
+
+    inline const ConfigurationManager::EndpointConfigParameters * const
+        ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::getConfigParams (void) const
     {
         return &_configParams;
     }
 
-    inline bool NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::matches (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
-                                                                                               uint16 ui16SourcePort, uint16 ui16DestPort) const
+    inline bool ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::matches (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
+                                                                                              uint16 ui16SourcePort, uint16 ui16DestPort) const
     {
         return matchesAsSource (ui32SourceIPAddr, ui16SourcePort) && matchesAsDestination (ui32DestIPAddr, ui16DestPort);
     }
 
-    inline bool NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::matchesAsSource (uint32 ui32SourceIPAddr, uint16 ui16SourcePort) const
+    inline bool ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::matches (const NetworkAddressRange & ardSource,
+                                                                                               const NetworkAddressRange & ardDestination) const
     {
-        return _source.matches (ui32SourceIPAddr, ui16SourcePort);
+        return matchesAsSource (ardSource) && matchesAsDestination (ardDestination);
     }
 
-    inline bool NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::matchesAsDestination (uint32 ui32DestIPAddr, uint16 ui16DestPort) const
+    inline bool ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::matchesAsSource (uint32 ui32SourceIPAddr, uint16 ui16SourcePort) const
     {
-        return _destination.matches (ui32DestIPAddr, ui16DestPort);
+        return _nardSource.matches (ui32SourceIPAddr, ui16SourcePort);
     }
 
-    inline bool NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigEntry::matchesAsDestination (AddressRangeDescriptor ardDestination) const
+    inline bool ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::matchesAsDestination (uint32 ui32DestIPAddr, uint16 ui16DestPort) const
     {
-        return ardDestination.overlaps (_destination);
+        return _nardDestination.matches (ui32DestIPAddr, ui16DestPort);
     }
 
-    inline NetProxyConfigManager::EndpointConfigFileReader::EndpointConfigFileReader (void) {}
+    inline bool ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::matchesAsSource (const NetworkAddressRange & ardSource) const
+    {
+        return ardSource.overlaps (_nardSource);
+    }
 
-    inline NetProxyConfigManager::EndpointConfigFileReader::~EndpointConfigFileReader (void) {}
+    inline bool ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::matchesAsDestination (const NetworkAddressRange & ardDestination) const
+    {
+        return ardDestination.overlaps (_nardDestination);
+    }
 
-    inline const NetProxyConfigManager::EndpointConfigParameters * const
-        NetProxyConfigManager::EndpointConfigFileReader::getConfigParams (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
+    inline const NetworkAddressRangeDescriptor & ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::getNARDSource (void) const
+    {
+        return _nardSource;
+    }
+
+    inline const NetworkAddressRangeDescriptor & ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry::getNARDDestination (void) const
+    {
+        return _nardDestination;
+    }
+
+    inline ConfigurationManager::EndpointConfigFileReader::EndpointConfigFileReader (StatisticsManager & rStatisticsManager) :
+        _rStatisticsManager{rStatisticsManager}
+    { }
+
+    inline ConfigurationManager::EndpointConfigFileReader::~EndpointConfigFileReader (void) { }
+
+    inline const ConfigurationManager::EndpointConfigParameters * const
+        ConfigurationManager::EndpointConfigFileReader::getConfigParams (uint32 ui32SourceIPAddr, uint32 ui32DestIPAddr,
                                                                           uint16 ui16SourcePort, uint16 ui16DestPort) const
     {
-        const EndpointConfigEntry *pEndpointConfigEntry = nullptr;
-        for (long i = 0; i <= _endpointConfigTable.getHighestIndex(); i++) {
-            pEndpointConfigEntry = &_endpointConfigTable.get (i);
-            if (pEndpointConfigEntry->matches (ui32SourceIPAddr, ui32DestIPAddr, ui16SourcePort, ui16DestPort)) {
-                return pEndpointConfigEntry->getConfigParams();
+        for (const auto & endpointConfigEntry : _vEndpointConfigTable) {
+            if (endpointConfigEntry.matches (ui32SourceIPAddr, ui32DestIPAddr, ui16SourcePort, ui16DestPort)) {
+                return endpointConfigEntry.getConfigParams();
             }
         }
 
         return nullptr;
     }
 
-    inline NetProxyConfigManager::StaticARPTableConfigFileReader::StaticARPTableConfigFileReader (void) {}
+    inline const std::vector<ConfigurationManager::EndpointConfigFileReader::EndpointConfigEntry> &
+        ConfigurationManager::EndpointConfigFileReader::getEndpointConfigTable (void) const
+    {
+        return _vEndpointConfigTable;
+    }
 
-    inline NetProxyConfigManager::StaticARPTableConfigFileReader::~StaticARPTableConfigFileReader (void) {}
+    inline ConfigurationManager::StaticARPTableConfigFileReader::StaticARPTableConfigFileReader (ARPCache & rAC) :
+        _rAC{rAC}
+    { }
 
-    inline NOMADSUtil::UInt32Hashset * const NetProxyConfigManager::getEnabledConnectorsSet (void)
+    inline ConfigurationManager::StaticARPTableConfigFileReader::~StaticARPTableConfigFileReader (void) { }
+
+    inline ConfigurationManager::ConfigurationManager (ARPCache & rAC, ARPTableMissCache & rATMC, ConnectionManager & rConnectionManager,
+                                                       StatisticsManager & rStatisticsManager) :
+        _rConnectionManager{rConnectionManager}, _rStatisticsManager{rStatisticsManager}, _rAC{rAC},
+        _rATMC{rATMC}, _amcfr{rConnectionManager, rStatisticsManager}, _ecfr{rStatisticsManager},
+        _uicfr{rConnectionManager}, _satcfr{rAC}
+    { }
+
+    inline ConfigurationManager::~ConfigurationManager (void) { }
+
+    inline NOMADSUtil::UInt32Hashset * const ConfigurationManager::getEnabledConnectorsSet (void)
     {
         return &_enabledConnectorsSet;
     }
 
-    inline const ProtocolSetting * const NetProxyConfigManager::mapAddrToProtocol (uint32 ulSrcIP, uint32 ulDstIP, NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
+    inline const ProtocolSetting * const ConfigurationManager::mapAddrToProtocol (uint32 ulSrcIP, uint32 ulDstIP, NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
     {
         const EndpointConfigParameters * const pEndpointConfigParameters = _ecfr.getConfigParams (ulSrcIP, ulDstIP);
         if (pEndpointConfigParameters == nullptr) {
@@ -337,7 +477,7 @@ namespace ACMNetProxy
         return &(pEndpointConfigParameters->getProtocolSetting (networkProtocol));
     }
 
-    inline const ProtocolSetting * const NetProxyConfigManager::mapAddrToProtocol (uint32 ulSrcIP, uint16 uhSrcPort, uint32 ulDstIP, uint16 uhDstPort,
+    inline const ProtocolSetting * const ConfigurationManager::mapAddrToProtocol (uint32 ulSrcIP, uint16 uhSrcPort, uint32 ulDstIP, uint16 uhDstPort,
                                                                                    NOMADSUtil::IP_PROTO_TYPE networkProtocol) const
     {
         const EndpointConfigParameters * const pEndpointConfigParameters = _ecfr.getConfigParams (ulSrcIP, ulDstIP, uhSrcPort, uhDstPort);
@@ -348,16 +488,9 @@ namespace ACMNetProxy
         return &(pEndpointConfigParameters->getProtocolSetting (networkProtocol));
     }
 
-    inline NetProxyConfigManager::NetProxyConfigManager (void) { }
-
-    inline NetProxyConfigManager * const NetProxyConfigManager::getNetProxyConfigManager (void)
-    {
-        static NetProxyConfigManager netProxyConfigManager;
-
-        return &netProxyConfigManager;
-    }
-
-    inline NetProxyConfigManager::~NetProxyConfigManager (void) { }
+    const NetworkInterfaceDescriptor & findNIDWithName (const std::string & sInterfaceName);
+    const NetworkInterfaceDescriptor & findNIDWithIPv4Address (uint32 ui32IPv4Address);
+    const NetworkInterfaceDescriptor & findNIDWithDefaultGatewayIPv4Address (uint32 ui32IPv4DefaultGatewayAddress);
 
 }
 

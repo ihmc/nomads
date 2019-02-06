@@ -94,8 +94,8 @@ namespace NOMADSUtil
             virtual SCTPSocket * accept (void);
             virtual const char * getRemoteHostAddr (void);
             virtual const char * getRemoteHostName (void);
-            virtual unsigned short getLocalPort (void);
-            virtual unsigned short getRemotePort (void);
+            virtual unsigned short getLocalPort (void) const;
+            virtual unsigned short getRemotePort (void) const;
             virtual SCTPSocket * dup (void);
             virtual void setTimeOut (unsigned long ulTimeOut);
             virtual int error (void);

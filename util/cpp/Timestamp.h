@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   Timestamp.h
  * Author: gbenincasa
  *
@@ -6,7 +6,7 @@
  */
 
 #ifndef TIMESTAMP_H
-#define	TIMESTAMP_H
+#define TIMESTAMP_H
 
 #include <time.h>
 
@@ -35,5 +35,5 @@ namespace NOMADSUtil
     };
 }
 
-#endif	/* TIMESTAMP_H */
+#endif    /* TIMESTAMP_H */
 

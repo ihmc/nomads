@@ -5,7 +5,7 @@
  * CircularOrderedBuffer.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +34,6 @@
 #include "FTypes.h"
 #include "PtrLList.h"
 
-#include "OrderableBufferWriter.h"
 #include "TCPSegment.h"
 
 #define DEFAULT_MIN_SIZE 8192
@@ -46,7 +45,8 @@ namespace ACMNetProxy
     class CircularOrderedBuffer
     {
     public:
-        CircularOrderedBuffer (unsigned int &uiStartingSequenceNumber, unsigned int uiMaxSize = DEFAULT_MAX_SIZE, unsigned int uiMinSize = DEFAULT_MIN_SIZE);
+        CircularOrderedBuffer (unsigned int & uiStartingSequenceNumber, unsigned int uiMaxSize = DEFAULT_MAX_SIZE,
+                               unsigned int uiMinSize = DEFAULT_MIN_SIZE);
         ~CircularOrderedBuffer (void);
 
         bool isEmpty (void) const;
@@ -61,11 +61,11 @@ namespace ACMNetProxy
         const TCPSegment * const getLastSegment (void);
 
         void setBeginningSequenceNumber (unsigned int uiBeginningSequenceNumber);
-        int insertData (TCPSegment *pTCPSegment, bool bOverwriteData = false);
-        int peekData (TCPSegment *pTCPSegment);
-        int peekData (unsigned int *uiSequenceNumber, unsigned char *pBuf, unsigned int uiBytesToRead, uint8 *ui8Flag);
-        int extractData (TCPSegment *pTCPSegment);
-        int extractData (unsigned int *uiSequenceNumber, unsigned char *pBuf, unsigned int uiBytesToRead, uint8 *ui8Flag);
+        int insertData (TCPSegment * const pTCPSegment, bool bOverwriteData = false);
+        int peekData (TCPSegment * const pTCPSegment) const;
+        int peekData (unsigned int * const uiSequenceNumber, unsigned char * const pBuf, unsigned int uiBytesToRead, uint8 * const ui8Flag) const;
+        int extractData (TCPSegment * const pTCPSegment);
+        int extractData (unsigned int * const uiSequenceNumber, unsigned char * const pBuf, unsigned int uiBytesToRead, uint8 * const ui8Flag);
         int removeData (unsigned int uiBytesToRemove);
 
         void resetBuffer (void);
@@ -81,21 +81,21 @@ namespace ACMNetProxy
         int copyBytesToCircularBuffer (const OrderableBufferWrapper<unsigned char> * const pOrderableItem);
         int copyBytesToCircularBuffer (const OrderableBufferWrapper<unsigned char> * const pOrderableItem, unsigned int uiStartingSequenceNumber);
         int copyBytesToCircularBuffer (const OrderableBufferWrapper<unsigned char> * const pOrderableItem, unsigned int uiStartingSequenceNumber, unsigned int uiFinalSequenceNumber);
-        int copyBytesFromCircularBuffer (unsigned char *pDest, unsigned int uiBytesToRead);
-        int rawCopyFromCircularBuffer (unsigned char *pDest, unsigned int uiBytesToRead);
+        int copyBytesFromCircularBuffer (unsigned char * const pDest, unsigned int uiBytesToRead) const;
+        int rawCopyFromCircularBuffer (unsigned char * const pDest, unsigned int uiBytesToRead) const;
 
-        unsigned char *_pBuf;
+        unsigned char * _pui8Buf;
         unsigned int _uiDataReaderPointer;
         const unsigned int _uiBufMinSize;
         const unsigned int _uiBufMaxSize;
         unsigned int _uiBufCurrentSize;
 
         unsigned int _uiReadingSequenceNumber;
-        unsigned int &_uiNextExpectedSequenceNumber;
+        unsigned int & _uiNextExpectedSequenceNumber;
         int _iReadyBytesInBuffer;
         int _iTotalBytesInBuffer;
 
-        NOMADSUtil::PtrLList<TCPSegment> _SeparateNodesList;
+        mutable NOMADSUtil::PtrLList<TCPSegment> _plSeparateNodesList;
     };
 
 
@@ -106,8 +106,8 @@ namespace ACMNetProxy
 
     inline bool CircularOrderedBuffer::isDataReady (void)
     {
-        return (getAvailableBytesCount() > 0) || (!_SeparateNodesList.isEmpty() &&
-                (_SeparateNodesList.getFirst()->getSequenceNumber() == _uiReadingSequenceNumber));
+        return (getAvailableBytesCount() > 0) || (!_plSeparateNodesList.isEmpty() &&
+                (_plSeparateNodesList.getFirst()->getSequenceNumber() == _uiReadingSequenceNumber));
     }
 
     inline bool CircularOrderedBuffer::isDataOutOfOrder (void) const
@@ -147,7 +147,7 @@ namespace ACMNetProxy
 
     inline const TCPSegment * const CircularOrderedBuffer::getLastSegment (void)
     {
-        return _SeparateNodesList.getTail();
+        return _plSeparateNodesList.getTail();
     }
 
     inline void CircularOrderedBuffer::setBeginningSequenceNumber (unsigned int uiBeginningSequenceNumber)

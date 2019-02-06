@@ -24,7 +24,7 @@ wrappers_objs = $(wrappers:../%.cpp=%.o)
 all: libmocketsjavawrapper.so
 
 libmockets.a : $(objects) libutil.a libsecurity.a 
-	make -C ../../linux -f Makefile.64bit
+	make -C ../../linux -f Makefile
 
 libsecurity.a :
 	make -C ../../../../util/cpp/linux -f Makefile libsecurity.a

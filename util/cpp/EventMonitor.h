@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -38,22 +38,22 @@ namespace NOMADSUtil
         public:
             EventMonitor (void);
             virtual ~EventMonitor (void);
-            
+
             enum ports {
                 DEFAULT_PORT = 23556
             };
 
             int initReceiveSocket (uint16 ui16StatPort = DEFAULT_PORT);
-            
+
             // Initialize the GroupManagerStatusMonitor to send messages to a file
             // If the log file is null, the output is written to STDOUT
             int initFileOutput (FILE *fileLog = NULL);
-            
+
             // Initialize the EventMonitor to pass messages to a handler function
             int initHandler (EventHandlerCallbackFnPtr pHandlerFn, void *pCallbackArg);
-            
+
             int go (void);
-            
+
         private:
             int handleEvent (Event *pEvent);
             void printHeader (void);

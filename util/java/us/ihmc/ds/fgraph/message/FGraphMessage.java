@@ -26,9 +26,9 @@ import java.io.Serializable;
  * FGraphMessage
  * 
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.9 $
+ * @version $Revision$
  *          Created on May 18, 2004 at 8:28:03 AM
- *          $Date: 2016/06/09 20:02:46 $
+ *          $Date$
  *          Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class FGraphMessage implements Serializable

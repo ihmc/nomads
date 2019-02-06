@@ -37,7 +37,7 @@ MocketReader::~MocketReader()
     if (_bDeleteWhenDone) {
         delete _pStreamMocket;
     }
-    _pStreamMocket = NULL;
+    _pStreamMocket = nullptr;
 }
 
 int MocketReader::read (void *pBuf, int iCount)

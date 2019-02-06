@@ -20,66 +20,77 @@
 
 namespace NOMADSUtil
 {
-   
-    ZlibCompressionInterface::ZlibCompressionInterface()
-    {
-
-    }
-
-    ZlibCompressionInterface::~ZlibCompressionInterface()
-    {
-
-    }
-
-    uint32 ZlibCompressionInterface::deflate(const char *pInflated, const uint32 ui32InflatedSize, char **ppDeflated)
+    int ZlibCompressionInterface::deflate (const char *pInflated, const uint32 ui32InflatedSize, char **ppDeflated)
     {
         ZlibCompressionInterface zli;
         BufferWriter bw;
-        zli.writeCompressedBuffer(pInflated, ui32InflatedSize, &bw);
-        memcpy(*ppDeflated, bw.getBuffer(), bw.getBufferLength());
+        int rc = zli.writeCompressedBuffer (pInflated, ui32InflatedSize, &bw);
+        if (rc < 0) {
+            return rc;
+        }
+        memcpy (*ppDeflated, bw.getBuffer(), bw.getBufferLength());
         return bw.getBufferLength();
     }
 
-    uint32 ZlibCompressionInterface::inflate(const char *pDeflatedBuffer, const uint32 ui32DeflatedSize, char **ppInflatedBuffer)
+    int ZlibCompressionInterface::inflate (
+        const char *pDeflatedBuffer,
+        const uint32 ui32DeflatedSize,
+        char **ppInflatedBuffer)
     {
         ZlibCompressionInterface zli;
-        
         // Owned by Buffer reader
-        char *pDeflatedBufferCpy = new char[ui32DeflatedSize];
-        memcpy(pDeflatedBufferCpy, pDeflatedBuffer, ui32DeflatedSize);
-        BufferReader br(pDeflatedBufferCpy, ui32DeflatedSize, true);
-        //br.init(pDeflatedBufferCpy, ui32DeflatedSize);
-        return zli.readCompressedBuffer(&br, ppInflatedBuffer);
+        char * pDeflatedBufferCpy = new char[ui32DeflatedSize];
+        memcpy (pDeflatedBufferCpy, pDeflatedBuffer, ui32DeflatedSize);
+        BufferReader br (pDeflatedBufferCpy, ui32DeflatedSize, true);
+        return zli.readCompressedBuffer (&br, ppInflatedBuffer);
     }
 
-    uint32 ZlibCompressionInterface::readCompressedBuffer(
-        Reader  *pReader, 
+    int ZlibCompressionInterface::readCompressedBuffer (
+        Reader  *pReader,
         char    **ppDestBuffer)
     {
-        if (pReader == NULL) { return -1; }
+        if (pReader == NULL) {
+            return -1;
+        }
+
         // Read buffer size from buffer
-        uint32 ui32DeflatedSize = 0U;
-        if (pReader->read32(&ui32DeflatedSize) < 0) { return -2;}
-        if (ui32DeflatedSize == 0) { return 0; }
-        *ppDestBuffer = new char[ui32DeflatedSize];
-        if (*ppDestBuffer == NULL) { return -3; }
-        CompressedReader cr(pReader, false, false);
-        if (cr.readBytes(*ppDestBuffer, ui32DeflatedSize) < 0) {
+        int iDeflatedSize = 0;
+        if (pReader->read32 (&iDeflatedSize) < 0) {
+            return -2;
+        }
+
+        if (iDeflatedSize == 0) {
+            return 0;
+        }
+
+        *ppDestBuffer = new char[iDeflatedSize];
+        if (*ppDestBuffer == NULL) {
+            printf ("new Failed, iDeflatedSize:%d\n", iDeflatedSize);
+            return -3;
+        }
+
+        CompressedReader cr (pReader, false, false);
+        if (cr.readBytes (*ppDestBuffer, iDeflatedSize) < 0) {
             delete[](*ppDestBuffer);
+            printf("readBytes Failed, iDeflatedSize: %d\n", iDeflatedSize);
             return -4;
-        }    
-        return ui32DeflatedSize;
+        }
+        return iDeflatedSize;
     }
 
-    int ZlibCompressionInterface::writeCompressedBuffer(
-        const char *pb, 
-        const uint32 ui32BufferSize, 
+    int ZlibCompressionInterface::writeCompressedBuffer (
+        const char *pb,
+        const uint32 ui32BufferSize,
         Writer *pWriter)
     {
-        if (pWriter == NULL) { return -1; }
+        if (pWriter == NULL) {
+            return -1;
+        }
         uint32 ui32InflatedSize = ui32BufferSize;
         // Write length of the uncompressed string
-        if (pWriter->write32(&ui32InflatedSize) < 0) { return -2; }
+        if (pWriter->write32(&ui32InflatedSize) < 0) {
+            return -2;
+        }
 
         CompressedWriter cw(pWriter);
         if ((cw.writeBytes(pb, ui32BufferSize) < 0) || (cw.flush() < 0)) {

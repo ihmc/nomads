@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -18,11 +18,11 @@
  *
  * The ProxyDatagramSocket uses the following protocol to communicate with the CSR proxy server
  * All communication occurs over a TCP channel and any encoding of multi-byte data uses big endian ordering
- * 
+ *
  * In the following protocol description, S is the CSR proxy server and C is the ProxyDatagramSocket (client)
- * 
+ *
  * Startup handshake is
- *   S2C 'w'     
+ *   S2C 'w'
  *   S2C 'a', 4, interfaceAddress32  (note 4 is byte count of interfaceAddress)
  *   S2C 'm', MTU16
  *   C2S 'B', port16
@@ -40,7 +40,7 @@
  *       if high order byte of destAddr32 is between 224 and 239 then MultiCast
  *       else if high order byte of destAddr32 is 255 then NeighborCast
  *       else error (ignore the request)
- *       
+ *
  * Proxy server to ProxyDatagramSocket when data has been received
  *   S2C 'd', srcAddr32, srcPort16, destAddr32, destPort16, dataPacketBytes
  *
@@ -106,13 +106,13 @@ namespace NOMADSUtil
             uint16 getMTU (void);
 
             // Get the receive buffer size
-            int getReceiveBufferSize (void);
+            int getReceiveBufferSize (void) const;
 
             // Set the receive buffer size
             int setReceiveBufferSize (int iSize);
 
             // Get the send buffer size
-            int getSendBufferSize (void);
+            int getSendBufferSize (void) const;
 
             // Set the send buffer size
             int setSendBufferSize (int iSize);

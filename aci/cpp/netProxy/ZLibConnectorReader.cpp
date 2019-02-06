@@ -2,7 +2,7 @@
  * ZLibConnectorReader.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,14 +28,15 @@
 #include "ZLibConnectorReader.h"
 
 
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    ZLibConnectorReader::ZLibConnectorReader (const CompressionSetting * const pCompressionSetting, unsigned int ulInBufSize, unsigned int ulOutBufSize, bool bNoWrapMode)
-        : ConnectorReader (pCompressionSetting), _bNoWrapMode (bNoWrapMode)
+    ZLibConnectorReader::ZLibConnectorReader (const CompressionSettings & compressionSettings, unsigned int ulInBufSize,
+                                              unsigned int ulOutBufSize, bool bNoWrapMode)
+        : ConnectorReader{compressionSettings}, _bNoWrapMode{bNoWrapMode}
     {
          if ((ulOutBufSize == 0) || (ulInBufSize == 0) ||
              (nullptr == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
@@ -80,7 +81,7 @@ namespace ACMNetProxy
                 uiIncreaseRate *= 2;
             }
             if (nullptr == (_pInputBuffer = (unsigned char*) realloc (_pInputBuffer, uiIncreaseRate*_ulInBufSize))) {
-                checkAndLogMsg ("ZLibConnectorReader::receiveTCPDataProxyMessage", Logger::L_MildError,
+                checkAndLogMsg ("ZLibConnectorReader::receiveTCPDataProxyMessage", NOMADSUtil::Logger::L_MildError,
                                 "error reallocating memory for _pInputBuffer; impossible to increase size from %u to %u bytes\n",
                                 _ulInBufSize, uiIncreaseRate * _ulInBufSize);
                 return -1;
@@ -97,7 +98,7 @@ namespace ACMNetProxy
             unsigned int uiOldAvailableBytes = _zsDecompStream.avail_out;
             rc = inflate (&_zsDecompStream, Z_SYNC_FLUSH);
             if ((rc != Z_OK) && (rc != Z_STREAM_END)) {
-                checkAndLogMsg ("ZLibConnectorReader::receiveTCPDataProxyMessage", Logger::L_MildError,
+                checkAndLogMsg ("ZLibConnectorReader::receiveTCPDataProxyMessage", NOMADSUtil::Logger::L_MildError,
                                 "error calling inflate() with flag Z_SYNC_FLUSH; returned error code is %d\n", rc);
                 return -2;
             }

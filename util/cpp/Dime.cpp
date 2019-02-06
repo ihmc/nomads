@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -113,10 +113,10 @@ int Dime::init (void *pDimeMsg, uint32 ui32MsgLength)
     char *psBufAux;
     bool bFlag;
     uint32 ui32Index = 0;
-    
+
     while (true) {
         DimeRecord *pDimeRecord = new DimeRecord();
-         
+
         // Process the MB, ME, CF flags.
         bFlag = (psBuf[ui32Offset + 0] & 0x80) == 0x80;
         pDimeRecord->setMessageBeginFlag (bFlag);
@@ -160,7 +160,7 @@ printf("Dime::init() dataLength = %d\n", ui32DataLength);
             memcpy (psBufAux, psBuf + ui32Offset + 8, ui16IdLength);
             pDimeRecord->setID (psBufAux);
         }
-        
+
         // Get the TYPE field
         uint32 indexAux = (ui16IdLength % 4 == 0) ? ui16IdLength : (ui16IdLength + 4 - (ui16IdLength % 4));
         if (ui16TypeLength > 0) {
@@ -186,9 +186,9 @@ printf("Dime::init() dataLength = %d\n", ui32DataLength);
             break;
         }
     }
-    
+
     _ui32DimeLength = ui32Offset;
-    
+
     return 0;
 }
 
@@ -199,7 +199,7 @@ int Dime::init (Reader *pReader)
     uint16 ui16Aux, ui16IdLength, ui16TypeLength;
     uint32 ui32Aux, ui32DataLength, ui32Offset = 0;
     const bool bDebug = false;
-    
+
     uint32 ui32Padding, ui32TotalPadding;
 
     char *psBufAux;
@@ -221,11 +221,11 @@ int Dime::init (Reader *pReader)
         bFlag = (pHeader[0] & 0x80) == 0x80;
         pDimeRecord->setMessageBeginFlag (bFlag);
         if (bDebug) printf("Dime:: init MB=%s\n", bFlag? "true" : "false");
-        
+
         bFlag = (pHeader[0] & 0x40) == 0x40;
         pDimeRecord->setMessageEndFlag (bFlag);
         if (bDebug) printf("Dime:: init ME=%s\n", bFlag? "true" : "false");
-        
+
         bFlag = (pHeader[0] & 0x20) == 0x20;
         pDimeRecord->setChunkFlag (bFlag);
         if (bDebug) printf("Dime:: init CF=%s\n", bFlag? "true" : "false");
@@ -235,9 +235,9 @@ int Dime::init (Reader *pReader)
         ui16IdLength = EndianHelper::htons (ui16Aux);
         ui16IdLength &= 0x1FFF;
         if (bDebug) printf("Dime:: init ID_LENGTH=%d\n", ui16IdLength);
-        
+
         // Get the TNF field
-        // ... 
+        // ...
 
         // Get the TYPE_LENGTH field
         memcpy (&ui16Aux, pHeader + 2, sizeof(uint16));
@@ -310,7 +310,7 @@ int Dime::init (Reader *pReader)
         // Throw away ui32Padding number of bytes  (for skipping padding after the PAYLOAD).
         ui32Padding = (4 - (ui32DataLength % 4)) % 4;
         if (ui32Padding > 0) {
-            if (0 != pReader->readBytes(pHeader, ui32Padding)) { 
+            if (0 != pReader->readBytes(pHeader, ui32Padding)) {
                 if (bDebug) printf("Dime:: error reading the padding (%d bytes) after the PAYLOAD field\n", ui32Padding);
                 bErrReading = true;
                 break;
@@ -319,22 +319,22 @@ int Dime::init (Reader *pReader)
         ui32TotalPadding += ui32Padding;
 
         _records[_ui16RecordsNum++] = pDimeRecord;
-        
+
         _ui32DimeLength += 8; //record header size.
         _ui32DimeLength += ui16TypeLength + ui16IdLength + ui32DataLength;
         _ui32DimeLength += ui32TotalPadding;
-        
+
         if (pDimeRecord->getMessageEndFlag()) {
             break;
         }
     } // while
-    
+
     free (pHeader);
 
     if (bErrReading) {
         if (bDebug) printf("error reading the dime record. stop the parsing.\n");
 
-        // If there was an error... 
+        // If there was an error...
         // clean up
         for (int i = 0; i < _ui16RecordsNum; i++) {
             if (_records[i] != NULL) {
@@ -353,12 +353,12 @@ void Dime::print()
 {
     printf ("::: Start of DIME Message :::\n");
     printf ("::: Total Dime length %d :::\n", getLength());
-   
+
     for (int i = 0; i < _ui16RecordsNum; i++) {
         DimeRecord* dr = _records[i];
         dr->print();
     }
-    
+
     printf ("::: End of DIME Message :::\n");
 }
 
@@ -422,7 +422,7 @@ void *DimeRecord::getRecord (void *pBuf, uint32 ui32Offset)
 
     pRecord[2] &= 0x1F;
     // Set the proper TNF value here.
-    
+
     ui32Aux = EndianHelper::htonl (_ui32PayloadLength);
     memcpy (pRecord + 4, &ui32Aux, sizeof(uint32));
 
@@ -430,7 +430,7 @@ void *DimeRecord::getRecord (void *pBuf, uint32 ui32Offset)
     if (_id != NULL) {
         memcpy (pRecord + 8, (char*)_id, _id.length());
 
-        index = 8 + (_id.length() % 4 == 0 ? _id.length() 
+        index = 8 + (_id.length() % 4 == 0 ? _id.length()
                                            : _id.length() + 4 - (_id.length() % 4) );
     }
     else {
@@ -440,7 +440,7 @@ void *DimeRecord::getRecord (void *pBuf, uint32 ui32Offset)
     // pRecord[index]: Type + Padding
     if (_type != NULL) {
         memcpy (pRecord + index, (char*) _type, _type.length());
-        index = index + (_type.length() % 4 == 0 ? _type.length() 
+        index = index + (_type.length() % 4 == 0 ? _type.length()
                                                  : _type.length() + 4 - (_type.length() % 4) );
     }
     else {
@@ -463,7 +463,7 @@ int DimeRecord::getRecord (Writer *pWriter)
 
     uint16 ui16Aux;
     uint32 ui32Aux;
-    
+
     uint8  ui8Padding;
 
     if (_id != NULL) {
@@ -490,7 +490,7 @@ int DimeRecord::getRecord (Writer *pWriter)
 
     header[2] &= 0x1F;
     // Set the proper TNF value here.
-    
+
     ui32Aux = EndianHelper::htonl (_ui32PayloadLength);
     memcpy (header + 4, &ui32Aux, sizeof(uint32));
 
@@ -537,7 +537,7 @@ int DimeRecord::getRecord (Writer *pWriter)
             }
         }
     }
-    
+
     return 0;
 }
 
@@ -549,23 +549,23 @@ uint32 DimeRecord::getRecordLength (void)
     // Add the length of the 'type' field (with padding)
     if (_type != NULL) {
         ui32Aux = _type.length();
-        ui32RecLength += (ui32Aux % 4 == 0) ? ui32Aux 
+        ui32RecLength += (ui32Aux % 4 == 0) ? ui32Aux
                                             : ( ui32Aux + 4 - (ui32Aux % 4) ); //align to 32 bits.
     }
-    
-    // Add the length of the 'ID' field (with padding)    
+
+    // Add the length of the 'ID' field (with padding)
     if (_id != NULL) {
         ui32Aux = _id.length();
-        ui32RecLength += (ui32Aux % 4 == 0) ? ui32Aux 
+        ui32RecLength += (ui32Aux % 4 == 0) ? ui32Aux
                                             : ( ui32Aux + 4 - (ui32Aux % 4) ); //align to 32 bits.
     }
-    
+
     // Now, add the size of the payload (with padding)
     ui32Aux = _ui32PayloadLength;
-    ui32RecLength += (ui32Aux % 4 == 0) ? ui32Aux 
+    ui32RecLength += (ui32Aux % 4 == 0) ? ui32Aux
                                         : ( ui32Aux + 4 - (ui32Aux % 4) ); //align to 32 bits.
 
-    return ui32RecLength;        
+    return ui32RecLength;
 }
 
 void DimeRecord::print()

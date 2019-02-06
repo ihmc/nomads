@@ -225,9 +225,9 @@ int ServiceHelper::setServiceStatus (DWORD dwStatus)
     return 0;
 }
 
-bool ServiceHelper::stopService (const char *pszServiceName) 
-{ 
-    SC_HANDLE schSCManager = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS); 
+bool ServiceHelper::stopService (const char *pszServiceName)
+{
+    SC_HANDLE schSCManager = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS);
 
     if (schSCManager == 0) {
         checkAndLogMsg ("ServiceHelper::stopService", Logger::L_MildError, "OpenSCManager failed, error code = %d\n", GetLastError());
@@ -240,16 +240,16 @@ bool ServiceHelper::stopService (const char *pszServiceName)
         else {
             SERVICE_STATUS status;
             if (ControlService (schService, SERVICE_CONTROL_STOP, &status)) {
-                CloseServiceHandle (schService); 
-                CloseServiceHandle (schSCManager); 
+                CloseServiceHandle (schService);
+                CloseServiceHandle (schSCManager);
                 return true;
             }
             else {
                 checkAndLogMsg ("ServiceHelper::stopService", Logger::L_MildError, "ControlService failed, error code = %d\n", GetLastError());
             }
-            CloseServiceHandle (schService); 
+            CloseServiceHandle (schService);
         }
-        CloseServiceHandle (schSCManager); 
+        CloseServiceHandle (schSCManager);
     }
     return false;
 }

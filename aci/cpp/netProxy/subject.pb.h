@@ -55,13 +55,22 @@ enum Subject {
   group_connection = 14,
   group_member = 15,
   process = 16,
-  netproxy = 17,
+  member_sensor = 17,
+  topology_node = 18,
+  topology_edge = 19,
+  federation_log = 20,
+  netproxy_process = 21,
+  netproxy_addr_mapping = 22,
+  netproxy_proto_mapping = 23,
+  netproxy_link_desc = 24,
+  netproxy_link_traffic = 25,
+  network_interface = 26,
   Subject_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   Subject_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool Subject_IsValid(int value);
 const Subject Subject_MIN = host;
-const Subject Subject_MAX = netproxy;
+const Subject Subject_MAX = network_interface;
 const int Subject_ARRAYSIZE = Subject_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Subject_descriptor();

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -42,8 +42,10 @@
     #endif
 #elif defined (WIN32)
     #include <WS2IpDef.h>
+
     #define ioctl ioctlsocket
     #define socklen_t int
+    std::mutex NOMADSUtil::UDPRawDatagramSocket::_mtxWinsockInit;
     bool NOMADSUtil::UDPRawDatagramSocket::bWinsockInitialized;
 #endif
 
@@ -56,9 +58,12 @@ UDPRawDatagramSocket::UDPRawDatagramSocket (void)
     sockfd = -1;
     #if defined (WIN32)
         if (!bWinsockInitialized) {
-            WSADATA wsadata;
-            WSAStartup (MAKEWORD(2,2), &wsadata);
-            bWinsockInitialized = true;
+            std::lock_guard<std::mutex> lg{_mtxWinsockInit};
+            if (!bWinsockInitialized) {
+                WSADATA wsadata;
+                WSAStartup (MAKEWORD (2, 2), &wsadata);
+                bWinsockInitialized = true;
+            }
         }
     #endif
     #if defined (UNIX)
@@ -111,7 +116,7 @@ int UDPRawDatagramSocket::init (uint16 ui16Port, uint32 ui32ListenAddr)
     if (bind (sockfd, (struct sockaddr *) &local, sizeof (local)) < 0) {
          return -5;
     }
-    
+
     // Configure socket so that we generate the IP headers
     int iSockOpt = 1;
     #if defined (WIN32)
@@ -331,7 +336,7 @@ int UDPRawDatagramSocket::receive (void *pBuf, int iBufSize)
         }
         int rc;
         socklen_t saSourceLen = sizeof (pRemoteAddr->_sa);
-        
+
         if (_ui32TimeOut > 0) {
             fd_set fdSet;
             FD_ZERO (&fdSet);
@@ -387,7 +392,7 @@ int UDPRawDatagramSocket::receive (void *pBuf, int iBufSize)
             /*
              * Notes about the socket errors that we are ignoring:
              *
-             * WSAETIMEDOUT: The connection has been dropped, becaui16e of a network failure 
+             * WSAETIMEDOUT: The connection has been dropped, becaui16e of a network failure
              * or becaui16e the system on the other end went down without notice.
              *
              * WSAECONNRESET: On a UDP-datagram socket this error indicates a previous
@@ -414,4 +419,42 @@ int UDPRawDatagramSocket::getLastError (void)
     #elif defined (UNIX)
         return errno;
     #endif
+}
+
+InetAddr UDPRawDatagramSocket::getLocalIPv4AddressToReachRemoteIPv4Address(const InetAddr & iaRemoteAddress)
+{
+    UDPRawDatagramSocket urds;
+    struct sockaddr_in local;
+    int rc;
+
+    urds.sockfd = socket (AF_INET, SOCK_DGRAM, 0);
+    if (urds.sockfd < 0) {
+        return InetAddr{};
+    }
+
+    memset (&local, 0, sizeof(local));
+    local.sin_family = AF_INET;
+    local.sin_addr.s_addr = inet_addr (iaRemoteAddress.getIPAsString());
+    local.sin_port = htons (iaRemoteAddress.getPort());
+    if ((rc = connect (urds.sockfd, reinterpret_cast<const struct sockaddr *> (&local), sizeof(local))) < 0) {
+        urds.close();
+        return InetAddr{};
+    }
+
+    struct sockaddr_in localInfo;
+    socklen_t localInfoLen = sizeof(localInfo);
+    if ((rc = getsockname (urds.sockfd, reinterpret_cast<struct sockaddr *> (&localInfo), &localInfoLen)) < 0) {
+        urds.close();
+        return InetAddr{};
+    }
+    urds.close();
+
+    const uint32 ui32IPv4Address =
+    #if defined (UNIX)
+        localInfo.sin_addr.s_addr;
+    #elif defined (WIN32)
+        localInfo.sin_addr.S_un.S_addr;
+    #endif
+
+    return InetAddr{ui32IPv4Address, ntohs (localInfo.sin_port)};
 }

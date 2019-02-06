@@ -40,15 +40,15 @@ namespace NOMADSUtil
     class ZlibCompressionInterface
     {
     public:
-        ZlibCompressionInterface();
-        ~ZlibCompressionInterface();
+        ZlibCompressionInterface (void) {};
+        ~ZlibCompressionInterface (void) {};
 
         // returns size of pDeflated/Inflated
-        uint32 deflate(const char *pInflated, const uint32 ui32InflatedSize, char **ppDeflated);
-        uint32 inflate(const char *pDeflated, const uint32 ui32DeflatedSize, char **ppInflated);
+        int deflate (const char *pInflated, const uint32 ui32InflatedSize, char **ppDeflated);
+        int inflate (const char *pDeflated, const uint32 ui32DeflatedSize, char **ppInflated);
 
         // Returns size
-        uint32 readCompressedBuffer(
+        int readCompressedBuffer(
             Reader *pReader,
             char **pDestBuffer);
 

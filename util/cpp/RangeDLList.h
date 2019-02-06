@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -431,7 +431,7 @@ namespace NOMADSUtil
                 }
                 else {
                     // Shorten the range
-                    T tmp = pRange->begin; 
+                    T tmp = pRange->begin;
                     pRange->begin = (++tmp);
                 }
             }
@@ -493,7 +493,7 @@ namespace NOMADSUtil
                 }
                 else {
                     // It's the root - I have to update _pFirstNode as well
-                    _pFirstNode = pRange->pNext; 
+                    _pFirstNode = pRange->pNext;
                 }
                 if (pRange->pNext != NULL) {
                     pRange->pNext->pPrev = pRange->pPrev;
@@ -510,7 +510,7 @@ namespace NOMADSUtil
 
             if (lessThan (pRange->begin, elBegin) && greaterThan (pRange->end, elEnd)) {
                 // the range to remove is included in the current range - split
-                // the current range in two and shorten the new range                
+                // the current range in two and shorten the new range
                 Range *pNewRange = new Range();
                 pNewRange->pNext = pRange->pNext;
                 pNewRange->pPrev = pRange;
@@ -525,7 +525,7 @@ namespace NOMADSUtil
             }
             else if (greaterThan (elBegin, pRange->begin)) {
                 // Shorten current range from the right
-                pRange->end = elBegin - 1; 
+                pRange->end = elBegin - 1;
             }
             else if (lessThan (elEnd, pRange->end)) {
                 // Shorten current rage from the left
@@ -571,7 +571,7 @@ namespace NOMADSUtil
     {
         if ((_pFirstNode == NULL) || lessThan (el, _pFirstNode->begin) || greaterThan (el, _pLastNode->end))  {
             return false;
-        }    
+        }
         Range *pCurrNode = _pFirstNode;
         while (pCurrNode != NULL) {
             if (lessThanOrEqual (pCurrNode->begin, el) &&
@@ -715,7 +715,7 @@ namespace NOMADSUtil
     }
 
     template <class T> bool RangeDLList<T>::lessThanAndDisjoint (const T l, const T r) const
-    {        
+    {
         if (_bUseSequentialArithmetic) {
             return lessThan (l + 1, r);
         }
@@ -724,7 +724,7 @@ namespace NOMADSUtil
         }
         // l == upperBound, therefore either (r == upperBound) || (l > r)
         return false;
-    }       
+    }
 
     template <class T> bool RangeDLList<T>::lessThanOrEqual (const T l, const T r) const
     {

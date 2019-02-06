@@ -27,7 +27,7 @@ import java.net.DatagramSocket;
  * Date: Oct 2, 2009
  * Time: 9:36:33 AM
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.6 $
+ * @version $Revision$
  */
 
 public class WakeOnLAN

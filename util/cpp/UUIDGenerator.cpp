@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -26,8 +26,8 @@
 #include <stdlib.h>
 
 #if defined (WIN32)
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
 #elif defined (LINUX)
     #include <sys/sysinfo.h>
@@ -401,13 +401,13 @@ void UUIDGenerator::get_random_info(char seed[16])
         char hostname[257];
     } randomness;
     randomness r;
-	
+
     #if defined (LINUX)
         #if defined (ANDROID)
           //COMMENTED OUT BECAUSE NOT WORKING ON ANDROID X86
           //SHOULD NOT CAUSE ISSUES
-	        //sysinfo (r.s);
-        #else  
+            //sysinfo (r.s);
+        #else
           sysinfo (&r.s);
         #endif
     #elif defined (SOLARIS)

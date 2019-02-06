@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -46,7 +46,7 @@ SoapMessage::SoapMessage (void)
 SoapMessage::~SoapMessage (void)
 {
     const char *pszMethodName = "SoapMessage::~SoapMessage";
-    
+
     try {
         XMLPlatformUtils::Terminate();  // Terminate Xerces
     }
@@ -69,11 +69,11 @@ bool SoapMessage::init (const char *pszBuf)
         setBody (pSoapBody);
         return true;
     }
-   
-    delete pSoapMessage; 
+
+    delete pSoapMessage;
     return false;
 }
- 
+
 bool SoapMessage::init (DOMDocument *pDOMDocument)
 {
     const char *pszMethodName = "SoapMessage::init";
@@ -136,7 +136,7 @@ String SoapMessage::serializeDOMDocument (DOMDocument *pDOMDocument)
 
     if (pWriter->canSetFeature (XMLUni::fgDOMWRTBOM, gWriteBOM))
         pWriter->setFeature (XMLUni::fgDOMWRTBOM, gWriteBOM);
-    
+
     return pWriter->writeToString (*pDOMDocument);
 }
 

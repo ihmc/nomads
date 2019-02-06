@@ -85,7 +85,7 @@ namespace IHMC_NETSENSOR
         return pszAdapterName;
     }
 
-    char* InterfaceDetector::getUserFriendlyName(const char *pszAdapterName)
+    char * InterfaceDetector::getUserFriendlyName(const char *pszAdapterName)
     {
         if (_pAddresses == nullptr) {
             printf("InterfaceDetector::Call init() before calling getUserFriendlyName()\n");
@@ -144,7 +144,7 @@ namespace IHMC_NETSENSOR
         }
         // Make a second call to GetInterfaceInfo to get
         // the actual data
-        dwRetVal = GetInterfaceInfo(_pInterfaceInfo, &ulOutBufLen);
+        dwRetVal = GetInterfaceInfo(_pInterfaceInfo, &ulOutBufLen);        
 
         if (dwRetVal == ERROR_NO_DATA) {
             printf("InterfaceDetector::initInterfaceInfo():No network adapters with IPv4 enabled on local system\n");
@@ -185,14 +185,13 @@ namespace IHMC_NETSENSOR
         else {
             _llistFriendlyNames.resetGet();
         }
-
         return 0;
     }
 
     // Prints the list of user-friendly adapter names
     void InterfaceDetector::printUserFriendlyNames(void)
     {
-        char *pNextAdapter = nullptr;
+        char * pNextAdapter = nullptr;
         int counter = 1;
         while (getNext(&pNextAdapter)) {
             printf("%d. %s\n", counter, pNextAdapter);
@@ -216,8 +215,10 @@ namespace IHMC_NETSENSOR
 #elif defined (UNIX)
         ifaddrs *pCurrAddr = _pAddresses;
         while (pCurrAddr != nullptr) {
-            if (pCurrAddr->ifa_addr->sa_family == AF_INET) {
-                _llistFriendlyNames.append(pCurrAddr->ifa_name);
+            if (pCurrAddr->ifa_addr != nullptr) {
+                if (pCurrAddr->ifa_addr->sa_family == AF_INET) {
+                    _llistFriendlyNames.append(pCurrAddr->ifa_name);
+                }
             }
             pCurrAddr = pCurrAddr->ifa_next;
         }

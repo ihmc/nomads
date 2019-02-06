@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -39,7 +39,7 @@
 
 #if defined (WIN32)
     //typedef void * HANDLE;
-	#define NOMINMAX
+    #define NOMINMAX
     #include <winsock2.h>    // Only to avoid conflicts that occur if some other header file includes winsock2.h after the include below of windows.h
     #include <windows.h>
 #elif defined (UNIX)
@@ -70,9 +70,9 @@ namespace NOMADSUtil
             // Initialize the communications port using the specified parameters
             // NOTE: Specifying an <IPAddr>:<Port> as the port will result in the
             // Serial2Net class being used to contact a remote tty server
-			// The iIPControlPort parameter is used to optionally specify the ser2net control port
-			// A value of 0 results in the default port being computed, a value < 0 implies that
-			// there should be no control port, and a value > 0 specifies the control port to be used
+            // The iIPControlPort parameter is used to optionally specify the ser2net control port
+            // A value of 0 results in the default port being computed, a value < 0 implies that
+            // there should be no control port, and a value > 0 specifies the control port to be used
             int init (const char *pszPort, uint32 ui32DTESpeed, char chParity = 'N',
                       uint8 ui8DataBits = 8, uint8 ui8StopBits = 1, int iIPControlPort = 0);
 

@@ -28,6 +28,8 @@
 #include"PacketStructures.h"
 #include"ICMPHashTable.h"
 #include"icmpinfo.pb.h"
+#include "ICMPRTTHashTable.h"
+#include "measure.pb.h"
 
 #include"ICMPTypesContainer.h"
 
@@ -39,13 +41,22 @@ namespace IHMC_NETSENSOR
         ICMPInterfaceTable(const uint32 timeInterval);
 
         void fillICMPProtoObject(const char* pIName, netsensor::ICMPPacketsByInterface *pIpbi);
+        ICMPRTTHashTable* getRTTTableForInterface(const char *pInterfaceName);
+
         void cleanTable(const uint32 ui32CleaningNumber);
-        void put(const char *pInterfaceName, IHMC_NETSENSOR_NET_UTILS::NS_ICMPPacket *pIcmpPacket);
+        void put(const char *pInterfaceName, IHMC_NETSENSOR_NET_UTILS::NS_ICMPPacket *pIcmpPacket, bool isSent, int64 timestamp);
         void printContent(void);
+        void printRTTContent(void);
         bool mutexTest(void);
     private:
+        void addToRTTTable(const char *pInterfaceName, IHMC_NETSENSOR_NET_UTILS::NS_ICMPPacket *pIcmpPacket, bool isSent, int64 timestamp);
+        void addToTypeTable(const char *pInterfaceName, IHMC_NETSENSOR_NET_UTILS::NS_ICMPPacket *pIcmpPacket);
+
+        //<--------------------------------------------------------------------------------------------->
+
         NOMADSUtil::Mutex _pTMutex;
         NOMADSUtil::StringHashtable<ICMPHashTable> _icmpInfoTableContainer;
+        NOMADSUtil::StringHashtable<ICMPRTTHashTable> _icmpRTTTable;
         uint32 _ui32msResolution;
     };
 }

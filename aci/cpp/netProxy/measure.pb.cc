@@ -144,8 +144,8 @@ void protobuf_AddDesc_measure_2eproto_impl() {
     "ngsEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001"
     "\032/\n\rIntegersEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030"
     "\002 \001(\003:\0028\001\032.\n\014DoublesEntry\022\013\n\003key\030\001 \001(\t\022\r"
-    "\n\005value\030\002 \001(\001:\0028\001B2\n\024us.ihmc.sensei.prot"
-    "oB\014MeasureProtoP\001Z\007measure\240\001\001b\006proto3", 517);
+    "\n\005value\030\002 \001(\001:\0028\001B-\n\017us.ihmc.measureB\014Me"
+    "asureProtoP\001Z\007measure\240\001\001b\006proto3", 512);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "measure.proto", &protobuf_RegisterTypes);
   ::google::protobuf::protobuf_AddDesc_google_2fprotobuf_2ftimestamp_2eproto();

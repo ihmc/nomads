@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -50,7 +50,7 @@ UInt8RangeDLList::~UInt8RangeDLList (void)
 int UInt8RangeDLList::read (Reader *pReader, uint32 ui32MaxSize)
 {
     const char * const pszMethod = "UInt8RangeDLList::read";
-    uint16 ui16Count; 
+    uint16 ui16Count;
     uint8 ui8BeginTSN;
 
     // Read TSN ranges
@@ -292,7 +292,7 @@ int UInt32RangeDLList::write (BufferWriter *pBWriter, uint32 ui32MaxSize)
 {
     const char * const pszMethod = "UInt32RangeDLList::write";
     // Write ranges. Format: [uint16]#-of-ranges|ranges|[uint16]#-of-individual-TSNs|individual-TSNs
-            
+
     uint32 ui32Index = pBWriter->getBufferLength();
 
     // Keep 2 bytes for the number of ranges - for now write a "0", later it'll be updated with the actual number of ranges
@@ -300,7 +300,7 @@ int UInt32RangeDLList::write (BufferWriter *pBWriter, uint32 ui32MaxSize)
     pBWriter->write16(&ui16Count);
 
     // Append the ranges: [uint32]range1.begin|[uint32]range1.end|[uint32]range2.begin|[uint32]range2.end|...
-    for (Range *pCurrNode = _pFirstNode; pCurrNode && ((pBWriter->getBufferLength() + 2) < ui32MaxSize); pCurrNode = pCurrNode->pNext) { 
+    for (Range *pCurrNode = _pFirstNode; pCurrNode && ((pBWriter->getBufferLength() + 2) < ui32MaxSize); pCurrNode = pCurrNode->pNext) {
         uint32 ui32Begin = pCurrNode->begin;
         uint32 ui32End = pCurrNode->end;
         if (ui32Begin == ui32End) {
@@ -330,7 +330,7 @@ int UInt32RangeDLList::write (BufferWriter *pBWriter, uint32 ui32MaxSize)
     pBWriter->write16(&ui16Count);
 
     // Append the individual TSNs: [uint32]TSN1|[uint32]TSN2|...
-    for (Range *pCurrNode = _pFirstNode; pCurrNode && ((pBWriter->getBufferLength() + 2) < ui32MaxSize); pCurrNode = pCurrNode->pNext) {      
+    for (Range *pCurrNode = _pFirstNode; pCurrNode && ((pBWriter->getBufferLength() + 2) < ui32MaxSize); pCurrNode = pCurrNode->pNext) {
         uint32 ui32Begin = pCurrNode->begin;
         uint32 ui32End = pCurrNode->end;
         if (ui32Begin == ui32End) {

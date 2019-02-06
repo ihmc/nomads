@@ -1,18 +1,18 @@
 /*
  * PacketProcessor.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -42,22 +42,22 @@ PacketProcessor::PacketProcessor (Mocket *pMocket)
     _pMocket = pMocket;
 
     // The following four will be initialized in the init() method
-    _pReceiver = NULL;
-    _pControlPacketQueue = NULL;
-    _pReliableSequencedPacketQueue = NULL;
-    _pUnreliableSequencedPacketQueue = NULL;
-    _pReliableUnsequencedPacketQueue = NULL;
-    _pReliableUnsequencedPacketTracker = NULL;
-    _pUnreliableUnsequencedPacketQueue = NULL;
+    _pReceiver = nullptr;
+    _pControlPacketQueue = nullptr;
+    _pReliableSequencedPacketQueue = nullptr;
+    _pUnreliableSequencedPacketQueue = nullptr;
+    _pReliableUnsequencedPacketQueue = nullptr;
+    _pReliableUnsequencedPacketTracker = nullptr;
+    _pUnreliableUnsequencedPacketQueue = nullptr;
 
     _ui32NextControlPacketTSN = pMocket->getStateCookie()->getControlTSNZ();
     _ui32NextReliableSequencedPacketTSN = pMocket->getStateCookie()->getReliableSequencedTSNZ();
     _ui32NextUnreliableSequencedPacketTSN = pMocket->getStateCookie()->getUnreliableSequencedTSNZ();
 
-    _pReliableSequencedFragments = NULL;
-    _pUnreliableSequencedFragments = NULL;
-    _pReliableUnsequencedFragments = NULL;
-    _pUnreliableUnsequencedFragments = NULL;
+    _pReliableSequencedFragments = nullptr;
+    _pUnreliableSequencedFragments = nullptr;
+    _pReliableUnsequencedFragments = nullptr;
+    _pUnreliableUnsequencedFragments = nullptr;
     _pReliableUnsequencedPacketQueue = new UnsequencedPacketQueue (true);
     _pReliableUnsequencedPacketTracker = new ReceivedTSNRangeHandler();
     _pUnreliableUnsequencedPacketQueue = new UnsequencedPacketQueue (false);
@@ -70,34 +70,34 @@ PacketProcessor::~PacketProcessor (void)
     if (_pReliableSequencedFragments) {
         deleteFragments (_pReliableSequencedFragments);
         delete _pReliableSequencedFragments;
-        _pReliableSequencedFragments = NULL;
+        _pReliableSequencedFragments = nullptr;
     }
     if (_pUnreliableSequencedFragments) {
         deleteFragments (_pUnreliableSequencedFragments);
         delete _pUnreliableSequencedFragments;
-        _pUnreliableSequencedFragments = NULL;
+        _pUnreliableSequencedFragments = nullptr;
     }
     if (_pReliableUnsequencedFragments) {
         deleteFragments (_pReliableUnsequencedFragments);
         delete _pReliableUnsequencedFragments;
-        _pReliableUnsequencedFragments = NULL;
+        _pReliableUnsequencedFragments = nullptr;
     }
     if (_pUnreliableUnsequencedFragments) {
         deleteFragments (_pUnreliableUnsequencedFragments);
         delete _pUnreliableUnsequencedFragments;
-        _pUnreliableUnsequencedFragments = NULL;
+        _pUnreliableUnsequencedFragments = nullptr;
     }
     if (_pReliableUnsequencedPacketQueue) {
         delete _pReliableUnsequencedPacketQueue;
-        _pReliableUnsequencedPacketQueue = NULL;
+        _pReliableUnsequencedPacketQueue = nullptr;
     }
     if (_pReliableUnsequencedPacketTracker) {
         delete _pReliableUnsequencedPacketTracker;
-        _pReliableUnsequencedPacketTracker = NULL;
+        _pReliableUnsequencedPacketTracker = nullptr;
     }
     if (_pUnreliableUnsequencedPacketQueue) {
         delete _pUnreliableUnsequencedPacketQueue;
-        _pUnreliableUnsequencedPacketQueue = NULL;
+        _pUnreliableUnsequencedPacketQueue = nullptr;
     }
 }
 
@@ -150,10 +150,10 @@ int PacketProcessor::processReliableUnsequencedPacket (Packet *pPacket)
         _pReliableUnsequencedFragments = _pReliableUnsequencedPacketQueue->insert (pPacket);
         dequeuedPacket (pPacket);
         _pReliableUnsequencedPacketTracker->addTSN (ui32SeqNum);
-        if (_pReliableUnsequencedFragments != NULL) {
+        if (_pReliableUnsequencedFragments != nullptr) {
             // The fragment added completed a packet, all the fragments are in _pReliableUnsequencedFragments now deliver them
             deliverFragments (_pReliableUnsequencedFragments);
-            _pReliableUnsequencedFragments = NULL;
+            _pReliableUnsequencedFragments = nullptr;
             _pReliableUnsequencedPacketTracker->addTSN (ui32SeqNum);
         }
         else {
@@ -184,7 +184,7 @@ int PacketProcessor::processUnreliableSequencedPacketWithoutBuffering (Packet *p
         if (_pUnreliableSequencedFragments) {
             uint16 ui16Count = deleteFragments (_pUnreliableSequencedFragments);
             delete _pUnreliableSequencedFragments;
-            _pUnreliableSequencedFragments = NULL;
+            _pUnreliableSequencedFragments = nullptr;
             _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
             checkAndLogMsg ("PacketProcessor::processUnreliableSequencedPacketWithoutBuffering", Logger::L_LowDetailDebug,
                             "deleted message fragments because of missing packets; next expected TSN is %lu; received packet TSN is %lu\n",
@@ -203,7 +203,7 @@ int PacketProcessor::processUnreliableSequencedPacketWithoutBuffering (Packet *p
         if (_pUnreliableSequencedFragments) {
             uint16 ui16Count = deleteFragments (_pUnreliableSequencedFragments);
             delete _pUnreliableSequencedFragments;
-            _pUnreliableSequencedFragments = NULL;
+            _pUnreliableSequencedFragments = nullptr;
             _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
             checkAndLogMsg ("PacketProcessor::processUnreliableSequencedPacketWithoutBuffering", Logger::L_LowDetailDebug,
                             "deleted message fragments because packet with sequence number %lu was dropped\n",
@@ -225,7 +225,7 @@ int PacketProcessor::processUnreliableSequencedPacketWithoutBuffering (Packet *p
                             pPacket->getSequenceNum());
             uint16 ui16Count = deleteFragments (_pUnreliableSequencedFragments);
             delete _pUnreliableSequencedFragments;
-            _pUnreliableSequencedFragments = NULL;
+            _pUnreliableSequencedFragments = nullptr;
             _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
         }
         int rc;
@@ -260,7 +260,7 @@ int PacketProcessor::processUnreliableSequencedPacketWithoutBuffering (Packet *p
             deliverFragments (_pUnreliableSequencedFragments);
             // NOTE: Do not delete _pUnreliableSequencedFragments as the list is stored in the DataBuffer
             // by deliverFragments() and will be deleted after the application has received the data
-            _pUnreliableSequencedFragments = NULL;
+            _pUnreliableSequencedFragments = nullptr;
         }
         else {
             // Problem - this is the last fragment but there are no previous fragments to assemble
@@ -308,10 +308,10 @@ int PacketProcessor::processUnreliableUnsequencedPacket (Packet *pPacket)
         //printf ("PacketProcessor::processUnreliableUnsequencedPacket insert packet with sequence number %d\n", pPacket->getSequenceNum());
         _pUnreliableUnsequencedFragments = _pUnreliableUnsequencedPacketQueue->insert(pPacket);
         dequeuedPacket (pPacket);
-        if (_pUnreliableUnsequencedFragments != NULL) {
+        if (_pUnreliableUnsequencedFragments != nullptr) {
             //printf ("PacketProcessor::processUnreliableUnsequencedPacket Deliver fragments\n");
             deliverFragments(_pUnreliableUnsequencedFragments);
-            _pUnreliableUnsequencedFragments = NULL;
+            _pUnreliableUnsequencedFragments = nullptr;
         }
         else {
             //printf ("PacketProcessor::processUnreliableUnsequencedPacket Did not fill fragments list\n");
@@ -344,7 +344,7 @@ int PacketProcessor::processPacket (Packet *pPacket)
                 _pMocket->notifyTransmitter();
                 _pMocket->notifyPacketProcessor();
                 break;
-                
+
             case Packet::CT_Data:
             {
                 uint32 ui32SequenceNum = pPacket->getSequenceNum();
@@ -385,7 +385,7 @@ int PacketProcessor::getNextMessageSize (int64 i64Timeout)
         i64Timeout = _pMocket->getReceiveTimeout();
     }
     DataBuffer *pBuffer = _receivedDataQueue.peek (i64Timeout);
-    if (pBuffer == NULL) {
+    if (pBuffer == nullptr) {
         // If no data was returned, it could be because the connection has been closed
         // In that case, we want to return -1 and not 0
         if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_CLOSED) {
@@ -422,10 +422,11 @@ int PacketProcessor::receive (void *pBuf, uint32 ui32BufSize, int64 i64Timeout)
         i64Timeout = _pMocket->getReceiveTimeout();
     }
     DataBuffer *pBuffer = _receivedDataQueue.extract (i64Timeout);
-    if (pBuffer == NULL) {
+    if (pBuffer == nullptr) {
         // If no data was returned, it could be because the connection has been closed
         // In that case, we want to return -1 and not 0
-        if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_CLOSED) {
+        const auto smCurrentState = _pMocket->getStateMachine()->getCurrentState();
+        if ((smCurrentState == StateMachine::S_CLOSED) || (smCurrentState == StateMachine::S_APPLICATION_ABORT)) {
             _mReceive.unlock();
             return -1;
         }
@@ -434,6 +435,7 @@ int PacketProcessor::receive (void *pBuf, uint32 ui32BufSize, int64 i64Timeout)
             return 0;
         }
     }
+
     if (pBuffer->fragmentedMessage()) {
         Packet *pPacket;
         LList<Packet*> *pFragments = pBuffer->getFragments();
@@ -497,10 +499,11 @@ int PacketProcessor::sreceive (int64 i64Timeout, void *pBuf1, uint32 ui32BufSize
         i64Timeout = _pMocket->getReceiveTimeout();
     }
     DataBuffer *pBuffer = _receivedDataQueue.extract (i64Timeout);
-    if (pBuffer == NULL) {
+    if (pBuffer == nullptr) {
         // If no data was returned, it could be because the connection has been closed
         // In that case, we want to return -1 and not 0
-        if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_CLOSED) {
+        const auto smCurrentState = _pMocket->getStateMachine()->getCurrentState();
+        if ((smCurrentState == StateMachine::S_CLOSED) || (smCurrentState == StateMachine::S_APPLICATION_ABORT)) {
             _mReceive.unlock();
             return -1;
         }
@@ -509,6 +512,7 @@ int PacketProcessor::sreceive (int64 i64Timeout, void *pBuf1, uint32 ui32BufSize
             return 0;
         }
     }
+
     void *pRecvBuf = pBuf1;
     uint32 ui32CurrentBufSize = ui32BufSize1;
     uint32 ui32TotalBytesCopied = 0;
@@ -529,7 +533,7 @@ int PacketProcessor::sreceive (int64 i64Timeout, void *pBuf1, uint32 ui32BufSize
                     if (ui32SpaceRemainingInCurrentBuf == 0) {
                         // Advance to the next buffer
                         pRecvBuf = va_arg (valist, void*);
-                        if (pRecvBuf != NULL) {
+                        if (pRecvBuf != nullptr) {
                             ui32CurrentBufSize = va_arg (valist, uint32);
                             ui32BytesCopiedIntoCurrentBuf = 0;
                             ui32SpaceRemainingInCurrentBuf = ui32CurrentBufSize;
@@ -571,7 +575,7 @@ int PacketProcessor::sreceive (int64 i64Timeout, void *pBuf1, uint32 ui32BufSize
                 if (ui32SpaceRemainingInCurrentBuf == 0) {
                     // Advance to the next buffer
                     pRecvBuf = va_arg (valist, void*);
-                    if (pRecvBuf != NULL) {
+                    if (pRecvBuf != nullptr) {
                         ui32CurrentBufSize = va_arg (valist, uint32);
                         ui32BytesCopiedIntoCurrentBuf = 0;
                         ui32SpaceRemainingInCurrentBuf = ui32CurrentBufSize;
@@ -625,13 +629,12 @@ void PacketProcessor::run (void)
             /*!!*/ // Change the following so that there is a minimum wait time - right now getUnreliableSequencedDeliveryTimeout returns a constant time of 3000
             _cv.wait (_pMocket->getUnreliableSequencedDeliveryTimeout());
         }
-        if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_CLOSED) {
-            bDone = true;
-        }
-        if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_SUSPENDED) {
-            bDone = true;
-        }
 
+        const auto smCurrentState = _pMocket->getStateMachine()->getCurrentState();
+        if ((smCurrentState == StateMachine::S_CLOSED) || (smCurrentState == StateMachine::S_APPLICATION_ABORT) ||
+            (smCurrentState == StateMachine::S_SUSPENDED)) {
+            bDone = true;
+        }
     }
     _m.unlock();
     _receivedDataQueue.close();
@@ -644,12 +647,12 @@ int PacketProcessor::freeze (ObjectFreezer &objectFreezer)
     objectFreezer.putUInt32 (_ui32NextControlPacketTSN);
     objectFreezer.putUInt32 (_ui32NextReliableSequencedPacketTSN);
     objectFreezer.putUInt32 (_ui32NextUnreliableSequencedPacketTSN);
-    
+
 /*    printf ("PacketProcessor\n");
     printf ("_ui32NextControlPacketTSN %lu\n", _ui32NextControlPacketTSN);
     printf ("_ui32NextReliableSequencedPacketTSN %lu\n", _ui32NextReliableSequencedPacketTSN);
     printf ("_ui32NextUnreliableSequencedPacketTSN %lu\n", _ui32NextUnreliableSequencedPacketTSN);*/
-    
+
     // _pControlPacketQueue _pReliableSequencedPacketQueue _pUnreliableSequencedPacketQueue
     // are freezed in Receiver and then initialized with reinitAfterDefrost()
 
@@ -665,11 +668,11 @@ int PacketProcessor::freeze (ObjectFreezer &objectFreezer)
     if (0 != _pUnreliableUnsequencedPacketQueue->freeze (objectFreezer)) {
         return -4;
     }
-        
+
     if (0 != _receivedDataQueue.freeze (objectFreezer)) {
         return -5;
     }
-    
+
     // Freeze linked list of fragments _pReliableSequencedFragments if it is instantiated
     if (0 != freezeLinkedList (_pReliableSequencedFragments, objectFreezer)) {
         return -6;
@@ -687,7 +690,7 @@ int PacketProcessor::freeze (ObjectFreezer &objectFreezer)
         return -9;
     }
 
-    return objectFreezer.endObject();    
+    return objectFreezer.endObject();
 }
 
 int PacketProcessor::defrost (ObjectDefroster &objectDefroster)
@@ -696,7 +699,7 @@ int PacketProcessor::defrost (ObjectDefroster &objectDefroster)
     objectDefroster >> _ui32NextControlPacketTSN;
     objectDefroster >> _ui32NextReliableSequencedPacketTSN;
     objectDefroster >> _ui32NextUnreliableSequencedPacketTSN;
-    
+
 /*    printf ("PacketProcessor\n");
     printf ("_ui32NextControlPacketTSN %lu\n", _ui32NextControlPacketTSN);
     printf ("_ui32NextReliableSequencedPacketTSN %lu\n", _ui32NextReliableSequencedPacketTSN);
@@ -716,7 +719,7 @@ int PacketProcessor::defrost (ObjectDefroster &objectDefroster)
     if (0 != _receivedDataQueue.defrost (objectDefroster, this)) {
         return -5;
     }
-    
+
     // Reconstruct Linked list of fragments _pReliableSequencedFragments if it was instantiated
     unsigned char isLList;
     objectDefroster >> isLList;
@@ -729,7 +732,7 @@ int PacketProcessor::defrost (ObjectDefroster &objectDefroster)
 /*    else {
         printf ("linked list not instantiated\n");
     }*/
-    
+
     // Reconstruct Linked list of fragments _pUnreliableSequencedFragments if it was instantiated
     objectDefroster >> isLList;
     if (isLList) {
@@ -763,7 +766,7 @@ int PacketProcessor::defrost (ObjectDefroster &objectDefroster)
 /*    else {
         printf ("linked list not instantiated\n");
     }*/
-    
+
     return objectDefroster.endObject();
 }
 
@@ -775,14 +778,14 @@ void PacketProcessor::dequeuedPacket (Packet *pPacket)
 bool PacketProcessor::tryToProcessFirstPacketFromControlQueue (void)
 {
     PacketWrapper *pWrapper = _pControlPacketQueue->peek();
-    if (pWrapper == NULL) {
+    if (pWrapper == nullptr) {
         // Queue is empty
         return false;
     }
 
     Packet *pPacket = pWrapper->getPacket();
 
-    if (pPacket == NULL) {
+    if (pPacket == nullptr) {
         // This is a place holder for a cancelled packet
         if (_ui32NextControlPacketTSN == pWrapper->getSequenceNum()) {
             _pControlPacketQueue->remove (pWrapper);
@@ -817,7 +820,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue (void)
 {
     _pReliableSequencedPacketQueue->lock();
     PacketWrapper *pWrapper = _pReliableSequencedPacketQueue->peek();
-    if (pWrapper == NULL) {
+    if (pWrapper == nullptr) {
         // Queue is empty
         _pReliableSequencedPacketQueue->unlock();
         return false;
@@ -825,7 +828,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue (void)
 
     checkAndLogMsg ("PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue", Logger::L_MediumDetailDebug,
             "waiting packet sequence number %d peek returned packet %d\n", _ui32NextReliableSequencedPacketTSN, pWrapper->getSequenceNum());
-    
+
     if (_ui32NextReliableSequencedPacketTSN != pWrapper->getSequenceNum()) {
         // We do not have the next packet to process
         checkAndLogMsg ("PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue", Logger::L_MediumDetailDebug,
@@ -833,16 +836,16 @@ bool PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue (void)
         _pReliableSequencedPacketQueue->unlock();
         return false;
     }
-    
+
     _pReliableSequencedPacketQueue->remove (pWrapper);
     _ui32NextReliableSequencedPacketTSN++;
-    _pReliableSequencedPacketQueue->setNextExpectedSequenceNum (_ui32NextReliableSequencedPacketTSN);    
+    _pReliableSequencedPacketQueue->setNextExpectedSequenceNum (_ui32NextReliableSequencedPacketTSN);
     _pReliableSequencedPacketQueue->unlock();
 
-    
+
     Packet *pPacket = pWrapper->getPacket();
 
-    if (pPacket == NULL) {
+    if (pPacket == nullptr) {
         // This is a place holder for a cancelled packet
         checkAndLogMsg ("PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue", Logger::L_MediumDetailDebug,
                         "packet %d is a place holder for a cancelled packet\n", pWrapper->getSequenceNum());
@@ -851,7 +854,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue (void)
             // If this packet is being cancelled, the message cannot be reassembled
             uint16 ui16Count = deleteFragments (_pReliableSequencedFragments);
             delete _pReliableSequencedFragments;
-            _pReliableSequencedFragments = NULL;
+            _pReliableSequencedFragments = nullptr;
             _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
             checkAndLogMsg ("PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue", Logger::L_Warning,
                             "deleted message fragments because a packet containing a fragment was cancelled\n");
@@ -869,7 +872,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue (void)
                                     pPacket->getSequenceNum());
                     uint16 ui16Count = deleteFragments (_pReliableSequencedFragments);
                     delete _pReliableSequencedFragments;
-                    _pReliableSequencedFragments = NULL;
+                    _pReliableSequencedFragments = nullptr;
                     _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
                 }
                 if (0 != (rc = processPacket (pPacket))) {
@@ -888,7 +891,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue (void)
                                     pPacket->getSequenceNum());
                     uint16 ui16Count = deleteFragments (_pReliableSequencedFragments);
                     delete _pReliableSequencedFragments;
-                    _pReliableSequencedFragments = NULL;
+                    _pReliableSequencedFragments = nullptr;
                     _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
                 }
                 _pReliableSequencedFragments = new LList<Packet*>;
@@ -906,7 +909,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromReliableSequencedQueue (void)
                     deliverFragments (_pReliableSequencedFragments);
                     // NOTE: Do not delete _pReliableSequencedFragments as the list is stored in the DataBuffer
                     // by deliverFragments() and will be deleted after the application has received the data
-                    _pReliableSequencedFragments = NULL;
+                    _pReliableSequencedFragments = nullptr;
                 }
                 else {
                     // Problem - this is the last fragment but there are no previous fragments to assemble
@@ -950,12 +953,12 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
 {
     _pUnreliableSequencedPacketQueue->lock();
     PacketWrapper *pWrapper = _pUnreliableSequencedPacketQueue->peek();
-    if (pWrapper == NULL) {
+    if (pWrapper == nullptr) {
         // Queue is empty
         _pUnreliableSequencedPacketQueue->unlock();
         return false;
     }
-    
+
     // Check if this is the packet I was expecting and if there are expired packets
     bool bExpectedPacket = false;
     bool bExpiredPackets = false;
@@ -967,21 +970,21 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
         _ui32NextUnreliableSequencedPacketTSN = pWrapper->getSequenceNum() + 1;
         bExpiredPackets = true;
     }
-    
+
     if ((bExpectedPacket == false) && (bExpiredPackets == false)) {
         // nothing to be done
         _pUnreliableSequencedPacketQueue->unlock();
         return false;
     }
-    
+
     _pUnreliableSequencedPacketQueue->remove (pWrapper);
     _pUnreliableSequencedPacketQueue->setNextExpectedSequenceNum (_ui32NextUnreliableSequencedPacketTSN);
     _pUnreliableSequencedPacketQueue->unlock();
-    
-    
+
+
     Packet *pPacket = pWrapper->getPacket();
     delete pWrapper;
-    if (pPacket == NULL) {
+    if (pPacket == nullptr) {
         // This is a place holder for a cancelled packet
         if (bExpectedPacket) {
             if (_pUnreliableSequencedFragments) {
@@ -989,7 +992,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
                 // This wrapper is a cancelled packet, the message cannot be reassembled
                 deleteFragments (_pUnreliableSequencedFragments);
                 delete _pUnreliableSequencedFragments;
-                _pUnreliableSequencedFragments = NULL;
+                _pUnreliableSequencedFragments = nullptr;
                 checkAndLogMsg ("PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue", Logger::L_Warning,
                                 "deleted message fragments because a packet containing a fragment was cancelled\n");
             }
@@ -1005,7 +1008,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
                     /*!!*/ // NOTE - This can be changed if partially reassembled packets should be delivered
                     uint16 ui16Count = deleteFragments (_pUnreliableSequencedFragments);
                     delete _pUnreliableSequencedFragments;
-                    _pUnreliableSequencedFragments = NULL;
+                    _pUnreliableSequencedFragments = nullptr;
                     _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
                     checkAndLogMsg ("PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue", Logger::L_MediumDetailDebug,
                                     "deleted message fragments because a packet was skipped over; current packet number is %lu\n", pPacket->getSequenceNum());
@@ -1056,7 +1059,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
                                         pPacket->getSequenceNum());
                         uint16 ui16Count = deleteFragments (_pUnreliableSequencedFragments);
                         delete _pUnreliableSequencedFragments;
-                        _pUnreliableSequencedFragments = NULL;
+                        _pUnreliableSequencedFragments = nullptr;
                         _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
                     }
                     if (0 != (rc = processPacket (pPacket))) {
@@ -1078,7 +1081,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
                                         pPacket->getSequenceNum());
                         uint16 ui16Count = deleteFragments (_pUnreliableSequencedFragments);
                         delete _pUnreliableSequencedFragments;
-                        _pUnreliableSequencedFragments = NULL;
+                        _pUnreliableSequencedFragments = nullptr;
                         _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets += ui16Count;
                     }
                     _pUnreliableSequencedFragments = new LList<Packet*>;
@@ -1096,7 +1099,7 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
                         deliverFragments (_pUnreliableSequencedFragments);
                         // NOTE: Do not delete _pUnreliableSequencedFragments as the list is stored in the DataBuffer
                         // by deliverFragments() and will be deleted after the application has received the data
-                        _pUnreliableSequencedFragments = NULL;
+                        _pUnreliableSequencedFragments = nullptr;
                     }
                     else {
                         // Problem - this is the last fragment but there are no previous fragments to assemble
@@ -1123,14 +1126,14 @@ bool PacketProcessor::tryToProcessFirstPacketFromUnreliableSequencedQueue (void)
                         delete pPacket;
                         _pMocket->getStatistics()->_ui32ReassemblySkippedDiscardedPackets++;
                     }
-                }   
+                }
             }
         }
     }
-    
+
     return true;
 }
-    
+
 bool PacketProcessor::checkForUnreliablePacketTimeout (uint32 ui32NextTSN, uint32 ui32PacketTSN, int64 i64TimeReceived)
 {
     uint32 ui32PacketElapsedTime = (uint32) (getTimeInMilliseconds() - i64TimeReceived);
@@ -1246,11 +1249,11 @@ void PacketProcessor::updateMessageStatistics (bool bReliable, bool bSequenced, 
 
 int PacketProcessor::freezeLinkedList (LList<Packet*> * pSequencedFragments, ObjectFreezer &objectFreezer)
 {
-    if (pSequencedFragments == NULL) {
+    if (pSequencedFragments == nullptr) {
         //printf ("linked list not instantiated\n");
         //Insert a control char to signal that no list follow
         objectFreezer << (unsigned char) 0;
-        
+
         return 0;
     }
     //Insert a control char to signal that the list follow
@@ -1260,7 +1263,7 @@ int PacketProcessor::freezeLinkedList (LList<Packet*> * pSequencedFragments, Obj
     //printf ("SequencedFragments\n");
 
     // Check if there are elements and go through the whole list
-    Packet *pCurrPacket = NULL;
+    Packet *pCurrPacket = nullptr;
     if (1 == pSequencedFragments->getFirst (pCurrPacket)) {
         // Insert a control char to signal that another fragment Packet follows
         objectFreezer << (unsigned char) 1;

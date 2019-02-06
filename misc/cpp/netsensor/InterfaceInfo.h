@@ -31,8 +31,7 @@ namespace IHMC_NETSENSOR
 class InterfaceInfo
 {
 public:
-
-    InterfaceInfo();
+    InterfaceInfo (void);
 //<---------------------------------------------------------------------------->
 public:
     bool bIIface;
@@ -40,7 +39,7 @@ public:
     uint32 ui32IpAddr;
     uint32 ui32Netmask;
     NOMADSUtil::EtherMACAddr emacInterfaceMAC;
-    TopologyDetectionMechanism tdm;
+    TopologyDetectionMechanism topologyDetectionMechanism;
 };
 
 inline InterfaceInfo::InterfaceInfo()
@@ -49,8 +48,9 @@ inline InterfaceInfo::InterfaceInfo()
     sInterfaceName      = "";
     ui32IpAddr          = 0;
     ui32Netmask         = 0;
-    emacInterfaceMAC    = {}; //find a way to initialize this c89 style
-    tdm                 = TopologyDetectionMechanism::TDM_NETMASK;
+    
+    emacInterfaceMAC    = {0, 0, 0}; //find a way to initialize this c89 style
+    topologyDetectionMechanism                 = TopologyDetectionMechanism::TDM_NETMASK;
 }
 }
 #endif

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package netsensor;
+
+option go_package = "netsensor";
+option java_package = "us.ihmc.ddam.sensors.netsensor";
+option java_generate_equals_and_hash = true;
+option java_multiple_files = true;
+option java_outer_classname = "PrefixProto";
+
+enum Prefix 
+{	
+	NONE = 0;	//No Prefix
+	K = 1;		//10^3
+	M = 2;		//10^6
+}

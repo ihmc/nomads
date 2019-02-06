@@ -207,7 +207,7 @@ inline ::netsensor::DataType NetSensorContainer::datatype() const {
   return static_cast< ::netsensor::DataType >(datatype_);
 }
 inline void NetSensorContainer::set_datatype(::netsensor::DataType value) {
-
+  
   datatype_ = value;
   // @@protoc_insertion_point(field_set:netsensor.NetSensorContainer.dataType)
 }
@@ -286,7 +286,7 @@ inline const ::netsensor::NetProxyInfo& NetSensorContainer::netproxyinfo() const
                          : *::netsensor::NetProxyInfo::internal_default_instance();
 }
 inline ::netsensor::NetProxyInfo* NetSensorContainer::mutable_netproxyinfo() {
-
+  
   if (netproxyinfo_ == NULL) {
     netproxyinfo_ = new ::netsensor::NetProxyInfo;
   }
@@ -295,7 +295,7 @@ inline ::netsensor::NetProxyInfo* NetSensorContainer::mutable_netproxyinfo() {
 }
 inline ::netsensor::NetProxyInfo* NetSensorContainer::release_netproxyinfo() {
   // @@protoc_insertion_point(field_release:netsensor.NetSensorContainer.netProxyInfo)
-
+  
   ::netsensor::NetProxyInfo* temp = netproxyinfo_;
   netproxyinfo_ = NULL;
   return temp;
@@ -304,9 +304,9 @@ inline void NetSensorContainer::set_allocated_netproxyinfo(::netsensor::NetProxy
   delete netproxyinfo_;
   netproxyinfo_ = netproxyinfo;
   if (netproxyinfo) {
-
+    
   } else {
-
+    
   }
   // @@protoc_insertion_point(field_set_allocated:netsensor.NetSensorContainer.netProxyInfo)
 }
@@ -355,7 +355,7 @@ inline const ::google::protobuf::Timestamp& NetSensorContainer::timestamp() cons
                          : *::google::protobuf::Timestamp::internal_default_instance();
 }
 inline ::google::protobuf::Timestamp* NetSensorContainer::mutable_timestamp() {
-
+  
   if (timestamp_ == NULL) {
     timestamp_ = new ::google::protobuf::Timestamp;
   }
@@ -364,7 +364,7 @@ inline ::google::protobuf::Timestamp* NetSensorContainer::mutable_timestamp() {
 }
 inline ::google::protobuf::Timestamp* NetSensorContainer::release_timestamp() {
   // @@protoc_insertion_point(field_release:netsensor.NetSensorContainer.timestamp)
-
+  
   ::google::protobuf::Timestamp* temp = timestamp_;
   timestamp_ = NULL;
   return temp;
@@ -378,9 +378,9 @@ inline void NetSensorContainer::set_allocated_timestamp(::google::protobuf::Time
   }
   timestamp_ = timestamp;
   if (timestamp) {
-
+    
   } else {
-
+    
   }
   // @@protoc_insertion_point(field_set_allocated:netsensor.NetSensorContainer.timestamp)
 }

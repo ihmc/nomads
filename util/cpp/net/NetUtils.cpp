@@ -69,8 +69,8 @@ uint16 NetUtils::getNICsNumber (bool bIncludeLoopback, bool bUniqueNetworks)
     if (ppNICsInfo) {
         uint16 ui16NICsNumber;
         for (ui16NICsNumber = 0; ppNICsInfo[ui16NICsNumber]; ui16NICsNumber++) {
-		}
-		freeNICsInfo (ppNICsInfo);
+        }
+        freeNICsInfo (ppNICsInfo);
         return ui16NICsNumber;
     }
     return 0;
@@ -97,9 +97,9 @@ NICInfo ** NetUtils::getNICsInfo (bool bIncludeLoopback, bool bUniqueNetworks)
         INTERFACE_INFO InterfaceList[256];
         u_long ulSize = 0;
         if (WSAIoctl (sd, SIO_GET_INTERFACE_LIST, 0, 0, &InterfaceList,
-			          sizeof (InterfaceList), &ulSize, 0, 0) == SOCKET_ERROR) {
+                      sizeof (InterfaceList), &ulSize, 0, 0) == SOCKET_ERROR) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Failed calling WSAIoctl\n");
-		    closesocket (sd);
+            closesocket (sd);
             return NULL;
         }
         uint16 ui16IFNum = (uint16) ulSize / sizeof (INTERFACE_INFO);

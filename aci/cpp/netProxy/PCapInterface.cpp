@@ -2,7 +2,7 @@
  * PCapInterface.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,7 +18,13 @@
  */
 
 #include <sstream>
-#if defined (LINUX)
+
+#if defined (WIN32)
+    #include <winsock2.h>
+    #include <iphlpapi.h>
+
+    #define snprintf _snprintf
+#elif defined (LINUX)
     #include <sys/types.h>
     #include <sys/ioctl.h>
     #include <sys/select.h>
@@ -28,30 +34,181 @@
     #include <errno.h>
 #endif
 
-#include "StringTokenizer.h"
 #include "Logger.h"
 
 #include "PCapInterface.h"
+#include "Utilities.h"
 #include "ConfigurationParameters.h"
 
-#if defined (WIN32)
-    #include <winsock2.h>
-    #include <iphlpapi.h>
 
-    #define snprintf _snprintf
-#endif
-
-
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    PCapInterface::PCapInterface (const String &sAdapterName) :
-        NetworkInterface (Type::T_PCap)
+    PCapInterface * const PCapInterface::getPCapInterface (const char * const pcFriendlyInterfaceName)
     {
-        _sAdapterName = sAdapterName;
+        int rc;
+        pcap_if_t * pAllDevs;
+        char errbuf[PCAP_ERRBUF_SIZE];
+
+        if (pcap_findalldevs (&pAllDevs, errbuf) == -1) {
+            return nullptr;
+        }
+
+        std::string sDeviceName (NetworkInterface::getDeviceNameFromUserFriendlyName (pcFriendlyInterfaceName));
+        if (sDeviceName.length() <= 0) {
+            checkAndLogMsg ("PCapInterface::getPCapInterface", NOMADSUtil::Logger::L_MildError,
+                            "impossible to retrieve the network device name from the user-friendly name %s\n",
+                            pcFriendlyInterfaceName);
+            return nullptr;
+        }
+        PCapInterface *pPCapInterface = new PCapInterface (sDeviceName, pcFriendlyInterfaceName);
+        if (0 != (rc = pPCapInterface->init())) {
+            checkAndLogMsg ("PCapInterface::getPCapInterface", NOMADSUtil::Logger::L_MildError,
+                            "failed to initialize PCapInterface; rc = %d\n", rc);
+            delete pPCapInterface;
+            return nullptr;
+        }
+
+        return pPCapInterface;
+    }
+
+    int PCapInterface::init (void)
+    {
+        if (nullptr == (_pPCapReadHandler =
+                        createAndActivateReadHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sInterfaceName))) {
+            return -1;
+        }
+        if (nullptr == (_pPCapWriteHandler =
+                        createAndActivateWriteHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sInterfaceName))) {
+            return -2;
+        }
+
+        const uint8 * const pszMACAddr = NetworkInterface::getMACAddrForDevice (_sInterfaceName.c_str());
+        if (pszMACAddr) {
+            memcpy (static_cast<void*> (_aui8MACAddr), pszMACAddr, 6);
+            _bMACAddrFound = true;
+            delete[] pszMACAddr;
+        }
+
+        retrieveAndSetIPv4Addr();
+
+        #if defined (WIN32)
+        _ui16MTU = retrieveMTUForInterface (_sInterfaceName.c_str());
+        #elif defined (LINUX)
+        _ui16MTU = retrieveMTUForInterface (_sInterfaceName.c_str(), pcap_get_selectable_fd (_pPCapReadHandler));
+        #endif
+        if (_ui16MTU > 0) {
+            _bMTUFound = true;
+        }
+
+        NOMADSUtil::IPv4Addr ipv4DefGW {NetworkInterface::getDefaultGatewayForInterface (_sInterfaceName.c_str())};
+        if (ipv4DefGW.ui32Addr) {
+            _bDefaultGatewayFound = true;
+            _ipv4DefaultGateway = ipv4DefGW;
+        }
+
+        return 0;
+    }
+
+    int PCapInterface::readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen)
+    {
+        struct pcap_pkthdr * pPacketHeader;
+
+        while (!_bIsTerminationRequested) {
+            int rc = 0;
+            if (_pPCapReadHandler == nullptr) {
+                std::lock_guard<std::mutex> lg{_mtxWrite};
+                checkAndLogMsg ("PCapInterface::readPacket", NOMADSUtil::Logger::L_Warning,
+                                "the pcap read handler is null: restarting it\n");
+                NOMADSUtil::sleepForMilliseconds (500);
+                if (nullptr == (_pPCapReadHandler =
+                                createAndActivateReadHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sInterfaceName))) {
+                    checkAndLogMsg ("PCapInterface::ReadPacket", NOMADSUtil::Logger::L_SevereError,
+                                    "failed to restart the pcap read handler; NetProxy will retry in the next cycle\n");
+                }
+                else {
+                    checkAndLogMsg ("PCapInterface::ReadPacket", NOMADSUtil::Logger::L_LowDetailDebug,
+                                    "successfully restarted the pcap read handler\n");
+                }
+            }
+            else {
+                rc = pcap_next_ex (_pPCapReadHandler, &pPacketHeader, pui8Buf);
+                if (rc > 0) {
+                    if (pPacketHeader->caplen < pPacketHeader->len) {
+                        checkAndLogMsg ("PCapInterface::readPacket", NOMADSUtil::Logger::L_Warning,
+                                        "the caplen field (%u bytes) of the pcap_pkthdr struct is smaller than the len "
+                                        "field (%u bytes); something went wrong (libpcap buffer too small or full?); "
+                                        "discarding packet\n", pPacketHeader->caplen, pPacketHeader->len);
+                        *pui8Buf = nullptr;
+                        ui16PacketLen = 0;
+                        continue;
+                    }
+                    ui16PacketLen = pPacketHeader->caplen;
+                    return 0;
+                }
+                else if (rc < 0) {
+                    checkAndLogMsg ("PCapInterface::readPacket", NOMADSUtil::Logger::L_MildError,
+                                    "pcap_next_ex() returned %d; closing the current handler, "
+                                    "it will be restarted in the next cycle\n", rc);
+                    *pui8Buf = nullptr;
+                    ui16PacketLen = 0;
+
+                    std::lock_guard<std::mutex> lg{_mtxWrite};
+                    if (_pPCapReadHandler != nullptr) {
+                        pcap_close (_pPCapReadHandler);
+                        _pPCapReadHandler = nullptr;
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    int PCapInterface::writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen)
+    {
+        int rc;
+
+        std::lock_guard<std::mutex> lg{_mtxWrite};
+        if (_pPCapWriteHandler == nullptr) {
+            checkAndLogMsg ("PCapInterface::writePacket", NOMADSUtil::Logger::L_Warning,
+                            "the pcap write handler is null: restarting it");
+            NOMADSUtil::sleepForMilliseconds (500);
+            if (nullptr == (_pPCapWriteHandler =
+                            createAndActivateWriteHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sInterfaceName))) {
+                checkAndLogMsg ("PCapInterface::writePacket", NOMADSUtil::Logger::L_SevereError,
+                                "failed to restart the pcap write handler\n");
+                return 0;
+            }
+            else {
+                checkAndLogMsg ("PCapInterface::ReadPacket", NOMADSUtil::Logger::L_LowDetailDebug,
+                                "successfully restarted the pcap write handler\n");
+            }
+        }
+
+        for (int counter = 0; counter < NetworkConfigurationSettings::PCAP_SEND_PACKET_ATTEMPTS; counter++) {
+            if (0 != (rc = pcap_sendpacket (_pPCapWriteHandler, pui8Buf, ui16PacketLen))) {
+                checkAndLogMsg ("PCapInterface::writePacket", NOMADSUtil::Logger::L_MildError,
+                                "pcap_sendpacket() failed writing attempt #%d with a %hu bytes long packet: "
+                                "%s;%s\n", counter + 1, ui16PacketLen, pcap_geterr (_pPCapWriteHandler),
+                                (counter < (NetworkConfigurationSettings::PCAP_SEND_PACKET_ATTEMPTS - 1)) ?
+                                " retrying..." : " send has failed");
+                NOMADSUtil::sleepForMilliseconds (NetworkConfigurationSettings::PCAP_SEND_ATTEMPT_INTERVAL_IN_MS);
+            }
+            else {
+                return ui16PacketLen;
+            }
+        }
+
+        return rc;
+    }
+
+    PCapInterface::PCapInterface (const std::string & sInterfaceName, const std::string & sUserFriendlyInterfaceName) :
+        NetworkInterface{Type::T_PCap, sInterfaceName, sUserFriendlyInterfaceName}
+    {
         _pPCapReadHandler = nullptr;
         _pPCapWriteHandler = nullptr;
     }
@@ -70,209 +227,21 @@ namespace ACMNetProxy
         }
     }
 
-    PCapInterface * const PCapInterface::getPCapInterface (const char * const pszDevice)
-    {
-        int rc;
-        pcap_if_t *pAllDevs;
-        char errbuf[PCAP_ERRBUF_SIZE];
-
-        if (pcap_findalldevs (&pAllDevs, errbuf) == -1) {
-            return nullptr;
-        }
-
-        String sDeviceName (NetworkInterface::getDeviceNameFromUserFriendlyName (pszDevice));
-        if (sDeviceName.length() <= 0) {
-            checkAndLogMsg ("PCapInterface::getPCapInterface", Logger::L_MildError,
-                            "impossible to retrieve the network device name from the user friendly name %s \n", pszDevice);
-            return nullptr;
-        }
-        PCapInterface *pPCapInterface = new PCapInterface (sDeviceName);
-        if (0 != (rc = pPCapInterface->init())) {
-            checkAndLogMsg ("PCapInterface::getPCapInterface", Logger::L_MildError,
-                            "failed to initialize PCapInterface; rc = %d\n", rc);
-            delete pPCapInterface;
-            return nullptr;
-        }
-
-        return pPCapInterface;
-    }
-
-    int PCapInterface::init (void)
-    {
-        if (nullptr == (_pPCapReadHandler =
-                        createAndActivateReadHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sAdapterName))) {
-            return -1;
-        }
-        if (nullptr == (_pPCapWriteHandler =
-                        createAndActivateWriteHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sAdapterName))) {
-            return -2;
-        }
-
-        const uint8 * const pszMACAddr = NetworkInterface::getMACAddrForDevice (_sAdapterName);
-        if (pszMACAddr) {
-            memcpy (static_cast<void*> (_aui8MACAddr), pszMACAddr, 6);
-            _bMACAddrFound = true;
-            delete[] pszMACAddr;
-        }
-
-        retrieveAndSetIPv4Addr();
-
-        #if defined (WIN32)
-        _ui16MTU = retrieveMTUForInterface (_sAdapterName);
-        #elif defined (LINUX)
-        _ui16MTU = retrieveMTUForInterface (_sAdapterName, pcap_get_selectable_fd (_pPCapReadHandler));
-        #endif
-        if (_ui16MTU > 0) {
-            _bMTUFound = true;
-        }
-
-        IPv4Addr ipv4DefGW = NetworkInterface::getDefaultGatewayForInterface (_sAdapterName);
-        if (ipv4DefGW.ui32Addr) {
-            _bDefaultGatewayFound = true;
-            _ipv4DefaultGateway = ipv4DefGW;
-        }
-
-        return 0;
-    }
-
-    bool PCapInterface::checkMACAddress (void)
-    {
-        if ((!_bMACAddrFound) || (!_bIPAddrFound)) {
-            return false;
-        }
-
-        uint8 ui8IPAddrOctet3, ui8IPAddrOctet4;
-        const char *nextToken = nullptr;
-        InetAddr virtualIPAddr (NetProxyApplicationParameters::EXTERNAL_IP_ADDR);
-        StringTokenizer st (virtualIPAddr.getIPAsString(), '.');
-        st.getNextToken();
-        st.getNextToken();
-
-        nextToken = st.getNextToken();
-        if (!nextToken) {
-            return false;
-        }
-        ui8IPAddrOctet3 = (uint8) atoi (nextToken);
-        nextToken = st.getNextToken();
-        if (!nextToken) {
-            return false;
-        }
-        ui8IPAddrOctet4 = (uint8) atoi (nextToken);
-
-        // Checking matching between 3rd and 4th bytes of the IP with 5th and 6th bytes of the MAC
-        if ((_aui8MACAddr[4] == ui8IPAddrOctet3) && (_aui8MACAddr[5] == ui8IPAddrOctet4)) {
-            return true;
-        }
-        return false;
-    }
-
-    int PCapInterface::readPacket (const uint8 ** pui8Buf, uint16 & ui16PacketLen)
-    {
-        struct pcap_pkthdr *pPacketHeader;
-
-		while (!_bIsTerminationRequested) {
-			int rc = 0;
-			if (_pPCapReadHandler == nullptr) {
-                MutexUnlocker mu (&_mWrite);
-				checkAndLogMsg ("PCapInterface::readPacket", Logger::L_Warning,
-					            "the pcap read handler is null: restarting it\n");
-				sleepForMilliseconds (500);
-				if (nullptr == (_pPCapReadHandler =
-                                createAndActivateReadHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sAdapterName))) {
-					checkAndLogMsg ("PCapInterface::ReadPacket", Logger::L_SevereError,
-						            "failed to restart the pcap read handler; NetProxy will retry in the next cycle\n");
-				}
-				else {
-					checkAndLogMsg ("PCapInterface::ReadPacket", Logger::L_LowDetailDebug,
-						            "successfully restarted the pcap read handler\n");
-				}
-			}
-			else {
-				rc = pcap_next_ex (_pPCapReadHandler, &pPacketHeader, pui8Buf);
-				if (rc > 0) {
-                    if (pPacketHeader->caplen < pPacketHeader->len) {
-                        checkAndLogMsg ("PCapInterface::readPacket", Logger::L_Warning,
-                                        "the caplen field (%u bytes) of the pcap_pkthdr struct is smaller than the len "
-                                        "field (%u bytes); something went wrong (libpcap buffer too small or full?); "
-                                        "discarding packet\n", pPacketHeader->caplen, pPacketHeader->len);
-                        *pui8Buf = nullptr;
-                        ui16PacketLen = 0;
-                        continue;
-                    }
-                    ui16PacketLen = pPacketHeader->caplen;
-                    return 0;
-				}
-				else if (rc < 0) {
-					checkAndLogMsg ("PCapInterface::readPacket", Logger::L_MildError,
-						            "pcap_next_ex() returned %d; closing the current handler, "
-                                    "it will be restarted in the next cycle\n", rc);
-                    *pui8Buf = nullptr;
-                    ui16PacketLen = 0;
-
-                    MutexUnlocker mu (&_mWrite);
-					if (_pPCapReadHandler != nullptr) {
-						pcap_close (_pPCapReadHandler);
-                        _pPCapReadHandler = nullptr;
-					}
-				}
-			}
-		}
-
-		return 0;
-    }
-
-    int PCapInterface::writePacket (const uint8 * const pui8Buf, uint16 ui16PacketLen)
-    {
-        int rc;
-
-        MutexUnlocker mu (&_mWrite);
-        if (_pPCapWriteHandler == nullptr) {
-            checkAndLogMsg ("PCapInterface::writePacket", Logger::L_Warning,
-                            "the pcap write handler is null: restarting it");
-            sleepForMilliseconds (500);
-            if (nullptr == (_pPCapWriteHandler =
-                            createAndActivateWriteHandler (NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sAdapterName))) {
-                checkAndLogMsg ("PCapInterface::writePacket", Logger::L_SevereError,
-                                "failed to restart the pcap write handler\n");
-                return 0;
-            }
-            else {
-                checkAndLogMsg ("PCapInterface::ReadPacket", Logger::L_LowDetailDebug,
-                                "successfully restarted the pcap write handler\n");
-            }
-        }
-
-		for (int counter = 0; counter < NetworkConfigurationSettings::PCAP_SEND_PACKET_ATTEMPTS; counter++) {
-			if (0 != (rc = pcap_sendpacket (_pPCapWriteHandler, pui8Buf, ui16PacketLen))) {
-				checkAndLogMsg ("PCapInterface::writePacket", Logger::L_MildError,
-                                "pcap_sendpacket() failed writing attempt #%d with a %hu bytes long packet: "
-                                "%s;%s\n", counter + 1, ui16PacketLen, pcap_geterr (_pPCapWriteHandler),
-                                (counter < (NetworkConfigurationSettings::PCAP_SEND_PACKET_ATTEMPTS - 1)) ?
-                                " retrying..." : " send has failed");
-				sleepForMilliseconds (NetworkConfigurationSettings::PCAP_SEND_ATTEMPT_INTERVAL_IN_MS);
-			}
-            else {
-                return ui16PacketLen;
-            }
-		}
-
-        return rc;
-    }
-
     void PCapInterface::retrieveAndSetIPv4Addr (void)
     {
-        pcap_if_t *pAllDevs;
-        pcap_if_t *pDevice;
+        pcap_if_t * pAllDevs;
+        pcap_if_t * pDevice;
         char errbuf[PCAP_ERRBUF_SIZE];
+
         if (pcap_findalldevs (&pAllDevs, errbuf) == -1) {
             _bIPAddrFound = false;
             _ipv4Addr.ui32Addr = 0;
             return;
         }
 
-        String adapterName = NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + _sAdapterName;
+        ci_string sAdapterName = NetProxyApplicationParameters::pszNetworkAdapterNamePrefix + ci_string{_sInterfaceName.c_str()};
         for (pDevice = pAllDevs; pDevice != nullptr; pDevice = pDevice->next) {
-            if (adapterName ^= pDevice->name) {
+            if (sAdapterName == pDevice->name) {
                 for (const pcap_addr_t *a = pDevice->addresses; a; a = a->next) {
                     switch (a->addr->sa_family) {
                     case AF_INET:
@@ -280,12 +249,12 @@ namespace ACMNetProxy
                         if (a->addr) {
                             _ipv4Addr.ui32Addr = ((struct sockaddr_in *)a->addr)->sin_addr.s_addr;
                             _bIPAddrFound = true;
-                            printf ("\t\tIPv4 address: %s\n", InetAddr (_ipv4Addr.ui32Addr).getIPAsString());
+                            printf ("\t\tIPv4 address: %s\n", NOMADSUtil::InetAddr{_ipv4Addr.ui32Addr}.getIPAsString());
                         }
                         if (a->netmask) {
                             _ipv4Netmask.ui32Addr = ((struct sockaddr_in *)a->netmask)->sin_addr.s_addr;
                             _bNetmaskFound = true;
-                            printf ("\t\tNetmask: %s\n", InetAddr (_ipv4Netmask.ui32Addr).getIPAsString());
+                            printf ("\t\tNetmask: %s\n", NOMADSUtil::InetAddr{_ipv4Netmask.ui32Addr}.getIPAsString());
                         }
                         return;
 
@@ -301,16 +270,17 @@ namespace ACMNetProxy
         }
     }
 
-    pcap_t * const PCapInterface::createAndActivateReadHandler (const NOMADSUtil::String &sAdapterName)
+    pcap_t * const PCapInterface::createAndActivateReadHandler (const std::string & sInterfaceName)
     {
         char szErrorBuf[PCAP_ERRBUF_SIZE];
-        auto * const pCapHandler = pcap_create (sAdapterName, szErrorBuf);
+        auto * const pCapHandler = pcap_create (sInterfaceName.c_str(), szErrorBuf);
         if (!pCapHandler) {
-            checkAndLogMsg ("PCapInterface::createAndActivateReadHandler", Logger::L_MildError,
+            checkAndLogMsg ("PCapInterface::createAndActivateReadHandler", NOMADSUtil::Logger::L_MildError,
                             "pcap_create() failed for device %s with error %s\n",
-                            sAdapterName.c_str(), szErrorBuf);
+                            sInterfaceName.c_str(), szErrorBuf);
             return nullptr;
         }
+
         pcap_set_snaplen (pCapHandler, 65535);
         pcap_set_promisc (pCapHandler, 1);
         pcap_set_timeout (pCapHandler, 1);
@@ -322,16 +292,17 @@ namespace ACMNetProxy
         return pCapHandler;
     }
 
-    pcap_t * const PCapInterface::createAndActivateWriteHandler (const NOMADSUtil::String &sAdapterName)
+    pcap_t * const PCapInterface::createAndActivateWriteHandler (const std::string & sInterfaceName)
     {
         char szErrorBuf[PCAP_ERRBUF_SIZE];
-        auto * const pCapHandler = pcap_create (sAdapterName, szErrorBuf);
+        auto * const pCapHandler = pcap_create (sInterfaceName.c_str(), szErrorBuf);
         if (!pCapHandler) {
-            checkAndLogMsg ("PCapInterface::createAndActivateWriteHandler", Logger::L_MildError,
+            checkAndLogMsg ("PCapInterface::createAndActivateWriteHandler", NOMADSUtil::Logger::L_MildError,
                             "pcap_create() failed for device %s with error %s\n",
-                            sAdapterName.c_str(), szErrorBuf);
+                            sInterfaceName.c_str(), szErrorBuf);
             return nullptr;
         }
+
         pcap_set_snaplen (pCapHandler, 100);
         pcap_set_promisc (pCapHandler, 1);
         pcap_set_timeout (pCapHandler, 1000);

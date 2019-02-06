@@ -21,9 +21,10 @@
 * This Class stores information about the local netproxy (if present)
 */
 
-#include"StrClass.h"
-#include"LList.h"
-#include"InterfaceInfo.h"
+#include "StrClass.h"
+#include "LList.h"
+#include "InterfaceInfo.h"
+#include <list>
 
 namespace IHMC_NETSENSOR
 {
@@ -32,8 +33,6 @@ class LocalNetproxyInfo
 //<--------------------------------------------------------------------------->
 public:
     InterfaceInfo iiInternal;
-    InterfaceInfo iiExternal;
-    NOMADSUtil::LList<NOMADSUtil::String>   remoteNetproxyAddressesList;
 };
 }
 #endif

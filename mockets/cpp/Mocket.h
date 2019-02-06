@@ -20,10 +20,10 @@
 #ifndef INCL_MOCKET_H
 #define INCL_MOCKET_H
 
+#include "PeerStatusCallbacks.h"
 #include "ACKManager.h"
 #include "CancelledTSNManager.h"
 #include "StateMachine.h"
-#include "Mocket.h"
 #include "MocketStats.h"
 #include "PacketQueue.h"
 #include "StateCookie.h"
@@ -57,8 +57,6 @@ class PacketProcessor;
 class Receiver;
 class Transmitter;
 
-typedef bool (*PeerUnreachableWarningCallbackFnPtr) (void *pCallbackArg, unsigned long ulTimeSinceLastContact);
-typedef bool (*PeerReachableCallbackFnPtr) (void *pCallbackArg, unsigned long ulTimeSinceLastContact);
 
 /*
  * Mocket
@@ -70,18 +68,19 @@ typedef bool (*PeerReachableCallbackFnPtr) (void *pCallbackArg, unsigned long ul
 class Mocket
 {
     public:
-		Mocket(const char *pszConfigFile = NULL, CommInterface *pCI = NULL, bool bDeleteCIWhenDone = false, bool bEnableDtls = false, const char* pathToCertificate = NULL, const char* pathToPrivateKey = NULL);
+        Mocket (const char *pszConfigFile = nullptr, CommInterface *pCI = nullptr, bool bDeleteCIWhenDone = false,
+                bool bEnableDtls = false, const char* pathToCertificate = nullptr, const char* pathToPrivateKey = nullptr);
         ~Mocket (void);
 
         // Sets a string to use as the application or user friendly identifier for this mocket instance
         // The identifier is used when sending out statistics and when logging information
         // Some suggestions include the name of the application, the purpose for this mocket, etc.
-        // May be set to NULL to clear a previously set identifier
+        // May be set to nullptr to clear a previously set identifier
         // NOTE: The string is copied internally, so the caller does not need to preserve the string
         void setIdentifier (const char *pszIdentifier);
 
         // Returns the identifier for this mocket instance
-        // Will return NULL if there is no identifier set
+        // Will return nullptr if there is no identifier set
         const char * getIdentifier (void);
 
         // Register a callback function to be invoked when no data (or keepalive) has been received from the peer mocket
@@ -161,7 +160,7 @@ class Mocket
         uint32 getLocalAddress (void);
 
         // Return the port on the local host to which this connection is bound to
-        uint16 getLocalPort (void);
+        uint16 getLocalPort (void) const;
 
         // Returns true if the mocket is currently connected
         bool isConnected (void);
@@ -173,6 +172,13 @@ class Mocket
         // Returns 0 if successful, 0 in case of the connection
         // being closed, and negative value in case of error
         int close (void);
+
+        // Shutdowns the commInterface and enables the fast (non-blocking) delete of the mocket istance.
+        // This should only be used in situations in which the application needs to free resources quickly
+        // without waiting for the Mocket to go through a graceful close process.
+        // Another possible use case is if the application knows that the remote Mocket endpoint is not avaiable
+        // anymore, hence waiting for the connection timeout to expire would be a waste of time and resources.
+        int applicationAbort (void);
 
         // Invoked by the application to suspend the mocket
         // Returns 0 in case of success and negative values in case of error
@@ -211,7 +217,7 @@ class Mocket
 
         // Variable argument version of send (to handle a gather write)
         // Caller can pass in any number of buffer and buffer size pairs
-        // NOTE: The last argument, after all buffer and buffer size pairs, must be NULL
+        // NOTE: The last argument, after all buffer and buffer size pairs, must be nullptr
         int gsend (bool bReliable, bool bSequenced, uint16 ui16Tag, uint8 ui8Priority, uint32 ui32EnqueueTimeout, uint32 ui32RetryTimeout,
                    const void *pBuf1, uint32 ui32BufSize1, ...);
 
@@ -257,7 +263,7 @@ class Mocket
         //     whereas a timeout of -1 implies wait indefinitely
         // The data is scattered into the buffers that are passed into the method
         // The pointer to the buffer and the buffer size arguments must be passed in pairs
-        // The last argument should be NULL
+        // The last argument should be nullptr
         // Returns the total number of bytes that were copied into all the buffers, -1 in case of the
         //     connection being closed, and 0 in case no data is available within the specified timeout
         // NOTE: If the caller passes in three buffers, (e.g., sreceive (-1, pBufOne, 8, pBufTwo, 1024, pBufThree, 4096)),
@@ -341,7 +347,7 @@ class Mocket
 
         // Different configuration files are defined for different type of networks.
         // The application can call readConfigFile() and pass in the path to the configuration file
-		// that should be loaded.
+        // that should be loaded.
         int readConfigFile (const char *pszConfigFile);
 
         // When the behavior of a node is to be connected for some time, then disconnected for some time and
@@ -429,7 +435,7 @@ class Mocket
         friend class CongestionController;
         friend class TransmissionRateModulation;
 
-		Mocket(StateCookie cookie, NOMADSUtil::InetAddr *pRemoteAddr, const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhenDone = false, bool bEnableDtls = false, const char* pathToCertificate = NULL, const char* pathToPrivateKey = NULL);
+        Mocket(StateCookie cookie, NOMADSUtil::InetAddr *pRemoteAddr, const char *pszConfigFile, CommInterface *pCI, bool bDeleteCIWhenDone = false, bool bEnableDtls = false, const char* pathToCertificate = nullptr, const char* pathToPrivateKey = nullptr);
         void startThreads (void);
         int initParamsFromConfigFile (const char *pszConfigFile);
         StateMachine * getStateMachine (void);
@@ -739,7 +745,7 @@ inline uint32 Mocket::getLocalAddress (void)
     return _ui32LocalAddress;
 }
 
-inline uint16 Mocket::getLocalPort (void)
+inline uint16 Mocket::getLocalPort (void) const
 {
     return _ui16LocalPort;
 }

@@ -1,2 +1,12 @@
-protoc --cpp_out=.\ traffic.proto
-protoc --cpp_out=.\ topology.proto
+protoc --cpp_out=.\ container.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ datatype.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ icmpinfo.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ iw.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ measure.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ netproxyinfo.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ prefix.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ rtt.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ subject.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ topology.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ container.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.
+protoc --cpp_out=.\ traffic.proto -I=..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include\ -I.

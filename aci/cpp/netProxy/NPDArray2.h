@@ -5,7 +5,7 @@
  * NPDarray2.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -56,41 +56,44 @@ namespace ACMNetProxy
 {
     template <class T> class NPDArray2
     {
-        public:
-            NPDArray2 (void);
-            NPDArray2 (unsigned int uiSize);
-            NPDArray2 (const NPDArray2<T> &SourceArray);
-            T & operator [] (unsigned int uiIndex);      // Indexing operator
-            void trimSize (unsigned int uiSize);
-            T & get (unsigned int uiIndex) const { return *Array.get (uiIndex); }
-            unsigned int getSize (void) const { return Array.getSize(); }
-            unsigned int getDefIncr (void) { return Array.getDefIncr(); }
-            void setDefIncr (unsigned int uiDefIncr) { Array.setDefIncr (uiDefIncr); }
-            long getHighestIndex (void) const { return Array.getHighestIndex(); }
-            void setHighestIndex (long lHighestIndex) { Array.setHighestIndex (lHighestIndex); }
-            unsigned int size (void) const { return Array.size(); }
-            int used (unsigned int uiIndex);
-            int clear (unsigned int uiIndex);
-            int firstFree (void);
-            void add (const T &newValue);
-            T * toBufferArray (void);
-            ~NPDArray2 (void);
-        protected:
-            NOMADSUtil::DArray <T*> Array;
+    public:
+        NPDArray2 (void);
+        NPDArray2 (unsigned int uiSize);
+        NPDArray2 (const NPDArray2<T> &SourceArray);
+        ~NPDArray2(void);
+
+        T & operator [] (unsigned int uiIndex);      // Indexing operator
+
+        void trimSize (unsigned int uiSize);
+        T & get (unsigned int uiIndex) const { return *Array.get (uiIndex); }
+        unsigned int getSize (void) const { return Array.getSize(); }
+        unsigned int getDefIncr (void) { return Array.getDefIncr(); }
+        void setDefIncr (unsigned int uiDefIncr) { Array.setDefIncr (uiDefIncr); }
+        long getHighestIndex (void) const { return Array.getHighestIndex(); }
+        void setHighestIndex (long lHighestIndex) { Array.setHighestIndex (lHighestIndex); }
+        unsigned int size (void) const { return Array.size(); }
+        int used (unsigned int uiIndex);
+        int clear (unsigned int uiIndex);
+        int firstFree (void);
+        void add (const T &newValue);
+        T * toBufferArray (void);
+
+
+    protected:
+        NOMADSUtil::DArray <T*> Array;
     };
 
-    template <class T> inline NPDArray2<T>::NPDArray2 (void)
-        : Array (nullptr)
-    {
-    }
 
-    template <class T> inline NPDArray2<T>::NPDArray2 (unsigned int uiSize)
-        : Array (nullptr, uiSize)
-    {
-    }
+    template <class T> inline NPDArray2<T>::NPDArray2 (void) :
+        Array{nullptr}
+    { }
 
-    template <class T> NPDArray2<T>::NPDArray2 (const NPDArray2<T> &SourceArray)   // Copy constructor
-        : Array (nullptr, 0)
+    template <class T> inline NPDArray2<T>::NPDArray2 (unsigned int uiSize) :
+        Array{nullptr, uiSize}
+    { }
+
+    template <class T> NPDArray2<T>::NPDArray2 (const NPDArray2<T> & SourceArray) :
+        Array{nullptr, 0}
     {
         #ifdef USE_ERROR_HANDLER_FOR_DARRAY2
              pErr->enter ("NPDArray2::NPDArray2 (NPDArray2 &sourceArray)");

@@ -1,27 +1,183 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="headers">
-      <UniqueIdentifier>{3652774d-8dfc-41cf-9b21-a452b5ee14fc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources">
-      <UniqueIdentifier>{48b8d63e-7ac2-4eea-8aaf-6e95a25d1347}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\proto">
-      <UniqueIdentifier>{f0c2951c-d1d3-4db5-a322-1e261f2bd2db}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="headers\proto">
-      <UniqueIdentifier>{641631aa-b39e-470c-bc6d-e030dd248272}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="headers\containers">
-      <UniqueIdentifier>{a2b2e074-18af-4cdc-ad7a-1baa8a8f503b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\containers">
-      <UniqueIdentifier>{a1daab52-175f-4ee1-98d1-1b2685d5d997}</UniqueIdentifier>
-    </Filter>
+    <ClCompile Include="..\..\..\CommandLineParser.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\FINHandshake.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\HandlerThread.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\MicroflowNestedHashTable.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\NetSensor.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Netsensor2.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\NetSensorConfigurationManager.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\NetSensorPacketQueue.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\NetSensorUtilities.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\NetworkInterface.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\PacketStructures.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ParameterDictionary.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\PCapInterface.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ProtobufWrapper.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ProtoMessageSender.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ReplayModeConfigFileProcessor.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\RTTContainer.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\TCPRTTInterfaceTable.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\TCPRTTList.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\TCPStream.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\TopologyCache.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\TrafficTable.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\container.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\datatype.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\rtt.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\prefix.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\traffic.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\topology.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\subject.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ICMPHashTable.cpp">
+      <Filter>sources\icmp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\icmpinfo.pb.cc">
+      <Filter>sources\icmp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ICMPInterfaceTable.cpp">
+      <Filter>sources\icmp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ICMPRTTHashTable.cpp">
+      <Filter>sources\icmp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ICMPRTTList.cpp">
+      <Filter>sources\icmp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ICMPTypesContainer.cpp">
+      <Filter>sources\icmp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\InterfaceDetector.cpp">
+      <Filter>sources\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\InterfaceMonitor.cpp">
+      <Filter>sources\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\InterfaceOptions.cpp">
+      <Filter>sources\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\InterfacesInfoTable.cpp">
+      <Filter>sources\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\IWDumpManager.cpp">
+      <Filter>sources\iw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\IWStationDump.cpp">
+      <Filter>sources\iw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\netproxyinfo.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\measure.pb.cc">
+      <Filter>sources\protobuf</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\CommandLineConfigs.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\CommandLineParser.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\container.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\datatype.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\DefaultValues.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\FINHandshake.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\HandlerThread.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\HTCfg.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ICMPHashTable.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\icmpinfo.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ICMPInterfaceTable.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ICMPRTTHashTable.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ICMPRTTList.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ICMPTypesContainer.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\InterfaceCaptureMode.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\InterfaceDetector.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\InterfaceInfo.h">
@@ -30,16 +186,34 @@
     <ClInclude Include="..\..\..\InterfaceMonitor.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\InterfaceOptions.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\InterfacesInfoTable.h">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\LocalNetproxyInfo.h">
+    <ClInclude Include="..\..\..\IWDumpManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\IWStationDump.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\measure.pb.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\MicroflowNestedHashTable.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Mode.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\netproxyinfo.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\NetSensor.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Netsensor2.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\NetSensorConfigurationManager.h">
@@ -60,10 +234,19 @@
     <ClInclude Include="..\..\..\NetSensorRecipient.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\NetsensorStatus.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\NetSensorUtilities.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\NetworkInterface.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\PacketStructures.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ParameterDictionary.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\PCapInterface.h">
@@ -72,10 +255,46 @@
     <ClInclude Include="..\..\..\prefix.pb.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\ProtobufWrapper.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\ProtoMessageSender.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\ReplayModeConfigFileProcesser.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\rtt.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\RTTContainer.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\subject.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\TCPFlagUtil.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\TCPRTTInterfaceTable.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\TCPRTTList.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\TCPStream.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\topology.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\TopologyCache.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\TopologyEntry.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\TopologyDetectionMechanism.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\TopologyInfo.h">
@@ -84,166 +303,34 @@
     <ClInclude Include="..\..\..\TopologyTable.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\traffic.pb.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\TrafficElement.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\TrafficTable.h">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\EmbeddingMode.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\container.pb.h">
-      <Filter>headers\proto</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\datatype.pb.h">
-      <Filter>headers\proto</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\netproxyinfo.pb.h">
-      <Filter>headers\proto</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\topology.pb.h">
-      <Filter>headers\proto</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\traffic.pb.h">
-      <Filter>headers\proto</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\ICMPHashTable.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\ICMPInterfaceTable.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\icmpinfo.pb.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\ICMPTypesContainer.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\PacketStructures.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\CommandLineParser.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\ParameterDictionary.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\TopologyCache.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\CommandLineConfigs.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\InterfaceDetector.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\TCPRTTTable.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\TCPRTTContainer.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\TCPRTTInterfaceTable.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\ReplayModeConfigFileProcesser.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\InterfaceCaptureMode.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\TopologyDetectionMechanism.h">
-      <Filter>headers</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\HandlerThread.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\InterfaceMonitor.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\netproxyinfo.pb.cc">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\NetSensor.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\NetSensorConfigurationManager.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\NetSensorUtilities.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\NetworkInterface.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\PCapInterface.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\ProtoMessageSender.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\container.pb.cc">
-      <Filter>Sources\proto</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\datatype.pb.cc">
-      <Filter>Sources\proto</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\prefix.pb.cc">
-      <Filter>Sources\proto</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\topology.pb.cc">
-      <Filter>Sources\proto</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\traffic.pb.cc">
-      <Filter>Sources\proto</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\TrafficTable.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\MicroflowNestedHashTable.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\ICMPHashTable.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\icmpinfo.pb.cc">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\ICMPInterfaceTable.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\ICMPTypesContainer.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\PacketStructures.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\CommandLineParser.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\ParameterDictionary.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\TopologyCache.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\InterfaceDetector.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\TCPRTTTable.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\TCPRTTContainer.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\TCPRTTInterfaceTable.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\ReplayModeConfigFileProcessor.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
+    <Filter Include="headers">
+      <UniqueIdentifier>{2c3d911d-e51c-4eaa-874f-e41ad98ee07b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sources">
+      <UniqueIdentifier>{25dbb6da-39ec-44e5-810e-8f5e56bfb9be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sources\protobuf">
+      <UniqueIdentifier>{bffb3f7e-e386-4c8e-9deb-13f91b22efb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sources\icmp">
+      <UniqueIdentifier>{e4549dba-ea33-4c0f-bcdc-702c28e4d0db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sources\interface">
+      <UniqueIdentifier>{e30b1839-9b02-4db1-9743-2a33cd2df02b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sources\iw">
+      <UniqueIdentifier>{e6137216-c168-43c6-a70c-d0f2ce8d331b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

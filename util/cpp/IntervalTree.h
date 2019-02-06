@@ -83,7 +83,7 @@ namespace NOMADSUtil
 
             class Iterator
             {
-                public: 
+                public:
                     ~Iterator (void);
 
                     // Return true if a new element was returned, false
@@ -122,7 +122,7 @@ namespace NOMADSUtil
             const bool _bSelfBalancing;
             unsigned int _uiCount;
             TreeUtil::Node *_pRoot;
-            
+
     };
 
     template <class T>
@@ -317,7 +317,7 @@ namespace NOMADSUtil
         }
 
         return insert (&((*ppRoot)->pRight), *ppRootTmp, begin, end, dPriority);
-    }       
+    }
 
     template <class T>
     bool IntervalTree<T>::isLeftChild (Node *pNode)

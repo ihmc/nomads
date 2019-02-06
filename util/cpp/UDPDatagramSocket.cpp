@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <memory.h>
+#include <string>
 
 #if defined (UNIX)
     #include <sys/types.h>
@@ -56,6 +57,11 @@
 #elif defined (WIN32)
     #define ioctl ioctlsocket
     #define socklen_t int
+
+    #include <windows.h>
+    #include <Mswsock.h>
+    #include <Ws2ipdef.h>
+
     bool NOMADSUtil::UDPDatagramSocket::bWinsockInitialized;
 #endif
 
@@ -95,13 +101,13 @@ UDPDatagramSocket::~UDPDatagramSocket (void)
 int UDPDatagramSocket::init (uint16 ui16Port, uint32 ui32ListenAddr)
 {
     if (sockfd >= 0) {
-        close ();
+        close();
     }
     if ((sockfd = (int) socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
         return -1;
     }
 
-    int opt_val = 1;
+    int rc, opt_val = 1;
 
     #if defined (DSTADDR_SOCKOPT)
         if (pktInfoEnabled()) {
@@ -125,12 +131,10 @@ int UDPDatagramSocket::init (uint16 ui16Port, uint32 ui32ListenAddr)
     }
 
     #if defined (OSX)
-
         // Enables duplicate address and port bindings
         if (setsockopt (sockfd, SOL_SOCKET, SO_REUSEPORT, (char*)&opt_val, sizeof (opt_val)) < 0) {
             return -4;
         }
-
     #endif
 
     // Enables permission to transmit broadcast messages
@@ -138,12 +142,31 @@ int UDPDatagramSocket::init (uint16 ui16Port, uint32 ui32ListenAddr)
         return -5;
     }
 
+    // Enable retrieval of the IP destination address from the IP header of received UDP datagrams
+    if (setsockopt (sockfd, IPPROTO_IP, IP_PKTINFO, (char*) &opt_val, sizeof (opt_val)) < 0) {
+        return -6;
+    }
+
+    #if defined (WIN32)
+        #if defined (NTDDI_VERSION) && defined (NTDDI_WINXP) && (NTDDI_VERSION >= NTDDI_WINXP)
+        rc = WSAIoctl (sockfd, SIO_GET_EXTENSION_FUNCTION_POINTER, &WSARecvMsg_GUID,
+                       sizeof (WSARecvMsg_GUID), &WSARecvMsg, sizeof (WSARecvMsg),
+                       &numberOfBytes, NULL, NULL);
+        if (rc == SOCKET_ERROR) {
+            //m_ErrorCode = WSAGetLastError();
+            WSARecvMsg = NULL;
+            return -2;
+        }
+        #endif
+    #endif
+
     // Bind the socket to a specified address (INADDR_ANY if not specified) and port
     if (bind (sockfd, (struct sockaddr *) &local, sizeof (local)) < 0) {
-         return -6;
+         return -8;
     }
     _ui16Port       = ui16Port;             // Store the port that was used
     _ui32ListenAddr = ui32ListenAddr;       // Store the listen addr that was used
+
     return 0;
 }
 
@@ -225,7 +248,7 @@ uint16 UDPDatagramSocket::getMTU()
     return 1500;
 }
 
-int UDPDatagramSocket::getReceiveBufferSize (void)
+int UDPDatagramSocket::getReceiveBufferSize (void) const
 {
     int iBufSize = 0;
     socklen_t optLen = sizeof (iBufSize);
@@ -247,7 +270,7 @@ int UDPDatagramSocket::setReceiveBufferSize (int iSize)
     return 0;
 }
 
-int UDPDatagramSocket::getSendBufferSize (void)
+int UDPDatagramSocket::getSendBufferSize (void) const
 {
     int iBufSize = 0;
     socklen_t optLen = sizeof (iBufSize);
@@ -343,19 +366,16 @@ int UDPDatagramSocket::sendTo (const char *pszAddr, uint16 ui16Port, const void 
     if (pszAddr == NULL) {
         return -1;
     }
-    else if (!InetAddr::isIPv4Addr (pszAddr)) {
+    if (!InetAddr::isIPv4Addr (pszAddr)) {
         return -2;
     }
+
     int rc;
     if ((rc = sendTo (inet_addr (pszAddr), ui16Port, pBuf, iBufSize)) < 0) {
         return -3;
     }
-    return rc;
-}
 
-int UDPDatagramSocket::receive (void *pBuf, int iBufSize)
-{
-    return receive (pBuf, iBufSize, &lastPacketAddr);
+    return rc;
 }
 
 #if defined (UNIX)
@@ -364,6 +384,68 @@ int UDPDatagramSocket::receive (void *pBuf, int iBufSize)
     {
         int iIncomingIfaceIdx = 0;
         return receive (pBuf, iBufSize, pRemoteAddr, iIncomingIfaceIdx);
+    }
+
+    int UDPDatagramSocket::receive (void *pBuf, int iBufSize, InetAddr *pLocalAddr, InetAddr *pRemoteAddr)
+    {
+        if ((pBuf == NULL) || (iBufSize <= 0) || (pLocalAddr == NULL) || (pRemoteAddr == NULL)) {
+            return -1;
+        }
+
+        int rc;
+        struct msghdr mh;
+
+        memset (&mh, 0, sizeof (mh));
+        mh.msg_name = &pRemoteAddr->_sa;
+        mh.msg_namelen = sizeof (pRemoteAddr->_sa);
+        mh.msg_control = msgCtrlBuf;
+        mh.msg_controllen = sizeof (msgCtrlBuf);
+
+        if ((rc = recvmsg (sockfd, &mh, 0)) < 0) {
+            if (errno == EINTR) {
+                // Some signal interrupted this call - just return 0 for timeout
+                memset (&pRemoteAddr->_sa, 0, sizeof (pRemoteAddr->_sa));
+                memset (&pLocalAddr->_sa, 0, sizeof (pLocalAddr->_sa));
+                return 0;
+            }
+
+            memset (&pRemoteAddr->_sa, 0, sizeof (pRemoteAddr->_sa));
+            memset (&pLocalAddr->_sa, 0, sizeof (pLocalAddr->_sa));
+            return -2;
+        }
+
+        for (struct cmsghdr * cmsg = CMSG_FIRSTHDR (&mh); cmsg != NULL; cmsg = CMSG_NXTHDR (&mh, cmsg)) {
+            // ignore the control headers that don't match what we want
+            if (cmsg->cmsg_level != IPPROTO_IP || cmsg->cmsg_type != IP_PKTINFO) {
+                continue;
+            }
+
+            struct in_pktinfo *pi = reinterpret_cast<in_pktinfo *> (CMSG_DATA (cmsg));
+            // at this point, pRemoteAddr->_sa is the source sockaddr
+            // pi->ipi_spec_dst is the destination in_addr
+            // pi->ipi_addr is the receiving interface in_addr
+            pLocalAddr->_sa.sin_addr = pi->ipi_spec_dst;
+            break;
+        }
+
+        if ((rc = recv (sockfd, (char *) pBuf, iBufSize, 0)) < 0) {
+            if (errno == EINTR) {
+                // Some signal interrupted this call - just return 0 for timeout
+                memset (&pRemoteAddr->_sa, 0, sizeof (pRemoteAddr->_sa));
+                memset (&pLocalAddr->_sa, 0, sizeof (pLocalAddr->_sa));
+                return 0;
+            }
+
+            memset (&pRemoteAddr->_sa, 0, sizeof (pRemoteAddr->_sa));
+            memset (&pLocalAddr->_sa, 0, sizeof (pLocalAddr->_sa));
+            return -3;
+        }
+
+        // Update string representation of Src and Dst IP addresses
+        pRemoteAddr->updateIPAddrString();
+        pLocalAddr->updateIPAddrString();
+
+        return rc;
     }
 
     int UDPDatagramSocket::receive (void *pBuf, int iBufSize, InetAddr *pRemoteAddr, int &iIncomingIfaceIdx)
@@ -401,10 +483,10 @@ int UDPDatagramSocket::receive (void *pBuf, int iBufSize)
 
         if (pktInfoEnabled()) {
             rc = ifaceInfoReceiveFrom (sockfd, (char*)pBuf, iBufSize, 0, (struct sockaddr*) &pRemoteAddr->_sa, &saSourceLen, iIncomingIfaceIdx);
-		}
-		else {
+        }
+        else {
             rc = recvfrom (sockfd, (char*)pBuf, iBufSize, 0, (struct sockaddr*) &pRemoteAddr->_sa, &saSourceLen);
-		}
+        }
         if (rc < 0) {
             pRemoteAddr->updateIPAddrString();
             if (errno == EINTR) {
@@ -494,6 +576,65 @@ int UDPDatagramSocket::receive (void *pBuf, int iBufSize)
         pRemoteAddr->updateIPAddrString();
         return rc;
     }
+
+    #if defined (NTDDI_VERSION) && defined (NTDDI_WINXP) && (NTDDI_VERSION >= NTDDI_WINXP)
+        int UDPDatagramSocket::receive (void *pBuf, int iBufSize, InetAddr *pLocalAddr, InetAddr *pRemoteAddr, int iFlags)
+        {
+            if ((pBuf == NULL) || (iBufSize <= 0) || (pLocalAddr == NULL) || (pRemoteAddr == NULL)) {
+                return -1;
+            }
+
+            int rc;
+            char ControlBuffer[1024];
+            WSABUF WSABuf;
+            WSAMSG Msg;
+            Msg.name = reinterpret_cast<sockaddr *> (&(pRemoteAddr->_sa));
+            Msg.namelen = sizeof (sockaddr_in);
+            WSABuf.buf = (char *)pBuf;
+            WSABuf.len = iBufSize;
+            Msg.lpBuffers = &WSABuf;
+            Msg.dwBufferCount = 1;
+            Msg.Control.buf = ControlBuffer;
+            Msg.Control.len = sizeof(ControlBuffer);
+            Msg.dwFlags = iFlags;
+            rc = WSARecvMsg (sockfd, &Msg, &numberOfBytes, NULL, NULL);
+            if (rc == SOCKET_ERROR) {
+                int iLastError = WSAGetLastError();
+                pRemoteAddr->updateIPAddrString();
+                /*
+                * Notes about the socket errors that we are ignoring:
+                *
+                * WSAETIMEDOUT: The connection has been dropped, because of a network failure
+                * or because the system on the other end went down without notice.
+                *
+                * WSAECONNRESET: On a UDP-datagram socket this error indicates a previous
+                * send operation resulted in an ICMP Port Unreachable message.
+                */
+                if (iLastError == WSAETIMEDOUT || iLastError == WSAECONNRESET) {
+                    WSASetLastError (0);
+                    return 0;
+                }
+                return -2;
+            }
+            pRemoteAddr->updateIPAddrString();
+
+            // There can be multiple enties but the following will show only the first.
+            WSACMSGHDR *pCMsgHdr = WSA_CMSG_FIRSTHDR (&Msg);
+            if (pCMsgHdr) {
+                switch (pCMsgHdr->cmsg_type) {
+                case IP_PKTINFO:
+                    {
+                        IN_PKTINFO *pPktInfo;
+                        pPktInfo = (IN_PKTINFO *) WSA_CMSG_DATA(pCMsgHdr);
+                        pLocalAddr->setIPAddress (pPktInfo->ipi_addr.S_un.S_addr);
+                    }
+                    break;
+                }
+            }
+
+            return numberOfBytes;
+        }
+    #endif  // NTDDI_VERSION >= NTDDI_WINXP
 
 #endif
 

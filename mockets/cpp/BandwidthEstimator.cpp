@@ -1,18 +1,18 @@
 /*
  * BandwidthEstimator.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2016 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -40,16 +40,16 @@ BandwidthEstimator::BandwidthEstimator (uint32 ui32MaxSamplesNumber, uint32 ui32
 BandwidthEstimator::~BandwidthEstimator (void)
 {
     delete _pACKSamplesList;
-    _pACKSamplesList = NULL;
+    _pACKSamplesList = nullptr;
     delete _pBandwidthSamplesList;
-    _pBandwidthSamplesList = NULL;
+    _pBandwidthSamplesList = nullptr;
     delete _pBandwidthEstimationsList;
-    _pBandwidthEstimationsList = NULL;
+    _pBandwidthEstimationsList = nullptr;
 
-	#if !defined (ANDROID) //No stringstream support on ANDROID
-    	_logFile << _ss.str();
-    	_logFile.close();
-	#endif
+    #if !defined (ANDROID) //No stringstream support on ANDROID
+        _logFile << _ss.str();
+        _logFile.close();
+    #endif
 }
 
 int32 BandwidthEstimator::addSample (uint64 ui64Timestamp, uint64 ui64AcknowledgedData, uint32 ui32PacketInQueue)
@@ -107,22 +107,22 @@ double BandwidthEstimator::computeNewBandwidthSample (DLList<ACKSample> *pACKLis
             // Update oldest timestamp and acknowldged data
             ui64OldestTimestamp = tempAck.ui64Timestamp;
             ui64OldestAcknowledgedData = tempAck.ui64AcknowledgedData;
-			/*
-				checkAndLogMsg ("BandwidthEstimator::computeNewBandwidthSample", Logger::L_MediumDetailDebug,
+            /*
+                checkAndLogMsg ("BandwidthEstimator::computeNewBandwidthSample", Logger::L_MediumDetailDebug,
                            " ui64ackDataSum %llu ui64OldestTimestamp %llu\n", ui64ackDataSum, ui64OldestTimestamp);
-			*/
+            */
         }
         else {
             break;
         }
     }
 
-	/*
+    /*
      Note that we are summing the number of acknowledged bytes over a period
      of time from the most recent sack to the oldest one within the time interval,
      so the most recent sack sample should be added to the sum but the oldest one
      is out of the interval we are considering
-	*/
+    */
     ui64ackDataSum -= ui64OldestAcknowledgedData;
     ui64ackDataSum += lastAck.ui64AcknowledgedData;
 
@@ -188,36 +188,36 @@ void BandwidthEstimator::setNewTimeInterval (uint32 ui32NewTimeInt)
 
 void BandwidthEstimator::printList (void)
 {
-    ACKSample ackSample; 
+    ACKSample ackSample;
     double dBwSample, dBwEstimation;
-	
-	#if !defined (ANDROID) //No std support on ANDROID
-    	std::cout << "ACK time (us)  \t ACK Data (bytes) \t Bandwidth Sample (kB/s) \t Bandwidth Estimation (kB/s)" << std::endl;
-    	std::cout << "----------------------------------------------------------------------------------------------------" << std::endl;
-	#endif
+
+    #if !defined (ANDROID) //No std support on ANDROID
+        std::cout << "ACK time (us)  \t ACK Data (bytes) \t Bandwidth Sample (kB/s) \t Bandwidth Estimation (kB/s)" << std::endl;
+        std::cout << "----------------------------------------------------------------------------------------------------" << std::endl;
+    #endif
 
     _pACKSamplesList->resetToHead();
     _pBandwidthSamplesList->resetToHead();
     _pBandwidthEstimationsList->resetToHead();
 
-	#if !defined (ANDROID) //No std support on ANDROID
-   		while (_pACKSamplesList->getNext(ackSample)) {
-        	std::cout << ackSample.ui64Timestamp << " \t " << ackSample.ui64AcknowledgedData << " \t\t\t "; 
-        	if (_pBandwidthSamplesList->getNext (dBwSample)) {
-            	std::cout << dBwSample << " \t\t\t ";
-        	}
-        	else {
-            	std::cout << " \t\t\t ";
-        	}
-        	if (_pBandwidthEstimationsList->getNext (dBwEstimation)) {
-            	std::cout << dBwEstimation << " \t\t\t ";
-        	}
-       	 	else {
-            	std::cout << " \t\t\t ";
-        	}
-        	std::cout << std::endl;
-  		}
-	#endif
+    #if !defined (ANDROID) //No std support on ANDROID
+           while (_pACKSamplesList->getNext(ackSample)) {
+            std::cout << ackSample.ui64Timestamp << " \t " << ackSample.ui64AcknowledgedData << " \t\t\t ";
+            if (_pBandwidthSamplesList->getNext (dBwSample)) {
+                std::cout << dBwSample << " \t\t\t ";
+            }
+            else {
+                std::cout << " \t\t\t ";
+            }
+            if (_pBandwidthEstimationsList->getNext (dBwEstimation)) {
+                std::cout << dBwEstimation << " \t\t\t ";
+            }
+                else {
+                std::cout << " \t\t\t ";
+            }
+            std::cout << std::endl;
+          }
+    #endif
 }
 
 BandwidthEstimator::ACKSample::ACKSample (void)
@@ -249,16 +249,16 @@ WestwoodBandwidthEstimator::WestwoodBandwidthEstimator (uint32 ui32MaxSamplesNum
 WestwoodBandwidthEstimator::~WestwoodBandwidthEstimator (void)
 {
     delete _pACKSamplesList;
-    _pACKSamplesList = NULL;
+    _pACKSamplesList = nullptr;
     delete _pBandwidthSamplesList;
-    _pBandwidthSamplesList = NULL;
+    _pBandwidthSamplesList = nullptr;
     delete _pBandwidthEstimationsList;
-    _pBandwidthEstimationsList = NULL;
+    _pBandwidthEstimationsList = nullptr;
 
-	#if !defined (ANDROID) //No stringstream support on ANDROID
-    	_logFile << _ss.str();
-    	_logFile.close();
-	#endif
+    #if !defined (ANDROID) //No stringstream support on ANDROID
+        _logFile << _ss.str();
+        _logFile.close();
+    #endif
 }
 
 double WestwoodBandwidthEstimator::computeNewBandwidthSample (DLList<ACKSample> *pACKList)
@@ -272,10 +272,10 @@ double WestwoodBandwidthEstimator::computeNewBandwidthSample (DLList<ACKSample> 
     // If, for some reason, the time difference between the two ack samples is zero no division is
     // performed and the current amount of acknowledged data is returned
     if (ui64Delta) {
-	    return currentAck.ui64AcknowledgedData / (double)ui64Delta;
+        return currentAck.ui64AcknowledgedData / (double)ui64Delta;
     }
     else {
-	    return (double)currentAck.ui64AcknowledgedData;
+        return (double)currentAck.ui64AcknowledgedData;
     }
 }
 
@@ -286,7 +286,7 @@ double WestwoodBandwidthEstimator::computeNewBandwidthEstimation (DLList<ACKSamp
     ACKSample currentAck, lastAck;
     pACKList->getLast( currentAck );
     pACKList->getPrev( lastAck );
-    uint64 ui64ACKDelta = currentAck.ui64Timestamp - lastAck.ui64Timestamp;  
+    uint64 ui64ACKDelta = currentAck.ui64Timestamp - lastAck.ui64Timestamp;
 
     double currentBandwidthSample, lastBandwidthSample;
     pBWSamplesList->getLast( currentBandwidthSample );

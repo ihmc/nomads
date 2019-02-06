@@ -5,7 +5,7 @@
  * MutexUDPQueue.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,8 @@
  * a mutex variable to it to grant mutually exclusive access.
  */
 
-#include "Mutex.h"
+#include <mutex>
+
 #include "PtrQueue.h"
 
 #include "ConfigurationParameters.h"
@@ -66,21 +67,21 @@ namespace ACMNetProxy
         UDPDatagramPacket * remove (const UDPDatagramPacket * const pUDPDatagramPacket);
         void removeAll (bool removeData = false);
 
-        int lock (void);
-        int tryLock (void);
-        int unlock (void);
+        void lock (void) const;
+        bool tryLock (void) const;
+        void unlock (void) const;
 
 
     private:
         uint32 _ui32EnqueuedBytes;
         const uint32 _ui32MaxEnqueuableBytes;
 
-        NOMADSUtil::Mutex _m;
+        mutable std::mutex _mtx;
     };
 
 
-    inline MutexUDPQueue::MutexUDPQueue (uint32 ui32MaxEnqueuableBytes)
-        : _ui32MaxEnqueuableBytes (ui32MaxEnqueuableBytes)
+    inline MutexUDPQueue::MutexUDPQueue (uint32 ui32MaxEnqueuableBytes) :
+        _ui32MaxEnqueuableBytes{ui32MaxEnqueuableBytes}
     {
         _ui32EnqueuedBytes = 0;
     }
@@ -125,19 +126,19 @@ namespace ACMNetProxy
         _ui32EnqueuedBytes = 0;
     }
 
-    inline int MutexUDPQueue::lock (void)
+    inline void MutexUDPQueue::lock (void) const
     {
-        return _m.lock();
+        _mtx.lock();
     }
 
-    inline int MutexUDPQueue::tryLock (void)
+    inline bool MutexUDPQueue::tryLock (void) const
     {
-        return _m.tryLock();
+        return _mtx.try_lock();
     }
 
-    inline int MutexUDPQueue::unlock (void)
+    inline void MutexUDPQueue::unlock (void) const
     {
-        return _m.unlock();
+        return _mtx.unlock();
     }
 }
 

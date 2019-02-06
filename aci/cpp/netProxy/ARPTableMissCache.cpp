@@ -2,7 +2,7 @@
 * ARPTableMissCache.cpp
 *
 * This file is part of the IHMC NetProxy Library/Component
-* Copyright (c) 2010-2016 IHMC.
+* Copyright (c) 2010-2018 IHMC.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -28,66 +28,74 @@
 
 #include "ARPTableMissCache.h"
 
-#include "NLFLib.h"
-
-
-using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    int ARPTableMissCache::insert (uint32 ui32DestIPAddr, NetworkInterface * const pNI, uint8 * const pui8Buf, uint16 ui16PacketLen)
+    bool ARPTableMissCache::hasPacketInCache (uint32 ui32DestIPAddr, uint8 * const pui8Buf, uint16 ui16PacketLen) const
     {
-        MutexUnlocker mu (&_m);
+        std::lock_guard<std::mutex> lg{_mtx};
 
-        const ARPTableMissPacket * const pATMP = new ARPTableMissPacket (ui16PacketLen, getTimeInMilliseconds(), pNI, pui8Buf);
-        if (!_table.contains (ui32DestIPAddr)) {
-            _table.put (ui32DestIPAddr, new PtrLList<const ARPTableMissPacket> (pATMP, false));
+        if (!isEmpty() && (_umPacketsCache.count (ui32DestIPAddr) > 0)) {
+            for (auto & atmp : _umPacketsCache.at (ui32DestIPAddr)) {
+                if (atmp.getPacketLen() != ui16PacketLen) {
+                    continue;
+                }
+
+                unsigned int i = 0;
+                while ((i < ui16PacketLen) && (atmp.getPacket()[i] == pui8Buf[i])) {
+                    ++i;
+                }
+
+                if (i == ui16PacketLen) {
+                    return true;
+                }
+            }
         }
-        else {
-            removeExpiredEntries (ui32DestIPAddr, _i64ExpirationTimeInMilliseconds);
-            _table.get (ui32DestIPAddr)->append (pATMP);
-        }
 
-        _empty = false;
-
-        return 0;
+        return false;
     }
 
-    int ARPTableMissCache::removeExpiredEntries (uint32 ui32IPAddr, int64 i64ExpirationTimeInMilliseconds)
+    unsigned int ARPTableMissCache::removeExpiredEntries (uint32 ui32IPAddr, int64 i64ExpirationTimeInMilliseconds)
     {
-        auto pPtrLList = _table.get (ui32IPAddr);
-        if (!pPtrLList) {
-            return -1;
-        }
+        auto & rdeqATMP = _umPacketsCache[ui32IPAddr];
 
         // Remove old entries
         int counter = 0;
-        const int64 i64CurrentTime = getTimeInMilliseconds();
-        const ARPTableMissPacket * pATMP = nullptr;
-        pPtrLList->resetGet();
-        while ((pATMP = pPtrLList->getNext()) &&
-            ((i64CurrentTime - pATMP->getCacheTime()) >= i64ExpirationTimeInMilliseconds)) {
-            delete pPtrLList->remove (pATMP);
+        const int64 i64CurrentTime = NOMADSUtil::getTimeInMilliseconds();
+        while ((rdeqATMP.size() > 0) && ((i64CurrentTime - rdeqATMP.front().getCacheTime()) >= i64ExpirationTimeInMilliseconds)) {
+            rdeqATMP.pop_front();
             ++counter;
         }
 
         return counter;
     }
 
-    void ARPTableMissCache::updateEmptyStatus (void)
+    void ARPTableMissCache::clearTableFromExpiredEntries (void)
     {
-        auto iterator = _table.getAllElements();
-        do {
-            auto pPtrLList = iterator.getValue();
-            if (pPtrLList && (pPtrLList->getCount() > 0)) {
-                // Not empty
-                _empty = false;
-                return;
-            }
-        } while (iterator.nextElement());
+        std::lock_guard<std::mutex> lg{_mtx};
 
-        // If we get to this point, the table is empty
-        _empty = true;
+        for (auto it = _umPacketsCache.begin(); it != _umPacketsCache.end(); ) {
+            if (it->second.size() > 0) {
+                // Remove all expired entries
+                auto uiRemovedPackets = removeExpiredEntries (it->first, _i64ExpirationTimeInMilliseconds);
+                if (uiRemovedPackets > 0) {
+                    _uiCachedPackets -= uiRemovedPackets;
+                    if (it->second.size() == 0) {
+                        // Remove empty deque
+                        _umPacketsCache.erase (it++);
+                        continue;
+                    }
+                }
+            }
+            else {
+                // Remove empty deque
+                _umPacketsCache.erase (it++);
+                continue;
+            }
+
+            // Move on to the next deque
+            ++it;
+        }
     }
 
 }

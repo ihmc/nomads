@@ -41,8 +41,8 @@
 #include <winsock2.h>
     #include <windows.h>
 #elif defined (WIN32)
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
 #elif defined (OS2)
 
@@ -73,8 +73,8 @@ namespace NOMADSUtil
             virtual Socket * accept (void) = 0;
             virtual const char * getRemoteHostAddr (void) = 0;
             virtual const char * getRemoteHostName (void) = 0;
-            virtual unsigned short getLocalPort (void) = 0;
-            virtual unsigned short getRemotePort (void) = 0;
+            virtual unsigned short getLocalPort (void) const = 0;
+            virtual unsigned short getRemotePort (void) const = 0;
             virtual Socket * dup (void) = 0;
 
             // Sends the number of bytes specified by iSize from the buffer pointed to by pBuf

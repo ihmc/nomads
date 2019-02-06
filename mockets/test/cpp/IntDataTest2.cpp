@@ -17,7 +17,7 @@
 #include "Socket.h"
 #include "TCPSocket.h"
 #include "SCTPSocket.h"
-#include "udt/udt.h"
+#include "udt.h"
 #include "Thread.h"
 #include "Statistics.h"
 #include <netinet/in.h>

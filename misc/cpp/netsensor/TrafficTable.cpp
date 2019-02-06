@@ -24,19 +24,16 @@ using namespace NOMADSUtil;
 
 namespace IHMC_NETSENSOR
 {
-void TrafficTable::cleanTable(uint32 ui32CleaningNumber)
+void TrafficTable::cleanTable (uint32 ui32CleaningNumber)
 {
+    auto pszMethodName = "TrafficTable::cleanTable";
     uint32 ui32CleaningCounter = 0;
     if ((_pTMutex.lock() == NOMADSUtil::Mutex::RC_Ok)) {
         if (_trafficTablesContainer.getCount() > 0) {
-            for (NOMADSUtil::StringHashtable<MicroflowNestedHashTable>::
-                    Iterator i = _trafficTablesContainer.getAllElements();
-                    !i.end() && (ui32CleaningCounter < ui32CleaningNumber);
-                    i.nextElement())
-            {
-                MicroflowNestedHashTable *mfnt = i.getValue();
-                if (mfnt != NULL) {
-                    ui32CleaningCounter += mfnt->cleanTable(ui32CleaningNumber - ui32CleaningCounter);
+            for (auto i = _trafficTablesContainer.getAllElements(); !i.end() && (ui32CleaningCounter < ui32CleaningNumber); i.nextElement()) {
+                auto pValue = i.getValue();
+                if (pValue != NULL) {
+                    ui32CleaningCounter += pValue->cleanTable2 (ui32CleaningNumber - ui32CleaningCounter);
                 }
             }
         }
@@ -44,62 +41,50 @@ void TrafficTable::cleanTable(uint32 ui32CleaningNumber)
     }
 }
 
-bool TrafficTable::put(const char* interfaceName, const MicroflowId & microflowId)
+TrafficElement* TrafficTable::getNewTrafficElementIfNull (
+    MicroflowNestedHashTable* pTrafficElementsContainer,
+    const MicroflowId& microflowId)
 {
-    static uint32 ui32NewTrafficElementsCount = 0;
-    MicroflowNestedHashTable *pTrafficElementsContainer;
-    if ((_pTMutex.lock() == NOMADSUtil::Mutex::RC_Ok)) {       
-
-        pTrafficElementsContainer = _trafficTablesContainer.get(interfaceName);
-
-        if (pTrafficElementsContainer == NULL) {
-            pTrafficElementsContainer = new MicroflowNestedHashTable();
-            TrafficElement *pNewTrafficElement = new TrafficElement(_uint32msResolution);
-            ++ui32NewTrafficElementsCount;
-            pNewTrafficElement->classification = microflowId.classification;
-            pNewTrafficElement->resolution = _uint32msResolution;
-            pNewTrafficElement->i64TimeOfLastChange = microflowId.i64CurrTime;
-            pNewTrafficElement->tiaPackets.add(1);
-            pNewTrafficElement->tiaTraffic.add(microflowId.ui32Size);
-            pTrafficElementsContainer->put(microflowId.sSA, microflowId.sDA, 
-                                           microflowId.sProtocol, microflowId.sSP, microflowId.sDP, 
-                                           pNewTrafficElement);
-
-            _trafficTablesContainer.put(interfaceName, pTrafficElementsContainer);
-        }
-        else {
-            TrafficElement *pTrafficElement = 
-                pTrafficElementsContainer->get(microflowId.sSA, microflowId.sDA,
-                                               microflowId.sProtocol, microflowId.sSP,
-                                               microflowId.sDP);
-
-            if (pTrafficElement == NULL) {
-                pTrafficElement = new TrafficElement(_uint32msResolution);
-                ++ui32NewTrafficElementsCount;
-                pTrafficElement->classification = microflowId.classification;
-                pTrafficElement->resolution = _uint32msResolution;
-                pTrafficElement->i64TimeOfLastChange = microflowId.i64CurrTime;
-                pTrafficElement->tiaPackets.getAverage();
-                pTrafficElement->tiaPackets.add(1);
-                pTrafficElement->tiaTraffic.getAverage();
-                pTrafficElement->tiaTraffic.add(microflowId.ui32Size);
-                pTrafficElementsContainer->put(microflowId.sSA, 
-                                               microflowId.sDA, microflowId.sProtocol, microflowId.sSP, 
-                                               microflowId.sDP, pTrafficElement);
-            }
-            else {
-                pTrafficElement->i64TimeOfLastChange = microflowId.i64CurrTime;
-                pTrafficElement->tiaPackets.getAverage();
-                pTrafficElement->tiaPackets.add(1);
-                pTrafficElement->tiaTraffic.getAverage();
-                pTrafficElement->tiaTraffic.add(microflowId.ui32Size);
-                //printf("Values: %d - %f\n", microflowId.ui32Size, pTrafficElement->tiaTraffic.getAverage());
-            }
-        }        
-        _pTMutex.unlock();
-        return true;
+	NOMADSUtil::String id = microflowId.sSA + ":" + microflowId.sDA + ":" + microflowId.sProtocol + ":" + microflowId.sSP + ":" + microflowId.sDP;
+    auto pTrafficElement = pTrafficElementsContainer->get (id);
+    if (pTrafficElement == nullptr) {
+        pTrafficElement = new TrafficElement (_uint32msResolution);
+        pTrafficElement->classification = microflowId.classification;
+		pTrafficElement->srcAddr		= microflowId.sSA;
+		pTrafficElement->dstAddr		= microflowId.sDA;
+		pTrafficElement->protocol		= microflowId.sProtocol;
+		pTrafficElement->srcPort		= microflowId.sSP;
+		pTrafficElement->dstPort		= microflowId.sDP;
+        pTrafficElementsContainer->put (id, pTrafficElement);
     }
-    printf("Unable to get mutex\n");
-    return false;
+    return pTrafficElement;
+}
+
+MicroflowNestedHashTable * TrafficTable::getTrafficElementsContainer (const char * pszInterfaceName)
+{
+    auto pTrafficElementsContainer = _trafficTablesContainer.get (pszInterfaceName);
+    if (pTrafficElementsContainer == NULL) {
+        pTrafficElementsContainer = new MicroflowNestedHashTable();
+        _trafficTablesContainer.put (pszInterfaceName, pTrafficElementsContainer);
+    }
+    return pTrafficElementsContainer;
+}
+
+bool TrafficTable::lockedPut (const char * interfaceName, const MicroflowId & microflowId)
+{
+    auto pszMethodName = "TrafficTable::lockedPut";
+    if ((_pTMutex.lock() != NOMADSUtil::Mutex::RC_Ok)) {
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Unable to get mutex\n");
+        return false;
+    }
+
+    auto pTrafficElementsContainer = getTrafficElementsContainer (interfaceName);
+    auto pTrafficElement = getNewTrafficElementIfNull (pTrafficElementsContainer, microflowId);
+    pTrafficElement->i64TimeOfLastChange = microflowId.i64CurrTime;
+    pTrafficElement->tiaPackets.add (1);
+    pTrafficElement->tiaTraffic.getAverage();
+    pTrafficElement->tiaTraffic.add (microflowId.ui32Size);
+    _pTMutex.unlock();
+    return true;
 }
 }

@@ -18,8 +18,8 @@
  *
  * @author      Marco Arguedas      <marguedas@ihmc.us>
  * 
- * @version     $Revision: 1.4 $
- *              $Date: 2016/06/09 20:02:45 $
+ * @version     $Revision$
+ *              $Date$
  */
 
 package us.ihmc.algos;

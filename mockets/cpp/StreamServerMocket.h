@@ -44,7 +44,7 @@ class StreamServerMocket
         int listen (uint16 ui16Port, const char *pszListenAddr);
 
         // Accepts a new incoming connection
-        // Returns a new instance of Mocket to represent the local endpoint or NULL in case of an error
+        // Returns a new instance of Mocket to represent the local endpoint or nullptr in case of an error
         // NOTE: Caller is responsible for deleting the Mocket instance after use
         StreamMocket * accept (void);
 

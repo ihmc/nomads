@@ -29,8 +29,8 @@ namespace IHMC_NETSENSOR
 class NetSensorConfigurationManager
 {
 public:
-    NetSensorConfigurationManager(void);
-    ~NetSensorConfigurationManager(void);
+    NetSensorConfigurationManager (void);
+    ~NetSensorConfigurationManager (void);
 
     int init(void);
     int init(const char* cfgPath);
@@ -62,17 +62,21 @@ public:
 	uint32 ui32DelPort;
 	uint32 ui32TDelPer;
 	uint32 ui32ToDelPer;
-
-	bool laxTopActive;
+    uint32 ui32DeliveryPeriodMs;
 	bool arpTopActive;
+    bool autoDetectInterfaces;
+    bool calculateTCPRTT;
+    bool icmpRTTActive;
+    bool ignoreMulticast;
+    bool laxTopActive;
 	bool netmskTopActive;
 	bool nproxyTopActive;
-	bool icmpRTTActive;
-	bool ignoreMulticast;
     bool storeExternalNodes;
     bool useProtobufCompression;
-    bool calculateTCPRTT;
+    bool useForcedInterfaces;
 
+    uint32 ui32ForcedInterfaceAddr;
+    uint32 ui32ForcedNetmask;
 private:
 	NOMADSUtil::ConfigManager _cfg;
 };

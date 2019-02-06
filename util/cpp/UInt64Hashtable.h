@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -94,7 +94,7 @@ namespace NOMADSUtil
                         return NULL;
                     }
 
-                    Iterator (UInt64Hashtable<T> *pTable) {
+                    Iterator (const UInt64Hashtable<T> *pTable) {
                         _pTable = pTable;
                         _ulIndex = 0;
                         _pCurrElement = NULL;
@@ -108,7 +108,7 @@ namespace NOMADSUtil
                     }
 
                 private:
-                    UInt64Hashtable<T> *_pTable;
+                    const UInt64Hashtable<T> *_pTable;
                     unsigned long _ulIndex;
                     void *_pCurrElement;
                 private:
@@ -127,7 +127,7 @@ namespace NOMADSUtil
             // Returns the current size of the hashtable (NOTE: this is NOT the number of elements in the hashtable)
             virtual unsigned long getTableSize (void) const;
 
-            virtual Iterator getAllElements (void);
+            virtual Iterator getAllElements (void) const;
 
             virtual void printStructure (void) const;
 
@@ -203,14 +203,14 @@ namespace NOMADSUtil
         unsigned long ulThreshold = (unsigned long) (_ulTableSize * F_THRESHOLD);
         if (_ulCount >= ulThreshold) {
             if (pLogger) {
-                pLogger->logMsg ("UInt64Hashtable<T>::put", Logger::L_MediumDetailDebug, 
+                pLogger->logMsg ("UInt64Hashtable<T>::put", Logger::L_MediumDetailDebug,
                                  "this UInt64Table has %lu elems with table size: %lu and threshold %lu\n", _ulCount, _ulTableSize, ulThreshold);
             }
             if (_ulTableSize > MAXTABLESIZE) {
                 // HERE WE RUN INTO AN OUT OF MEMORY ERROR
                 // We can't have a larger table
                 if (pLogger) {
-                    pLogger->logMsg ("UInt64Hashtable<T>::put", Logger::L_SevereError, 
+                    pLogger->logMsg ("UInt64Hashtable<T>::put", Logger::L_SevereError,
                                      "this is too large a table, with %lu\n", _ulTableSize);
                 }
             }
@@ -236,7 +236,7 @@ namespace NOMADSUtil
             //     that value gets returned
             return pOldValue;
         }
-        // Search the bucket for an entry with that key 
+        // Search the bucket for an entry with that key
         while (pHTE->pNext) {
             pHTE = pHTE->pNext;
             if (pHTE->ui64Key == ui64Key) {
@@ -315,7 +315,7 @@ namespace NOMADSUtil
             //     the value is returned
             return pOldValue;
         }
-        // Search the bucket for an entry with that key 
+        // Search the bucket for an entry with that key
         HashtableEntry *pPrev = pHTE;
         pHTE = pHTE->pNext;
         while (pHTE) {
@@ -356,7 +356,7 @@ namespace NOMADSUtil
         return _ulTableSize;
     }
 
-    template <class T> inline typename UInt64Hashtable<T>::Iterator UInt64Hashtable<T>::getAllElements (void)
+    template <class T> inline typename UInt64Hashtable<T>::Iterator UInt64Hashtable<T>::getAllElements (void) const
     {
         return Iterator (this);
     }

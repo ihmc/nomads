@@ -1,6 +1,6 @@
 /*
  * ConnHandler.h
- * 
+ *
  * This file is part of the IHMC Util Library
  * Copyright (c) 1993-2016 IHMC.
  *
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,7 +27,7 @@
  */
 
 #ifndef INCL_SKELETON_CONN_HANDLER_H
-#define	INCL_SKELETON_CONN_HANDLER_H
+#define INCL_SKELETON_CONN_HANDLER_H
 
 #include "Skeleton.h"
 #include "Protocol.h"
@@ -80,7 +80,7 @@ namespace NOMADSUtil
     {
         const char * const pszMethodName = "SkeletonConnHandler::run";
 
-        // Initial handshake        
+        // Initial handshake
         SimpleCommHelper2::Error err = Protocol::doHandshake (_pCommHelper, _service, _version);
         if (SimpleCommHelper2::None != err) {
             _pCommHelper->closeConnection (err);
@@ -193,5 +193,5 @@ namespace NOMADSUtil
 }
 
 
-#endif	/* INCL_SKELETON_CONN_HANDLER_H */
+#endif    /* INCL_SKELETON_CONN_HANDLER_H */
 

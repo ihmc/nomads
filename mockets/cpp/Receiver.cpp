@@ -81,9 +81,9 @@ Receiver::Receiver (Mocket *pMocket, bool bEnableRecvLogging)
         String localIPAddr = localAddr.getIPAsString();
         InetAddr remoteAddr (_ui32RemoteAddress);
         String remoteIPAddr = remoteAddr.getIPAsString();
-		sprintf (szLogFileName, "mmrecv_%s_%d_%s_%d.log",
-                 (const char*) localIPAddr, _pMocket->getLocalPort(), (const char*) remoteIPAddr, _ui16RemotePort);
-        if (NULL != (_filePacketRecvLog = fopen (szLogFileName, "a"))) {
+        sprintf (szLogFileName, "mmrecv_%s_%d_%s_%d.log",
+                (const char*) localIPAddr, _pMocket->getLocalPort(), (const char*) remoteIPAddr, _ui16RemotePort);
+        if (nullptr != (_filePacketRecvLog = fopen (szLogFileName, "a"))) {
             fprintf (_filePacketRecvLog, "********** Starting logging at %s", logStartTime.ctime());
             fprintf (_filePacketRecvLog, "Time, DTime, Size, SeqNo, Reliable, Sequenced, Fragment, Tag\n");
         }
@@ -93,7 +93,7 @@ Receiver::Receiver (Mocket *pMocket, bool bEnableRecvLogging)
         }
     }
     else {
-        _filePacketRecvLog = NULL;
+        _filePacketRecvLog = nullptr;
     }
     _i64LogStartTime = _i64LastRecvLogTime = getTimeInMilliseconds();
 }
@@ -102,10 +102,10 @@ Receiver::~Receiver (void)
 {
     if (_filePacketRecvLog) {
         fclose (_filePacketRecvLog);
-        _filePacketRecvLog = NULL;
+        _filePacketRecvLog = nullptr;
     }
     free (_pszRemoteAddress);
-    _pszRemoteAddress = NULL;
+    _pszRemoteAddress = nullptr;
 }
 
 uint32 Receiver::getWindowSize (void)
@@ -195,7 +195,7 @@ void Receiver::run (void)
         bool bReceiveError = false;
         bool bNewRemoteNode = false;
         InetAddr remoteAddr;
-        Packet *pRecvPacket = NULL;
+        Packet *pRecvPacket = nullptr;
         int rc = _pCommInterface->receive (pRecBuf, _pMocket->getMaximumMTU(), &remoteAddr);
 
         // Check the return value of receive
@@ -224,7 +224,7 @@ void Receiver::run (void)
                                 "error receiving a packet; received a packet with an incorrect validation - expecting %lu, got %lu\n",
                                 _ui32IncomingValidation, pRecvPacket->getValidation());
                 delete pRecvPacket;
-                pRecvPacket = NULL;
+                pRecvPacket = nullptr;
                 bReceiveError = true;
             }
             else if((remoteAddr.getIPAddress() != _ui32RemoteAddress) || (remoteAddr.getPort() != _ui16RemotePort)) {
@@ -242,13 +242,18 @@ void Receiver::run (void)
                                     "error receiving a packet; received a packet from some other endpoint %s:%d\n",
                                     remoteAddr.getIPAsString(), (int) remoteAddr.getPort());
                     delete pRecvPacket;
-                    pRecvPacket = NULL;
+                    pRecvPacket = nullptr;
                     bReceiveError = true;
                 }
             }
         }
 
         if (bReceiveError) {
+            if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_APPLICATION_ABORT) {
+                checkAndLogMsg ("Receiver::run", Logger::L_LowDetailDebug,
+                                "application abort sent to the receiver thread");
+                break;
+            }
             if (!bCloseConn) {
                 int64 i64CurrTime = getTimeInMilliseconds();
                 uint32 ui32ElapsedTime = (uint32) (i64CurrTime - _i64LastRecvTime);
@@ -260,7 +265,8 @@ void Receiver::run (void)
                         if (_pMocket->_pSuspendReceivedWarningCallbackFn) {
                             if ((i64CurrTime - i64LastAppCallbackTime) > 500) {
                                 // Only call the application once every 500 ms
-                                checkAndLogMsg ("Receiver::run", Logger::L_MediumDetailDebug, "suspend received callback invoked\n");
+                                checkAndLogMsg ("Receiver::run", Logger::L_MediumDetailDebug,
+                                                "suspend received callback invoked\n");
                                 if (_pMocket->_pSuspendReceivedWarningCallbackFn (_pMocket->_pSuspendReceivedCallbackArg, ui32ElapsedTime)) {
                                     // Application has requested that the connection be closed
                                     bCloseConn = true;
@@ -276,7 +282,8 @@ void Receiver::run (void)
                         if (_pMocket->_pPeerUnreachableWarningCallbackFn) {
                             if ((i64CurrTime - i64LastAppCallbackTime) > 500) {
                                 // Only call the application once every 500 ms
-                                checkAndLogMsg ("Receiver::run", Logger::L_MediumDetailDebug, "peer unreachable callback invoked\n");
+                                checkAndLogMsg ("Receiver::run", Logger::L_MediumDetailDebug,
+                                                "peer unreachable callback invoked\n");
                                 if (_pMocket->_pPeerUnreachableWarningCallbackFn (_pMocket->_pPeerUnreachableCallbackArg, ui32ElapsedTime)) {
                                     // Application has requested that the connection be closed
                                     bCloseConn = true;
@@ -371,9 +378,9 @@ void Receiver::run (void)
                 while (true) {
 
 
-					//printf("Packet size: %d!\n", pRecvPacket->getPacketSize());
+                    //printf("Packet size: %d!\n", pRecvPacket->getPacketSize());
 
-					//printf("\nTTTEEEEEEEEEEEST!!: %d\n", pRecvPacket->getChunkType());
+                    //printf("\nTTTEEEEEEEEEEEST!!: %d\n", pRecvPacket->getChunkType());
 
                     switch (pRecvPacket->getChunkType()) {
                         case Packet::CT_Init:
@@ -454,7 +461,7 @@ void Receiver::run (void)
                                     "discarding packet with sequence number %lu because of insufficient room; there are %lu %lu %lu packets in the control, reliable sequenced, and unreliable sequenced queue\n",
                                     pRecvPacket->getSequenceNum(), _ctrlPacketQueue.getPacketCount(), _reliableSequencedPacketQueue.getPacketCount(), _unreliableSequencedPacketQueue.getPacketCount());
                     delete pRecvPacket;
-                    pRecvPacket = NULL;
+                    pRecvPacket = nullptr;
                     // Update the discarded packet count statistic
                     _pMocket->getStatistics()->_ui32NoRoomDiscardedPackets++;
                 }
@@ -481,7 +488,7 @@ void Receiver::run (void)
                             decrementQueuedDataSize (pRecvPacket->getPacketSize());
                             delete pWrapper;
                             delete pRecvPacket;
-                            pRecvPacket = NULL;
+                            pRecvPacket = nullptr;
                             _pMocket->getStatistics()->_ui32DuplicatedDiscardedPackets++;
                             _pMocket->getTransmitter()->requestSAckTransmission();
                             checkAndLogMsg ("Receiver::run", Logger::L_MediumDetailDebug,
@@ -502,7 +509,7 @@ void Receiver::run (void)
                             decrementQueuedDataSize (pRecvPacket->getPacketSize());
                             delete pWrapper;
                             delete pRecvPacket;
-                            pRecvPacket = NULL;
+                            pRecvPacket = nullptr;
                             _pMocket->getStatistics()->_ui32DuplicatedDiscardedPackets++;
                             _pMocket->getTransmitter()->requestSAckTransmission();
                             checkAndLogMsg ("Receiver::run", Logger::L_MediumDetailDebug,
@@ -534,7 +541,7 @@ void Receiver::run (void)
                                 decrementQueuedDataSize (pRecvPacket->getPacketSize());
                                 delete pWrapper;
                                 delete pRecvPacket;
-                                pRecvPacket = NULL;
+                                pRecvPacket = nullptr;
                                 _pMocket->getStatistics()->_ui32DuplicatedDiscardedPackets++;
                             }
                         #else
@@ -551,13 +558,12 @@ void Receiver::run (void)
                 //} // This is part of the if/else that checks the window size which is now commented out
             }
         }
-        if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_CLOSED) {
-            bDone = true;
-        }
-        if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_SUSPENDED) {
-            bDone = true;
-        }
 
+        const auto smCurrentState = _pMocket->getStateMachine()->getCurrentState();
+        if ((smCurrentState == StateMachine::S_CLOSED) || (smCurrentState == StateMachine::S_APPLICATION_ABORT) ||
+            (smCurrentState == StateMachine::S_SUSPENDED)) {
+            bDone = true;
+        }
     }
 
     free (pRecBuf);

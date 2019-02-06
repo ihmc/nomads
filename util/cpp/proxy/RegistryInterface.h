@@ -1,4 +1,4 @@
-/* 
+/*
  * RegistryInterface.h
  *
  * This file is part of the IHMC Util Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_REGISTRY_INTERFACE_H
-#define	INCL_REGISTRY_INTERFACE_H
+#define INCL_REGISTRY_INTERFACE_H
 
 #include "FTypes.h"
 
@@ -36,7 +36,7 @@ namespace NOMADSUtil
     class RegistryInterface
     {
         public:
-            virtual bool deregisterAllCallbacks (void) = 0;
+            virtual bool deregisterAllCallbacks (uint16 ui16ApplicationId) = 0;
             virtual bool deregisterCallback (uint16 ui16ApplicationId, CallbackExecutor *pCBackExec,
                                              SimpleCommHelper2 *pCommHelper, SimpleCommHelper2::Error &error) = 0;
             virtual Skeleton<S> * getSkeleton (uint16 ui16ApplicationId) = 0;
@@ -48,5 +48,4 @@ namespace NOMADSUtil
     };
 }
 
-#endif	/* INCL_REGISTRY_INTERFACE_H */
-
+#endif    /* INCL_REGISTRY_INTERFACE_H */

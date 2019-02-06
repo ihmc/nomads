@@ -2,7 +2,7 @@
  * ConnectorReader.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,6 +17,8 @@
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
+#include "ConnectorReader.h"
+#include "CompressionSettings.h"
 #include "ZLibConnectorReader.h"
 #include "LzmaConnectorReader.h"
 
@@ -24,59 +26,51 @@
 namespace ACMNetProxy
 {
     // ConnectorReader Factory method
-    ConnectorReader * const ConnectorReader::inizializeConnectorReader (const CompressionSetting * const pCompressionSetting)
+    ConnectorReader * const ConnectorReader::inizializeConnectorReader (const CompressionSettings & compressionSettings)
     {
-        if (!pCompressionSetting) {
-            return nullptr;
-        }
-
-        switch (pCompressionSetting->getCompressionType()) {
-            case ProxyMessage::PMC_UncompressedData:
-                return new ConnectorReader (pCompressionSetting);
-            case ProxyMessage::PMC_ZLibCompressedData:
-                return new ZLibConnectorReader (pCompressionSetting);
-            #if !defined (ANDROID)
-                case ProxyMessage::PMC_LZMACompressedData:
-                    return new LzmaConnectorReader (pCompressionSetting);
-            #endif
+        switch (compressionSettings.getCompressionType()) {
+        case CompressionType::PMC_UncompressedData:
+            return new ConnectorReader{compressionSettings};
+        case CompressionType::PMC_ZLibCompressedData:
+            return new ZLibConnectorReader{compressionSettings};
+        #if !defined (ANDROID)
+            case CompressionType::PMC_LZMACompressedData:
+                return new LzmaConnectorReader{compressionSettings};
+        #endif
         }
 
         return nullptr;
     }
 
-    ConnectorReader * const ConnectorReader::getAndLockUDPConnectorReader (const CompressionSetting * const pCompressionSetting)
+    ConnectorReader * const ConnectorReader::getAndLockUDPConnectorReader (const CompressionSettings & compressionSettings)
     {
-        if (!pCompressionSetting) {
-            return nullptr;
-        }
-
-        switch (pCompressionSetting->getCompressionType()) {
-            case ProxyMessage::PMC_UncompressedData:
+        switch (compressionSettings.getCompressionType()) {
+        case CompressionType::PMC_UncompressedData:
             {
                 if (!_pUDPConnectorReader) {
-                    _pUDPConnectorReader = new ConnectorReader (pCompressionSetting);
+                    _pUDPConnectorReader = new ConnectorReader{compressionSettings};
                 }
                 _pUDPConnectorReader->lockConnectorReader();
                 return _pUDPConnectorReader;
             }
-            case ProxyMessage::PMC_ZLibCompressedData:
+        case CompressionType::PMC_ZLibCompressedData:
             {
                 if (!_pUDPZLibConnectorReader) {
-                    _pUDPZLibConnectorReader = new ZLibConnectorReader (pCompressionSetting);
+                    _pUDPZLibConnectorReader = new ZLibConnectorReader{compressionSettings};
                 }
                 _pUDPZLibConnectorReader->lockConnectorReader();
                 return _pUDPZLibConnectorReader;
             }
-            #if !defined (ANDROID)
-                case ProxyMessage::PMC_LZMACompressedData:
-                {
-                    if (!_pUDPLzmaConnectorReader) {
-                        _pUDPLzmaConnectorReader = new LzmaConnectorReader (pCompressionSetting);
-                    }
-                    _pUDPLzmaConnectorReader->lockConnectorReader();
-                    return _pUDPLzmaConnectorReader;
+        #if !defined (ANDROID)
+        case CompressionType::PMC_LZMACompressedData:
+            {
+                if (!_pUDPLzmaConnectorReader) {
+                    _pUDPLzmaConnectorReader = new LzmaConnectorReader{compressionSettings};
                 }
-            #endif
+                _pUDPLzmaConnectorReader->lockConnectorReader();
+                return _pUDPLzmaConnectorReader;
+            }
+        #endif
         }
 
         return nullptr;
@@ -89,4 +83,8 @@ namespace ACMNetProxy
         return 0;
     }
 
+
+    ConnectorReader * ConnectorReader::_pUDPConnectorReader = nullptr;
+    ZLibConnectorReader * ConnectorReader::_pUDPZLibConnectorReader = nullptr;
+    LzmaConnectorReader * ConnectorReader::_pUDPLzmaConnectorReader = nullptr;
 }

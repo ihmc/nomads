@@ -5,7 +5,7 @@
  * OrderableBufferWrapper.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,6 +29,8 @@
  * a pointer to an object of a type defined at compile-time.
  */
 
+#include <utility>
+
 #include "SequentialArithmetic.h"
 
 
@@ -38,8 +40,9 @@ namespace ACMNetProxy
     {
     public:
         OrderableItem (unsigned int uiSequenceNumber, unsigned int uiItemLength);
-        OrderableItem (const OrderableItem& rOrderableItem) = delete;
-        virtual ~OrderableItem (void) {};
+        OrderableItem (const OrderableItem & rOrderableItem) = delete;
+        OrderableItem (OrderableItem && rOrderableItem) = default;
+        virtual ~OrderableItem (void) { };
 
         virtual const unsigned int getSequenceNumber (void) const;
         virtual const unsigned int getItemLength (void) const;
@@ -47,18 +50,18 @@ namespace ACMNetProxy
         virtual void setSequenceNumber (unsigned int uiSequenceNumber);
         virtual void setItemLength (unsigned int uhiItemLength);
 
-        virtual bool operator== (const OrderableItem &rhs) const = 0;
-        virtual bool operator!= (const OrderableItem &rhs) const = 0;
-        virtual bool operator< (const OrderableItem &rhs) const = 0;
-        virtual bool operator> (const OrderableItem &rhs) const = 0;
-        virtual bool operator<= (const OrderableItem &rhs) const = 0;
-        virtual bool operator>= (const OrderableItem &rhs) const = 0;
+        virtual bool operator== (const OrderableItem & rhs) const = 0;
+        virtual bool operator!= (const OrderableItem & rhs) const = 0;
+        virtual bool operator< (const OrderableItem & rhs) const = 0;
+        virtual bool operator> (const OrderableItem & rhs) const = 0;
+        virtual bool operator<= (const OrderableItem & rhs) const = 0;
+        virtual bool operator>= (const OrderableItem & rhs) const = 0;
 
-        virtual bool follows (const OrderableItem &rhs) const = 0;
-        virtual bool isFollowedBy (const OrderableItem &rhs) const = 0;
-        virtual bool overlaps (const OrderableItem &rhs) const = 0;
-        virtual bool includes (const OrderableItem &rhs) const = 0;
-        virtual bool isIncludedIn (const OrderableItem &rhs) const = 0;
+        virtual bool follows (const OrderableItem & rhs) const = 0;
+        virtual bool isFollowedBy (const OrderableItem & rhs) const = 0;
+        virtual bool overlaps (const OrderableItem & rhs) const = 0;
+        virtual bool includes (const OrderableItem & rhs) const = 0;
+        virtual bool isIncludedIn (const OrderableItem & rhs) const = 0;
 
 
     protected:
@@ -70,9 +73,10 @@ namespace ACMNetProxy
     template <class DataType> class OrderableBufferWrapper : public OrderableItem
     {
     public:
-        OrderableBufferWrapper (unsigned int uiSequenceNumber, unsigned int uiItemLength, const DataType *pData);
-        OrderableBufferWrapper (const OrderableBufferWrapper& rOrderableBufferWrapper) = delete;
-        virtual ~OrderableBufferWrapper (void) {};
+        OrderableBufferWrapper (unsigned int uiSequenceNumber, unsigned int uiItemLength, const DataType * const pData);
+        OrderableBufferWrapper (const OrderableBufferWrapper & rOrderableBufferWrapper) = delete;
+        OrderableBufferWrapper (OrderableBufferWrapper && rOrderableBufferWrapper);
+        virtual ~OrderableBufferWrapper (void) { };
 
         using OrderableItem::getSequenceNumber;
         using OrderableItem::getItemLength;
@@ -82,29 +86,28 @@ namespace ACMNetProxy
         virtual const DataType * const getData (void) const;
         virtual void setData (DataType * const pData);
 
-        virtual bool operator== (const OrderableItem &rhs) const;
-        virtual bool operator!= (const OrderableItem &rhs) const;
-        virtual bool operator< (const OrderableItem &rhs) const;
-        virtual bool operator> (const OrderableItem &rhs) const;
-        virtual bool operator<= (const OrderableItem &rhs) const;
-        virtual bool operator>= (const OrderableItem &rhs) const;
+        virtual bool operator== (const OrderableItem & rhs) const;
+        virtual bool operator!= (const OrderableItem & rhs) const;
+        virtual bool operator< (const OrderableItem & rhs) const;
+        virtual bool operator> (const OrderableItem & rhs) const;
+        virtual bool operator<= (const OrderableItem & rhs) const;
+        virtual bool operator>= (const OrderableItem & rhs) const;
 
-        virtual bool follows (const OrderableItem &rhs) const;
-        virtual bool isFollowedBy (const OrderableItem &rhs) const;
-        virtual bool overlaps (const OrderableItem &rhs) const;
-        virtual bool includes (const OrderableItem &rhs) const;
-        virtual bool isIncludedIn (const OrderableItem &rhs) const;
+        virtual bool follows (const OrderableItem & rhs) const;
+        virtual bool isFollowedBy (const OrderableItem & rhs) const;
+        virtual bool overlaps (const OrderableItem & rhs) const;
+        virtual bool includes (const OrderableItem & rhs) const;
+        virtual bool isIncludedIn (const OrderableItem & rhs) const;
+
 
     protected:
-        DataType *_pData;
+        DataType * _pData;
     };
 
 
-    inline OrderableItem::OrderableItem (unsigned int uiSequenceNumber, unsigned int uiItemLength)
-    {
-        _uiSequenceNumber = uiSequenceNumber;
-        _uiItemLength = uiItemLength;
-    }
+    inline OrderableItem::OrderableItem (unsigned int uiSequenceNumber, unsigned int uiItemLength) :
+        _uiSequenceNumber{uiSequenceNumber}, _uiItemLength{uiItemLength}
+    { }
 
     inline const unsigned int OrderableItem::getSequenceNumber (void) const
     {
@@ -131,10 +134,14 @@ namespace ACMNetProxy
         _uiItemLength = uiItemLength;
     }
 
-    template <class DataType> inline OrderableBufferWrapper<DataType>::OrderableBufferWrapper (unsigned int uiSequenceNumber, unsigned int uiItemLength, const DataType *pData)
-        : OrderableItem (uiSequenceNumber, uiItemLength)
+    template <class DataType> inline OrderableBufferWrapper<DataType>::OrderableBufferWrapper (unsigned int uiSequenceNumber, unsigned int uiItemLength, const DataType * const pData) :
+        OrderableItem{uiSequenceNumber, uiItemLength}, _pData{const_cast<DataType *> (pData)}
+    { }
+
+    template <class DataType> inline OrderableBufferWrapper<DataType>::OrderableBufferWrapper (OrderableBufferWrapper && rOrderableBufferWrapper) :
+        OrderableItem{std::move (rOrderableBufferWrapper)}, _pData{const_cast<DataType *> (rOrderableBufferWrapper._pData)}
     {
-        _pData = const_cast<DataType*> (pData);
+        rOrderableBufferWrapper._pData = nullptr;
     }
 
     template <class DataType> inline const DataType * const OrderableBufferWrapper<DataType>::getData (void) const

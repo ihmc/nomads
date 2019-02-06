@@ -14,33 +14,103 @@
 #include <string.h>
 
 #include "Logger.h"
+#include "HTTPClient.h"
+#include "Json.h"
 #include "InetAddr.h"
 #include "UDPDatagramSocket.h"
 #include "StrClass.h"
 #include "ConfigManager.h"
 
 #if defined (WIN32)
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX _MAX_PATH
     #if _MCS_VER<1900
-        #define snprintf _snprintf    
+        #define snprintf _snprintf
     #endif
 #elif defined (UNIX)
     #include <syslog.h>
     #if defined (OSX)
         #include <sys/syslimits.h>
-	    #define	INADDR_NONE		0xffffffff
+        #define INADDR_NONE 0xffffffff
+    #endif
+    #if defined (ANDROID)
+        #include <android/log.h>
     #endif
 #endif
+
+using namespace NOMADSUtil;
+
+namespace LOGGER
+{
+#if defined (ANDROID)
+    int toAndroidLoggingLevel (uint8 ui8DbgDetLevel)
+    {
+        switch (ui8DbgDetLevel) {
+            case Logger::L_SevereError:
+            case Logger::L_MildError:
+                return ANDROID_LOG_ERROR;
+            case Logger::L_Warning:
+                return ANDROID_LOG_WARN;
+            case Logger::L_Info:
+                return ANDROID_LOG_INFO;
+            case Logger::L_NetDetailDebug:
+            case Logger::L_LowDetailDebug:
+                return ANDROID_LOG_DEBUG;
+            case Logger::L_MediumDetailDebug:
+            case Logger::L_HighDetailDebug:
+            default:
+                return ANDROID_LOG_VERBOSE;
+        }
+    }
+#endif
+
+    const char * toSplunkLoggingLevelAsString (uint8 ui8DbgDetLevel)
+    {
+        /*DEBUG, INFO, NOTICE, WARN, ERROR, CRIT, ALERT, FATAL, and EMERG*/
+        switch (ui8DbgDetLevel) {
+            case Logger::L_SevereError:
+                return "CRIT";
+            case Logger::L_MildError:
+                return "ERROR";
+            case Logger::L_Warning:
+                return "WARN";
+            case Logger::L_Info:
+                return "INFO";
+            default:
+                return "DEBUG";
+        }
+    }
+
+    String toSplunkEvent (int64 iTimestamp, uint8 ui8DbgDetLevel, const char *pszHost, const char *pszSource, const char *pszMsg)
+    {
+        // http://docs.splunk.com/Documentation/Splunk/7.0.2/Data/FormatEventsforHTTPEventCollector
+        /*
+        {
+            "time": 1437522387,
+            "host": "dataserver992.example.com",
+            "source": "testapp",
+            "event": {
+            "message": "Something happened",
+                "severity": "INFO"
+            }
+        }
+        */
+        char buffer[1024];
+        sprintf (buffer, "{\"time\": %lld, \"host\": %s, \"source\": %s, \"event\": { \"message\": %s, \"severity\": %s }}",
+                 iTimestamp, pszHost, pszSource, pszMsg, toSplunkLoggingLevelAsString (ui8DbgDetLevel));
+        return String (buffer);
+    }
+
+}
 
 namespace NOMADSUtil
 {
     Logger *pLogger;
 }
 
-using namespace NOMADSUtil;
+using namespace LOGGER;
 
 const char * Logger::LOGGING_ENABLED_PROPERTY = "util.logger.enabled";
 const char * Logger::SCREEN_LOGGING_PROPERTY = "util.logger.out.screen.enabled";
@@ -55,15 +125,20 @@ Logger::Logger (void)
     _fileErrorLog = NULL;
     _ui32DestAddr = 0;
     _ui16DestPort = 0;
+    _ui16SplunkSrvPort = 0;
     _pDGSocket = NULL;
+    _splunkSrvIPAddr = "";
     _bWriteToScreen = false;
     _bWriteToFile = false;
     _bWriteToErrorLogFile = false;
     _bWriteToOSLog = false;
     _bWriteToNetwork = false;
+    _bWriteToSplunk = false;
+    _localHost = "unknown";
     _uchDebugLevel = 0;
     _uchOSLogDebugLevel = 0;
     _uchNetworkLogDebugLevel = 0;
+    _uchSplunkLogDebugLevel = 0;
     _bHistoryMode = false;
     _ulHistoryBufLen = 0;
     _bServiceDialogOutput = false;
@@ -89,7 +164,7 @@ Logger::~Logger (void)
         _pDGSocket = NULL;
     }
 }
-        
+
 int Logger::configure (ConfigManager *pCfgMgr)
 {
     if (pCfgMgr == NULL) {
@@ -187,6 +262,19 @@ int Logger::initNetworkLogging (const char *pszDestIPAddr, uint16 ui16DestPort)
     return 0;
 }
 
+int Logger::initSplunkLogging (const char *pszLocalHost, const char *pszSplunkSrvIPAddr, uint16 ui16SplunkSrvPort)
+{
+    if (pszSplunkSrvIPAddr == NULL) {
+        return - 1;
+    }
+    _ui16SplunkSrvPort = ui16SplunkSrvPort;
+    _splunkSrvIPAddr = pszSplunkSrvIPAddr;
+    if (pszLocalHost != NULL) {
+        _localHost = pszLocalHost;
+    }
+    return 0;
+}
+
 int Logger::setLogFileHandle (FILE *file)
 {
     if (_fileLog) {
@@ -220,6 +308,21 @@ int Logger::enableNetworkOutput (unsigned char uchLevel)
 void Logger::disableNetworkOutput (void)
 {
     _bWriteToNetwork = false;
+}
+
+int Logger::enableSplunkOutput (unsigned char uchLevel)
+{
+    if ((_splunkSrvIPAddr.length() <= 0) || (_ui16SplunkSrvPort == 0)) {
+        return - 1;
+    }
+    _uchSplunkLogDebugLevel = uchLevel;
+    _bWriteToSplunk = true;
+    return 0;
+}
+
+void Logger::disableSplunkOutput (void)
+{
+    _bWriteToSplunk = false;
 }
 
 int Logger::enableOSLogOutput (const char *pszAppName, unsigned char uchLevel)
@@ -278,13 +381,18 @@ int Logger::logMsg (const char *pszSource, unsigned char uchLevel, const char *p
     }
     va_list vargs;
 
+    const int64 i64Now = getTimeInMilliseconds();
+    uint32 ui32ElapsedTime = (uint32) (i64Now - _i64StartTime);
     _mLog.lock();
-    uint32 ui32ElapsedTime = (uint32) (getTimeInMilliseconds() - _i64StartTime);
     if (_bWriteToScreen) {
         if (_usCurrIndent > 0) {
             writeIndentSpace (stdout, _usCurrIndent);
         }
-
+#if defined (ANDROID)
+        va_start (vargs, pszMsg);
+        __android_log_vprint (toAndroidLoggingLevel (uchLevel), pszSource, pszMsg, vargs);
+        va_end (vargs);
+#else
         if (_bDisplayRelativeTime) {
             fprintf (stdout, "%lu - %s %d ", ui32ElapsedTime, pszSource, (int) uchLevel);
         }
@@ -293,10 +401,12 @@ int Logger::logMsg (const char *pszSource, unsigned char uchLevel, const char *p
             struct tm *ptm = localtime (&now);
             fprintf (stdout, "%02d:%02d:%02d - ", ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
             fprintf (stdout, "%s %d ", pszSource, (int) uchLevel);
+
         }
         va_start (vargs, pszMsg);
         vfprintf (stdout, pszMsg, vargs);
         va_end (vargs);
+#endif
     }
     if (_bServiceDialogOutput) {
         char szMsg[PATH_MAX];
@@ -355,6 +465,15 @@ int Logger::logMsg (const char *pszSource, unsigned char uchLevel, const char *p
         va_end (vargs);
         szBuf[sizeof(szBuf)-1] = '\0';
         _pDGSocket->sendTo (_ui32DestAddr, _ui16DestPort, szBuf, (int) strlen (szBuf));
+    }
+    if (_bWriteToSplunk) {
+        char szBuf[65535];
+        va_start (vargs, pszMsg);
+        vsnprintf (szBuf, sizeof (szBuf), pszMsg, vargs);
+        va_end (vargs);
+        szBuf[sizeof (szBuf) - 1] = '\0';
+        String json (toSplunkEvent (i64Now, uchLevel, _localHost, pszSource, szBuf));
+        HTTPClient::postData (_splunkSrvIPAddr, _ui16DestPort, "/services/collector/event", json);
     }
     if ((_bWriteToOSLog) && (uchLevel <= _uchOSLogDebugLevel)) {
         #if defined (WIN32)
@@ -454,4 +573,3 @@ void LoggerNetworkListener::run (void)
     }
     terminating();
 }
-

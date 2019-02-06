@@ -29,10 +29,10 @@
 #include <time.h>
 
 #if defined (WIN32)
-	#include <sys/timeb.h>
+    #include <sys/timeb.h>
     #include <io.h>
-#define NOMINMAX
-#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX _MAX_PATH
     #define PATH_SEP '\\'
@@ -42,15 +42,21 @@
     #include <unistd.h>
     #define PATH_SEP '/'
     #define PATH_SEP_STR "/"
-	#if defined (LINUX) || defined (MACOSX)
-    	#include <sys/time.h>
-	#endif
+    #if defined (LINUX) || defined (MACOSX)
+        #include <sys/time.h>
+    #endif
 #endif
 
 #include <limits.h>
 #include <stdlib.h>
 
+
 using namespace NOMADSUtil;
+
+namespace NOMADSUtil {
+    static constexpr unsigned char LF = '\n';
+    static constexpr unsigned char CR = '\r';
+}
 
 uint32 NOMADSUtil::ceiling (uint32 ui32Input, uint32 ui32Multiplier)
 {
@@ -699,7 +705,7 @@ char * NOMADSUtil::strsub (char *pszSearchString, char *pszSearchPattern, char *
                 pszTmpInitial[iTempLen++] = *pszTempReplacePattern++;
             }
 
-            i += iSearchPatternLen ? iSearchPatternLen : 1;	/* avoid infinite recursion */
+            i += iSearchPatternLen ? iSearchPatternLen : 1;    /* avoid infinite recursion */
             if (bGlobal) {
                 bReplace = true;
             }
@@ -840,7 +846,6 @@ void NOMADSUtil::deallocateNullTerminatedPtrArray (char **ptrArray)
     }
     for (unsigned int i = 0; ptrArray[i] != NULL; i++) {
         free (ptrArray[i]);
-        ptrArray[i] = NULL;
     }
     free (ptrArray);
     ptrArray = NULL;

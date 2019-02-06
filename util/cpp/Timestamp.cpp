@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   Timestamp.cpp
  * Author: gbenincasa
- * 
+ *
  * Created on April 28, 2015, 5:03 PM
  */
 

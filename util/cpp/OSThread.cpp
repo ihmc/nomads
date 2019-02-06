@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -225,7 +225,7 @@ int OSThread::setPriority (int priority)
 */
 
         if (_pid == 0) {
-            //we're going to wait for a little while, until the 
+            //we're going to wait for a little while, until the
             //execUserFunc() method gets called by the pthread library
             //and sets the _pid variable on this thread.
 
@@ -434,7 +434,7 @@ void OSThread::setThreadName (const char *format, ...)
 
     fmtMsg[255] = '\0'; // ensure null terminator is present
     #ifdef _MSC_VER
-        SetVCDebuggerThreadName(_dwThreadId, fmtMsg);        
+        SetVCDebuggerThreadName(_dwThreadId, fmtMsg);
     #else
         // do nothing right now
     #endif

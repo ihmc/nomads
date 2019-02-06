@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -72,7 +72,7 @@ namespace NOMADSUtil
     {
         public:
             TCPSocket (void);
-            TCPSocket(int aSocket);
+            TCPSocket (int aSocket);
             virtual ~TCPSocket (void);
             virtual int blockingMode (int iMode);
 
@@ -85,7 +85,8 @@ namespace NOMADSUtil
             virtual int getLingerTime (void);
             virtual int setLingerOptions (int iMode, int iTime);
             virtual const char * getLocalHostName (void);
-            virtual int connect (const char *pszHostName, unsigned short usPortNum);
+            virtual int bind (unsigned long ulLocalIPv4Address = INADDR_ANY, unsigned short usPortNum = 0);
+            virtual int connect (const char * pszHostName, unsigned short usPortNum);
             virtual int reconnect (void);
             virtual int disconnect (void);
             virtual int shutdown (bool bReadMode, bool bWriteMode);
@@ -95,15 +96,15 @@ namespace NOMADSUtil
             virtual Socket * accept (void);
             virtual const char * getRemoteHostAddr (void);
             virtual const char * getRemoteHostName (void);
-            virtual unsigned short getLocalPort (void);
-            virtual unsigned short getRemotePort (void);
+            virtual unsigned short getLocalPort (void) const;
+            virtual unsigned short getRemotePort (void) const;
             virtual Socket * dup (void);
             virtual void setTimeOut (unsigned long ulTimeOut);
             virtual int error (void);
             virtual int bytesAvail (void);
             virtual int getFileDescriptor (void);
-            virtual int getAndDisassociateFileDescriptor(void);
-            virtual int isConnected(void);
+            virtual int getAndDisassociateFileDescriptor (void);
+            virtual int isConnected (void);
             #if defined (WIN16) || defined (WIN32)
                 virtual int setupReceiveNotification (HWND hWnd, unsigned int wMsg);
                 virtual int disableReceiveNotification (void);
@@ -125,8 +126,10 @@ namespace NOMADSUtil
             #endif
         protected:
             int iSocket;
+            bool bBound;
             bool bCleanupAllowed;
             String localHostName;
+            struct sockaddr_in lastBoundSockAddr;
             struct sockaddr_in lastConnectSockAddr;
             struct sockaddr_in remoteSockAddr;
             String remoteHostAddr;

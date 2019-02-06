@@ -2,7 +2,7 @@
  * ProxyNetworkMessage.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,34 +18,44 @@
  */
 
 #include "ProxyNetworkMessage.h"
+#include "Utilities.h"
 
-
-using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    ProxyNetworkMessage::ProxyNetworkMessage (const InetAddr * const pProxyAddr, const ProxyMessage * const pProxyMessage, uint32 ui32DestVirtualIPAddr,
-                                              const uint8 * const pui8MessagePayload, const uint16 ui16PayloadLen) :
-        _ProxyAddr(pProxyAddr->getIPAddress(), pProxyAddr->getPort()), _ui32DestVirtualIPAddr (ui32DestVirtualIPAddr)
+    ProxyNetworkMessage::ProxyNetworkMessage (const NOMADSUtil::InetAddr * const pProxyAddr, const ProxyMessage * const pProxyMessage, uint32 ui32SourceIPAddr,
+                                              uint32 ui32DestIPAddr, const uint8 * const pui8MessagePayload, const uint16 ui16PayloadLen) :
+        _iaProxyAddr{*pProxyAddr}, _pui8Buf{((ui16PayloadLen > 0) && pui8MessagePayload) ? new uint8[pProxyMessage->getMessageHeaderSize() + ui16PayloadLen] :
+                                                                                      new uint8[pProxyMessage->getMessageHeaderSize()]},
+        _pProxyMessage{reinterpret_cast<ProxyMessage *> (_pui8Buf)}, _ui32SourceIPAddr{ui32SourceIPAddr}, _ui32DestIPAddr{ui32DestIPAddr},
+        _ui16PayloadLen{((ui16PayloadLen > 0) && pui8MessagePayload) ? ui16PayloadLen : 0_us}
     {
+        memcpy ((void *) _pui8Buf, (void *) pProxyMessage, pProxyMessage->getMessageHeaderSize());
         if ((ui16PayloadLen > 0) && pui8MessagePayload) {
-            _pBuf = new uint8[pProxyMessage->getMessageHeaderSize() + ui16PayloadLen];
+            memcpy ((void *) (getPointerToPayload()), (void *) pui8MessagePayload, ui16PayloadLen);
         }
-        else {
-            _pBuf = new uint8[pProxyMessage->getMessageHeaderSize()];
-        }
-        memcpy ((void*) _pBuf, (void*) pProxyMessage, pProxyMessage->getMessageHeaderSize());
-        _pProxyMessage = (ProxyMessage *) _pBuf;
+    }
 
-        if ((ui16PayloadLen > 0) && pui8MessagePayload) {
-            memcpy ((void*) (_pBuf + pProxyMessage->getMessageHeaderSize()), (void*) pui8MessagePayload, ui16PayloadLen);
-            _pui8MessagePayload = &_pBuf[pProxyMessage->getMessageHeaderSize()];
-            _ui16PayloadLen = ui16PayloadLen;
-        }
-        else {
-            _pui8MessagePayload = nullptr;
-            _ui16PayloadLen = 0;
-        }
+    ProxyNetworkMessage::ProxyNetworkMessage (ProxyNetworkMessage && pnm) :
+        _iaProxyAddr{std::move (pnm._iaProxyAddr)}, _pui8Buf{std::move (pnm._pui8Buf)}, _pProxyMessage{reinterpret_cast<ProxyMessage *> (_pui8Buf)},
+        _ui32SourceIPAddr{std::move (pnm._ui32SourceIPAddr)}, _ui32DestIPAddr{std::move (pnm._ui32DestIPAddr)},
+        _ui16PayloadLen{std::move (pnm._ui16PayloadLen)}
+    {
+        pnm._pui8Buf = nullptr;
+    }
+
+    ProxyNetworkMessage & ProxyNetworkMessage::operator= (ProxyNetworkMessage && pnm)
+    {
+        _iaProxyAddr = std::move (pnm._iaProxyAddr);
+        _pui8Buf = std::move (pnm._pui8Buf);
+        _pProxyMessage = reinterpret_cast<ProxyMessage *> (_pui8Buf);
+        _ui32SourceIPAddr = std::move (pnm._ui32SourceIPAddr);
+        _ui32DestIPAddr = std::move (pnm._ui32DestIPAddr);
+        _ui16PayloadLen = std::move (pnm._ui16PayloadLen);
+
+        pnm._pui8Buf = nullptr;
+
+        return *this;
     }
 
     int ProxyNetworkMessage::setNewPacketPayload (const uint8 * const pNewBuf, uint16 ui16PayloadLen)
@@ -56,13 +66,14 @@ namespace ACMNetProxy
 
         if (ui16PayloadLen > _ui16PayloadLen) {
             // Need to resize buffer, keeping message header (realloc of the whole buffer is not necessary)
-            uint8 *pTempBuf = new uint8[_pProxyMessage->getMessageHeaderSize() + ui16PayloadLen];
-            memcpy (pTempBuf, _pBuf, _pProxyMessage->getMessageHeaderSize());
-            delete _pBuf;
-            _pBuf = pTempBuf;
+            auto * const pTempBuf = new uint8[_pProxyMessage->getMessageHeaderSize() + ui16PayloadLen];
+            memcpy (pTempBuf, _pui8Buf, _pProxyMessage->getMessageHeaderSize());
+            _pProxyMessage = reinterpret_cast<ProxyMessage *> (pTempBuf);
+            delete[] _pui8Buf;
+            _pui8Buf = pTempBuf;
         }
 
-        memcpy ((void *) (getMessagePayload()), pNewBuf, ui16PayloadLen);
+        memcpy ((void *) (getPointerToPayload()), pNewBuf, ui16PayloadLen);
         _ui16PayloadLen = ui16PayloadLen;
 
         return _ui16PayloadLen;

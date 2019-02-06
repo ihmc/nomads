@@ -61,7 +61,7 @@ class TSNChunkMutator
 
     protected:
         // If there is an error in adding the SAckChunk or the CancelledPacketChunk, the Packet
-        // class initializes the mutator with a NULL value for pBuf and a 0 for ui16BufSize
+        // class initializes the mutator with a nullptr value for pBuf and a 0 for ui16BufSize
         TSNChunkMutator (char *pBuf, uint16 ui16BufSize, uint16 ui16OffsetToBlocks, uint16 *pui16Offset);
 
         int startNewBlock (uint8 ui8Flags);
@@ -145,10 +145,10 @@ class CancelledChunkMutator : public TSNChunkMutator
 
 inline DataChunkMutator::DataChunkMutator (void)
 {
-    _pBuf = NULL;
+    _pBuf = nullptr;
     _ui16Offset = 0;
     _ui16SpaceAvail = 0;
-    _pui16OffsetInPacket = NULL;
+    _pui16OffsetInPacket = nullptr;
 }
 
 inline DataChunkMutator::DataChunkMutator (char *pBuf, uint16 ui16SpaceAvail, uint16 *pui16Offset)
@@ -166,7 +166,7 @@ inline uint16 DataChunkMutator::getSpaceAvail (void)
 
 inline int DataChunkMutator::addDataFragment (const void *pBuf, uint16 ui16BufSize)
 {
-    if (_pBuf == NULL) {
+    if (_pBuf == nullptr) {
         return -1;
     }
     else if (ui16BufSize > _ui16SpaceAvail) {
@@ -189,7 +189,7 @@ inline TSNChunkMutator::TSNChunkMutator (char *pBuf, uint16 ui16BufSize, uint16 
     _ui16OffsetToBlocks = ui16OffsetToBlocks;
     _ui16ChunkOffset = _ui16OffsetToBlocks;
     _pui16OffsetInPacket = pui16Offset;
-    if (pBuf != NULL) {
+    if (pBuf != nullptr) {
         _ui16ChunkSize = NOMADSUtil::EndianHelper::ntohs (*((uint16*)(_pBuf + 2)));
     }
     else {
@@ -199,7 +199,7 @@ inline TSNChunkMutator::TSNChunkMutator (char *pBuf, uint16 ui16BufSize, uint16 
 
 inline bool TSNChunkMutator::initializedWithoutErrors (void)
 {
-    return (_pBuf != NULL);
+    return (_pBuf != nullptr);
 }
 
 inline int TSNChunkMutator::addRange (uint32 ui32Start, uint32 ui32End)

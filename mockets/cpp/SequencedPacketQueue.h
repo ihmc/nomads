@@ -3,19 +3,19 @@
 
 /*
  * SequencedPacketQueue.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -78,10 +78,10 @@ class SequencedPacketQueue
         int remove (PacketWrapper *pWrapper);
 
         void setNextExpectedSequenceNum (uint32 ui32NextExpectedSequenceNum);
-		uint32 getNextExpectedSequenceNum (void);
+        uint32 getNextExpectedSequenceNum (void);
 
         void dumpPacketSequenceNumbers (void);
-        
+
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
         int defrost (NOMADSUtil::ObjectDefroster &objectDefroster);
 
@@ -105,21 +105,21 @@ class SequencedPacketQueue
 inline SequencedPacketQueue::SequencedPacketQueue (void)
     : _cv (&_m)
 {
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _ui32NextExpectedSequenceNum = 0;
 }
 
 inline SequencedPacketQueue::~SequencedPacketQueue (void)
 {
-    while (_pFirstNode != NULL) {
+    while (_pFirstNode != nullptr) {
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode->pData->getPacket();
         delete pTempNode->pData;
         delete pTempNode;
     }
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _ui32NextExpectedSequenceNum = 0;
 }
@@ -150,7 +150,7 @@ inline bool SequencedPacketQueue::insert (PacketWrapper *pWrapper)
     }
 
     // Check for the insertion starting at the end of the list
-    if (_pLastNode == NULL) {
+    if (_pLastNode == nullptr) {
         // There are no other elements - just insert at the end (which is also the beginning)
         Node *pNewNode = new Node;
         pNewNode->pData = pWrapper;
@@ -189,7 +189,7 @@ inline bool SequencedPacketQueue::insert (PacketWrapper *pWrapper)
     else {
         // Find the right spot to insert the new node
         Node *pTempNode = _pLastNode->pPrev;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             if (pTempNode->pData->getSequenceNum() == ui32NewSequenceNum) {
                 // This is a duplicate packet
                 _m.unlock();
@@ -235,7 +235,7 @@ inline bool SequencedPacketQueue::canInsert (uint32 ui32TSN)
         return false;
     }
     Node *pTempNode = _pFirstNode;
-    while (pTempNode != NULL) {
+    while (pTempNode != nullptr) {
         if (pTempNode->pData->getSequenceNum() == ui32TSN) {
             // This is a duplicate sequence number
             _m.unlock();
@@ -257,9 +257,9 @@ inline bool SequencedPacketQueue::canInsert (uint32 ui32TSN)
 inline PacketWrapper * SequencedPacketQueue::peek (void)
 {
     _m.lock();
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
     else {
         PacketWrapper *pData = _pFirstNode->pData;
@@ -271,7 +271,7 @@ inline PacketWrapper * SequencedPacketQueue::peek (void)
 inline int SequencedPacketQueue::remove (PacketWrapper *pWrapper)
 {
     _m.lock();
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // List is empty
         _m.unlock();
         return -1;
@@ -280,12 +280,12 @@ inline int SequencedPacketQueue::remove (PacketWrapper *pWrapper)
         // The node is the first node in the list
         Node *pNodeToDelete = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             // The list is now empty
-            _pLastNode = NULL;
+            _pLastNode = nullptr;
         }
         else {
-            _pFirstNode->pPrev = NULL;
+            _pFirstNode->pPrev = nullptr;
         }
         delete pNodeToDelete;
         _ui32PacketsInQueue--;
@@ -294,12 +294,12 @@ inline int SequencedPacketQueue::remove (PacketWrapper *pWrapper)
     }
     else {
         Node *pTempNode = _pFirstNode->pNext;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             if (pTempNode->pData == pWrapper) {
                 // Found the node to delete
                 Node *pNodeToDelete = pTempNode;
                 pTempNode->pPrev->pNext = pTempNode->pNext;
-                if (pTempNode->pNext == NULL) {
+                if (pTempNode->pNext == nullptr) {
                     // Removed the last node in the list
                     _pLastNode = pTempNode->pPrev;
                 }
@@ -329,11 +329,11 @@ inline void SequencedPacketQueue::setNextExpectedSequenceNum (uint32 ui32NextExp
         if (NOMADSUtil::SequentialArithmetic::lessThan (_pFirstNode->pData->getSequenceNum(), ui32NextExpectedSequenceNum)) {
             Node *pNodeToDelete = _pFirstNode;
             _pFirstNode = _pFirstNode->pNext;
-            if (_pFirstNode == NULL) {
-                _pLastNode = NULL;
+            if (_pFirstNode == nullptr) {
+                _pLastNode = nullptr;
             }
             else {
-                _pFirstNode->pPrev = NULL;
+                _pFirstNode->pPrev = nullptr;
             }
             delete pNodeToDelete->pData->getPacket();
             delete pNodeToDelete->pData;
@@ -349,7 +349,7 @@ inline void SequencedPacketQueue::setNextExpectedSequenceNum (uint32 ui32NextExp
 
 inline uint32 SequencedPacketQueue::getNextExpectedSequenceNum (void)
 {
-	return _ui32NextExpectedSequenceNum;
+    return _ui32NextExpectedSequenceNum;
 }
 
 inline void SequencedPacketQueue::dumpPacketSequenceNumbers (void)
@@ -359,7 +359,7 @@ inline void SequencedPacketQueue::dumpPacketSequenceNumbers (void)
         char szBuf[8192];
         szBuf[0] = '\0';
         Node *pTempNode = _pFirstNode;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             char szPacketNum[10];
             sprintf (szPacketNum, "%u ", pTempNode->pData->getSequenceNum());
             strcat (szBuf, szPacketNum);
@@ -379,7 +379,7 @@ inline int SequencedPacketQueue::freeze (NOMADSUtil::ObjectFreezer &objectFreeze
 /*    printf ("SequencedPacketQueue\n");
     printf ("_ui32NextExpectedSequenceNum %lu\n", _ui32NextExpectedSequenceNum);
     printf ("_ui32PacketsInQueue %lu\n", _ui32PacketsInQueue);*/
-    
+
     // Go through the whole list of nodes
     Node *pCurrNode = _pFirstNode;
     for (uint32 i=0; i<_ui32PacketsInQueue; i++) {
@@ -390,7 +390,7 @@ inline int SequencedPacketQueue::freeze (NOMADSUtil::ObjectFreezer &objectFreeze
         }
         pCurrNode = pCurrNode->pNext;
     }
-    
+
     return 0;
 }
 
@@ -398,11 +398,11 @@ inline int SequencedPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDef
 {
     objectDefroster >> _ui32NextExpectedSequenceNum;
     objectDefroster >> _ui32PacketsInQueue;
-    
+
 /*    printf ("SequencedPacketQueue\n");
     printf ("_ui32NextExpectedSequenceNum %lu\n", _ui32NextExpectedSequenceNum);
     printf ("_ui32PacketsInQueue %lu\n", _ui32PacketsInQueue);*/
-    
+
     // Insert the nodes
     for (uint32 i=0; i<_ui32PacketsInQueue; i++){
         //printf ("*** %d\n", i);
@@ -412,7 +412,7 @@ inline int SequencedPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDef
             return -2;
         }
         pNewNode->pData = pWrapper;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             _pFirstNode = _pLastNode = pNewNode;
         }
         else {
@@ -421,14 +421,14 @@ inline int SequencedPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDef
             _pLastNode = pNewNode;
         }
     }
-    
+
     return 0;
 }
 
 inline SequencedPacketQueue::Node::Node (void)
 {
-    pPrev = pNext = NULL;
-    pData = NULL;
+    pPrev = pNext = nullptr;
+    pData = nullptr;
 }
 
 #endif   // #ifndef INCL_SEQUENCED_PACKET_QUEUE_H

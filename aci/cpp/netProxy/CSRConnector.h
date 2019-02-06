@@ -5,7 +5,7 @@
  * CSRConnector.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,47 +22,39 @@
  * Handles incoming and outgoing CSR connections with remote NetProxies.
  */
 
-#include "FIFOBuffer.h"
-#include "UInt64Hashtable.h"
-#include "InetAddr.h"
-#include "Thread.h"
+#include <memory>
+
 #include "ManageableThread.h"
-#include "Mutex.h"
-#include "ConditionVariable.h"
-#include "Mocket.h"
-#include "ServerMocket.h"
 
 #include "Connector.h"
-#include "TCPConnTable.h"
-#include "ConfigurationParameters.h"
+
+
+class ServerMocket;
 
 
 namespace ACMNetProxy
 {
     class CSRConnector : public NOMADSUtil::ManageableThread, public virtual Connector
     {
-        public:
-            CSRConnector (void);
-            virtual ~CSRConnector (void);
+    public:
+        CSRConnector (ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable, TCPManager & rTCPManager,
+                      PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager);
+        virtual ~CSRConnector (void);
 
-            int init (uint16 ui16CSRProxyServerPort);
-            virtual void terminateExecution (void);
-            void run (void);
+        int init (uint16 ui16AcceptServerPort, uint32 ui32LocalIPv4Address);
+        virtual void terminateExecution (void);
+        void run (void);
 
-            static bool peerUnreachableWarning (void *pCallbackArg, unsigned long ulTimeSinceLastContact);
 
-        protected:
-            virtual bool isEnqueueingAllowed (void) const;
-
-        private:
-            ServerMocket *_pServerMocket;
+    private:
+        std::unique_ptr<ServerMocket> _upServerMocket;
     };
 
 
-    inline bool CSRConnector::isEnqueueingAllowed (void) const
-    {
-        return true;
-    }
+    inline CSRConnector::CSRConnector (ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable, TCPManager & rTCPManager,
+                                       PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager) :
+        Connector{CT_CSR, rConnectionManager, rTCPConnTable, rTCPManager, rPacketRouter, rStatisticsManager}, _upServerMocket{nullptr}
+    { }
 }
 
 #endif   // #ifndef INCL_CSR_CONNECTOR_H

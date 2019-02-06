@@ -5,7 +5,7 @@
  * Connector.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,91 +25,80 @@
  */
 
 #include "FTypes.h"
-#include "UInt64Hashtable.h"
+#include "Logger.h"
 
 #include "Utilities.h"
-#include "ProxyMessages.h"
-#include "ProtocolSetting.h"
-#include "QueryResult.h"
-#include "Entry.h"
-#include "ActiveConnection.h"
 
 
-namespace NOMADSUtil
-{
-    class InetAddr;
-}
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    class Connection;
-    class AutoConnectionEntry;
-    class UDPDatagramPacket;
-    class GUIStatsManager;
+    class ConnectionManager;
+    class TCPConnTable;
     class TCPManager;
     class PacketRouter;
+    class StatisticsManager;
+
 
     class Connector
     {
-        public:
-            virtual ~Connector (void);
+    public:
+        static Connector * const connectorFactoryMethod (ConnectorType connectorType, ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable,
+                                                         TCPManager & rTCPManager, PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager);
 
-            virtual int init (uint16 ui16AcceptServerPort) = 0;
-            virtual void terminateExecution (void) = 0;
+        explicit Connector (const Connector & rConnector) = delete;
+        virtual ~Connector (void);
 
-            ConnectorType getConnectorType (void) const;
-            const char * const getConnectorTypeAsString (void) const;
+        virtual int init (uint16 ui16AcceptServerPort, uint32 ui32LocalIPv4Address = 0) = 0;
+        template <typename INVALID1, typename INVALID2> int init (INVALID1, INVALID2) = delete;     // Do not allow any implicit type conversion
 
-            Connection * const getAvailableConnectionToRemoteProxy (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType);
-            Connection * const openNewConnectionToRemoteProxy (const QueryResult & query, bool bBlocking);
+        virtual void terminateExecution (void) = 0;
 
-            static const uint16 getAcceptServerPortForConnector (ConnectorType connectorType);
+        ConnectorType getConnectorType (void) const;
+        const char * const getConnectorTypeAsString (void) const;
+        uint32 getBoundIPv4Address (void) const;
+        uint16 getBoundPort (void) const;
 
-
-        protected:
-            friend class AutoConnectionEntry;
-            friend class TCPManager;
-            friend class PacketRouter;
-
-            Connector (ConnectorType connectorType);
-
-            int lockConnectionTable (void) const;
-            int tryLockConnectionTable (void) const;
-            int unlockConnectionTable (void) const;
-
-            virtual bool isEnqueueingAllowed (void) const = 0;
-            bool isConnectingToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const;
-            bool isConnectedToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const;
-            bool hasFailedConnectionToRemoteAddr (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, EncryptionType encryptionType) const;
-
-            const ConnectorType _connectorType;
-            const char * const _pcConnectorTypeName;
-
-            NOMADSUtil::UInt64Hashtable<Connection> _connectionsTable;
-            mutable NOMADSUtil::Mutex _mConnector;
-            mutable NOMADSUtil::Mutex _mConnectionsTable;
-
-            static ConnectionManager * const _pConnectionManager;
-            static GUIStatsManager * const _pGUIStatsManager;
-            static PacketRouter * const _pPacketRouter;
+        static const uint16 getAcceptServerPortForConnector (ConnectorType connectorType);
 
 
-        private:
-            friend class Connection;
+    protected:
+        Connector (ConnectorType connectorType, ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable,
+                   TCPManager & rTCPManager, PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager);
 
-            explicit Connector (const Connector& rConnector);
 
-            Connection * const removeFromConnectionsTable (const Connection * const pConnectionToRemove);
+        const ConnectorType _connectorType;
+        const char * const _pcConnectorTypeName;
+        uint32 _ui32BoundIPv4Address;
+        uint16 _ui16BoundPort;
 
-            static Connector * const connectorFactoryMethod (ConnectorType connectorType);
+        ConnectionManager & _rConnectionManager;
+        TCPConnTable & _rTCPConnTable;
+        TCPManager & _rTCPManager;
+        PacketRouter & _rPacketRouter;
+        StatisticsManager & _rStatisticsManager;
     };
 
 
-    inline void Connector::terminateExecution (void)
+    inline Connector::~Connector (void)
     {
-        lockConnectionTable();
-        _connectionsTable.removeAll();
-        unlockConnectionTable();
+        Connector::terminateExecution();
+
+        checkAndLogMsg ("Connector::~Connector", NOMADSUtil::Logger::L_LowDetailDebug,
+                        "%sConnector terminated\n", connectorTypeToString (_connectorType));
+    }
+
+    inline void Connector::terminateExecution (void) { }
+
+    inline int Connector::init (uint16 ui16AcceptServerPort, uint32 ui32BindIPv4Address)
+    {
+        _ui32BoundIPv4Address = ui32BindIPv4Address;
+        _ui16BoundPort = ui16AcceptServerPort;
+
+        return 0;
     }
 
     inline ConnectorType Connector::getConnectorType (void) const
@@ -122,23 +111,22 @@ namespace ACMNetProxy
         return _pcConnectorTypeName;
     }
 
-    inline Connector::Connector (ConnectorType connectorType) : _connectorType (connectorType),
-        _pcConnectorTypeName (connectorTypeToString (connectorType)), _connectionsTable (true) { }
-
-    inline int Connector::lockConnectionTable (void) const
+    inline uint32 Connector::getBoundIPv4Address (void) const
     {
-        return _mConnectionsTable.lock();
+        return _ui32BoundIPv4Address;
     }
 
-    inline int Connector::tryLockConnectionTable (void) const
+    inline uint16 Connector::getBoundPort (void) const
     {
-        return _mConnectionsTable.tryLock();
+        return _ui16BoundPort;
     }
 
-    inline int Connector::unlockConnectionTable (void) const
-    {
-        return _mConnectionsTable.unlock();
-    }
+    inline Connector::Connector (ConnectorType connectorType, ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable,
+                                 TCPManager & rTCPManager, PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager) :
+        _connectorType{connectorType}, _pcConnectorTypeName{connectorTypeToString (connectorType)}, _ui32BoundIPv4Address{0},
+        _ui16BoundPort{0}, _rConnectionManager{rConnectionManager}, _rTCPConnTable{rTCPConnTable}, _rTCPManager{rTCPManager},
+        _rPacketRouter{rPacketRouter}, _rStatisticsManager{rStatisticsManager}
+    { }
 }
 
 #endif  // INCL_CONNECTOR_H

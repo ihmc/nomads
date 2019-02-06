@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -28,6 +28,7 @@ Statistics::Statistics()
     _sumValues = 0.0;
     _sumSqValues = 0.0;
     _totalNumValues = 0;
+    _max = 0.0;
 }
 
 Statistics::~Statistics()
@@ -38,6 +39,9 @@ void Statistics::update (double value)
 {
     _sumValues += value;
     _sumSqValues += (value*value);
+    if ((_totalNumValues == 0) || (value > _max)) {
+        _max = value;
+    }
     _totalNumValues++;
 }
 
@@ -51,6 +55,11 @@ void Statistics::reset()
 int Statistics::getNumValues()
 {
     return _totalNumValues;
+}
+
+double Statistics::getMax()
+{
+    return _max;
 }
 
 double Statistics::getAverage()

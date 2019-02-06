@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -140,7 +140,7 @@ uint32 CommHelper2::receive (void *pBuf, uint32 ui32Size)
         else {
             sprintf (_szErrorMsgBuf, "CommHelper2::receive: reader error %d", rc);
         }
-        
+
         throw CommException (_szErrorMsgBuf);
     }
     return rc;
@@ -333,7 +333,7 @@ int CommHelper2::receiveMatchIndex (const char *apszAlternatives[], unsigned sho
     }
 
     // No match was found among the alternatives
-    throw ProtocolException ("CommHelper2::receiveMatchIndex: received line does not match any alternatives");  
+    throw ProtocolException ("CommHelper2::receiveMatchIndex: received line does not match any alternatives");
 }
 
 int CommHelper2::receiveRemainingMatchIndex (unsigned short usAltCount, ...)

@@ -1,18 +1,18 @@
 /*
  * ACKManager.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2016 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -94,9 +94,9 @@ int ACKManager::appendACKInformation (Packet *pPacket)
     _m.lock();
 
     SAckChunkMutator scm = pPacket->addSAckChunk (
-		_controlTSNHandler.getCumulativeTSN(), 
-		_reliableSequencedTSNHandler.getCumulativeTSN(), 
-		_reliableUnsequencedTSNHandler.getCumulativeTSN());
+        _controlTSNHandler.getCumulativeTSN(),
+        _reliableSequencedTSNHandler.getCumulativeTSN(),
+        _reliableUnsequencedTSNHandler.getCumulativeTSN());
     if (!scm.initializedWithoutErrors()) {
         checkAndLogMsg ("ACKManager::appendSAckInformation", Logger::L_MediumDetailDebug,
                         "failed to add SAckChunk to packet\n");
@@ -141,9 +141,9 @@ int ACKManager::appendACKInformation (Packet *pPacket, int64 i64Timestamp, uint3
     _m.lock();
 
     SAckChunkMutator scm = pPacket->addSAckChunk (
-		_controlTSNHandler.getCumulativeTSN(), 
-		_reliableSequencedTSNHandler.getCumulativeTSN(), 
-		_reliableUnsequencedTSNHandler.getCumulativeTSN(), i64Timestamp, ui32BytesReceived);
+        _controlTSNHandler.getCumulativeTSN(),
+        _reliableSequencedTSNHandler.getCumulativeTSN(),
+        _reliableUnsequencedTSNHandler.getCumulativeTSN(), i64Timestamp, ui32BytesReceived);
     if (!scm.initializedWithoutErrors()) {
         checkAndLogMsg ("ACKManager::appendSAckInformation", Logger::L_MediumDetailDebug,
                         "failed to add SAckChunk to packet\n");

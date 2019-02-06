@@ -28,8 +28,8 @@ import java.util.HashMap;
  * InetUtil
  *
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.6 $
- * @ $Date: 2016/06/09 20:02:46 $
+ * @version $Revision$
+ * @ $Date$
  * @ Created on 12:40:08 AM Feb 18, 2006
  */
 

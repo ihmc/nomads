@@ -29,61 +29,17 @@ namespace IHMC_NETSENSOR
 class NetSensorPacketQueue
 {
 public:
-    void dequeue(NetSensorPacket & p);
+    NetSensorPacketQueue (const uint32 queueMaxSize = 500);
+    ~NetSensorPacketQueue(void) {}
+    void dequeue (NetSensorPacket& p);
     bool mutexTest(void);
-    bool enqueue(const NetSensorPacket & packet);
-    NetSensorPacketQueue(uint32 queueMaxSize = 500);
-    ~NetSensorPacketQueue(void);
+    bool enqueue (const NetSensorPacket& packet);
 //<--------------------------------------------------------------------------->
 private:
     uint32 _uint32Size;
     uint32 _uint32QueueMaxSize;
     NOMADSUtil::Queue<NetSensorPacket> _pPQueue;
-    NOMADSUtil::Mutex _pQMutex;
+    NOMADSUtil::Mutex _mutex;
 };
-
-inline NetSensorPacketQueue::NetSensorPacketQueue(uint32 queueMaxSize)
-{
-    _uint32QueueMaxSize = queueMaxSize;
-}
-
-inline NetSensorPacketQueue::~NetSensorPacketQueue(void) { }
-
-inline bool NetSensorPacketQueue::enqueue(const NetSensorPacket & p)
-{
-    if (_pQMutex.lock() == NOMADSUtil::Mutex::RC_Ok) {
-        if ((_uint32Size = _pPQueue.size()) < _uint32QueueMaxSize) {
-            _pPQueue.enqueue(p);
-            _pQMutex.unlock();
-            return true;
-        }
-        else {
-            _pQMutex.unlock();
-            return false;
-        }
-    }
-    return false;
-}
-
-inline void NetSensorPacketQueue::dequeue(NetSensorPacket & p)
-{
-    if (_pQMutex.lock() == NOMADSUtil::Mutex::RC_Ok) {
-        if (_pPQueue.dequeue(p) != 0) {
-            p = EMPTY_PACKET;
-        }
-        _pQMutex.unlock();
-    }
-}
-
-inline bool NetSensorPacketQueue::mutexTest(void)
-{
-    if (_pQMutex.lock() == NOMADSUtil::Mutex::RC_Ok) {
-        _pQMutex.unlock();
-        return true;
-    }
-    else {
-        return false;
-    }
-}
 }
 #endif

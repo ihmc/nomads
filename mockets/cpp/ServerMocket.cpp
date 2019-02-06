@@ -1,18 +1,18 @@
 /*
  * ServerMocket.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -32,11 +32,11 @@ using namespace NOMADSUtil;
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 ServerMocket::ServerMocket(
-    const char *pszConfigFile, 
-    CommInterface *pCI, 
-    bool bDeleteCIWhenDone, 
-    bool enableDtls, 
-    const char* pathToCertificate, 
+    const char *pszConfigFile,
+    CommInterface *pCI,
+    bool bDeleteCIWhenDone,
+    bool enableDtls,
+    const char* pathToCertificate,
     const char* pathToPrivateKey)
     : _cvInAccept (&_mInAccept)
 {
@@ -45,10 +45,10 @@ ServerMocket::ServerMocket(
     _bInAccept = false;
     _ui16Port = 0;
     _ui32ListenAddr = 0;
-	_bEnableDtls = enableDtls;
+    _bEnableDtls = enableDtls;
 
-    if (pCI == NULL) {
-        _pCommInterface = NULL;
+    if (pCI == nullptr) {
+        _pCommInterface = nullptr;
         _bLocallyCreatedCI = true;
         _bDeleteCIWhenDone = true;
     }
@@ -58,8 +58,8 @@ ServerMocket::ServerMocket(
         _bDeleteCIWhenDone = bDeleteCIWhenDone;
     }
 
-    pathToCertificate ? (_cpPathToCertificate = strdup(pathToCertificate)) : (_cpPathToCertificate = NULL);  
-    pathToPrivateKey ? (_cpPathToPrivateKey = strdup(pathToPrivateKey)) : (_cpPathToPrivateKey = NULL);
+    pathToCertificate ? (_cpPathToCertificate = strdup(pathToCertificate)) : (_cpPathToCertificate = nullptr);
+    pathToPrivateKey ? (_cpPathToPrivateKey = strdup(pathToPrivateKey)) : (_cpPathToPrivateKey = nullptr);
 
 }
 
@@ -74,7 +74,7 @@ ServerMocket::~ServerMocket (void)
     if (_bDeleteCIWhenDone) {
         delete _pCommInterface;
     }
-    _pCommInterface = NULL;
+    _pCommInterface = nullptr;
     free(_cpPathToCertificate);
     free(_cpPathToPrivateKey);
 }
@@ -82,33 +82,32 @@ ServerMocket::~ServerMocket (void)
 int ServerMocket::listen (uint16 ui16Port)
 {
     if (_bEnableDtls) {
-        if ((_bLocallyCreatedCI) && (_pCommInterface == NULL)) {
-            
+        if ((_bLocallyCreatedCI) && (_pCommInterface == nullptr)) {
             DTLSCommInterface *pSupport = new DTLSCommInterface(new UDPCommInterface(new UDPDatagramSocket(), true), true, 500, _cpPathToCertificate, _cpPathToPrivateKey);
             _pCommInterface = pSupport;
             _bLocallyCreatedCI = true;
             _bDeleteCIWhenDone = true;
         }
-        else if (_pCommInterface == NULL) {
+        else if (_pCommInterface == nullptr) {
             return -1;
         }
     }
     else {
-        if ((_bLocallyCreatedCI) && (_pCommInterface == NULL)) {
+        if ((_bLocallyCreatedCI) && (_pCommInterface == nullptr)) {
             _pCommInterface = new UDPCommInterface(new UDPDatagramSocket(), true);
             _bLocallyCreatedCI = true;
             _bDeleteCIWhenDone = true;
         }
-        else if (_pCommInterface == NULL) {
+        else if (_pCommInterface == nullptr) {
             return -1;
         }
     }
-    
-	if (_pCommInterface->bind(ui16Port)) {
-        checkAndLogMsg("ServerMocket::listen", Logger::L_MildError,
+
+    if (_pCommInterface->bind(ui16Port)) {
+        checkAndLogMsg("ServerMocket::listen", Logger::L_HighDetailDebug,
             "failed to bind to port %d\n", ui16Port);
         return -2;
-    }  
+    }
     _bAccepting = true;
     if (ui16Port == 0) {
         ui16Port = _pCommInterface->getLocalPort();
@@ -120,73 +119,78 @@ int ServerMocket::listen (uint16 ui16Port)
 //todo add support to dtls
 int ServerMocket::listen (uint16 ui16Port, const char *pszListenAddr)
 {
-	if (_bEnableDtls) {
-		if ((_bLocallyCreatedCI) && (_pCommInterface == NULL)) {
-			DTLSCommInterface *pSupport = new DTLSCommInterface(
-                new UDPCommInterface(new UDPDatagramSocket(), true), 
+    if (pszListenAddr != nullptr) {
+        checkAndLogMsg("ServerMocket::listen", Logger::L_Info, "Stored listen addr: %s\n", pszListenAddr);
+        _ui32ListenAddr = InetAddr(pszListenAddr).getIPAddress();
+    }
+
+    if (_bEnableDtls) {
+        if ((_bLocallyCreatedCI) && (_pCommInterface == nullptr)) {
+            DTLSCommInterface *pSupport = new DTLSCommInterface(
+                new UDPCommInterface(new UDPDatagramSocket(), true),
                 true,
                 500,
                 _cpPathToCertificate, _cpPathToPrivateKey);
-			_pCommInterface = pSupport;
-			_bLocallyCreatedCI = true;
-			_bDeleteCIWhenDone = true;
-		}
-		else if (_pCommInterface == NULL) {
-			return -1;
-		}
-		InetAddr addr(NetUtils::getHostByName(pszListenAddr), ui16Port);
-		if (_pCommInterface->bind(&addr)) {
-			checkAndLogMsg("ServerMocket::listen2", Logger::L_MildError,
-				"failed to bind to port %d and address %s\n", (int)ui16Port, pszListenAddr);
-			return -2;
-		}
-		_bAccepting = true;
-		if (ui16Port == 0) {
-			ui16Port = _pCommInterface->getLocalPort();
-		}
-		_ui16Port = ui16Port;
-		return ui16Port;
-	}
-	else {
-		if ((_bLocallyCreatedCI) && (_pCommInterface == NULL)) {
-			_pCommInterface = new UDPCommInterface(new UDPDatagramSocket(), true);
-			_bLocallyCreatedCI = true;
-			_bDeleteCIWhenDone = true;
-		}
-		else if (_pCommInterface == NULL) {
-			return -1;
-		}
+            _pCommInterface = pSupport;
+            _bLocallyCreatedCI = true;
+            _bDeleteCIWhenDone = true;
+        }
+        else if (_pCommInterface == nullptr) {
+            return -1;
+        }
+        InetAddr addr(NetUtils::getHostByName(pszListenAddr), ui16Port);
+        if (_pCommInterface->bind(&addr)) {
+            checkAndLogMsg("ServerMocket::listen2", Logger::L_MildError,
+                "failed to bind to port %d and address %s\n", (int)ui16Port, pszListenAddr);
+            return -2;
+        }
+        _bAccepting = true;
+        if (ui16Port == 0) {
+            ui16Port = _pCommInterface->getLocalPort();
+        }
+        _ui16Port = ui16Port;
+        return ui16Port;
+    }
+    else {
+        if ((_bLocallyCreatedCI) && (_pCommInterface == nullptr)) {
+            _pCommInterface = new UDPCommInterface(new UDPDatagramSocket(), true);
+            _bLocallyCreatedCI = true;
+            _bDeleteCIWhenDone = true;
+        }
+        else if (_pCommInterface == nullptr) {
+            return -1;
+        }
 
-		InetAddr addr(NetUtils::getHostByName(pszListenAddr), ui16Port);
-		if (_pCommInterface->bind(&addr)) {
-			checkAndLogMsg("ServerMocket::listen2", Logger::L_MildError,
-				"failed to bind to port %d and address %s\n", (int)ui16Port, pszListenAddr);
-			return -2;
-		}
-		_bAccepting = true;
-		if (ui16Port == 0) {
-			ui16Port = _pCommInterface->getLocalPort();
-		}
-		_ui16Port = ui16Port;
-		return ui16Port;
-	}
+        InetAddr addr(NetUtils::getHostByName(pszListenAddr), ui16Port);
+        if (_pCommInterface->bind(&addr)) {
+            checkAndLogMsg("ServerMocket::listen2", Logger::L_MildError,
+                "failed to bind to port %d and address %s\n", (int)ui16Port, pszListenAddr);
+            return -2;
+        }
+        _bAccepting = true;
+        if (ui16Port == 0) {
+            ui16Port = _pCommInterface->getLocalPort();
+        }
+        _ui16Port = ui16Port;
+        return ui16Port;
+    }
 }
 
 Mocket *ServerMocket::accept (uint16 ui16PortForNewConnection)
 {
-    const char *pszMethodName = "ServerMocket::accept";
+    const char * const pszMethodName = "ServerMocket::accept";
     char buf [Mocket::MAXIMUM_MTU];
     bool bHandShakeFinished = false;
     int rc = 0;
 
-    if (_pCommInterface == NULL) {
+    if (_pCommInterface == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "ServerMocket has not been initialized by calling listen()\n");
-        return NULL;
+        return nullptr;
     }
 
     if ((!_bLocallyCreatedCI) && (ui16PortForNewConnection != 0)) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "cannot specify a local port when using an external CommInterface\n");
-        return NULL;
+        return nullptr;
     }
 
     #if defined (LINUX)
@@ -203,7 +207,7 @@ Mocket *ServerMocket::accept (uint16 ui16PortForNewConnection)
             _bInAccept = false;
             _cvInAccept.notifyAll();
             _mInAccept.unlock();
-            return NULL;
+            return nullptr;
         }
         _bInAccept = true;
         _mInAccept.unlock();
@@ -230,7 +234,7 @@ Mocket *ServerMocket::accept (uint16 ui16PortForNewConnection)
         rc = _pCommInterface->receive (buf, Mocket::MAXIMUM_MTU, &remoteAddr);
         if (rc < 0) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to receive a packet; rc = %d; OS error = %d\n",  rc, _pCommInterface->getLastError());
-            // Originally, this was returning NULL since the assumption was that this
+            // Originally, this was returning nullptr since the assumption was that this
             // should not have failed
             // However, on Windows, this does seem to fail under some circumstances
             // Therefore, sleep for a short duration and try again
@@ -279,7 +283,7 @@ Mocket *ServerMocket::accept (uint16 ui16PortForNewConnection)
 int ServerMocket::close (void)
 {
     _bAccepting = false;
-    if (_pCommInterface == NULL) {
+    if (_pCommInterface == nullptr) {
         return -1;
     }
     return _pCommInterface->close();
@@ -314,8 +318,8 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                                 accessor.getUnreliableUnsequencedId(), ui32InitialUnreliableUnsequencedId,
                                 pRemoteAddr->getPort(), _ui16Port);
             replyPacket.addInitAckChunk (ui32OutgoingValidation, ui32InitialControlTSN, ui32InitialReliableSequencedTSN, ui32InitialUnreliableSequencedTSN, ui32InitialReliableUnsequencedId, ui32InitialUnreliableUnsequencedId, &cookie);
-            
-			if ((rc = _pCommInterface->sendTo (pRemoteAddr, replyPacket.getPacket(), replyPacket.getPacketSize())) < 0) {
+
+            if ((rc = _pCommInterface->sendTo (pRemoteAddr, replyPacket.getPacket(), replyPacket.getPacketSize())) < 0) {
                 checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                 "failed to send InitAck packet to client to %s:%d; rc = %d\n",
                                 pRemoteAddr->getIPAsString(), (int) pRemoteAddr->getPort(), rc);
@@ -329,7 +333,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
             // that reuses the same port
             //clearCookieRec (*pRemoteAddr);
 
-            return NULL; // No connection has been established at this point
+            return nullptr; // No connection has been established at this point
         }
 
         case Packet::CT_CookieEcho:
@@ -341,7 +345,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
             checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MediumDetailDebug,
                             "received a cookie echo from %s:%d\n",
                             pRemoteAddr->getIPAsString(), pRemoteAddr->getPort());
-            Mocket *pMocket = NULL;
+            Mocket *pMocket = nullptr;
             CookieRec *pCookieRec = getCookieRec (*pRemoteAddr);
             if (pCookieRec->ui16Count == 0) {
                 // This is the first CookieEcho - create a local endpoint
@@ -356,7 +360,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                                 checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                     "error initializing the socket\n");
                                 delete pDGSocket;
-                                return NULL;
+                                return nullptr;
                             }
                         }
                         else {
@@ -364,7 +368,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                                 checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                     "error initializing the socket\n");
                                 delete pDGSocket;
-                                return NULL;
+                                return nullptr;
                             }
                         }
                         pCookieRec->ui16LocalPort = pDGSocket->getLocalPort();
@@ -372,21 +376,21 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                             checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                 "could not get local port\n");
                             delete pDGSocket;
-                            return NULL;
+                            return nullptr;
                         }
                         CommInterface *pSupportUDPCommInterface = new UDPCommInterface(pDGSocket, true);
                         DTLSCommInterface *pSupport = (DTLSCommInterface*)_pCommInterface;
-                        
-						IHMC_DTLS::DtlsEndpoint *newDtls;
+
+                        IHMC_DTLS::DtlsEndpoint *newDtls;
                         pSupport->getDtlsObject(&newDtls);
                         //Dtls will not be able to handle defragmented packets after this point
-                        
-						
-						//should set new mocket max mtu here
-						//->setMTU(Mocket::MAXIMUM_MTU);
+
+
+                        //should set new mocket max mtu here
+                        //->setMTU(Mocket::MAXIMUM_MTU);
                         DTLSCommInterface *pNewCommInterface = new DTLSCommInterface(pSupportUDPCommInterface, true, &newDtls);
-                        pMocket = new Mocket(cookie, pRemoteAddr, _configFile, pNewCommInterface, true, true);  
-                        pSupport = NULL;
+                        pMocket = new Mocket(cookie, pRemoteAddr, _configFile, pNewCommInterface, true, true);
+                        pSupport = nullptr;
                     }
                     else {
                         // We are not using a CommInterface that was passed into ServerMocket, so create a new one for this connection
@@ -398,7 +402,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                                 checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                     "error initializing the socket\n");
                                 delete pDGSocket;
-                                return NULL;
+                                return nullptr;
                             }
                         }
                         else {
@@ -406,7 +410,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                                 checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                     "error initializing the socket\n");
                                 delete pDGSocket;
-                                return NULL;
+                                return nullptr;
                             }
                         }
                         pCookieRec->ui16LocalPort = pDGSocket->getLocalPort();
@@ -414,68 +418,68 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                             checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                 "could not get local port\n");
                             delete pDGSocket;
-                            return NULL;
+                            return nullptr;
                         }
                         CommInterface *pNewCommInterface = new UDPCommInterface(pDGSocket, true);
                         pMocket = new Mocket(cookie, pRemoteAddr, _configFile, pNewCommInterface, true);
-                    }                 
+                    }
                 }
                 else {
-					if (_bEnableDtls) {
-						// We are using a CommInterface that was passed into ServerMocket
-						CommInterface *pNewCommInterface = _pCommInterface->newInstance();
-						if (_ui32ListenAddr != 0) {
-							// A specific address was passed into the call to listen - use the same with
-							// the CommInterface
-							InetAddr bindAddr(_ui32ListenAddr);
-							pNewCommInterface->bind(&bindAddr);
-						}
-						else {
-							InetAddr bindAddr;
-							pNewCommInterface->bind(&bindAddr);
-						}
-						pCookieRec->ui16LocalPort = pNewCommInterface->getLocalPort();
-						if (pCookieRec->ui16LocalPort == 0) {
-							checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
-								"could not get local port\n");
-							return NULL;
-						}
+                    if (_bEnableDtls) {
+                        // We are using a CommInterface that was passed into ServerMocket
+                        CommInterface *pNewCommInterface = _pCommInterface->newInstance();
+                        if (_ui32ListenAddr != 0) {
+                            // A specific address was passed into the call to listen - use the same with
+                            // the CommInterface
+                            InetAddr bindAddr(_ui32ListenAddr);
+                            pNewCommInterface->bind(&bindAddr);
+                        }
+                        else {
+                            InetAddr bindAddr;
+                            pNewCommInterface->bind(&bindAddr);
+                        }
+                        pCookieRec->ui16LocalPort = pNewCommInterface->getLocalPort();
+                        if (pCookieRec->ui16LocalPort == 0) {
+                            checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
+                                "could not get local port\n");
+                            return nullptr;
+                        }
 
-						DTLSCommInterface *pSupport = (DTLSCommInterface*)_pCommInterface;
-						IHMC_DTLS::DtlsEndpoint *newDtls;
-						pSupport->getDtlsObject(&newDtls);
-						
-						//should set new mocket max mtu here
-						//->setMTU(Mocket::MAXIMUM_MTU);
-						DTLSCommInterface *pNewDtlsCommInterface = new DTLSCommInterface(pNewCommInterface, true, &newDtls);
-						pMocket = new Mocket(cookie, pRemoteAddr, _configFile, pNewDtlsCommInterface, false, true);
-						pSupport = NULL;
-					}
-					else {
-						// We are using a CommInterface that was passed into ServerMocket
-						CommInterface *pNewCommInterface = _pCommInterface->newInstance();
-						if (_ui32ListenAddr != 0) {
-							// A specific address was passed into the call to listen - use the same with
-							// the CommInterface
-							InetAddr bindAddr(_ui32ListenAddr);
-							pNewCommInterface->bind(&bindAddr);
-						}
-						else {
-							InetAddr bindAddr;
-							pNewCommInterface->bind(&bindAddr);
-						}
-						pCookieRec->ui16LocalPort = pNewCommInterface->getLocalPort();
-						if (pCookieRec->ui16LocalPort == 0) {
-							checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
-								"could not get local port\n");
-							return NULL;
-						}
-						pMocket = new Mocket(cookie, pRemoteAddr, _configFile, pNewCommInterface, false);
-					}
+                        DTLSCommInterface *pSupport = (DTLSCommInterface*)_pCommInterface;
+                        IHMC_DTLS::DtlsEndpoint *newDtls;
+                        pSupport->getDtlsObject(&newDtls);
+
+                        //should set new mocket max mtu here
+                        //->setMTU(Mocket::MAXIMUM_MTU);
+                        DTLSCommInterface *pNewDtlsCommInterface = new DTLSCommInterface(pNewCommInterface, true, &newDtls);
+                        pMocket = new Mocket(cookie, pRemoteAddr, _configFile, pNewDtlsCommInterface, false, true);
+                        pSupport = nullptr;
+                    }
+                    else {
+                        // We are using a CommInterface that was passed into ServerMocket
+                        CommInterface *pNewCommInterface = _pCommInterface->newInstance();
+                        if (_ui32ListenAddr != 0) {
+                            // A specific address was passed into the call to listen - use the same with
+                            // the CommInterface
+                            InetAddr bindAddr(_ui32ListenAddr);
+                            pNewCommInterface->bind(&bindAddr);
+                        }
+                        else {
+                            InetAddr bindAddr;
+                            pNewCommInterface->bind(&bindAddr);
+                        }
+                        pCookieRec->ui16LocalPort = pNewCommInterface->getLocalPort();
+                        if (pCookieRec->ui16LocalPort == 0) {
+                            checkAndLogMsg("ServerMocket::processIncomingPacket", Logger::L_MildError,
+                                "could not get local port\n");
+                            return nullptr;
+                        }
+                        pMocket = new Mocket(cookie, pRemoteAddr, _configFile, pNewCommInterface, false);
+                    }
                 }
                 checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MediumDetailDebug,
                                 "allocated port %d for new mocket connection\n", (int) pCookieRec->ui16LocalPort);
-            
+
                 // Check if the remote side sent its public key, which indicates that it wishes to pre-exchange keys
                 // to support reconnection after an abrupt disconnection
                 if (accessor.getKeyLength() > 0) {
@@ -491,10 +495,10 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                             checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                             "unable to create the public key; rc = %d\n", rc);
                             delete pMocket;
-                            return NULL;
+                            return nullptr;
                         }
                         delete pKeyData;
-                        pKeyData = NULL;
+                        pKeyData = nullptr;
                         // Create and save in pMocket connection UUID and Ks
                         pMocket->newMocketUUID();
                         //printf ("UUID %lu\n", pMocket->getMocketUUID());
@@ -520,7 +524,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                         uint32 ui32EncryptedParamLen = 0;
                         void *pEncryptedParam = CryptoUtils::encryptDataUsingPublicKey (pPubKey , aui8Buf, ui16BufSize, &ui32EncryptedParamLen);
                         delete pPubKey;
-                        pPubKey = NULL;
+                        pPubKey = nullptr;
 
                         // Save the encrypted UUID and Ks in the CookieRec
                         if (ui32EncryptedParamLen < MAX_RESUME_TOKEN_LEN) {
@@ -581,7 +585,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                                 accessor.getUnreliableUnsequencedId(), ui32InitialUnreliableUnsequencedId,
                                 pRemoteAddr->getPort(), _ui16Port);
 
-            Mocket *pMocket = NULL;
+            Mocket *pMocket = nullptr;
             uint16 ui16LocalPort = 0;
             // Create a local endpoint
             if (_bLocallyCreatedCI) {
@@ -594,7 +598,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                         checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                         "error initializing the socket\n");
                         delete pDGSocket;
-                        return NULL;
+                        return nullptr;
                     }
                 }
                 else {
@@ -602,7 +606,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                         checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                         "error initializing the socket\n");
                         delete pDGSocket;
-                        return NULL;
+                        return nullptr;
                     }
                 }
                 ui16LocalPort = pDGSocket->getLocalPort();
@@ -610,7 +614,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                     checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                     "could not get local port\n");
                     delete pDGSocket;
-                    return NULL;
+                    return nullptr;
                 }
                 CommInterface *pNewCommInterface = new UDPCommInterface (pDGSocket, true);
                 pMocket = new Mocket (cookie, pRemoteAddr, _configFile, pNewCommInterface, true);
@@ -632,7 +636,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                 if (ui16LocalPort == 0) {
                     checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                     "could not get local port\n");
-                    return NULL;
+                    return nullptr;
                 }
                 pMocket = new Mocket (cookie, pRemoteAddr, _configFile, pNewCommInterface, false);
             }
@@ -652,7 +656,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
                 checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_MildError,
                                 "failed to send SimpleConnectAck packet to client to %s:%d; rc = %d\n",
                                 pRemoteAddr->getIPAsString(), (int) pRemoteAddr->getPort(), rc);
-                return NULL;
+                return nullptr;
             }
             return pMocket;
         }
@@ -661,7 +665,7 @@ Mocket * ServerMocket::processIncomingPacket (Packet *pPacket, InetAddr *pRemote
             checkAndLogMsg ("ServerMocket::processIncomingPacket", Logger::L_Warning,
                             "received a packet with an unexpected chunk type %d from %s:%d\n",
                             (int) pPacket->getChunkType(), pRemoteAddr->getIPAsString(), (int) pRemoteAddr->getPort());
-            return NULL;
+            return nullptr;
     }
 }
 
@@ -684,7 +688,7 @@ int ServerMocket::clearCookieRec (InetAddr remoteAddr)
                 _cookieHistory[us].bInUse = false;
                 _cookieHistory[us].i64CookieExpirationTime = 0;
                 _cookieHistory[us].ui16Count = 0;
-                _cookieHistory[us].ui16LocalPort = 0;                
+                _cookieHistory[us].ui16LocalPort = 0;
                 _cookieHistory[us].ui16ResumeTokenLen = 0;
             }
         }

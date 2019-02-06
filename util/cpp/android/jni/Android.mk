@@ -138,7 +138,7 @@ LOCAL_SRC_FILES := AVList.cpp \
 LOCAL_MODULE    := util
 LOCAL_CPPFLAGS	:= -fexceptions -frtti -DUNIX -DLINUX -DANDROID -DLITTLE_ENDIAN_SYSTEM -DENABLE_MUTEX_LOGGING
 LOCAL_CFLAGS := -fsigned-char
-LOCAL_LDLIBS := -lz 
+LOCAL_LDLIBS := -lz -llog 
 
 #LOCAL_C_INCLUDES += \
 #	$(LOCAL_PATH)/../../android/externals/openssl/jni/ \

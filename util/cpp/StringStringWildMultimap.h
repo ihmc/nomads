@@ -1,4 +1,4 @@
-/* 
+/*
  * StringStringWildMultimap.h
  *
  * This file is part of the IHMC Util Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_STRING_STRING_WILD_MULTIMAP_H
-#define	INCL_STRING_STRING_WILD_MULTIMAP_H
+#define INCL_STRING_STRING_WILD_MULTIMAP_H
 
 #include "PtrLList.h"
 #include "StringHashset.h"
@@ -51,5 +51,4 @@ namespace NOMADSUtil
     };
 }
 
-#endif	/* STRINGSTRINGWILDMULTIMAP_H */
-
+#endif    /* STRINGSTRINGWILDMULTIMAP_H */

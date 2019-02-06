@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -36,7 +36,7 @@ namespace NOMADSUtil
      *
      * Currently it contains the IP address, netmask and
      * the broadcast address of a network interface.
-     */ 
+     */
     class NICInfo
     {
         public:
@@ -89,8 +89,8 @@ namespace NOMADSUtil
                 return false;
             }
         #endif
-        return (ip.s_addr == n.ip.s_addr && 
-                broadcast.s_addr == n.broadcast.s_addr && 
+        return (ip.s_addr == n.ip.s_addr &&
+                broadcast.s_addr == n.broadcast.s_addr &&
                 netmask.s_addr == n.netmask.s_addr);
     }
 

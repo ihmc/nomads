@@ -46,7 +46,11 @@
     #define bzero(x,y) memset((x),'\0',(y))
     #define bcopy(x,y,z) memcpy((y),(x),(z))
 //    #define EINTR WSAEINTR
+
+#ifndef EWOULDBLOCK
     #define EWOULDBLOCK WSAEWOULDBLOCK
+#endif  //EWOULDBLOCK
+
     typedef int socklen_t;
 
 #elif defined (OS2)
@@ -110,8 +114,10 @@ using namespace NOMADSUtil;
 TCPSocket::TCPSocket (void)
 {
     iSocket = 0;
-    bCleanupAllowed = false;//true;	//Set flag which allows WSACleanup on object destruction
-    bzero ((char*)&lastConnectSockAddr, sizeof (lastConnectSockAddr));
+    bBound = false;
+    bCleanupAllowed = false;        //Set flag which allows WSACleanup on object destruction
+    bzero (reinterpret_cast<char *> (&lastBoundSockAddr), sizeof(lastBoundSockAddr));
+    bzero (reinterpret_cast<char *> (&lastConnectSockAddr), sizeof(lastConnectSockAddr));
     #if defined(UNIX)
         signal (SIGPIPE, SIG_IGN);
     #elif defined(OS2)
@@ -124,14 +130,14 @@ TCPSocket::TCPSocket (void)
         pUserData = NULL;
         WORD wVersionRequested;
         WSADATA wsaData;
-        wVersionRequested = MAKEWORD(1,1);
-        WSAStartup(wVersionRequested, &wsaData);
+        wVersionRequested = MAKEWORD (1,1);
+        WSAStartup (wVersionRequested, &wsaData);
     #elif defined (WIN32)
         pIdleFn = NULL;
         pUserData = NULL;
         WORD wVersionRequested;
         WSADATA wsaData;
-        wVersionRequested = MAKEWORD(2,2);
+        wVersionRequested = MAKEWORD (2,2);
         WSAStartup (wVersionRequested, &wsaData);
     #endif
 }
@@ -140,8 +146,10 @@ TCPSocket::TCPSocket (int aSocket)
 {
     iSocket = aSocket;
     iConnected = 1;
-    bCleanupAllowed = false; //Set flag which allows WSACleanup on object destruction
-    bzero ((char*)&lastConnectSockAddr, sizeof (lastConnectSockAddr));
+    bBound = true;
+    bCleanupAllowed = false;        //Set flag which allows WSACleanup on object destruction
+    bzero (reinterpret_cast<char *> (&lastBoundSockAddr), sizeof(lastBoundSockAddr));
+    bzero (reinterpret_cast<char *> (&lastConnectSockAddr), sizeof(lastConnectSockAddr));
     #if defined(UNIX)
         signal (SIGPIPE, SIG_IGN);
     #elif defined(OS2)
@@ -280,6 +288,47 @@ const char * TCPSocket::getLocalHostName (void)
     return localHostName;
 }
 
+int TCPSocket::bind (unsigned long ulLocalIPv4Address, unsigned short usLocalPortNum)
+{
+    if ((iConnected) || (iSetupToReceive)) {
+        return -1;
+    }
+
+    if (iSocket != 0) {
+        close (iSocket);
+    }
+    // Allocate a new socket
+    if ((iSocket = (int) socket (AF_INET, SOCK_STREAM, 0)) < 0) {
+        return -2;
+    }
+
+    int opt_val = 1;
+    if (setsockopt (iSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*> (&opt_val), sizeof(opt_val)) < 0) {
+        return -3;
+    }
+
+    #if defined (OSX)
+        opt_val = 1;
+        //enables duplicate address and port bindings
+        if (setsockopt (iSocket, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<char*> (&opt_val), sizeof(opt_val)) < 0) {
+            return -4;
+        }
+    #endif
+
+    struct sockaddr_in local;
+    bzero (reinterpret_cast<char*> (&local), sizeof(local));
+    local.sin_family = AF_INET;
+    local.sin_port = htons (usLocalPortNum);
+    local.sin_addr.s_addr = ulLocalIPv4Address;
+
+    if (::bind (iSocket, reinterpret_cast<struct sockaddr *> (&local), sizeof(local)) < 0) {
+        return -5;
+    }
+    lastBoundSockAddr = local;
+
+    return 0;
+}
+
 int TCPSocket::connect (const char *pszHostName, unsigned short usPortNum)
 {
     struct sockaddr_in remote;
@@ -303,8 +352,11 @@ int TCPSocket::connect (const char *pszHostName, unsigned short usPortNum)
         lastConnectSockAddr.sin_family = hp->h_addrtype;
     }
 
-    if ((iSocket = (int) socket (AF_INET, SOCK_STREAM, 0)) < 0) {
-        return -3;
+    if (iSocket == 0) {
+        // If a Socket has not been allocated, create a new one --> this enables calls to bind() to have an effect
+        if ((iSocket = (int) socket (AF_INET, SOCK_STREAM, 0)) < 0) {
+            return -3;
+        }
     }
 
     remote = lastConnectSockAddr;
@@ -354,8 +406,14 @@ int TCPSocket::reconnect (void)
         iSocket = 0;
     }
 
+    if ((ntohs (lastBoundSockAddr.sin_port) != 0) || (lastBoundSockAddr.sin_addr.s_addr != 0)) {
+        if (bind (lastBoundSockAddr.sin_addr.s_addr, ntohs (lastBoundSockAddr.sin_port)) < 0) {
+            return -2;
+        }
+    }
+
     if ((iSocket = (int) socket (AF_INET, SOCK_STREAM, 0)) < 0) {
-        return -4;
+        return -3;
     }
 
     int iResult;
@@ -378,7 +436,7 @@ int TCPSocket::reconnect (void)
                 return SE_TIMEOUT;
             }
         #endif
-        return -5;
+        return -4;
     }
 
     iConnected = 1;
@@ -439,6 +497,7 @@ int TCPSocket::disconnect (void)
     close (iSocket);
     iSocket = 0;
     iConnected = 0;
+    bBound = true;
 
     return 0;
 }
@@ -469,6 +528,7 @@ int TCPSocket::flushAndClose (void)
         closesocket (iSocket);
         iSocket = 0;
         iConnected = 0;
+        bBound = true;
         return 0;
     #else
 
@@ -512,30 +572,33 @@ int TCPSocket::setupToReceive (unsigned short usPortNum, int iQueueSize, unsigne
         return -1;
     }
 
-    if ((iSocket = (int) socket (AF_INET, SOCK_STREAM, 0)) < 0) {
-        return -2;
-    }
-
-    int opt_val = 1;
-    if (setsockopt (iSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt_val, sizeof(opt_val)) < 0) {
-        return -3;
-    }
-
-    #if defined (OSX)
-        opt_val = 1;
-        //enables duplicate address and port bindings
-        if (setsockopt (iSocket, SOL_SOCKET, SO_REUSEPORT, (char*)&opt_val, sizeof(opt_val)) < 0) {
-            return -4;
+    // Check if the socket is already bound before binding again
+    if (!bBound) {
+        if ((iSocket = (int) socket (AF_INET, SOCK_STREAM, 0)) < 0) {
+            return -2;
         }
-    #endif
 
-    bzero ((char*) &local, sizeof (local));
-    local.sin_family = AF_INET;
-    local.sin_port = htons (usPortNum);
-    local.sin_addr.s_addr = ulIPAddr;           //INADDR_ANY
+        int opt_val = 1;
+        if (setsockopt (iSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt_val, sizeof(opt_val)) < 0) {
+            return -3;
+        }
 
-    if (bind (iSocket, (struct sockaddr *) &local, sizeof (local)) < 0) {
-        return -5;
+        #if defined (OSX)
+            opt_val = 1;
+            //enables duplicate address and port bindings
+            if (setsockopt (iSocket, SOL_SOCKET, SO_REUSEPORT, (char*)&opt_val, sizeof(opt_val)) < 0) {
+                return -4;
+            }
+        #endif
+
+        bzero ((char*) &local, sizeof(local));
+        local.sin_family = AF_INET;
+        local.sin_port = htons (usPortNum);
+        local.sin_addr.s_addr = ulIPAddr;
+
+        if (::bind (iSocket, (struct sockaddr *) &local, sizeof(local)) < 0) {
+            return -5;
+        }
     }
 
     listen (iSocket, iQueueSize);
@@ -553,6 +616,7 @@ int TCPSocket::disableReceive (void)
     close (iSocket);
     iSocket = 0;
     iSetupToReceive = 0;
+    bBound = false;
 
     return 0;
 }
@@ -679,17 +743,17 @@ const char * TCPSocket::getRemoteHostName (void)
     return NULL;
 }
 
-unsigned short TCPSocket::getLocalPort (void)
+unsigned short TCPSocket::getLocalPort (void) const
 {
     struct sockaddr_in localAddr;
     socklen_t sockAddrLen = sizeof (localAddr);
-    if (getsockname (iSocket,  (struct sockaddr *) &localAddr, &sockAddrLen)) {
+    if (getsockname (iSocket, (struct sockaddr *) &localAddr, &sockAddrLen)) {
         return 0;
     }
     return ntohs (localAddr.sin_port);
 }
 
-unsigned short TCPSocket::getRemotePort (void)
+unsigned short TCPSocket::getRemotePort (void) const
 {
     return ntohs (remoteSockAddr.sin_port);
 }
@@ -927,7 +991,7 @@ int TCPSocket::getAndDisassociateFileDescriptor (void)
     return i;
 }
 
-int TCPSocket::isConnected(void)
+int TCPSocket::isConnected (void)
 {
     return iConnected;
 }

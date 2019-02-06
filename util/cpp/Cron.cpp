@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -30,7 +30,7 @@ Cron::Cron ()
 {
    _pEventList = new PtrLList<Cron::Event>;
    _currentId = 0;
-   
+
 }
 
 /**
@@ -41,7 +41,7 @@ Cron::~Cron (void)
 }
 
 /**
- * The run method. Sits in a while loop checking to 
+ * The run method. Sits in a while loop checking to
  * see if any of the events in the list are at a time
  * when they should fire
  */
@@ -51,13 +51,13 @@ int Cron::run (void)
         Event *pEvent; // temporary event
         PtrLList<Cron::Event> *pEventList = (PtrLList<Cron::Event>*) _pEventList;
         pEventList->resetGet(); // start at the beginning of the list
-        
+
         // Go through the list
         while ((pEvent = pEventList->getNext()) != NULL) {
             ATime currentTime; // get the current time
             // check to see if the event should happen at this time
             if (pEvent->getStartTime() == currentTime) {
-                
+
                 // if the event should happen at this time, check to see whether
                 // the event should happen on this day
                 int dayOfMonth = currentTime.dayOfMonth();
@@ -68,7 +68,7 @@ int Cron::run (void)
                         (*pEvent->getEventCallback()) (pEvent); // call the function
                         // check the count
                         if (pEvent->getCurrentCount() == pEvent->getCount()) {
-                            deleteEvent (pEvent->_id); 
+                            deleteEvent (pEvent->_id);
                         } else {
                             pEvent->incrCount();
                         }
@@ -77,11 +77,11 @@ int Cron::run (void)
                         pEvent->setTime(tmpTime);
                     }
                 }
-            } 
-        } 
+            }
+        }
 
         sleepForMilliseconds (60000);
-      
+
     }
 }
 
@@ -92,7 +92,7 @@ int Cron::addEvent (Event *e)
 {
     e->_id = getId ();
     PtrLList<Cron::Event> *pEventList = (PtrLList<Cron::Event>*) _pEventList;
-    pEventList->append (e);  
+    pEventList->append (e);
     return e->_id;
 }
 
@@ -151,19 +151,19 @@ Cron::Event::Event (String name, ATime startTime, DTime period, int count, Event
    _count = count;
    _currentCount = 1;
    _uchDaysOfWeek = 0xFF ;
-   _ulDaysOfMonth = 0xFFFFFFFFUL; 
+   _ulDaysOfMonth = 0xFFFFFFFFUL;
    _pArgs = pArgs;
 }
 
 /**
  * Constructor
  */
-Cron::Event::Event (String name, 
-                    ATime startTime, 
-                    DTime period, 
-                    int count, 
-                    unsigned char uchDaysOfWeek, 
-                    unsigned long ulDaysOfMonth, 
+Cron::Event::Event (String name,
+                    ATime startTime,
+                    DTime period,
+                    int count,
+                    unsigned char uchDaysOfWeek,
+                    unsigned long ulDaysOfMonth,
                     EventCallback ec,
                     void *pArgs)
 {
@@ -176,7 +176,7 @@ Cron::Event::Event (String name,
    _uchDaysOfWeek = uchDaysOfWeek;
    _ulDaysOfMonth = ulDaysOfMonth;
    _pArgs = pArgs;
-   
+
    //_ulDaysOfMonth = _ulDaysOfMonth | (0x00000001UL << (day - 1))
 }
 
@@ -264,11 +264,11 @@ EventCallback Cron::Event::getEventCallback (void)
     return _ec;
 }
 
-bool Cron::Event::operator == (Cron::Event &evt) 
+bool Cron::Event::operator == (Cron::Event &evt)
 {
     if (this->_id == evt._id) {
         return true;
-    } 
+    }
 
     return false;
 }

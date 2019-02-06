@@ -1,7 +1,7 @@
 /*
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,6 +16,8 @@
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
+#include "Mocket.h"
+#include "ServerMocket.h"
 #include "ProxyCommInterface.h"
 #include "Logger.h"
 
@@ -23,45 +25,40 @@
 #include "ConnectorAdapter.h"
 #include "Connection.h"
 #include "ConnectionManager.h"
-#include "ConfigurationManager.h"
 
 
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    CSRConnector::CSRConnector (void) :
-        Connector (CT_CSR), _pServerMocket (nullptr) { }
-
     CSRConnector::~CSRConnector (void)
     {
         requestTermination();
 
-        if (Mutex::RC_Ok == _mConnector.lock()) {
-            if (_pServerMocket) {
-                _pServerMocket->close();
-
-                delete _pServerMocket;
-                _pServerMocket = nullptr;
-            }
-            _mConnector.unlock();
+        if (_upServerMocket) {
+            _upServerMocket->close();
         }
     }
 
-    int CSRConnector::init (uint16 ui16MocketPort)
+    int CSRConnector::init (uint16 ui16AcceptServerPort, uint32 ui32LocalIPv4Address)
     {
         int rc;
 
-        ProxyCommInterface *pPCI = new ProxyCommInterface (NetProxyApplicationParameters::CSR_PROXY_SERVER_ADDR, NetProxyApplicationParameters::CSR_PROXY_SERVER_PORT);
-        _pServerMocket = new ServerMocket (nullptr, pPCI);
-        if ((rc = _pServerMocket->listen (ui16MocketPort)) < 0) {
-            checkAndLogMsg ("CSRConnector::init", Logger::L_MildError,
-                            "listen() on ServerMocket failed - could not initialize to use port %d; rc = %d\n",
-                            (int) ui16MocketPort, rc);
+        ProxyCommInterface *pPCI = new ProxyCommInterface{NOMADSUtil::InetAddr{ui32LocalIPv4Address}.getIPAsString(), ui16AcceptServerPort};
+        _upServerMocket = make_unique<ServerMocket> (nullptr, pPCI);
+        if ((rc = _upServerMocket->listen (ui16AcceptServerPort, NOMADSUtil::InetAddr{ui32LocalIPv4Address}.getIPAsString())) < 0) {
+            checkAndLogMsg ("CSRConnector::init", NOMADSUtil::Logger::L_MildError,
+                            "listen() on ServerMocket failed - could not bind to address <%s:%hu>; rc = %d\n",
+                            NOMADSUtil::InetAddr{ui32LocalIPv4Address}.getIPAsString(), ui16AcceptServerPort, rc);
             return -1;
         }
+        Connector::init (ui16AcceptServerPort, ui32LocalIPv4Address);
+
+        checkAndLogMsg ("CSRConnector::init", NOMADSUtil::Logger::L_HighDetailDebug,
+                        "successfully initialized a server CSR-Mocket listening on the address <%s:%hu>\n",
+                        NOMADSUtil::InetAddr{ui32LocalIPv4Address}.getIPAsString(), ui16AcceptServerPort);
 
         return 0;
     }
@@ -70,65 +67,46 @@ namespace ACMNetProxy
     {
         requestTermination();
 
-        if (Mutex::RC_Ok == _mConnector.lock()) {
-            if (_pServerMocket) {
-                _pServerMocket->close();
-            }
-            _mConnector.unlock();
+        if (_upServerMocket) {
+            _upServerMocket->close();
         }
+        Connector::terminateExecution();
     }
 
     void CSRConnector::run (void)
     {
         started();
 
+        int rc;
         while (!terminationRequested()) {
-            Mocket *pMocket = _pServerMocket->accept();
+            auto * const pMocket = _upServerMocket->accept();
             if (!pMocket) {
                 if (!terminationRequested()) {
-                    checkAndLogMsg ("CSRConnector::run", Logger::L_MildError,
+                    checkAndLogMsg ("CSRConnector::run", NOMADSUtil::Logger::L_MildError,
                                     "accept() on ServerMocket failed\n");
                     setTerminatingResultCode (-1);
                 }
                 break;
             }
-            pMocket->setLocalAddr(InetAddr(NetProxyApplicationParameters::EXTERNAL_IP_ADDR).getIPAsString());
-            ConnectorAdapter * const pConnectorAdapter = ConnectorAdapter::ConnectorAdapterFactory (pMocket, _connectorType);
-            Connection * const pConnection = new Connection (pConnectorAdapter, this);
 
-            lockConnectionTable();
-            pConnection->lock();
-
-            Connection * const pOldConnection = _connectionsTable.put (
-                generateUInt64Key (pMocket->getRemoteAddress(), pMocket->getRemotePort(), pConnection->getEncryptionType()), pConnection);
-            if (pOldConnection) {
-                // There was already a connection from this node to the remote node - close that one
-                checkAndLogMsg ("CSRConnector::run", Logger::L_Info,
-                                "replaced an existing CSRMocketConnection to <%s:%hu> in status %hu with a new instance\n",
-                                pConnection->getRemoteProxyInetAddr()->getIPAsString(),
-                                pConnection->getRemoteProxyInetAddr()->getPort(),
-                                pOldConnection->getStatus());
-                delete pOldConnection;
+            auto * const pConnectorAdapter =
+                ConnectorAdapter::ConnectorAdapterFactory (pMocket, {pMocket->getLocalAddress(), pMocket->getLocalPort()}, getConnectorType());
+            auto spConnection =
+                std::make_shared<Connection> (pConnectorAdapter->getLocalInetAddr(), pConnectorAdapter->getRemoteInetAddr(), pConnectorAdapter,
+                                              _rConnectionManager, _rTCPConnTable, _rTCPManager, _rPacketRouter, _rStatisticsManager);
+            if ((rc = Connection::addNewUninitializedConnectionToTable (spConnection)) < 0) {
+                checkAndLogMsg ("CSRConnector::run", NOMADSUtil::Logger::L_Warning,
+                                "error adding newly accepted (uninitialized) CSR "
+                                "connection to the table; rc = %d\n", rc);
             }
-            else {
-                checkAndLogMsg ("CSRConnector::run", Logger::L_Info,
-                                "accepted a new CSR Mockets connection from <%s:%hu>\n",
-                                pConnection->getRemoteProxyInetAddr()->getIPAsString(),
-                                pConnection->getRemoteProxyInetAddr()->getPort());
-            }
-            pConnection->startMessageHandler();
-
-            pConnection->unlock();
-            unlockConnectionTable();
         }
-        checkAndLogMsg ("CSRConnector::run", Logger::L_Info,
+        checkAndLogMsg ("CSRConnector::run", NOMADSUtil::Logger::L_Info,
                         "CSRConnector terminated; termination code is %d\n",
                         getTerminatingResultCode());
-
-        Connector::_pConnectionManager->deregisterConnector (_connectorType);
-
         terminating();
-        delete this;
+
+        // Deregistration might trigger the Connector's delete, and so it must be done after the call to terminating()
+        _rConnectionManager.deregisterConnector (getBoundIPv4Address(), _connectorType);
     }
 
 }

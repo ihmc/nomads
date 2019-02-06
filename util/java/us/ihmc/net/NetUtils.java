@@ -23,6 +23,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Vector;
 
@@ -35,7 +36,7 @@ import us.ihmc.util.ByteConverter;
  * @author tcowin@ihmc.us [made to be compatible with jdk1.2.X]
  * @author Matteo Rebeschini <mrebeschini@ihmc.us>
  *
- * @version $Revision: 1.20 $
+ * @version $Revision$
  * $Date: 2005/09/27 23:30:49
  */
 public class NetUtils
@@ -177,7 +178,7 @@ public class NetUtils
         
     ipaddr:
         for (int i=0; i < _localIPAddrs.size(); i++) {
-            InetAddress inetAddr = (InetAddress) _localIPAddrs.elementAt (i);;
+            InetAddress inetAddr = (InetAddress) _localIPAddrs.get (i);
             if (!includeLoopback && inetAddr.isLoopbackAddress()) {
                 continue;
             }
@@ -197,7 +198,7 @@ public class NetUtils
     public static NICInfo getNICInfo (InetAddress ipAddr)
     {
         for (int i=0; i < _localIPAddrs.size(); i++) {
-            if (((InetAddress) _localIPAddrs.elementAt (i)).equals (ipAddr)) {
+            if (((InetAddress) _localIPAddrs.get (i)).equals (ipAddr)) {
                 return new NICInfo (ipAddr);
             }
         }
@@ -290,11 +291,11 @@ public class NetUtils
 
     
     //Class Variables
-    private static Vector _localIPAddrs = new Vector(); //Vector<InetAddress>
+    private static ArrayList<InetAddress> _localIPAddrs = new ArrayList<>();
 
     static
     {
-        // load the local addresses.        
+        // load the local addresses.
         loadNICsInfo();
     }
 }

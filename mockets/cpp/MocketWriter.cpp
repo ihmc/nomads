@@ -32,7 +32,7 @@ MocketWriter::~MocketWriter()
     if (_bDeleteWhenDone) {
         delete _pStreamMocket;
     }
-    _pStreamMocket = NULL;
+    _pStreamMocket = nullptr;
 }
 
 int MocketWriter::writeBytes (const void *pBuf, unsigned long ulCount)

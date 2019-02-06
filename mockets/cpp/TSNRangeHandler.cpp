@@ -1,18 +1,18 @@
 /*
  * TSNRangeHandler.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -31,23 +31,23 @@ using namespace NOMADSUtil;
 
 TSNRangeHandler::TSNRangeHandler (void)
 {
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
 }
 
 TSNRangeHandler::~TSNRangeHandler (void)
 {
-    while (_pFirstNode != NULL) {
+    while (_pFirstNode != nullptr) {
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode;
     }
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
 }
 
 int TSNRangeHandler::addTSN (uint32 ui32TSN)
 {
     bool bAddedTSN = false;
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // There are no other nodes
         _pFirstNode = _pLastNode = new Node();
         _pFirstNode->ui32Begin = _pFirstNode->ui32End = ui32TSN;
@@ -85,7 +85,7 @@ int TSNRangeHandler::addTSN (uint32 ui32TSN)
         // Find the right spot for this sequence number
         Node *pCurrNode = _pFirstNode;
         Node *pNextNode = _pFirstNode->pNext;
-        while (pCurrNode != NULL) {
+        while (pCurrNode != nullptr) {
             bool bCheckForMerge = false;
             if (ui32TSN == (pCurrNode->ui32End + 1)) {
                 // The sequence number immediately follows that of the current range node
@@ -93,7 +93,7 @@ int TSNRangeHandler::addTSN (uint32 ui32TSN)
                 bCheckForMerge = true;
                 bAddedTSN = true;
             }
-            else if (pNextNode != NULL) {
+            else if (pNextNode != nullptr) {
                 if ((ui32TSN + 1) == pNextNode->ui32Begin) {
                     // The sequence number immediately preceeds the next range node
                     pNextNode->ui32Begin--;
@@ -114,7 +114,7 @@ int TSNRangeHandler::addTSN (uint32 ui32TSN)
                 }
             }
             // Check to see if we need to do a merge
-            if (bCheckForMerge && (pNextNode != NULL)) {
+            if (bCheckForMerge && (pNextNode != nullptr)) {
                 if ((pCurrNode->ui32End + 1) == pNextNode->ui32Begin) {
                     // Need to merge current and next range nodes
                     pCurrNode->ui32End = pNextNode->ui32End;
@@ -156,7 +156,7 @@ int TSNRangeHandler::appendTSNInformation (TSNChunkMutator *pTCM)
     if (pTCM->startAddingRanges()) {
         return -1;
     }
-    while (pCurrNode != NULL) {
+    while (pCurrNode != nullptr) {
         if (pCurrNode->ui32Begin == pCurrNode->ui32End) {
             // Skip for now
         }
@@ -176,7 +176,7 @@ int TSNRangeHandler::appendTSNInformation (TSNChunkMutator *pTCM)
         return -4;
     }
     pCurrNode = _pFirstNode;
-    while (pCurrNode != NULL) {
+    while (pCurrNode != nullptr) {
         if (pCurrNode->ui32Begin == pCurrNode->ui32End) {
             if (pTCM->addTSN (pCurrNode->ui32Begin)) {
                 return -5;
@@ -195,20 +195,20 @@ int TSNRangeHandler::freeze (ObjectFreezer &objectFreezer)
 {
     // Go through the whole list of nodes
     Node *pCurrNode = _pFirstNode;
-    while (pCurrNode != NULL) {
+    while (pCurrNode != nullptr) {
         // Insert a control char to signal that another node follows
         objectFreezer << (unsigned char) 1;
         objectFreezer.putUInt32 (pCurrNode->ui32Begin);
         objectFreezer.putUInt32 (pCurrNode->ui32End);
-        
+
 /*        printf ("ui32Begin %lu\n", pCurrNode->ui32Begin);
         printf ("ui32End %lu\n", pCurrNode->ui32End);*/
-        
+
         pCurrNode = pCurrNode->pNext;
     }
     // Insert a control char to signal that there are no more data
     objectFreezer << (unsigned char) 0;
-    
+
     return 0;
 }
 
@@ -223,7 +223,7 @@ int TSNRangeHandler::defrost (ObjectDefroster &objectDefroster)
     while (moreData) {
         objectDefroster >> ui32Begin;
         objectDefroster >> ui32End;
-        if (_pLastNode == NULL) {
+        if (_pLastNode == nullptr) {
             _pFirstNode = _pLastNode = new Node();
             _pFirstNode->ui32Begin = _pLastNode->ui32Begin = ui32Begin;
             _pFirstNode->ui32End = _pLastNode->ui32End = ui32End;
@@ -238,15 +238,15 @@ int TSNRangeHandler::defrost (ObjectDefroster &objectDefroster)
         }
         objectDefroster >> moreData;
     }
-    
+
     Node *pCurrNode = _pFirstNode;
-    while (pCurrNode != NULL) {
+    while (pCurrNode != nullptr) {
 /*        printf ("ui32Begin %lu\n", pCurrNode->ui32Begin);
         printf ("ui32End %lu\n", pCurrNode->ui32End);*/
-        
+
         pCurrNode = pCurrNode->pNext;
     }
-    
+
     return 0;
 }
 
@@ -269,9 +269,9 @@ int SAckTSNRangeHandler::addTSN (uint32 ui32TSN)
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             // The list is empty
-            _pLastNode = NULL;
+            _pLastNode = nullptr;
         }
     }
 
@@ -281,12 +281,12 @@ int SAckTSNRangeHandler::addTSN (uint32 ui32TSN)
 int SAckTSNRangeHandler::freeze (ObjectFreezer &objectFreezer)
 {
     objectFreezer.putUInt32 (_ui32CumulativeTSN);
-    
-	/*  
-	printf ("SAckTSNRangeHandler\n");
+
+    /*
+    printf ("SAckTSNRangeHandler\n");
     printf ("_ui32CumulativeTSN %lu\n", _ui32CumulativeTSN);
-	*/
-    
+    */
+
     // call the superclass method freeze
     TSNRangeHandler::freeze (objectFreezer);
     return 0;
@@ -295,10 +295,10 @@ int SAckTSNRangeHandler::freeze (ObjectFreezer &objectFreezer)
 int SAckTSNRangeHandler::defrost (ObjectDefroster &objectDefroster)
 {
     objectDefroster >> _ui32CumulativeTSN;
-    
+
 /*    printf ("SAckTSNRangeHandler\n");
     printf ("_ui32CumulativeTSN %lu\n", _ui32CumulativeTSN);*/
-    
+
     // call the superclass method defrost
     if (0 != TSNRangeHandler::defrost (objectDefroster)) {
         return -2;
@@ -308,19 +308,19 @@ int SAckTSNRangeHandler::defrost (ObjectDefroster &objectDefroster)
 
 int CancelledTSNRangeHandler::deleteTSNsUpTo (uint32 ui32TSN)
 {
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         return 0;
     }
 
     // As an optimization, first check if the TSN >= the TSN in the last node
     if (NOMADSUtil::SequentialArithmetic::lessThanOrEqual (_pLastNode->ui32End, ui32TSN)) {
         // The whole list can be deleted
-        while (_pFirstNode != NULL) {
+        while (_pFirstNode != nullptr) {
             Node *pTempNode = _pFirstNode;
             _pFirstNode = _pFirstNode->pNext;
             delete pTempNode;
         }
-        _pFirstNode = _pLastNode = NULL;
+        _pFirstNode = _pLastNode = nullptr;
         return 0;
     }
 
@@ -329,9 +329,9 @@ int CancelledTSNRangeHandler::deleteTSNsUpTo (uint32 ui32TSN)
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             // The list is empty
-            _pLastNode = NULL;
+            _pLastNode = nullptr;
         }
     }
 
@@ -368,9 +368,9 @@ int ReceivedTSNRangeHandler::addTSN (uint32 ui32TSN)
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             // The list is empty
-            _pLastNode = NULL;
+            _pLastNode = nullptr;
         }
     }
 
@@ -388,7 +388,7 @@ bool ReceivedTSNRangeHandler::alreadyReceived (uint32 ui32TSN)
     }
     // Search the list
     Node *pCurrNode = _pFirstNode;
-    while (pCurrNode != NULL) {
+    while (pCurrNode != nullptr) {
         if (NOMADSUtil::SequentialArithmetic::lessThanOrEqual (pCurrNode->ui32Begin, ui32TSN) &&
             NOMADSUtil::SequentialArithmetic::greaterThanOrEqual (pCurrNode->ui32End, ui32TSN)) {
             // The specified TSN falls within the range contained in this node in the list
@@ -404,7 +404,7 @@ int ReceivedTSNRangeHandler::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
 {
     objectFreezer.putUInt32 (_ui32CumulativeTSN);
     objectFreezer.putBool (_bAdded0TSN);
-    
+
     // Call the superclass method freeze
     if (0 != TSNRangeHandler::freeze (objectFreezer)) {
         return -1;

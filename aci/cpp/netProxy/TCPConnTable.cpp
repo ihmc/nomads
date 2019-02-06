@@ -2,7 +2,7 @@
  * TCPConnTable.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,9 +25,9 @@
 #include "ConfigurationManager.h"
 
 
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
@@ -37,16 +37,14 @@ namespace ACMNetProxy
             return nullptr;
         }
 
-        _m.lock();
+        std::lock_guard<std::mutex> lg{_mtx};
         if (static_cast<long> (ui16LocalID - 1) <= _entries.getHighestIndex()) {
             Entry *pEntry = &_entries.get (ui16LocalID - 1);
             if (pEntry && (pEntry->ui16ID == ui16LocalID)) {
                 // Found the entry
-                _m.unlock();
                 return pEntry;
             }
         }
-        _m.unlock();
 
         return nullptr;
     }
@@ -57,34 +55,31 @@ namespace ACMNetProxy
             return nullptr;
         }
 
-        _m.lock();
+        std::lock_guard<std::mutex> lg{_mtx};
         if (static_cast<long> (ui16LocalID - 1) <= _entries.getHighestIndex()) {
             Entry *pEntry = &_entries.get (ui16LocalID - 1);
             if (pEntry && (pEntry->ui16ID == ui16LocalID) &&
                 ((pEntry->ui16RemoteID == ui16RemoteID) || (pEntry->ui16RemoteID == 0))) {
                 // Found the entry
-                _m.unlock();
                 return pEntry;
             }
         }
-        _m.unlock();
 
         return nullptr;
     }
 
-    Entry * const TCPConnTable::getEntry (uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort,
-		uint32 uint32AssignedPriority)
+    Entry * const TCPConnTable::getEntry (uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP,
+                                          uint16 ui16RemotePort, uint32 uint32AssignedPriority)
     {
-        Entry *pEntry = nullptr;
+        Entry * pEntry = nullptr;
 
-        _m.lock();
+        std::lock_guard<std::mutex> lg{_mtx};
         // See if there is an entry for the specified parameters
         for (long i = 0; i <= _entries.getHighestIndex(); ++i) {
             pEntry = &_entries.get (i);
             if (pEntry && (pEntry->ui32LocalIP == ui32LocalIP) && (pEntry->ui16LocalPort == ui16LocalPort) &&
                 (pEntry->ui32RemoteIP == ui32RemoteIP) && (pEntry->ui16RemotePort == ui16RemotePort)) {
                 // Found the entry
-                _m.unlock();
                 return pEntry;
             }
         }
@@ -92,7 +87,7 @@ namespace ACMNetProxy
         // No entry exists for the specified parameters - return an unused one
         for (long i = 0; i <= _entries.getHighestIndex(); ++i) {
             pEntry = &_entries.get (i);
-            if (!pEntry || (pEntry->localStatus == TCTLS_Unused)) {
+            if (!pEntry || (pEntry->localState == TCTLS_LISTEN)) {
                 if (!pEntry) {
                     // Allocate new Entry
                     pEntry = &_entries[i];
@@ -106,9 +101,7 @@ namespace ACMNetProxy
                 pEntry->ui16LocalPort = ui16LocalPort;
                 pEntry->ui32RemoteIP = ui32RemoteIP;
                 pEntry->ui16RemotePort = ui16RemotePort;
-				pEntry->assignedPriority = uint32AssignedPriority;
-                pEntry->prepareNewConnection();
-                _m.unlock();
+                pEntry->assignedPriority = uint32AssignedPriority;
                 return pEntry;
             }
         }
@@ -117,9 +110,8 @@ namespace ACMNetProxy
         const long lNewIndex = (_entries.getHighestIndex() >= 0) ? (_entries.getHighestIndex() + 1) : 0;
         if (lNewIndex > 65534) {
             // Can't use this because it would cause a problem with the ui16ID field
-            checkAndLogMsg ("TCPConnTable::getEntry", Logger::L_MildError,
+            checkAndLogMsg ("TCPConnTable::getEntry", NOMADSUtil::Logger::L_MildError,
                             "no slots available in the TCP Connection Table\n");
-            _m.unlock();
             return nullptr;
         }
         pEntry = &_entries[lNewIndex];
@@ -128,229 +120,126 @@ namespace ACMNetProxy
         pEntry->ui16LocalPort = ui16LocalPort;
         pEntry->ui32RemoteIP = ui32RemoteIP;
         pEntry->ui16RemotePort = ui16RemotePort;
-        pEntry->prepareNewConnection();
+        pEntry->assignedPriority = uint32AssignedPriority;
 
-        _m.unlock();
         return pEntry;
     }
 
     void TCPConnTable::resetGet (void)
     {
-        _m.lock();
-
         ++_ui32FirstIndex %= (_entries.size() > 0) ? _entries.size() : 1;
         _ui32NextIndex = _ui32FirstIndex;
         _bIsCounterReset = true;
-
-        _m.unlock();
     }
 
     Entry * const TCPConnTable::getNextEntry (void)
     {
-        _m.lock();
-
         if (_entries.getHighestIndex() < 0) {
-            _m.unlock();
             return nullptr;
         }
 
-        Entry *pEntry = nullptr;
+        Entry * pEntry = nullptr;
         if (_bIsCounterReset) {
-            pEntry = &(_entries.get (_ui32NextIndex));
-            ++_ui32NextIndex %= _entries.size();
             _bIsCounterReset = false;
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) &&
-                (pEntry->localStatus != TCTLS_LISTEN)) {
-                _m.unlock();
+            pEntry = &(_entries.get (_ui32NextIndex++));
+            _ui32NextIndex %= _entries.size();
+            if (pEntry && (pEntry->localState != TCTLS_LISTEN)) {
                 return pEntry;
             }
         }
         while (_ui32NextIndex != _ui32FirstIndex) {
             pEntry = &(_entries.get (_ui32NextIndex));
             ++_ui32NextIndex %= _entries.size();
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) &&
-                (pEntry->localStatus != TCTLS_LISTEN)) {
-                _m.unlock();
+            if (pEntry && (pEntry->localState != TCTLS_LISTEN)) {
                 return pEntry;
             }
         }
 
-        _m.unlock();
         return nullptr;
     }
 
     Entry * const TCPConnTable::getNextActiveLocalEntry (void)
     {
-        _m.lock();
-
-        if (_entries.getHighestIndex() < 0) {
-            _m.unlock();
-            return nullptr;
-        }
-
-        Entry *pEntry = nullptr;
-        if (_bIsCounterReset) {
-            pEntry = &(_entries.get (_ui32NextIndex));
-            ++_ui32NextIndex %= _entries.size();
-            _bIsCounterReset = false;
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) && (pEntry->localStatus != TCTLS_LISTEN) &&
-                (pEntry->localStatus != TCTLS_TIME_WAIT) && (pEntry->localStatus != TCTLS_CLOSED)) {
-                _m.unlock();
-                return pEntry;
-            }
-        }
-        while (_ui32NextIndex != _ui32FirstIndex) {
-            pEntry = &(_entries.get (_ui32NextIndex));
-            ++_ui32NextIndex %= _entries.size();
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) && (pEntry->localStatus != TCTLS_LISTEN) &&
-                (pEntry->localStatus != TCTLS_TIME_WAIT) && (pEntry->localStatus != TCTLS_CLOSED)) {
-                _m.unlock();
+        Entry * pEntry;
+        while ((pEntry = getNextEntry()) != nullptr) {
+            if ((pEntry->localState != TCTLS_TIME_WAIT) && (pEntry->localState != TCTLS_CLOSED)) {
                 return pEntry;
             }
         }
 
-        _m.unlock();
         return nullptr;
     }
 
     Entry * const TCPConnTable::getNextActiveRemoteEntry (void)
     {
-        _m.lock();
-
-        if (_entries.getHighestIndex() < 0) {
-            _m.unlock();
-            return nullptr;
-        }
-
-        Entry *pEntry = nullptr;
-        if (_bIsCounterReset) {
-            pEntry = &(_entries.get (_ui32NextIndex));
-            ++_ui32NextIndex %= _entries.size();
-            _bIsCounterReset = false;
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) && (pEntry->localStatus != TCTLS_LISTEN) &&
-                (pEntry->remoteStatus != TCTRS_Unknown) && (pEntry->remoteStatus != TCTRS_Disconnected)) {
-                _m.unlock();
-                return pEntry;
-            }
-        }
-        while (_ui32NextIndex != _ui32FirstIndex) {
-            pEntry = &(_entries.get (_ui32NextIndex));
-            ++_ui32NextIndex %= _entries.size();
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) && (pEntry->localStatus != TCTLS_LISTEN) &&
-                (pEntry->remoteStatus != TCTRS_Unknown) && (pEntry->remoteStatus != TCTRS_Disconnected)) {
-                _m.unlock();
+        Entry * pEntry;
+        while ((pEntry = getNextEntry()) != nullptr) {
+            if ((pEntry->remoteState != TCTRS_Unknown) && (pEntry->remoteState != TCTRS_DisconnRequestSent) &&
+                (pEntry->remoteState != TCTRS_Disconnected)) {
                 return pEntry;
             }
         }
 
-        _m.unlock();
         return nullptr;
     }
 
-    Entry * const TCPConnTable::getNextClosedLocalEntry (void)
+    Entry * const TCPConnTable::getNextClosedEntry (void)
     {
-        _m.lock();
-
-        if (_entries.getHighestIndex() < 0) {
-            _m.unlock();
-            return nullptr;
-        }
-
-        Entry *pEntry = nullptr;
-        if (_bIsCounterReset) {
-            pEntry = &(_entries.get (_ui32NextIndex));
-            ++_ui32NextIndex %= _entries.size();
-            _bIsCounterReset = false;
-            if (pEntry && ((pEntry->localStatus == TCTLS_TIME_WAIT) || (pEntry->localStatus == TCTLS_CLOSED))) {
-                _m.unlock();
-                return pEntry;
-            }
-        }
-        while (_ui32NextIndex != _ui32FirstIndex) {
-            pEntry = &(_entries.get (_ui32NextIndex));
-            ++_ui32NextIndex %= _entries.size();
-            if (pEntry && ((pEntry->localStatus == TCTLS_TIME_WAIT) || (pEntry->localStatus == TCTLS_CLOSED))) {
-                _m.unlock();
+        Entry * pEntry;
+        while ((pEntry = getNextEntry()) != nullptr) {
+            if ((pEntry->remoteState == TCTRS_Disconnected) &&
+                ((pEntry->localState == TCTLS_TIME_WAIT) || (pEntry->localState == TCTLS_CLOSED))) {
                 return pEntry;
             }
         }
 
-        _m.unlock();
         return nullptr;
     }
 
     uint16 TCPConnTable::getActiveLocalConnectionsCount (void) const
     {
-        _m.lock();
-
         uint16 returnVal = 0;
-        const Entry *pEntry;
+        const Entry * pEntry;
         for (long i = 0; i <= _entries.getHighestIndex(); ++i) {
             pEntry = &_entries.get (i);
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) && (pEntry->localStatus != TCTLS_LISTEN) &&
-                (pEntry->localStatus != TCTLS_TIME_WAIT) && (pEntry->localStatus != TCTLS_CLOSED)) {
+            if (pEntry && (pEntry->localState != TCTLS_LISTEN) &&
+                (pEntry->localState != TCTLS_TIME_WAIT) && (pEntry->localState != TCTLS_CLOSED)) {
                 ++returnVal;
             }
         }
 
-        _m.unlock();
         return returnVal;
     }
 
-    uint16 TCPConnTable::getActiveLocalConnectionsCount (uint32 ui32RemoteIP, ConnectorType connectorType) const
+    void TCPConnTable::removeUnusedEntries (void)
     {
-        _m.lock();
-
-        uint16 returnVal = 0;
-        const Entry *pEntry;
-        for (long i = 0; i <= _entries.getHighestIndex(); ++i) {
-            pEntry = &_entries.get (i);
-            if (pEntry && (pEntry->localStatus != TCTLS_Unused) && (pEntry->localStatus != TCTLS_LISTEN) &&
-                (pEntry->localStatus != TCTLS_TIME_WAIT) && (pEntry->localStatus != TCTLS_CLOSED) &&
-                (pEntry->ui32RemoteIP == ui32RemoteIP) && pEntry->_connectors.pConnector &&
-                (pEntry->_connectors.pConnector->getConnectorType() == connectorType)) {
-                ++returnVal;
-            }
-        }
-
-        _m.unlock();
-        return returnVal;
-    }
-
-    void TCPConnTable::cleanMemory (void)
-    {
-        _m.lock();
-
-        const Entry *pEntry = nullptr;
-        uint32 ui32ActiveEntries = 0;
-        long i = NetProxyApplicationParameters::ENTRIES_POOL_SIZE + 1;
+        const Entry * pEntry = nullptr;
+        long i = NetProxyApplicationParameters::TCP_CONN_TABLE_ENTRIES_POOL_SIZE + 1,
+            lastActiveEntry = NetProxyApplicationParameters::TCP_CONN_TABLE_ENTRIES_POOL_SIZE;
         while (i <= _entries.getHighestIndex()) {
-            pEntry = &_entries.get (i);
+            const auto * const pEntry = &_entries.get (i);
             if (pEntry) {
-                if (pEntry->tryLock() == Mutex::RC_Ok) {
-                    if ((pEntry->localStatus == TCTLS_Unused) || (pEntry->localStatus == TCTLS_LISTEN) ||
-                        (pEntry->localStatus == TCTLS_CLOSED)) {
-                        pEntry->unlock();
+                std::unique_lock<std::mutex> ul{pEntry->getMutexRef(), std::try_to_lock};
+                if (ul.owns_lock()) {
+                    if ((pEntry->localState == TCTLS_LISTEN) && (pEntry->remoteState == TCTRS_Unknown)) {
+                        ul.unlock();
                         _entries.clear (i);
                     }
                     else {
-                        pEntry->unlock();
-                        ++ui32ActiveEntries;
+                        lastActiveEntry = i;
                     }
                 }
                 else {
-                    // TryLock() failed --> Entry instance was already locked by another thread --> increase active entries counter
-                    ++ui32ActiveEntries;
+                    // TryLock() failed --> Entry instance was already locked by another thread (assume it is in an active state)
+                    lastActiveEntry = i;
                 }
             }
             ++i;
         }
 
-        if ((ui32ActiveEntries == 0) && (_entries.getHighestIndex() > NetProxyApplicationParameters::ENTRIES_POOL_SIZE)) {
-            _entries.trimSize (NetProxyApplicationParameters::ENTRIES_POOL_SIZE + 1);
+        if (lastActiveEntry < _entries.getHighestIndex()) {
+            _entries.trimSize (lastActiveEntry + 1);
         }
-
-        _m.unlock();
     }
 
 }

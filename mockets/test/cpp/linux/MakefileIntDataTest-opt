@@ -1,0 +1,85 @@
+CPP = g++
+
+NOMADS_HOME = ../../../..
+ACI_HOME = $(NOMADS_HOME)/aci
+MOCKETS_HOME = $(NOMADS_HOME)/mockets
+UTIL_HOME = $(NOMADS_HOME)/util
+EXTERNALS = $(NOMADS_HOME)/externals
+EXTERNALS_LIB = $(EXTERNALS)/lib/$(ARCH)
+OPENSSL_HOME = $(EXTERNALS)/openssl/1.0.2h/$(ARCH)
+MSGPACK_HOME = $(EXTERNALS)/msgpack
+LIBUDT_HOME = $(EXTERNALS)/udt4/src
+LIBZ_HOME = $(EXTERNALS)/zlib
+LZMA_HOME = $(EXTERNALS)/xz
+LZMA_LIB = $(LZMA_HOME)/src/liblzma/api
+
+LIB_FOLDER = linux
+MAKEFILE_FOLDER = linux
+ARCH = $(shell sh $(UTIL_HOME)/scripts/guessArch.sh)
+
+CPPFLAGS = -O2 -DUNIX -DLINUX -DLITTLE_ENDIAN_SYSTEM \
+			-I$(MOCKETS_HOME)/cpp \
+			-I$(UTIL_HOME)/cpp \
+			-I$(EXTERNALS)/include \
+			-I$(LIBUDT_HOME)
+
+
+LIB_LIST = $(MOCKETS_HOME)/cpp/$(LIB_FOLDER)/libmockets.a \
+			$(UTIL_HOME)/cpp/$(LIB_FOLDER)/libsecurity.a \
+			$(UTIL_HOME)/cpp/$(LIB_FOLDER)/libutil.a \
+			$(MSGPACK_HOME)/$(LIB_FOLDER)/libmsgpack.a \
+			$(LIBZ_HOME)/$(LIB_FOLDER)/libz.a \
+			$(LZMA_HOME)/$(LIB_FOLDER)/liblzma.a \
+			$(MOCKETS_HOME)/cpp/linux/libmockets.a \
+			-L$(LIBUDT_HOME) \
+			-L$(OPENSSL_HOME)/lib
+
+LD_FLAGS = -lpcap -lssl -lcrypto -ludt -lpthread -ldl
+
+sources = $(wildcard /*.cpp)
+objects = $(sources:../%IntDataTest.cpp=%.o)
+
+
+tests = IntDataTest
+
+all : IntDataTest
+
+libmockets.a :
+	make -C $(MOCKETS_HOME)/cpp/linux/ -f Makefile-opt libmockets.a
+
+libutil.a :
+	make -C $(NOMADS_HOME)/util/cpp/linux/ -f Makefile-opt libutil.a
+
+libmsgpack.a :
+	make -C $(NOMADS_HOME)/externals/msgpack/linux/ libmsgpack.a
+
+libz.a :
+	make -C $(NOMADS_HOME)/externals/zlib/linux/ libz.a
+
+liblzma.a :
+	make -C $(NOMADS_HOME)/externals/xz/linux/ liblzma.a
+
+libudt.a :
+	make -C $(EXTERNALS)/udt4/src/ libudt.a
+
+
+IntDataTest : IntDataTest.o libmockets.a libmsgpack.a libudt.a liblzma.a libz.a
+	$(CPP) $(CPPFLAGS) -Wall -Wextra -Wno-unused-parameter -Wno-unknown-pragmas \
+	../IntDataTest.cpp \
+	$(LIB_LIST) $(LD_FLAGS) \
+	-ldl -ludt -lpthread \
+	-o IntDataTest 
+
+%.o : ../%.cpp
+	$(CPP) -c $(CPPFLAGS) $(INCLUDES) $<
+
+clean :
+	rm -rf *.o IntDataTest
+
+cleanall : clean
+	(make -C $(MOCKETS_HOME)/cpp/$(MAKEFILE_FOLDER) clean)
+	(make -C $(UTIL_HOME)/cpp/$(MAKEFILE_FOLDER) clean)
+	(make -C $(MSGPACK_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(LIBUDT_HOME)/ clean)
+	(make -C $(LZMA_HOME)/$(MAKEFILE_FOLDER) clean)
+	(make -C $(LIBZ_HOME)/$(MAKEFILE_FOLDER) clean)

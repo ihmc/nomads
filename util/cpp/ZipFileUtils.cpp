@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,8 +22,8 @@
 #include "NLFLib.h"
 
 #if defined (WIN32)
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
     #include <io.h>
     #include <direct.h>
@@ -63,8 +63,8 @@ int ZipFileUtils::unzip (const char *pszPathToZipFile, const char *pszDestDir)
         return -1;
     }
 
-	char referenceDestDir[PATH_MAX];
-	strcpy(referenceDestDir, pszDestDir);
+    char referenceDestDir[PATH_MAX];
+    strcpy(referenceDestDir, pszDestDir);
 
     // Create the destination directory
     if (!FileUtils::createDirectory (pszDestDir)) {
@@ -124,7 +124,7 @@ int ZipFileUtils::unzip (const char *pszPathToZipFile, const char *pszDestDir)
                 checkAndLogMsg (pszMethodName, Logger::L_MildError,
                                 "error creating file: %s\n",
                                 (const char*) fName);
-            
+
                 free (pFileContents);
                 delete pcr;
                 delete pEntry;
@@ -134,7 +134,7 @@ int ZipFileUtils::unzip (const char *pszPathToZipFile, const char *pszDestDir)
                 checkAndLogMsg (pszMethodName, Logger::L_MildError,
                                 "error writing file: %s\n",
                                 (const char*) fName);
-                
+
                 free (pFileContents);
                 delete pcr;
                 delete pEntry;

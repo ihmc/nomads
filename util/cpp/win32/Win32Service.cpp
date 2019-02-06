@@ -70,7 +70,7 @@ int main (int argc, char *argv[])
                 return -4;
             }
 
-			return 0;
+            return 0;
         }
         else if ((0 == stricmp (argv[1], "-remove")) || (0 == stricmp (argv[1], "-uninstall"))) {
             // Removes this service
@@ -383,7 +383,7 @@ int Win32Service::startService (const char *pszServiceName)
         return -3;
     }
 
-    CloseServiceHandle (schService); 
+    CloseServiceHandle (schService);
     CloseServiceHandle (schSCManager);
 
     checkAndLogMsg ("Win32Service::startService", Logger::L_LowDetailDebug,
@@ -413,12 +413,12 @@ int Win32Service::stopService (const char *pszServiceName)
     if (!ControlService (schService, SERVICE_CONTROL_STOP, &status)) {
         checkAndLogMsg ("Win32Service::stopService", Logger::L_MildError,
                         "ControlService failed: %s\n", getLastOSErrorAsString());
-        CloseServiceHandle (schService); 
+        CloseServiceHandle (schService);
         CloseServiceHandle (schSCManager);
         return -3;
     }
 
-    CloseServiceHandle (schService); 
+    CloseServiceHandle (schService);
     CloseServiceHandle (schSCManager);
 
     checkAndLogMsg ("Win32Service::startService", Logger::L_LowDetailDebug,

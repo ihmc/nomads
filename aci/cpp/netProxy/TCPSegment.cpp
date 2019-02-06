@@ -2,7 +2,7 @@
  * TCPSegment.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,29 +21,13 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <utility>
 
 #include "TCPSegment.h"
 
 
-using namespace NOMADSUtil;
-
 namespace ACMNetProxy
 {
-    ReceivedData::ReceivedData (uint32 ui32DataSeqNum, uint32 ui32DataLen, const uint8 *pui8Data, uint8 ui8Flags)
-        : TCPSegment (ui32DataSeqNum, (pui8Data ? ui32DataLen : 0), pui8Data, ui8Flags)
-    {
-        if (ui32DataLen > 0) {
-            _pData = new uint8 [ui32DataLen];
-        }
-        if (pui8Data) {
-            memcpy (_pData, pui8Data, ui32DataLen);
-        }
-
-        _uiBeginningSequenceNumber = ui32DataSeqNum;
-        _uiBufSize = ui32DataLen;
-        _i64LastTransmitTime = 0;
-    }
-
     int ReceivedData::appendDataToBuffer (const uint8 * const pui8Data, uint32 ui32DataLen)
     {
         if (!pui8Data || (ui32DataLen == 0)) {
@@ -72,11 +56,11 @@ namespace ACMNetProxy
 
     int ReceivedData::peekOctet (uint32 uiSequenceNumber) const
     {
-        if (SequentialArithmetic::lessThan (uiSequenceNumber, _uiSequenceNumber)) {
+        if (NOMADSUtil::SequentialArithmetic::lessThan (uiSequenceNumber, _uiSequenceNumber)) {
             return -1;
         }
 
-        uint32 ui32Offset = SequentialArithmetic::delta (uiSequenceNumber, _uiBeginningSequenceNumber);
+        uint32 ui32Offset = NOMADSUtil::SequentialArithmetic::delta (uiSequenceNumber, _uiBeginningSequenceNumber);
         if (ui32Offset >= _uiBufSize) {
             return -2;
         }

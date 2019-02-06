@@ -3,22 +3,22 @@
 
 /*
  * UnacknowledgePacketQueue.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
- 
+
  * Maintains the queue of packets that are awaiting acknowledgement from the remote side
  * The operations that need to be supported include inserting packets that have been
  * transmitted, removing packets that have been acknowledged, and iterating over packets
@@ -80,17 +80,17 @@ class UnacknowledgedPacketQueue
         int acknowledgePacketsWithin (uint32 ui32StartSequenceNum, uint32 ui32EndSequenceNum, uint64 &ui64NumberOfAcknowledgedBytes);
 
         // Returns the next packet in the queue that has timed out and needs to be retransmitted
-        // or NULL if there is no such packet
+        // or nullptr if there is no such packet
         PacketWrapper * getNextTimedOutPacket (void);
 
         // Prioritizes the retransmission of the packet with sequence number ui32SeqNum by causing a timeout and
         // putting it at the head of the retransmission queue (becoming the next packet that will be retransmitted)
         int prioritizeRetransmissionOfPacket (uint32 ui32SeqNum);
-	
+
         // Prioritizes the retransmission of all packet with sequence number < ui32SeqNum by causing a timeout and
         // putting it at the them of the retransmission queue
         int prioritizeRetransmissionOfPacketUpTo (uint32 ui32SeqNum);
-	
+
         // Deletes the next packet in the retransmit list in the queue
         // Usually called after getNextTimedOutPacket() if the retry timeout for the packet has expired
         int deleteNextPacketInRetransmitList (void);
@@ -120,10 +120,10 @@ class UnacknowledgedPacketQueue
         void dumpPacketSequenceNumbers (void);
 
         int resetRetrTimeoutRetrCount (uint32 ui32RetransmitTO);
-        
+
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
         int defrost (NOMADSUtil::ObjectDefroster &objectDefroster);
-        
+
     private:
         struct Node
         {
@@ -181,9 +181,9 @@ class UnacknowledgedPacketQueue
 inline UnacknowledgedPacketQueue::UnacknowledgedPacketQueue (bool bUseLostPacketsDetection)
     : _cv (&_m)
 {
-    _packetSeqList.pFirstNode = _packetSeqList.pLastNode = NULL;
-    _retransmitTimeList.pFirstNode = _retransmitTimeList.pLastNode = NULL;
-    _sentTimeList.pFirstNode = _sentTimeList.pLastNode = NULL;
+    _packetSeqList.pFirstNode = _packetSeqList.pLastNode = nullptr;
+    _retransmitTimeList.pFirstNode = _retransmitTimeList.pLastNode = nullptr;
+    _sentTimeList.pFirstNode = _sentTimeList.pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _ui32BytesInQueue = 0;
     _ui32MinAckTime = 0xFFFFFFFFUL;
@@ -193,7 +193,7 @@ inline UnacknowledgedPacketQueue::UnacknowledgedPacketQueue (bool bUseLostPacket
 inline UnacknowledgedPacketQueue::~UnacknowledgedPacketQueue (void)
 {
     Node *pTempNode = _packetSeqList.pFirstNode;
-    while (pTempNode != NULL) {
+    while (pTempNode != nullptr) {
         Node *pNodeToDelete = pTempNode;
         pTempNode = pTempNode->pNext;
         delete pNodeToDelete->pData->getPacket();
@@ -202,9 +202,9 @@ inline UnacknowledgedPacketQueue::~UnacknowledgedPacketQueue (void)
         delete pNodeToDelete->pOtherListNode2;
         delete pNodeToDelete;
     }
-    _packetSeqList.pFirstNode = _packetSeqList.pLastNode = NULL;
-    _retransmitTimeList.pFirstNode = _retransmitTimeList.pLastNode = NULL;
-    _sentTimeList.pFirstNode = _sentTimeList.pLastNode = NULL;
+    _packetSeqList.pFirstNode = _packetSeqList.pLastNode = nullptr;
+    _retransmitTimeList.pFirstNode = _retransmitTimeList.pLastNode = nullptr;
+    _sentTimeList.pFirstNode = _sentTimeList.pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _ui32BytesInQueue = 0;
     _ui32MinAckTime = 0xFFFFFFFFUL;
@@ -253,7 +253,7 @@ inline int UnacknowledgedPacketQueue::acknowledgePacketsUpto (uint32 ui32Sequenc
     Node *pTemp = _packetSeqList.pFirstNode;
 
     uint32 ui32AckTime;
-    while (pTemp != NULL) {
+    while (pTemp != nullptr) {
         if (NOMADSUtil::SequentialArithmetic::lessThanOrEqual (pTemp->pData->getPacket()->getSequenceNum(), ui32SequenceNum)) {
             // Compute the acknowledgement time and update MinAckTime if appropriate
             if (pTemp->pData->getRetransmitCount() == 0) {
@@ -298,7 +298,7 @@ inline int UnacknowledgedPacketQueue::acknowledgePacketsWithin (uint32 ui32Start
     int64 i64CurrTime = NOMADSUtil::getTimeInMilliseconds();
     Node *pTemp = _packetSeqList.pFirstNode;
 
-    while (pTemp != NULL) {
+    while (pTemp != nullptr) {
         uint32 ui32SequenceNum = pTemp->pData->getPacket()->getSequenceNum();
         if (NOMADSUtil::SequentialArithmetic::lessThanOrEqual (ui32StartSequenceNum, ui32SequenceNum) &&
             NOMADSUtil::SequentialArithmetic::lessThanOrEqual (ui32SequenceNum, ui32EndSequenceNum)) {
@@ -347,42 +347,42 @@ inline PacketWrapper * UnacknowledgedPacketQueue::getNextTimedOutPacket (void)
             return pWrapper;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 inline int UnacknowledgedPacketQueue::prioritizeRetransmissionOfPacket (uint32 ui32SeqNum)
 {
-    Node *pTempSeq = _packetSeqList.pFirstNode;       
+    Node *pTempSeq = _packetSeqList.pFirstNode;
     Node *pTempRetr;
 
     _m.lock();
-    while (pTempSeq != NULL) { //lookup for the packet with sequence number ui32SeqNum
-	if (pTempSeq->pData->getSequenceNum() == ui32SeqNum && !pTempSeq->pData->getRetransmitCount()) { //Note: maybe the check of the retransmit count should be done at a upper level
+    while (pTempSeq != nullptr) { //lookup for the packet with sequence number ui32SeqNum
+    if (pTempSeq->pData->getSequenceNum() == ui32SeqNum && !pTempSeq->pData->getRetransmitCount()) { //Note: maybe the check of the retransmit count should be done at a upper level
             //when the correct packet is found, its lastIOTime is set to cause a timeout
-	    pTempSeq->pData->setLastIOTime (pTempSeq->pData->getLastIOTime() - pTempSeq->pData->getRetransmitTimeout());
-	    pTempRetr = pTempSeq->pOtherListNode;
-	    //then the node is reordered in the retransmission list (it is positioned as first node)
-	    if (pTempRetr != _retransmitTimeList.pFirstNode) {
-		if (pTempRetr == _retransmitTimeList.pLastNode) {
-		    pTempRetr->pPrev->pNext = NULL;
-		    _retransmitTimeList.pLastNode = pTempRetr->pPrev;
-		}
-		else {
-		    pTempRetr->pPrev->pNext = pTempRetr->pNext;
-	            pTempRetr->pNext->pPrev = pTempRetr->pPrev;
-		}
-		pTempRetr->pPrev = NULL;
-		pTempRetr->pNext = _retransmitTimeList.pFirstNode;
-	        _retransmitTimeList.pFirstNode->pPrev = pTempRetr;
-	        _retransmitTimeList.pFirstNode = pTempRetr;
-		pTempRetr = NULL;
-	    }
-	    _m.unlock();
-	    return 1;
-	}
+        pTempSeq->pData->setLastIOTime (pTempSeq->pData->getLastIOTime() - pTempSeq->pData->getRetransmitTimeout());
+        pTempRetr = pTempSeq->pOtherListNode;
+        //then the node is reordered in the retransmission list (it is positioned as first node)
+        if (pTempRetr != _retransmitTimeList.pFirstNode) {
+        if (pTempRetr == _retransmitTimeList.pLastNode) {
+            pTempRetr->pPrev->pNext = nullptr;
+            _retransmitTimeList.pLastNode = pTempRetr->pPrev;
+        }
+        else {
+            pTempRetr->pPrev->pNext = pTempRetr->pNext;
+                pTempRetr->pNext->pPrev = pTempRetr->pPrev;
+        }
+        pTempRetr->pPrev = nullptr;
+        pTempRetr->pNext = _retransmitTimeList.pFirstNode;
+            _retransmitTimeList.pFirstNode->pPrev = pTempRetr;
+            _retransmitTimeList.pFirstNode = pTempRetr;
+        pTempRetr = nullptr;
+        }
+        _m.unlock();
+        return 1;
+    }
         pTempSeq = pTempSeq->pNext;
     }
-    
+
     //The packet with ui32SeqNum was not found
     _m.unlock();
     return 0;
@@ -394,34 +394,34 @@ inline int UnacknowledgedPacketQueue::prioritizeRetransmissionOfPacketUpTo (uint
     Node *pTempRetr;
 
     _m.lock();
-    while ((pTempSeq != NULL) && (pTempSeq->pData->getSequenceNum() < ui32SeqNum)) { //lookup for the packet with sequence number ui32SeqNum
-	if (!pTempSeq->pData->getRetransmitCount()) { //Note: maybe the check of the retransmit count should be done at a upper level
+    while ((pTempSeq != nullptr) && (pTempSeq->pData->getSequenceNum() < ui32SeqNum)) { //lookup for the packet with sequence number ui32SeqNum
+    if (!pTempSeq->pData->getRetransmitCount()) { //Note: maybe the check of the retransmit count should be done at a upper level
             //when the correct packet is found, its lastIOTime is set to cause a timeout
-	    //pTempSeq->pData->setLastIOTime (pTempSeq->pData->getLastIOTime() - pTempSeq->pData->getRetransmitTimeout());
-	    pTempSeq->pData->setRetransmitTimeout(0);
-	    pTempRetr = pTempSeq->pOtherListNode;
-	    //then the node is reordered in the retransmission list
-	    if (pTempRetr != _retransmitTimeList.pFirstNode) {
-		if (pTempRetr == _retransmitTimeList.pLastNode) {
-		    pTempRetr->pPrev->pNext = NULL;
-		    _retransmitTimeList.pLastNode = pTempRetr->pPrev;
-		}
-		else {
-		    pTempRetr->pPrev->pNext = pTempRetr->pNext;
-	            pTempRetr->pNext->pPrev = pTempRetr->pPrev;
-		}
-		pTempRetr->pPrev = NULL;
-		pTempRetr->pNext = _retransmitTimeList.pFirstNode;
-	        _retransmitTimeList.pFirstNode->pPrev = pTempRetr;
-	        _retransmitTimeList.pFirstNode = pTempRetr;
-		pTempRetr = NULL;
-	    }
-	    _m.unlock();
-	    return 1;
-	}
+        //pTempSeq->pData->setLastIOTime (pTempSeq->pData->getLastIOTime() - pTempSeq->pData->getRetransmitTimeout());
+        pTempSeq->pData->setRetransmitTimeout(0);
+        pTempRetr = pTempSeq->pOtherListNode;
+        //then the node is reordered in the retransmission list
+        if (pTempRetr != _retransmitTimeList.pFirstNode) {
+        if (pTempRetr == _retransmitTimeList.pLastNode) {
+            pTempRetr->pPrev->pNext = nullptr;
+            _retransmitTimeList.pLastNode = pTempRetr->pPrev;
+        }
+        else {
+            pTempRetr->pPrev->pNext = pTempRetr->pNext;
+                pTempRetr->pNext->pPrev = pTempRetr->pPrev;
+        }
+        pTempRetr->pPrev = nullptr;
+        pTempRetr->pNext = _retransmitTimeList.pFirstNode;
+            _retransmitTimeList.pFirstNode->pPrev = pTempRetr;
+            _retransmitTimeList.pFirstNode = pTempRetr;
+        pTempRetr = nullptr;
+        }
+        _m.unlock();
+        return 1;
+    }
         pTempSeq = pTempSeq->pNext;
     }
-    
+
     //The packet with ui32SeqNum was not found
     _m.unlock();
     return 0;
@@ -430,7 +430,7 @@ inline int UnacknowledgedPacketQueue::prioritizeRetransmissionOfPacketUpTo (uint
 inline int UnacknowledgedPacketQueue::deleteNextPacketInRetransmitList (void)
 {
     _m.lock();
-    if (_retransmitTimeList.pFirstNode == NULL) {
+    if (_retransmitTimeList.pFirstNode == nullptr) {
         _m.unlock();
         return -1;
     }
@@ -452,7 +452,7 @@ inline int UnacknowledgedPacketQueue::deleteNextPacketInRetransmitList (void)
 inline int UnacknowledgedPacketQueue::packetRetransmitted (PacketWrapper *pWrapper)
 {
     _m.lock();
-    if (_retransmitTimeList.pFirstNode == NULL) {
+    if (_retransmitTimeList.pFirstNode == nullptr) {
         _m.unlock();
         return -1;
     }
@@ -471,34 +471,34 @@ inline int UnacknowledgedPacketQueue::packetRetransmitted (PacketWrapper *pWrapp
     if (pNode == pSentTimeListNode) {
         if (_sentTimeList.pLastNode == pSentTimeListNode) {
             // nothing to do
-            pNode = NULL;
+            pNode = nullptr;
         }
         else {
             _sentTimeList.pFirstNode = pNode->pNext;
-            _sentTimeList.pFirstNode->pPrev = NULL;
+            _sentTimeList.pFirstNode->pPrev = nullptr;
         }
     }
     else {
         pNode = pNode->pNext;
-        while (pNode != NULL) {
+        while (pNode != nullptr) {
             if (pNode == pSentTimeListNode) {
                 // Found the node to be reordered
                 if (_sentTimeList.pLastNode == pNode) {
                     // The node is already at the end of the list, do nothing
-                    pNode = NULL;
+                    pNode = nullptr;
                 }
                 else {
                     pNode->pPrev->pNext = pNode->pNext;
                     pNode->pNext->pPrev = pNode->pPrev;
-                    pNode->pPrev = NULL;
-                    pNode->pNext = NULL;
+                    pNode->pPrev = nullptr;
+                    pNode->pNext = nullptr;
                 }
                 break;
             }
             pNode = pNode->pNext;
         }
     }
-    if (pNode != NULL) {
+    if (pNode != nullptr) {
         // The node needs to be moved to the end of the list
         pNode->pPrev = _sentTimeList.pLastNode;
         _sentTimeList.pLastNode->pNext = pNode;
@@ -508,11 +508,11 @@ inline int UnacknowledgedPacketQueue::packetRetransmitted (PacketWrapper *pWrapp
     // Reorder _retransmitTimeList
     pNode = _retransmitTimeList.pFirstNode;
     _retransmitTimeList.pFirstNode = _retransmitTimeList.pFirstNode->pNext;
-    _retransmitTimeList.pFirstNode->pPrev = NULL;
-    pNode->pNext = NULL;
-    pNode->pPrev = NULL;
+    _retransmitTimeList.pFirstNode->pPrev = nullptr;
+    pNode->pNext = nullptr;
+    pNode->pPrev = nullptr;
     insertIntoListFromEnd (&_retransmitTimeList, pNode);
-    
+
     _m.unlock();
     return 0;
 }
@@ -522,7 +522,7 @@ inline int UnacknowledgedPacketQueue::cancel (uint16 ui16TagId, CancelledTSNMana
     int iDeletedPackets = 0;
     _m.lock();
     Node *pTemp = _packetSeqList.pFirstNode;
-    while (pTemp != NULL) {
+    while (pTemp != nullptr) {
         Packet *pPacket = pTemp->pData->getPacket();
         if (pPacket->getTagId() == ui16TagId) {
             Node *pNodeToDelete = pTemp;
@@ -564,7 +564,7 @@ inline void UnacknowledgedPacketQueue::dumpPacketSequenceNumbers (void)
         char szBuf[8192];
         szBuf[0] = '\0';
         Node *pTempNode = _packetSeqList.pFirstNode;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             char szPacketNum[10];
             sprintf (szPacketNum, "%u ", pTempNode->pData->getPacket()->getSequenceNum());
             strcat (szBuf, szPacketNum);
@@ -583,7 +583,7 @@ inline int UnacknowledgedPacketQueue::resetRetrTimeoutRetrCount (uint32 ui32Retr
     // Loop through _packetSeqList, but reorder nodes in _retransmitTimeList
     Node *pTempNode = _packetSeqList.pFirstNode;
     Node *pTempNodeRetrTimeList;
-    while (pTempNode != NULL) {
+    while (pTempNode != nullptr) {
         pTempNodeRetrTimeList = pTempNode->pOtherListNode;
         pTempNodeRetrTimeList->pData->setRetransmitTimeout (ui32RetransmitTO);
         pTempNodeRetrTimeList->pData->resetRetransmitCount();
@@ -593,17 +593,17 @@ inline int UnacknowledgedPacketQueue::resetRetrTimeoutRetrCount (uint32 ui32Retr
             // Removing the first element in the list
             if (_retransmitTimeList.pLastNode == pTempNodeRetrTimeList) {
                 // This was also the only element in the list
-                _retransmitTimeList.pFirstNode = _retransmitTimeList.pLastNode = NULL;
+                _retransmitTimeList.pFirstNode = _retransmitTimeList.pLastNode = nullptr;
             }
             else {
                 _retransmitTimeList.pFirstNode = _retransmitTimeList.pFirstNode->pNext;
-                _retransmitTimeList.pFirstNode->pPrev = NULL;
+                _retransmitTimeList.pFirstNode->pPrev = nullptr;
             }
         }
         else if (_retransmitTimeList.pLastNode == pTempNodeRetrTimeList) {
             // Removing the last element in the list
             _retransmitTimeList.pLastNode = pTempNodeRetrTimeList->pPrev;
-            pTempNodeRetrTimeList->pPrev->pNext = NULL;
+            pTempNodeRetrTimeList->pPrev->pNext = nullptr;
         }
         else {
             // Removing a non-boundary element in the list
@@ -628,10 +628,10 @@ inline int UnacknowledgedPacketQueue::freeze (NOMADSUtil::ObjectFreezer &objectF
     // because it has newer information about the last transmission time, and during
     // the insertion the two queues will be recreated in the correct order.
     objectFreezer.putUInt32 (_ui32PacketsInQueue);
-    
+
 /*    printf ("UnacknowledgedPacketQueue\n");
     printf ("_ui32PacketsInQueue %lu\n", _ui32PacketsInQueue);*/
-    
+
     // Go through the whole list of nodes
     Node *pCurrNode = _retransmitTimeList.pFirstNode;
     for (uint32 i=0; i<_ui32PacketsInQueue; i++) {
@@ -645,17 +645,17 @@ inline int UnacknowledgedPacketQueue::freeze (NOMADSUtil::ObjectFreezer &objectF
     // Do not freeze _ui32BytesInQueue, it is computable
     // Do not frezze _ui32MinAckTime we can initializate it with the maximum
     // value and at the first ack it will be calculated
-    
+
     return 0;
 }
 
 inline int UnacknowledgedPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDefroster)
 {
     objectDefroster >> _ui32PacketsInQueue;
-    
+
 /*    printf ("UnacknowledgedPacketQueue\n");
     printf ("_ui32PacketsInQueue %lu\n", _ui32PacketsInQueue);*/
-    
+
     // Insert all nodes in the queues
     for (uint32 i=0; i<_ui32PacketsInQueue; i++){
         //printf ("***** i = %d\n", i);
@@ -685,7 +685,7 @@ inline int UnacknowledgedPacketQueue::insertIntoLists (PacketWrapper *pWrapper)
 
 
     _m.lock();
-    
+
     if (insertIntoListFromEnd (&_packetSeqList, pPacketSeqListNode)) {
         _m.unlock();
         return -2;
@@ -697,7 +697,7 @@ inline int UnacknowledgedPacketQueue::insertIntoLists (PacketWrapper *pWrapper)
     }
 
     // Insert into _sentTimeList: always insert at the end
-    if (_sentTimeList.pFirstNode == NULL) {
+    if (_sentTimeList.pFirstNode == nullptr) {
         // There are no other elements - just insert at the beginning
         _sentTimeList.pFirstNode = _sentTimeList.pLastNode = pSentTimeListNode;
     }
@@ -716,7 +716,7 @@ inline int UnacknowledgedPacketQueue::insertIntoLists (PacketWrapper *pWrapper)
 
 inline int UnacknowledgedPacketQueue::insertIntoList (List *pList, Node *pNewNode)
 {
-    if (pList->pFirstNode == NULL) {
+    if (pList->pFirstNode == nullptr) {
         // There are no other elements - just insert at the beginning
         pList->pFirstNode = pList->pLastNode = pNewNode;
         return 0;
@@ -731,7 +731,7 @@ inline int UnacknowledgedPacketQueue::insertIntoList (List *pList, Node *pNewNod
     else {
         // Find the right spot to insert the new node
         Node *pTempNode = pList->pFirstNode->pNext;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             if ((*pTempNode) < (*pNewNode)) {
                 // Have not found the right place yet - continue
                 pTempNode = pTempNode->pNext;
@@ -747,7 +747,7 @@ inline int UnacknowledgedPacketQueue::insertIntoList (List *pList, Node *pNewNod
         }
         // Need to insert the node at the end
         pNewNode->pPrev = pList->pLastNode;
-        pNewNode->pNext = NULL;
+        pNewNode->pNext = nullptr;
         pList->pLastNode->pNext = pNewNode;
         pList->pLastNode = pNewNode;
         return 0;
@@ -755,7 +755,7 @@ inline int UnacknowledgedPacketQueue::insertIntoList (List *pList, Node *pNewNod
 }
 inline int UnacknowledgedPacketQueue::insertIntoListFromEnd (List *pList, Node *pNewNode)
 {
-    if (pList->pLastNode == NULL) {
+    if (pList->pLastNode == nullptr) {
         // There are no other elements - just insert at the end (which is also the beginning)
         pList->pFirstNode = pList->pLastNode = pNewNode;
         return 0;
@@ -770,7 +770,7 @@ inline int UnacknowledgedPacketQueue::insertIntoListFromEnd (List *pList, Node *
     else {
         // Find the right spot to insert the new node
         Node *pTempNode = pList->pLastNode->pPrev;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             if ((*pNewNode) < (*pTempNode)) {
                 // Have not found the right place yet - continue
                 pTempNode = pTempNode->pPrev;
@@ -794,7 +794,7 @@ inline int UnacknowledgedPacketQueue::insertIntoListFromEnd (List *pList, Node *
 
 inline int UnacknowledgedPacketQueue::removeFromList (List *pList, Node *pNode)
 {
-    if (pList->pFirstNode == NULL) {
+    if (pList->pFirstNode == nullptr) {
         // There are no elements in the list
         return -1;
     }
@@ -802,17 +802,17 @@ inline int UnacknowledgedPacketQueue::removeFromList (List *pList, Node *pNode)
         // Removing the first element in the list
         if (pList->pLastNode == pNode) {
             // This was also the only element in the list
-            pList->pFirstNode = pList->pLastNode = NULL;
+            pList->pFirstNode = pList->pLastNode = nullptr;
         }
         else {
             pList->pFirstNode = pList->pFirstNode->pNext;
-            pList->pFirstNode->pPrev = NULL;
+            pList->pFirstNode->pPrev = nullptr;
         }
     }
     else if (pList->pLastNode == pNode) {
         // Removing the last element in the list
         pList->pLastNode = pNode->pPrev;
-        pNode->pPrev->pNext = NULL;
+        pNode->pPrev->pNext = nullptr;
     }
     else {
         // Removing a non-boundary element in the list
@@ -830,7 +830,7 @@ inline int UnacknowledgedPacketQueue::expireLostPackets (Node *pNode)
     //                                 "removing %d\n", pNode->pData->getSequenceNum());
     //}
     _m.lock();
-    if ((_sentTimeList.pFirstNode == NULL) || (_sentTimeList.pFirstNode->pData->getSequenceNum() == pNode->pData->getSequenceNum())) {
+    if ((_sentTimeList.pFirstNode == nullptr) || (_sentTimeList.pFirstNode->pData->getSequenceNum() == pNode->pData->getSequenceNum())) {
         // There are no elements in the list or the element is the first one
         //if (NOMADSUtil::pLogger) {
         //    NOMADSUtil::pLogger->logMsg ("UnacknowledgedPacketQueue::expireLostPackets", NOMADSUtil::Logger::L_MediumDetailDebug,
@@ -844,7 +844,7 @@ inline int UnacknowledgedPacketQueue::expireLostPackets (Node *pNode)
     // Cycle from the head of the list because if we did not exit with the first
     // 'if' we need to expire the timeout of the head of the queue
     Node *pTempSentTimeListNode = _sentTimeList.pFirstNode;
-    while (pTempSentTimeListNode != NULL) {
+    while (pTempSentTimeListNode != nullptr) {
         if (pTempSentTimeListNode != pNode) {
             // Mark this node for retransmission (i.e. expire the retransmission timeout)
             // Only if it has not been marked already
@@ -867,23 +867,23 @@ inline int UnacknowledgedPacketQueue::expireLostPackets (Node *pNode)
                         return 0;
                     }
                     _retransmitTimeList.pFirstNode = pRetransmitTimeListNode->pNext;
-                    _retransmitTimeList.pFirstNode->pPrev = NULL;
+                    _retransmitTimeList.pFirstNode->pPrev = nullptr;
                 }
                 else {
                     pTempNode = pTempNode->pNext;
-                    while (pTempNode != NULL) {
+                    while (pTempNode != nullptr) {
                         if (pTempNode == pRetransmitTimeListNode) {
                             // Found the node to be reordered
                             if (_retransmitTimeList.pLastNode == pRetransmitTimeListNode) {
-                                pTempNode->pPrev->pNext = NULL;
+                                pTempNode->pPrev->pNext = nullptr;
                                 _retransmitTimeList.pLastNode = pTempNode->pPrev;
                             }
                             else {
                                 pTempNode->pPrev->pNext = pTempNode->pNext;
                                 pTempNode->pNext->pPrev = pTempNode->pPrev;
                             }
-                            pTempNode->pPrev = NULL;
-                            pTempNode->pNext = NULL;
+                            pTempNode->pPrev = nullptr;
+                            pTempNode->pNext = nullptr;
                             break;
                         }
                         pTempNode = pTempNode->pNext;
@@ -905,11 +905,11 @@ inline int UnacknowledgedPacketQueue::expireLostPackets (Node *pNode)
 
 inline UnacknowledgedPacketQueue::Node::Node (void)
 {
-    pPrev = NULL;
-    pNext = NULL;
-    pOtherListNode = NULL;
-    pOtherListNode2 = NULL;
-    pData = NULL;
+    pPrev = nullptr;
+    pNext = nullptr;
+    pOtherListNode = nullptr;
+    pOtherListNode2 = nullptr;
+    pData = nullptr;
 }
 
 inline bool UnacknowledgedPacketQueue::PacketSeqListNode::operator < (const Node &rhsNode)

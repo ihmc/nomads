@@ -5,7 +5,7 @@
  * LzmaConnectorWriter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,46 +40,42 @@ namespace ACMNetProxy
     class LzmaConnectorWriter : public ConnectorWriter
     {
     public:
-        LzmaConnectorWriter (const CompressionSetting * const pCompressionSetting, unsigned long ulOutBufSize = DEFAULT_OUT_BUF_SIZE);
+        LzmaConnectorWriter (const CompressionSettings & compressionSettings, unsigned long ulOutBufSize = DEFAULT_OUT_BUF_SIZE);
         virtual ~LzmaConnectorWriter (void);
 
-        virtual const ProxyMessage::CompressionType getCompressionFlag (void) const;
-        using ConnectorWriter::getCompressionLevel;
-        using ConnectorWriter::getCompressionName;
-        using ConnectorWriter::getCompressionSetting;
-        using ConnectorWriter::isFlushed;
+        virtual const CompressionType getCompressionFlag (void) const;
 
         virtual int lockConnectorWriter (void);
         virtual int unlockConnectorWriter (void);
-        virtual int flush (unsigned char **pDest, unsigned int &uiDestLen);
-        virtual int writeData (const unsigned char *pSrc, unsigned int uiSrcLen, unsigned char **pDest, unsigned int &uiDestLen, bool bFlushLocal = true);
-        virtual int writeDataAndResetWriter (const unsigned char *pSrc, unsigned int uiSrcLen, unsigned char **pDest, unsigned int &uiDestLen);
+        virtual int flush (unsigned char ** pDest, unsigned int & uiDestLen);
+        virtual int writeData (const unsigned char * pSrc, unsigned int uiSrcLen, unsigned char ** pDest, unsigned int & uiDestLen, bool bFlushLocal = true);
+        virtual int writeDataAndResetWriter (const unsigned char * pSrc, unsigned int uiSrcLen, unsigned char ** pDest, unsigned int & uiDestLen);
 
 
     private:
         void resetCompStream (void);
 
-        unsigned char *_pOutputBuffer;
+        unsigned char * _pOutputBuffer;
         unsigned long _ulOutBufSize;
         lzma_stream _lzmaCompStream;
 
-        NOMADSUtil::Mutex _m;
+        NOMADSUtil::Mutex _mtx;
     };
 
 
-    inline const ProxyMessage::CompressionType LzmaConnectorWriter::getCompressionFlag (void) const
+    inline const CompressionType LzmaConnectorWriter::getCompressionFlag (void) const
     {
-        return ProxyMessage::PMC_LZMACompressedData;
+        return CompressionType::PMC_LZMACompressedData;
     }
 
     inline int LzmaConnectorWriter::lockConnectorWriter (void)
     {
-        return _m.lock();
+        return _mtx.lock();
     }
 
     inline int LzmaConnectorWriter::unlockConnectorWriter (void)
     {
-        return _m.unlock();
+        return _mtx.unlock();
     }
 
 }

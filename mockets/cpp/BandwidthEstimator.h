@@ -3,19 +3,19 @@
 
 /*
  * BandwidthEstimator.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2016 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -25,11 +25,11 @@
 #include "StrClass.h"
 
 #if !defined (ANDROID) //No std support on ANDROID
-	#include <iostream>
-	#include <fstream>
-	#include <sstream>
-	#include <cstdlib>
-	#include <ctime>
+    #include <iostream>
+    #include <fstream>
+    #include <sstream>
+    #include <cstdlib>
+    #include <ctime>
 #endif
 
 
@@ -46,23 +46,23 @@ class BandwidthEstimator
             NOMADSUtil::String toString (void);
         };
 
-    public:      	
+    public:
         /**
         Constructor and destructor for BandwidthEstimator
         - ui32MaxSamplesNumber: max lenght of the internals lists
-		- ui32TimeIntervalInMs: duration of the time interval considered by the bandwidth samples
-		- ui64SamplingTime: max time between two ack samples
-		- ui16InitialAssumedBandwidth: initial assumed bandwidth
+        - ui32TimeIntervalInMs: duration of the time interval considered by the bandwidth samples
+        - ui64SamplingTime: max time between two ack samples
+        - ui16InitialAssumedBandwidth: initial assumed bandwidth
         */
-		BandwidthEstimator (uint32 ui32MaxSamplesNumber, uint32 ui32TimeIntervalInMs, uint64 ui64SamplingTime, uint16 ui16InitialAssumedBandwidth);
+        BandwidthEstimator (uint32 ui32MaxSamplesNumber, uint32 ui32TimeIntervalInMs, uint64 ui64SamplingTime, uint16 ui16InitialAssumedBandwidth);
         virtual ~BandwidthEstimator (void);
-		
+
         /**
         Adds a new ACK sample to the internal list and consequentely computes bandwidth samples and estimations.
         If it is the first sample a default value is used as bandwidth estimation.
         - i64Timestamp: Timestamp of the ACK in milliseconds
-		- i64AcknowledgedData: Number of acknowledged bytes
-		- ui32PacketInQueue: Number of packets in the queue
+        - i64AcknowledgedData: Number of acknowledged bytes
+        - ui32PacketInQueue: Number of packets in the queue
         @retun: The bandwidth estimated in bytes per second.
         */
         int32 addSample (uint64 i64Timestamp, uint64 i64AcknowledgedData, uint32 ui32PacketInQueue);
@@ -71,7 +71,7 @@ class BandwidthEstimator
         Destroy and then re-initialize the internal DLLISTs
         */
         void reset (void);
-        
+
         /**
         Print DLL contents
         */
@@ -117,11 +117,11 @@ class BandwidthEstimator
         uint32 _ui32TimeIntervalInMs;
         uint64 _ui64MaxSamplingTime;
         uint16 _ui16InitialAssumedBandwidth;
-		
-		#if !defined (ANDROID) //No std support on ANDROID
-        	std::ofstream _logFile;
-        	std::stringstream _ss;
-		#endif
+
+        #if !defined (ANDROID) //No std support on ANDROID
+            std::ofstream _logFile;
+            std::stringstream _ss;
+        #endif
 };
 
 class WestwoodBandwidthEstimator : BandwidthEstimator
@@ -148,7 +148,7 @@ class WestwoodBandwidthEstimator : BandwidthEstimator
         double computeNewBandwidthSample (DLList<ACKSample> *pACKList);
 
         /**
-        Computes a new bandwidth estimation from the ACK samples over a time interval, the bandwidth 
+        Computes a new bandwidth estimation from the ACK samples over a time interval, the bandwidth
         samples and the previous estimations.
         - pACKList: list of ACK samples
         - pBWSamplesList: list of bandwidth samples

@@ -2,7 +2,7 @@
  * ProtocolSetting.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,95 +22,89 @@
 
 namespace ACMNetProxy
 {
-    const char * const ProtocolSetting::getProxyMessageProtocolAsString (ProxyMessage::Protocol protocol)
+    const char * const ProtocolSetting::getProxyMessageProtocolAsString (Protocol protocol)
     {
         switch (protocol) {
-            case ProxyMessage::PMP_UNDEF_MOCKETS:
-                return "Mockets";
-            case ProxyMessage::PMP_MocketsRS:
-                return "MocketsRS";
-            case ProxyMessage::PMP_MocketsUS:
-                return "MocketsUS";
-            case ProxyMessage::PMP_MocketsRU:
-                return "MocketsRU";
-            case ProxyMessage::PMP_MocketsUU:
-                return "MocketsUU";
-            case ProxyMessage::PMP_TCP:
-                return "TCP";
-            case ProxyMessage::PMP_UDP:
-                return "UDP";
-            case ProxyMessage::PMP_UNDEF_CSR:
-                return "CSR";
-            case ProxyMessage::PMP_CSRRS:
-                return "CSRRS";
-            case ProxyMessage::PMP_CSRUS:
-                return "CSRUS";
-            case ProxyMessage::PMP_CSRRU:
-                return "CSRRU";
-            case ProxyMessage::PMP_CSRUU:
-                return "CSRUU";
+        case Protocol::PMP_UNDEF_MOCKETS:
+            return "Mockets";
+        case Protocol::PMP_MocketsRS:
+            return "MocketsRS";
+        case Protocol::PMP_MocketsUS:
+            return "MocketsUS";
+        case Protocol::PMP_MocketsRU:
+            return "MocketsRU";
+        case Protocol::PMP_MocketsUU:
+            return "MocketsUU";
+        case Protocol::PMP_TCP:
+            return "TCP";
+        case Protocol::PMP_UDP:
+            return "UDP";
+        case Protocol::PMP_UNDEF_CSR:
+            return "CSR";
+        case Protocol::PMP_CSRRS:
+            return "CSRRS";
+        case Protocol::PMP_CSRUS:
+            return "CSRUS";
+        case Protocol::PMP_CSRRU:
+            return "CSRRU";
+        case Protocol::PMP_CSRUU:
+            return "CSRUU";
         }
 
-        return (char *) 0;
+        return "";
     }
 
-    bool ProtocolSetting::isProtocolNameCorrect (const char * const pcProtocolToCheck)
+    bool ProtocolSetting::isProtocolNameCorrect (const ci_string & sProtocolToCheck)
     {
-        NOMADSUtil::String sProtocolToCheck (pcProtocolToCheck);
-        sProtocolToCheck.convertToLowerCase();
-
         return (sProtocolToCheck == "mockets") || (sProtocolToCheck == "mocketsrs") || (sProtocolToCheck == "mocketsuu") ||
                (sProtocolToCheck == "mocketsus") || (sProtocolToCheck == "mocketsru") || (sProtocolToCheck == "tcp") ||
                (sProtocolToCheck == "udp") || (sProtocolToCheck == "csr") || (sProtocolToCheck == "csrrs") ||
                (sProtocolToCheck == "csruu") || (sProtocolToCheck == "csrus") || (sProtocolToCheck == "csrru");
     }
 
-    ProxyMessage::Protocol ProtocolSetting::getProtocolFlagFromProtocolString (const char * const pProtocolName)
+    Protocol ProtocolSetting::getProtocolFlagFromProtocolString (const ci_string & sProtocolName)
     {
-        NOMADSUtil::String sProtocolString (pProtocolName);
-        sProtocolString.convertToLowerCase();
-
-        if (sProtocolString == "mockets") {
-            return ProxyMessage::PMP_UNDEF_MOCKETS;
+        if (sProtocolName == "mockets") {
+            return Protocol::PMP_UNDEF_MOCKETS;
         }
-        if (sProtocolString == "mocketsrs") {
-            return ProxyMessage::PMP_MocketsRS;
+        if (sProtocolName == "mocketsrs") {
+            return Protocol::PMP_MocketsRS;
         }
-        if (sProtocolString == "mocketsuu") {
-            return ProxyMessage::PMP_MocketsUU;
+        if (sProtocolName == "mocketsuu") {
+            return Protocol::PMP_MocketsUU;
         }
-        if (sProtocolString == "mocketsus") {
-            return ProxyMessage::PMP_MocketsUS;
+        if (sProtocolName == "mocketsus") {
+            return Protocol::PMP_MocketsUS;
         }
-        if (sProtocolString == "mocketsru") {
-            return ProxyMessage::PMP_MocketsRU;
+        if (sProtocolName == "mocketsru") {
+            return Protocol::PMP_MocketsRU;
         }
-        if (sProtocolString == "tcp") {
-            return ProxyMessage::PMP_TCP;
+        if (sProtocolName == "tcp") {
+            return Protocol::PMP_TCP;
         }
-        if (sProtocolString == "udp") {
-            return ProxyMessage::PMP_UDP;
+        if (sProtocolName == "udp") {
+            return Protocol::PMP_UDP;
         }
-        if (sProtocolString == "csr") {
-            return ProxyMessage::PMP_UNDEF_CSR;
+        if (sProtocolName == "csr") {
+            return Protocol::PMP_UNDEF_CSR;
         }
-        if (sProtocolString == "csrrs") {
-            return ProxyMessage::PMP_CSRRS;
+        if (sProtocolName == "csrrs") {
+            return Protocol::PMP_CSRRS;
         }
-        if (sProtocolString == "csruu") {
-            return ProxyMessage::PMP_CSRUU;
+        if (sProtocolName == "csruu") {
+            return Protocol::PMP_CSRUU;
         }
-        if (sProtocolString == "csrus") {
-            return ProxyMessage::PMP_CSRUS;
+        if (sProtocolName == "csrus") {
+            return Protocol::PMP_CSRUS;
         }
-        if (sProtocolString == "csrru") {
-            return ProxyMessage::PMP_CSRRU;
+        if (sProtocolName == "csrru") {
+            return Protocol::PMP_CSRRU;
         }
 
-        return ProxyMessage::PMP_UNDEF_PROTOCOL;
+        return Protocol::PMP_UNDEF_PROTOCOL;
     }
 
-    ConnectorType ProtocolSetting::protocolToConnectorType (const ProxyMessage::Protocol protocol)
+    ConnectorType ProtocolSetting::protocolToConnectorType (const Protocol protocol)
     {
         if (isTCPProtocol (protocol)) {
             return CT_TCPSOCKET;
@@ -128,22 +122,27 @@ namespace ACMNetProxy
         return CT_UNDEF;
     }
 
-    ProxyMessage::Protocol ProtocolSetting::connectorTypeToProtocol (const ConnectorType connectorType)
+    Protocol ProtocolSetting::connectorTypeToProtocol (const ConnectorType connectorType)
     {
         switch (connectorType) {
-            case CT_TCPSOCKET:
-                return ProxyMessage::PMP_TCP;
-            case CT_UDPSOCKET:
-                return ProxyMessage::PMP_UDP;
-            case CT_MOCKETS:
-                return ProxyMessage::PMP_UNDEF_MOCKETS;
-            case CT_CSR:
-                return ProxyMessage::PMP_UNDEF_CSR;
-            case CT_UNDEF:
-                return ProxyMessage::PMP_UNDEF_PROTOCOL;
+        case CT_TCPSOCKET:
+            return Protocol::PMP_TCP;
+        case CT_UDPSOCKET:
+            return Protocol::PMP_UDP;
+        case CT_MOCKETS:
+            return Protocol::PMP_UNDEF_MOCKETS;
+        case CT_CSR:
+            return Protocol::PMP_UNDEF_CSR;
+        case CT_UNDEF:
+            return Protocol::PMP_UNDEF_PROTOCOL;
         }
 
-        return ProxyMessage::PMP_UNDEF_PROTOCOL;
+        return Protocol::PMP_UNDEF_PROTOCOL;
     }
-    
+
+
+    const ProtocolSetting ProtocolSetting::INVALID_PROTOCOL_SETTING{Protocol::PMP_UNDEF_PROTOCOL};
+    const ProtocolSetting ProtocolSetting::DEFAULT_ICMP_PROTOCOL_SETTING{Protocol::PMP_UDP};
+    const ProtocolSetting ProtocolSetting::DEFAULT_TCP_PROTOCOL_SETTING{Protocol::PMP_MocketsRS};
+    const ProtocolSetting ProtocolSetting::DEFAULT_UDP_PROTOCOL_SETTING{Protocol::PMP_MocketsUU};
 }

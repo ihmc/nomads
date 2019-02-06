@@ -16,8 +16,8 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * @version     $Revision: 1.9 $
- *              $Date: 2014/11/24 18:10:38 $
+ * @version     $Revision$
+ *              $Date$
  */
 
 package us.ihmc.mockets;

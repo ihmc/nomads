@@ -5,7 +5,7 @@
  * MutexCounter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@
  * be used as a template for the MutexCounter class.
  */
 
-#include "Mutex.h"
+#include <atomic>
 
 
 namespace ACMNetProxy
@@ -36,7 +36,7 @@ namespace ACMNetProxy
     {
     public:
         MutexCounter (void);
-        MutexCounter (const T &rStartValue);
+        MutexCounter (const T & rStartValue);
         ~MutexCounter (void);
 
         const T tick (void);
@@ -44,48 +44,41 @@ namespace ACMNetProxy
         void decrement (void);
         void reset (void);
 
-    private:
-        T _IncrementableObj;
-        const T _StartValue;
 
-        NOMADSUtil::Mutex _m;
+    private:
+        std::atomic<T> _aCounter;
+        const T _tStartValue;
     };
 
 
-    template <class T> inline MutexCounter<T>::MutexCounter (void)
-        : _StartValue() {}
+    template <class T> inline MutexCounter<T>::MutexCounter (void) :
+        _tStartValue{}
+    { }
 
-    template <class T> inline MutexCounter<T>::MutexCounter (const T &rStartValue)
-        : _StartValue (rStartValue) {}
+    template <class T> inline MutexCounter<T>::MutexCounter (const T & rStartValue) :
+        _tStartValue{rStartValue}
+    { }
 
-    template <class T> inline MutexCounter<T>::~MutexCounter (void) {};
+    template <class T> inline MutexCounter<T>::~MutexCounter (void) { }
 
     template <class T> inline const T MutexCounter<T>::tick (void)
     {
-        _m.lock();
-        T retVal = _IncrementableObj++;
-        _m.unlock();
-
-        return retVal;
+        return _aCounter++;
     }
 
     template <class T> inline void MutexCounter<T>::increment (void)
     {
-        _m.lock();
-        _IncrementableObj++;
-        _m.unlock();
+        ++_aCounter;
     }
 
     template <class T> inline void MutexCounter<T>::decrement (void)
    {
-        _m.lock();
-        _IncrementableObj--;
-        _m.unlock();
+        --_aCounter;
     }
 
     template <class T> inline void MutexCounter<T>::reset (void)
     {
-        _IncrementableObj = _StartValue;
+        _aCounter = _tStartValue;
     }
 }
 

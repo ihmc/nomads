@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -59,9 +59,7 @@ StringHashset::StringHashset (unsigned short usInitSize, bool bCaseSensitiveKeys
     }
 }
 
-void StringHashset::configure (bool bCaseSensitiveKeys,
-                                                     bool bCloneKeys,
-                                                     bool bDeleteKeys) 
+void StringHashset::configure (bool bCaseSensitiveKeys, bool bCloneKeys, bool bDeleteKeys)
 {
     _bCaseSensitiveKeys = bCaseSensitiveKeys;
     if (bCloneKeys) {
@@ -144,7 +142,7 @@ bool StringHashset::remove (const char *pszKey)
 
 void StringHashset::removeAll()
 {
-    deleteTable (_pHashtable, _usTableSize);    
+    deleteTable (_pHashtable, _usTableSize);
     _pHashtable = new HashtableEntry[_usTableSize];
     _usCount = 0;
     _ulState = 0;
@@ -158,7 +156,7 @@ void StringHashset::removeAll (StringHashset &set)
     }
 }
 
-StringHashset::Iterator StringHashset::getAllElements (void)
+StringHashset::Iterator StringHashset::getAllElements (void) const
 {
     return Iterator (this, _ulState);
 }

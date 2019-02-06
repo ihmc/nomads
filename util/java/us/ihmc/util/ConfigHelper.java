@@ -29,7 +29,7 @@ import java.util.Properties;
  * @deprecated
  * @author Tom Cowin <tcowin@ihmc.us>
  *  Simple class to get properties for agent system operations from cfg file located on disk.
- * $Date: 2016/06/09 20:02:46 $
+ * $Date$
  * $Release: $
  */
 public class ConfigHelper

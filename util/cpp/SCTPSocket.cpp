@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -173,7 +173,7 @@ int SCTPSocket::connect (const char *pszHostName, unsigned short usPortNum)
     }
 
     int iResult;
-/*    
+/*
     #if defined (UNIX)
     if (ulTimeOutLimit) {
             alarm (ulTimeOutLimit);
@@ -198,7 +198,7 @@ int SCTPSocket::connect (const char *pszHostName, unsigned short usPortNum)
         printf("*****SCTPSocket Unable to connect: %d\n", iResult);
         return -4;
     }
-    
+
     iConnected = 1;
 
     remoteSockAddr = remote;
@@ -335,12 +335,12 @@ int SCTPSocket::flushAndClose (void)
         iConnected = 0;
         return 0;
     #else
-        
+
         //shutdown
         if (shutdown(iSocket,SHUT_WR) < 0) {
             return disconnect();
         }
-        
+
         //read from the client until we get EOF or 2 seconds are passed
         fd_set t;
 
@@ -375,7 +375,7 @@ int SCTPSocket::flushAndClose (void)
             FD_ZERO(&t);
             FD_SET(iSocket,&t);
         }
-        
+
         return disconnect();
     #endif
 }
@@ -440,7 +440,7 @@ SCTPSocket * SCTPSocket::accept (void)
 
     struct sockaddr_in remote;
     socklen_t sockAddrLen = sizeof (remote);
-    int iNewSocket; 
+    int iNewSocket;
 
     #if defined (UNIX)
         if (ulTimeOutLimit > 0) {
@@ -505,7 +505,7 @@ const char * SCTPSocket::getRemoteHostName (void)
     return NULL;
 }
 
-unsigned short SCTPSocket::getLocalPort (void)
+unsigned short SCTPSocket::getLocalPort (void) const
 {
     struct sockaddr_in localAddr;
     socklen_t sockAddrLen = sizeof (localAddr);
@@ -515,7 +515,7 @@ unsigned short SCTPSocket::getLocalPort (void)
     return ntohs (localAddr.sin_port);
 }
 
-unsigned short SCTPSocket::getRemotePort (void)
+unsigned short SCTPSocket::getRemotePort (void) const
 {
     return ntohs (remoteSockAddr.sin_port);
 }
@@ -556,10 +556,10 @@ int SCTPSocket::sendImpl (const void *pBuf, int iSize)
     if (iSize <= 0) {
         return -3;
     }
-    
+
     struct msghdr mhdr;
     struct iovec  iov;
-    
+
     memset (&mhdr, 0, sizeof (mhdr));
     memset (&iov,  0, sizeof (iov));
 
@@ -652,11 +652,11 @@ int SCTPSocket::receiveImpl (void *pBuf, int iSize)
             iResult = ::recvmsg (iSocket, &mhdr, 0);
         }
     }
-    
+
     if (0 == iResult) {
         return SE_DISCONNECT;
     }
-        
+
     if (iResult < 0) {
         #if defined (UNIX)
             if (errno == EINTR) {
@@ -713,7 +713,7 @@ int SCTPSocket::bytesAvail (void)
     #endif
 }
 
-// getFileDescriptor 
+// getFileDescriptor
 // returns the file descriptor of the current socket.
 int SCTPSocket::getFileDescriptor (void)
 {
@@ -723,8 +723,8 @@ int SCTPSocket::getFileDescriptor (void)
 // This method "getAndDisassociateFileDescriptor" will return
 // the file descriptor (int) currently in use by this socket and will
 // dissociate it from the socket. From this point on, the socket will
-// no longer have control over the file descriptor. All Read/Write 
-// operations on the socket will fail and closing or destroing the 
+// no longer have control over the file descriptor. All Read/Write
+// operations on the socket will fail and closing or destroing the
 // socket will not affect the file descritpor (IT IS YOUR RESPONSABILITY
 // TO CLOSE IT, WHEN YOU'RE DONE) (mc - Feb 2002).
 int SCTPSocket::getAndDisassociateFileDescriptor (void)

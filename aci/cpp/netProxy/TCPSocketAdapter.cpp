@@ -2,7 +2,7 @@
  * TCPSocketAdapter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,9 +22,9 @@
 #include "TCPSocketAdapter.h"
 
 
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
@@ -33,51 +33,72 @@ namespace ACMNetProxy
         (void) ui32BufSize;
         int rc=0, headerLen=0, payLoadLen=0;
         if ((rc = receive (pBuf, 1)) < 0) {
-            checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
+            checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
                             "receive() of 1 byte from socket failed with rc = %d\n", rc);
             return rc;
         }
 
-        ProxyMessage *pMsg = reinterpret_cast<ProxyMessage*> (pBuf);
-        uint8 * const ui8Buf = (uint8 * const) pBuf;
-        uint8 ui8ProxyPcktType = pMsg->getMessageType();
         headerLen = rc;
-        switch (ui8ProxyPcktType) {
-            case ProxyMessage::PMT_InitializeConnection:
+        ProxyMessage * pMsg = reinterpret_cast<ProxyMessage*> (pBuf);
+        uint8 * const ui8Buf = reinterpret_cast<uint8 * const> (pBuf);
+        switch (pMsg->getMessageType()) {
+        case PacketType::PMT_InitializeConnection:
             {
-                InitializeConnectionProxyMessage *pICPM = (InitializeConnectionProxyMessage*) pMsg;
+                const auto * const pICPM = reinterpret_cast<const InitializeConnectionProxyMessage *> (pMsg);
                 if (0 != (rc = receiveProxyHeader (pICPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_InitializeConnection - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_InitializeConnection - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
+
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pICPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pICPM->getPayloadLen()) {
+                    if (rc < 0) {
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "PMT_InitializeConnection - receive() of %u/%u bytes from socket failed with rc = %d\n",
+                                        payLoadLen, pICPM->getPayloadLen(), rc);
+                        return rc;
+                    }
+                    payLoadLen += rc;
+                }
+                payLoadLen += rc;
                 break;
             }
 
-            case ProxyMessage::PMT_ConnectionInitialized:
+        case PacketType::PMT_ConnectionInitialized:
             {
-                ConnectionInitializedProxyMessage *pCIPM = (ConnectionInitializedProxyMessage*) pMsg;
+                const auto * const pCIPM = reinterpret_cast<const ConnectionInitializedProxyMessage *> (pMsg);
                 if (0 != (rc = receiveProxyHeader (pCIPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_ConnectionInitialized - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_ConnectionInitialized - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
+
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pCIPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pCIPM->getPayloadLen()) {
+                    if (rc < 0) {
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "PMT_ConnectionInitialized - receive() of %u/%u bytes from socket failed with rc = %d\n",
+                                        payLoadLen, pCIPM->getPayloadLen(), rc);
+                        return rc;
+                    }
+                    payLoadLen += rc;
+                }
+                payLoadLen += rc;
                 break;
             }
 
-            case ProxyMessage::PMT_ICMPMessage:
+        case PacketType::PMT_ICMPMessage:
             {
-                ICMPProxyMessage *pICMPPM = (ICMPProxyMessage*) pMsg;
+                const auto * const pICMPPM = reinterpret_cast<const ICMPProxyMessage *> (pBuf);
                 if (0 != (rc = receiveProxyHeader (pICMPPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_ICMPMessage - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_ICMPMessage - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
 
                 while (((rc = receive (ui8Buf + headerLen + payLoadLen, pICMPPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pICMPPM->getPayloadLen()) {
                     if (rc < 0) {
-                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                        "PMT_ICMPMessage - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "PMT_ICMPMessage - receive() of %u/%u bytes from socket failed with rc = %d\n",
                                         payLoadLen, pICMPPM->getPayloadLen(), rc);
                         return rc;
                     }
@@ -87,19 +108,19 @@ namespace ACMNetProxy
                 break;
             }
 
-            case ProxyMessage::PMT_UDPUnicastData:
+        case PacketType::PMT_UDPUnicastData:
             {
-                UDPUnicastDataProxyMessage *pUDPUDPM = (UDPUnicastDataProxyMessage*) pMsg;
+                const auto * const pUDPUDPM = reinterpret_cast<const UDPUnicastDataProxyMessage *> (pBuf);
                 if (0 != (rc = receiveProxyHeader (pUDPUDPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_UDPUnicastData - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_UDPUnicastData - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
 
                 while (((rc = receive (ui8Buf + headerLen + payLoadLen, pUDPUDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pUDPUDPM->getPayloadLen()) {
                     if (rc < 0) {
-                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                        "PMT_UDPUnicastData - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "PMT_UDPUnicastData - receive() of %u/%u bytes from socket failed with rc = %d\n",
                                         payLoadLen, pUDPUDPM->getPayloadLen(), rc);
                         return rc;
                     }
@@ -109,19 +130,19 @@ namespace ACMNetProxy
                 break;
             }
 
-            case ProxyMessage::PMT_MultipleUDPDatagrams:
+        case PacketType::PMT_MultipleUDPDatagrams:
             {
-                MultipleUDPDatagramsProxyMessage *pMUDPDPM = (MultipleUDPDatagramsProxyMessage*) pMsg;
+                const auto * const pMUDPDPM = reinterpret_cast<const MultipleUDPDatagramsProxyMessage *> (pBuf);
                 if (0 != (rc = receiveProxyHeader (pMUDPDPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_MultipleUDPDatagrams - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_MultipleUDPDatagrams - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
 
                 while (((rc = receive (ui8Buf + headerLen + payLoadLen, pMUDPDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pMUDPDPM->getPayloadLen()) {
                     if (rc < 0) {
-                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                        "PMT_MultipleUDPDatagrams - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "PMT_MultipleUDPDatagrams - receive() of %u/%u bytes from socket failed with rc = %d\n",
                                         payLoadLen, pMUDPDPM->getPayloadLen(), rc);
                         return rc;
                     }
@@ -132,20 +153,20 @@ namespace ACMNetProxy
                 break;
             }
 
-            case ProxyMessage::PMT_UDPBCastMCastData:
+        case PacketType::PMT_UDPBCastMCastData:
             {
-                UDPBCastMCastDataProxyMessage *udpBMDPM = (UDPBCastMCastDataProxyMessage*) pMsg;
-                if (0 != (rc = receiveProxyHeader (udpBMDPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_UDPBCastMCastData - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                const auto * const pUDPBMDPM = reinterpret_cast<const UDPBCastMCastDataProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pUDPBMDPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_UDPBCastMCastData - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
 
-                while (((rc = receive (ui8Buf + headerLen + payLoadLen, udpBMDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < udpBMDPM->getPayloadLen()) {
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pUDPBMDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pUDPBMDPM->getPayloadLen()) {
                     if (rc < 0) {
-                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                        "PMT_UDPBCastMCastData - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
-                                        payLoadLen, udpBMDPM->getPayloadLen(), rc);
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "PMT_UDPBCastMCastData - receive() of %u/%u bytes from socket failed with rc = %d\n",
+                                        payLoadLen, pUDPBMDPM->getPayloadLen(), rc);
                         return rc;
                     }
                     payLoadLen += rc;
@@ -154,42 +175,42 @@ namespace ACMNetProxy
                 break;
             }
 
-            case ProxyMessage::PMT_TCPOpenConnection:
+        case PacketType::PMT_TCPOpenConnection:
             {
-                OpenConnectionProxyMessage *pOCPM = (OpenConnectionProxyMessage*) pMsg;
-                if (0 != (rc = receiveProxyHeader (pOCPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_TCPOpenConnection - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                const auto * const pOTCPCPM = reinterpret_cast<const OpenTCPConnectionProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pOTCPCPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_TCPOpenConnection - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
                 break;
             }
 
-            case ProxyMessage::PMT_TCPConnectionOpened:
+        case PacketType::PMT_TCPConnectionOpened:
             {
-                ConnectionOpenedProxyMessage *pCOPM = (ConnectionOpenedProxyMessage*) pMsg;
-                if (0 != (rc = receiveProxyHeader (pCOPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_TCPConnectionOpened - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                const auto * const pTCPCOPM = reinterpret_cast<const TCPConnectionOpenedProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pTCPCOPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_TCPConnectionOpened - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
                 break;
             }
 
-            case ProxyMessage::PMT_TCPData:
+        case PacketType::PMT_TCPData:
             {
-                TCPDataProxyMessage *pTCPDataMsg = (TCPDataProxyMessage*) pMsg;
-                if (0 != (rc = receiveProxyHeader (pTCPDataMsg, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_TCPData - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                const auto * const pTCPDPM = reinterpret_cast<const TCPDataProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pTCPDPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_TCPData - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
 
-                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pTCPDataMsg->getPayloadLen() - payLoadLen)) + payLoadLen) < pTCPDataMsg->getPayloadLen()) {
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pTCPDPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pTCPDPM->getPayloadLen()) {
                     if (rc < 0) {
-                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                        "L%hu-R%hu: PMT_TCPData - receive() of %u/%u pcktPayload bytes on socket failed with rc = %d\n",
-                                        pTCPDataMsg->getPayloadLen(), pTCPDataMsg->getPayloadLen(), payLoadLen, pTCPDataMsg->getPayloadLen(), rc);
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "L%hu-R%hu: PMT_TCPData - receive() of %u/%u bytes from socket failed with rc = %d\n",
+                                        pTCPDPM->_ui16RemoteID, pTCPDPM->_ui16LocalID, payLoadLen, pTCPDPM->getPayloadLen(), rc);
                         return rc;
                     }
                     payLoadLen += rc;
@@ -198,23 +219,57 @@ namespace ACMNetProxy
                 break;
             }
 
-            case ProxyMessage::PMT_TCPCloseConnection:
+        case PacketType::PMT_TCPCloseConnection:
             {
-                CloseConnectionProxyMessage *pCCPM = (CloseConnectionProxyMessage*) pMsg;
-                if (0 != (rc = receiveProxyHeader (pCCPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_TCPCloseConnection - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                const auto * const pCTCPCPM = reinterpret_cast<const CloseTCPConnectionProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pCTCPCPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_TCPCloseConnection - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
                 break;
             }
 
-            case ProxyMessage::PMT_TCPResetConnection:
+        case PacketType::PMT_TCPResetConnection:
             {
-                ResetConnectionProxyMessage *pRCPM = (ResetConnectionProxyMessage*) pMsg;
-                if (0 != (rc = receiveProxyHeader (pRCPM, headerLen))) {
-                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", Logger::L_MildError,
-                                    "PMT_TCPResetConnection - rcvProxyHeader() on socket failed with rc = %d\n", rc);
+                const auto * const pRTCPCPM = reinterpret_cast<const ResetTCPConnectionProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pRTCPCPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_TCPResetConnection - rcvProxyHeader() from socket failed with rc = %d\n", rc);
+                    return rc;
+                }
+                break;
+            }
+
+        case PacketType::PMT_TunnelPacket:
+            {
+                const auto * const pTPPM = reinterpret_cast<const TunnelPacketProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pTPPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_TunnelPacket - rcvProxyHeader() from socket failed with rc = %d\n", rc);
+                    return rc;
+                }
+
+
+                while (((rc = receive (ui8Buf + headerLen + payLoadLen, pTPPM->getPayloadLen() - payLoadLen)) + payLoadLen) < pTPPM->getPayloadLen()) {
+                    if (rc < 0) {
+                        checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                        "PMT_TunnelPacket - receive() of %u/%u bytes from socket failed with rc = %d\n",
+                                        payLoadLen, pTPPM->getPayloadLen(), rc);
+                        return rc;
+                    }
+                    payLoadLen += rc;
+                }
+                payLoadLen += rc;
+                break;
+            }
+
+        case PacketType::PMT_ConnectionError:
+            {
+                const auto * const pCEPM = reinterpret_cast<const ConnectionErrorProxyMessage *> (pBuf);
+                if (0 != (rc = receiveProxyHeader (pCEPM, headerLen))) {
+                    checkAndLogMsg ("TCPSocketAdapter::receiveMessage", NOMADSUtil::Logger::L_MildError,
+                                    "PMT_ConnectionError - rcvProxyHeader() from socket failed with rc = %d\n", rc);
                     return rc;
                 }
                 break;
@@ -224,11 +279,12 @@ namespace ACMNetProxy
         return headerLen + payLoadLen;
     }
 
-    int TCPSocketAdapter::gsend (const InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
-                                    const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2)
+    int TCPSocketAdapter::gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestinationIPAddr, bool bReliable,
+                                 bool bSequenced, const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2)
     {
         (void) pInetAddr;
-        (void) ui32DestVirtualIPAddr;
+        (void) ui32SourceIPAddr;
+        (void) ui32DestinationIPAddr;
         (void) bReliable;
         (void) bSequenced;
 
@@ -243,32 +299,32 @@ namespace ACMNetProxy
         while (va_arg (valist1, const void*) != nullptr) {
             ui32TotalBytes += va_arg (valist1, uint32);
         }
-        if (ui32TotalBytes > _ui16MemBufSize) {
+        if (ui32TotalBytes > _ui16BufferSize) {
             return -2;
         }
 
         const void *pBuf = pBuf1;
         uint32 ui32BufSize = ui32BufSize1, ui32CopiedBytes = 0;
-        _m.lock();
+
+        std::lock_guard<std::mutex> lg{_mtx};
         while (pBuf) {
-            memcpy (_pui8MemBuf + ui32CopiedBytes, pBuf, ui32BufSize);
+            memcpy (_upui8Buffer.get() + ui32CopiedBytes, pBuf, ui32BufSize);
             ui32CopiedBytes += ui32BufSize;
             pBuf = va_arg (valist2, const void*);
             ui32BufSize = va_arg (valist2, uint32);
         }
-        int rc = _pTCPSocket->send (_pui8MemBuf, ui32TotalBytes);
-        _m.unlock();
+        int rc = _upTCPSocket->send (_upui8Buffer.get(), ui32TotalBytes);
 
         return (rc == ui32TotalBytes) ? 0 : rc;
     }
 
     // retrieves the header of an incoming packet sent by a remote NetProxy
-    template <class T> int TCPSocketAdapter::receiveProxyHeader (T * const pMess, int &iReceived)
+    template <class T> int TCPSocketAdapter::receiveProxyHeader (T * const pMess, int & iReceived)
     {
         int rc=0;
         uint8 * const ui8Buf = (uint8 * const) pMess;
 
-        while ((rc = _pTCPSocket->receive (ui8Buf + iReceived, sizeof(T) - iReceived)) + iReceived < sizeof(T)) {
+        while ((rc = _upTCPSocket->receive (ui8Buf + iReceived, sizeof(T) - iReceived)) + iReceived < sizeof(T)) {
             if (rc < 0) {
                 return rc;
             }

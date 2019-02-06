@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -47,8 +47,8 @@ namespace NOMADSUtil
     };
 
     /*
-     * The EventNotifier class sends out event information information 
-     * on a UDP port, which may be monitored by the EventMonitor or 
+     * The EventNotifier class sends out event information information
+     * on a UDP port, which may be monitored by the EventMonitor or
      * some other component
      */
     class EventNotifier
@@ -60,16 +60,16 @@ namespace NOMADSUtil
             enum ports {
                 DEFAULT_PORT = 23556
             };
-        
+
             void setInstanceName (const char *pszInstanceName);
             String getInstanceName (void);
             String getComponentName (void);
 
             int init (uint16 ui16EventMonitorPort = DEFAULT_PORT);
-            int logEvent (uint16 ui16EventID, 
-                          const char *pchEventLog, 
-                          uint16 ui16EventLogLen, 
-                          const char *pszComponentName = NULL, 
+            int logEvent (uint16 ui16EventID,
+                          const char *pchEventLog,
+                          uint16 ui16EventLogLen,
+                          const char *pszComponentName = NULL,
                           const char *pszInstanceName = NULL);
 
         private:
@@ -90,7 +90,7 @@ namespace NOMADSUtil
     {
         return _instanceName;
     }
-     
+
     inline String EventNotifier::getComponentName (void)
     {
         return _componentName;

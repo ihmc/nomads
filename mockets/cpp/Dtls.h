@@ -39,54 +39,54 @@
 
 namespace IHMC_DTLS
 {
-	enum Mode { CLIENT, SERVER };
-	struct dtls_fields{
-		SSL_CTX* ctx;   //main ssl context
-		SSL* ssl;		//the SSL* which represents a connection
-		BIO* in_bio;	//memory read bios 
-		BIO* out_bio;	//memory write bios
-		char name[512];
-	};
+    enum Mode { CLIENT, SERVER };
+    struct dtls_fields{
+        SSL_CTX* ctx;   //main ssl context
+        SSL* ssl;        //the SSL* which represents a connection
+        BIO* in_bio;    //memory read bios
+        BIO* out_bio;    //memory write bios
+        char name[512];
+    };
 
-	class DtlsEndpoint
-	{
-	public:
-		DtlsEndpoint(const char* pathToCertificate, const char* pathToPrivateKey);
-		~DtlsEndpoint();
-		int handShake(char **msg);
-		void init(bool isServer);
-		bool isHandshakeOver();
-		int prepareDataForSending(const char* msg, int msgSize, char** encrypted);
-		int recoverData(const char *encrypted, int enSize, char **decrypted);
+    class DtlsEndpoint
+    {
+    public:
+        DtlsEndpoint(const char* pathToCertificate, const char* pathToPrivateKey);
+        ~DtlsEndpoint();
+        int handShake(char **msg);
+        void init(bool isServer);
+        bool isHandshakeOver();
+        int prepareDataForSending(const char* msg, int msgSize, char** encrypted);
+        int recoverData(const char *encrypted, int enSize, char **decrypted);
 
-	private:
-		int commonInitializationCTX(void);
-		int commonInitializationSSL(void);
-		bool fileExists(const char *pszFilePath);
-		int getEncryptedBuffer(dtls_fields* connection, char *buf);
-		bool getIsServer(void) const;
-		void handlerCleanup(dtls_fields* handler);
-		bool handshakeIsStarted() const;
+    private:
+        int commonInitializationCTX(void);
+        int commonInitializationSSL(void);
+        bool fileExists(const char *pszFilePath);
+        int getEncryptedBuffer(dtls_fields* connection, char *buf);
+        bool getIsServer(void) const;
+        void handlerCleanup(dtls_fields* handler);
+        bool handshakeIsStarted() const;
         int loadCertificateAndPrivateKey(
-            dtls_fields *pCommonHandler, 
-            const char  *pszCertificate, 
-            const char  *pszKey);       
+            dtls_fields *pCommonHandler,
+            const char  *pszCertificate,
+            const char  *pszKey);
 
         static int noverify(int ok, X509_STORE_CTX* ctx);
-		void setIsServer(bool isServer);
+        void setIsServer(bool isServer);
         //<---------------------------------------------------------------------------------------------------------------------->
     private:
-		char            _cCertfile[1024];  
-		char            _cKeyfile[1024];
-		bool            _bHandShakeStarted;
-		bool            _bHandShakeFinished;
-		uint32          _iMtu;
-		bool            _bIsServer;
-		dtls_fields*    _pServer;
-		dtls_fields*    _pClient;
+        char            _cCertfile[1024];
+        char            _cKeyfile[1024];
+        bool            _bHandShakeStarted;
+        bool            _bHandShakeFinished;
+        uint32          _iMtu;
+        bool            _bIsServer;
+        dtls_fields*    _pServer;
+        dtls_fields*    _pClient;
         char *          _cpPathToCertificate;
         char*           _cpPathToPrivateKey;
-	};
+    };
 
     inline bool DtlsEndpoint::getIsServer(void) const { return _bIsServer; }
 

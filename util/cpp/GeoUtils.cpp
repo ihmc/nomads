@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -107,7 +107,7 @@ bool NOMADSUtil::segmentContained (float fSegLatA, float fSegLongA, float fSegLa
                                    float fLeftUpperLatitude, float fLeftUpperLongitude,
                                    float fRightLowerLatitude, float fRightLowerLongitude)
 {
-    
+
     return (pointContained (fSegLatA, fSegLongA,
                             fLeftUpperLatitude, fLeftUpperLongitude,
                             fRightLowerLatitude, fRightLowerLongitude)
@@ -163,7 +163,7 @@ bool NOMADSUtil::segmentIntersection (float fSegALat1, float fSegALong1, float f
     /**
      * Hp:  Pa is a point that lies on the line that contains the segment P1 P2
      *      Pb is a point that lien on the line that contains the segment P3 P4
-     * 
+     *
      * If we want to find the intersection between the lines AB and CD, we need
      * to find the point Px that lies on both, in other word we are looking for
      * a point Px for which    Pa = Pb
@@ -176,13 +176,13 @@ bool NOMADSUtil::segmentIntersection (float fSegALat1, float fSegALong1, float f
      * the triangle formed by each line to find a point on the line.
      *
      * The two equations can be expanded to their x/y components:
-     *  Pa.x = p1.x + ua(p2.x - p1.x) 
-     *  Pa.y = p1.y + ua(p2.y - p1.y) 
+     *  Pa.x = p1.x + ua(p2.x - p1.x)
+     *  Pa.y = p1.y + ua(p2.y - p1.y)
      *
      *  Pb.x = p3.x + ub(p4.x - p3.x)
      *  Pb.y = p3.y + ub(p4.y - p3.y)
      *
-     * When Pa.x == Pb.x and Pa.y == Pb.y the lines intersect so you can come 
+     * When Pa.x == Pb.x and Pa.y == Pb.y the lines intersect so you can come
      * up with two equations (one for x and one for y):
      *
      * p1.x + ua(p2.x - p1.x) = p3.x + ub(p4.x - p3.x)
@@ -238,7 +238,7 @@ float NOMADSUtil::minDistancePointArea (float fPointLat, float fPointLong,
     //   |               |
     //   +---------------+
     // F                  E
- 
+
     // Compute CD - P distance
     float fMin = distancePointSegment (fLeftUpperLatitude, fLeftUpperLongitude,
                                        fLeftUpperLatitude, fRightLowerLongitude,
@@ -325,7 +325,7 @@ float NOMADSUtil::distancePointSegment (float segLatA, float segLongA,
         (segLongB < MIN_LONGITUDE) || (segLongB > MAX_LONGITUDE) ||
         (pointLat < MIN_LATITUDE) || (pointLat > MAX_LATITUDE) ||
         (pointLong < MIN_LONGITUDE) || (pointLong > MAX_LONGITUDE)) {
-        checkAndLogMsg ("MathUtils::distancePointSegment", invalidCoordinates, 
+        checkAndLogMsg ("MathUtils::distancePointSegment", invalidCoordinates,
                         segLatA, segLongA, segLatB, segLongB,
                         pointLat, pointLong, 0.0f, 0.0f);
         return DISTANCE_UNSET;
@@ -557,5 +557,164 @@ void NOMADSUtil::addPaddingToBoudingBox (float fMaxLat, float fMinLat,
     getBoundingBox (fMinLat, fMaxLong, fPadding, tmpMaxLat, tmpMinLat, tmpMaxLong, tmpMinLong);
     fNewMinLat = tmpMinLat;
     fNewMaxLong = tmpMaxLong;
+}
+
+namespace NOMADSUtil
+{
+    float validateLatitude (double fLatitude)
+    {
+        if (fLatitude > MAX_LATITUDE) {
+            return MAX_LATITUDE;
+        }
+        if (fLatitude < MIN_LATITUDE) {
+            return MIN_LATITUDE;
+        }
+        return (float) fLatitude;
+    }
+
+    float validateLongitude (float fLongitude)
+    {
+        if (fLongitude > MAX_LONGITUDE) {
+            return MAX_LONGITUDE;
+        }
+        if (fLongitude < MIN_LONGITUDE) {
+            return MIN_LONGITUDE;
+        }
+        return (float) fLongitude;
+    }
+}
+
+Point::Point (const Point &point)
+    : _fLatitude (point._fLatitude),
+    _fLongitude (point._fLongitude)
+{
+}
+
+Point::Point (float fLatitude, float fLongitude)
+    : _fLatitude (fLatitude),
+    _fLongitude (fLongitude)
+{
+}
+
+Point::~Point (void)
+{
+
+}
+
+BoundingBox::BoundingBox (void)
+    : _bEmpty (true), _leftUpperLatitude (0U), _leftUpperLongitude (0U),
+    _rightLowerLatitude (0U), _rightLowerLongitude (0U)
+{
+}
+
+BoundingBox::BoundingBox (float leftUpperLatitude, float leftUpperLongitude, float rightLowerLatitude, float rightLowerLongitude)
+    : _bEmpty (!isValidLatitude (leftUpperLatitude) || !isValidLongitude (leftUpperLongitude) ||
+        !isValidLatitude (rightLowerLatitude) || !isValidLongitude (rightLowerLongitude)),
+    _leftUpperLatitude (leftUpperLatitude), _leftUpperLongitude (leftUpperLongitude),
+    _rightLowerLatitude (rightLowerLatitude), _rightLowerLongitude (rightLowerLongitude)
+{
+}
+
+BoundingBox::BoundingBox (const BoundingBox &bbox)
+    : _bEmpty (bbox._bEmpty), _leftUpperLatitude (bbox._leftUpperLatitude),
+    _leftUpperLongitude (bbox._leftUpperLongitude), _rightLowerLatitude (bbox._rightLowerLatitude),
+    _rightLowerLongitude (bbox._rightLowerLongitude)
+{
+}
+
+BoundingBox::~BoundingBox (void)
+{
+}
+
+float BoundingBox::getArea (void) const
+{
+    return fabsf ((_leftUpperLatitude - _rightLowerLatitude) *
+        (_rightLowerLongitude - _leftUpperLongitude));
+}
+
+Point BoundingBox::getBaricenter (void) const
+{
+    float fLat = _rightLowerLatitude + (float)(fabs (_leftUpperLatitude - _rightLowerLatitude) / 2.0f);
+    float fLon = _leftUpperLongitude + (float)(fabs (_rightLowerLongitude - _leftUpperLongitude) / 2.0f);
+    return Point (fLat, fLon);
+}
+
+float BoundingBox::getHeigth (void) const
+{
+    return (float) fabs (_leftUpperLatitude - _rightLowerLatitude);
+}
+
+float BoundingBox::getRadius (void) const
+{
+    Point baricenter = getBaricenter();
+    return greatCircleDistance (baricenter._fLatitude, baricenter._fLongitude,
+                                _leftUpperLatitude, _leftUpperLongitude);
+}
+
+float BoundingBox::getWidth (void) const
+{
+    return (float) fabs (_leftUpperLongitude - _rightLowerLongitude);
+}
+
+bool BoundingBox::isValid (void) const
+{
+    return !_bEmpty;
+}
+
+BoundingBox BoundingBox::getBoundingBox (Point &baricenter, float fRange)
+{
+    return getBoundingBox (baricenter._fLatitude, baricenter._fLongitude, fRange);
+}
+
+BoundingBox BoundingBox::getBoundingBox (float fLatitude, float fLongitude, float fRange)
+{
+    if (!isValidLatitude (fLatitude) || !isValidLongitude (fLongitude)) {
+        return BoundingBox ();
+    }
+    double dLatDegDisplacement = 0.0;
+    double dLonDegDisplacement = 0.0;
+    metersToLatitudeDegrees (fLatitude, fRange, dLatDegDisplacement, dLonDegDisplacement);
+    float leftUpperLatitude = NOMADSUtil::minimum (MAX_LATITUDE, validateLatitude (fLatitude + dLatDegDisplacement));
+    float leftUpperLongitude = NOMADSUtil::maximum (MIN_LONGITUDE, validateLongitude (fLongitude - dLonDegDisplacement));
+    float rightLowerLatitude = NOMADSUtil::maximum (MIN_LATITUDE, validateLatitude (fLatitude - dLatDegDisplacement));
+    float rightLowerLongitude = NOMADSUtil::minimum (MAX_LONGITUDE, validateLongitude (fLongitude + dLonDegDisplacement));
+    return BoundingBox (leftUpperLatitude, leftUpperLongitude, rightLowerLatitude, rightLowerLongitude);
+}
+
+BoundingBox BoundingBox::getIntersection (const BoundingBox &rhsBoundingBox) const
+{
+    if (!isValid() || !rhsBoundingBox.isValid()) {
+        return BoundingBox();
+    }
+    if ((_rightLowerLatitude > rhsBoundingBox._leftUpperLatitude) ||
+        (_leftUpperLatitude < rhsBoundingBox._rightLowerLatitude)) {
+        return BoundingBox ();
+    }
+    if ((_rightLowerLongitude < rhsBoundingBox._leftUpperLongitude) ||
+        (_leftUpperLongitude > rhsBoundingBox._rightLowerLongitude)) {
+        return BoundingBox ();
+    }
+
+    // There is intersection
+    //
+    //   A        B
+    //    +-------+
+    //    |       |B'
+    //    |  E +-------+ F
+    //    |    |  |    |
+    //    +-------+    |
+    //    C  E'|  D    |
+    //         |       |
+    //       G +-------+ H
+    //
+    // Compute EB'DE' Area
+
+    float luLat = minimum (_leftUpperLatitude, rhsBoundingBox._leftUpperLatitude);
+    float rlLat = maximum (_rightLowerLatitude, rhsBoundingBox._rightLowerLatitude);
+
+    float luLon = maximum (_leftUpperLongitude, rhsBoundingBox._leftUpperLongitude);
+    float rlLon = minimum (_rightLowerLongitude, rhsBoundingBox._rightLowerLongitude);
+
+    return BoundingBox (luLat, luLon, rlLat, rlLon);
 }
 

@@ -68,9 +68,6 @@
     <ClCompile Include="..\Dime.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\EndianHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\EventMonitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -333,6 +330,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ZlibBufferCompressionInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uint128.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -782,6 +782,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Trie.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uint128.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ConcurrentQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -294,6 +294,19 @@ int JsonArray::addObject (JsonObject *pValue)
     return 0;
 }
 
+int JsonArray::removeObject(int iIdx)
+{
+    if (_pRoot == NULL) {
+        return -1;
+    }
+    //to implement the backward scan;
+    if (iIdx < 0) {
+        return -2;
+    }
+    cJSON_DeleteItemFromArray (_pRoot, iIdx);
+    return 0;
+}
+
 int JsonArray::addString (const char *pszValue)
 {
     if (_pRoot == NULL) {

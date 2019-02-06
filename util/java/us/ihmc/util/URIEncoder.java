@@ -35,7 +35,7 @@ public class URIEncoder
      *         chars replaced with placeholders.
      *
      * @author dwelch
-     * @version $Revision: 1.7 $
+     * @version $Revision$
      */
     public static String removeSpecialChars (String stringWithSpecialChars)
     {

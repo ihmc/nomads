@@ -5,7 +5,7 @@
 * ARPTableMissCache.h
 *
 * This file is part of the IHMC NetProxy Library/Component
-* Copyright (c) 2010-2016 IHMC.
+* Copyright (c) 2010-2018 IHMC.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -29,23 +29,30 @@
 * from which the packet will be sent.
 */
 
-#include "net/NetworkHeaders.h"
-#include "PtrLList.h"
-#include "UInt32Hashtable.h"
-#include "Mutex.h"
+#include <cstring>
+#include <deque>
+#include <unordered_map>
+#include <mutex>
+
+#include "FTypes.h"
+#include "NLFLib.h"
 
 
 namespace ACMNetProxy
 {
     class NetworkInterface;
 
+
     class ARPTableMissPacket
     {
     public:
         ARPTableMissPacket (uint16 ui16PacketLen, int64 i64CacheTime, NetworkInterface * const pNI, const uint8 * const pui8Buf);
         ARPTableMissPacket (const ARPTableMissPacket & atmp) = delete;
-        ARPTableMissPacket & operator= (const ARPTableMissPacket & rhs) = delete;
+        ARPTableMissPacket (ARPTableMissPacket && atmp);
         ~ARPTableMissPacket (void);
+
+        ARPTableMissPacket & operator= (const ARPTableMissPacket & rhs) = delete;
+        ARPTableMissPacket & operator= (ARPTableMissPacket && rhs);
 
         bool operator== (const ARPTableMissPacket & rhs) const;
 
@@ -56,10 +63,10 @@ namespace ACMNetProxy
 
 
     private:
-        const uint16 _ui16PacketLen;
-        const int64 _i64CacheTime;
-        NetworkInterface * const _pNI;
-        uint8 * const _pui8Packet;
+        uint16 _ui16PacketLen;
+        int64 _i64CacheTime;
+        NetworkInterface * _pNI;
+        uint8 * _pui8Packet;
     };
 
 
@@ -67,40 +74,64 @@ namespace ACMNetProxy
     {
     public:
         ARPTableMissCache (int64 i64ExpirationTimeInMilliseconds) :
-            _i64ExpirationTimeInMilliseconds (i64ExpirationTimeInMilliseconds), _empty {true} {}
+            _uiCachedPackets{0}, _i64ExpirationTimeInMilliseconds{i64ExpirationTimeInMilliseconds} { }
         ARPTableMissCache (const ARPTableMissCache & atmc) = delete;
-        ~ARPTableMissCache (void) {}
+        ~ARPTableMissCache (void) { }
 
         int64 setTimeout (const int64 i64TimeoutInMilliseconds);
 
-        NOMADSUtil::PtrLList<const ARPTableMissPacket> * const lookup (uint32 ui32IPAddr);
-        int insert (uint32 ui32DestIPAddr, NetworkInterface * const pNI, uint8 * const pui8Buf, uint16 ui16PacketLen);
-        NOMADSUtil::PtrLList<const ARPTableMissPacket> * const remove (uint32 ui32IPAddr);
+        bool hasCachedPacketsWithDestination (uint32 ui32DestIPAddr);
+        std::deque<ARPTableMissPacket> & lookup (uint32 ui32DestIPAddr);
+        bool hasPacketInCache (uint32 ui32DestIPAddr, uint8 * const pui8Buf, uint16 ui16PacketLen) const;
+        void insert (uint32 ui32DestIPAddr, NetworkInterface * const pNI, uint8 * const pui8Buf, uint16 ui16PacketLen);
+        void remove (uint32 ui32DestIPAddr);
 
-        bool isEmpty (void) const { return _empty; }
+        void clearTableFromExpiredEntries (void);
 
 
     private:
-        int removeExpiredEntries (uint32 ui32IPAddr, int64 i64ExpirationTime);
-        void updateEmptyStatus (void);
+        unsigned int removeExpiredEntries (uint32 ui32IPAddr, int64 i64ExpirationTime);
 
+        bool isEmpty (void) const { return _uiCachedPackets == 0; }
+        unsigned int getCachedPacketsNum (void) const { return _uiCachedPackets; }
+
+        unsigned int _uiCachedPackets;
         int64 _i64ExpirationTimeInMilliseconds;
-        bool _empty;
-        NOMADSUtil::UInt32Hashtable<NOMADSUtil::PtrLList<const ARPTableMissPacket>> _table;
+        std::unordered_map<uint32, std::deque<ARPTableMissPacket>> _umPacketsCache;
 
-        mutable NOMADSUtil::Mutex _m;
+        mutable std::mutex _mtx;
     };
 
 
     inline ARPTableMissPacket::ARPTableMissPacket (uint16 ui16PacketLen, int64 i64CacheTime, NetworkInterface * const pNI, const uint8 * const pui8Buf) :
-        _ui16PacketLen (ui16PacketLen), _i64CacheTime (i64CacheTime), _pNI (pNI), _pui8Packet (new uint8[ui16PacketLen])
+        _ui16PacketLen{ui16PacketLen}, _i64CacheTime{i64CacheTime}, _pNI{pNI}, _pui8Packet{new uint8[ui16PacketLen]}
     {
         memcpy (_pui8Packet, pui8Buf, _ui16PacketLen);
+    }
+
+    inline ARPTableMissPacket::ARPTableMissPacket (ARPTableMissPacket && atmp) :
+        _ui16PacketLen{std::move (atmp._ui16PacketLen)}, _i64CacheTime{std::move (atmp._i64CacheTime)},
+        _pNI{std::move (atmp._pNI)}, _pui8Packet{std::move (atmp._pui8Packet)}
+    {
+        atmp._pNI = nullptr;
+        atmp._pui8Packet = nullptr;
     }
 
     inline ARPTableMissPacket::~ARPTableMissPacket (void)
     {
         delete[] _pui8Packet;
+    }
+
+    inline ARPTableMissPacket & ARPTableMissPacket::operator= (ARPTableMissPacket && rhs)
+    {
+        std::swap (_ui16PacketLen, rhs._ui16PacketLen);
+        std::swap (_i64CacheTime, rhs._i64CacheTime);
+
+        _pNI = nullptr;
+        std::swap (_pNI, rhs._pNI);
+
+        _pui8Packet = nullptr;
+        std::swap (_pui8Packet, rhs._pui8Packet);
     }
 
     inline bool ARPTableMissPacket::operator== (const ARPTableMissPacket & rhs) const
@@ -120,24 +151,43 @@ namespace ACMNetProxy
         return i64CurrentTimeout;
     }
 
-    inline NOMADSUtil::PtrLList<const ARPTableMissPacket> * const ARPTableMissCache::lookup (uint32 ui32IPAddr)
+    inline bool ARPTableMissCache::hasCachedPacketsWithDestination (uint32 ui32DestIPAddr)
     {
-        NOMADSUtil::MutexUnlocker mu (&_m);
-        removeExpiredEntries (ui32IPAddr, _i64ExpirationTimeInMilliseconds);
-        updateEmptyStatus();
-
-        return _table.get (ui32IPAddr);
+        std::lock_guard<std::mutex> lg{_mtx};
+        return _uiCachedPackets && _umPacketsCache.count (ui32DestIPAddr) > 0;
     }
 
-    inline NOMADSUtil::PtrLList<const ARPTableMissPacket> * const ARPTableMissCache::remove (uint32 ui32IPAddr)
+    inline std::deque<ARPTableMissPacket> & ARPTableMissCache::lookup (uint32 ui32DestIPAddr)
     {
-        NOMADSUtil::MutexUnlocker mu (&_m);
-        removeExpiredEntries (ui32IPAddr, _i64ExpirationTimeInMilliseconds);
-        auto ret = _table.remove (ui32IPAddr);
-        updateEmptyStatus();
+        std::lock_guard<std::mutex> lg{_mtx};
+        if (!isEmpty()) {
+            _uiCachedPackets -= removeExpiredEntries (ui32DestIPAddr, _i64ExpirationTimeInMilliseconds);
+        }
 
-        return ret;
+        return _umPacketsCache[ui32DestIPAddr];
     }
+
+    inline void ARPTableMissCache::insert (uint32 ui32DestIPAddr, NetworkInterface * const pNI, uint8 * const pui8Buf, uint16 ui16PacketLen)
+    {
+        std::lock_guard<std::mutex> lg{_mtx};
+
+        if (!isEmpty() && (_umPacketsCache.count (ui32DestIPAddr) > 0)) {
+            _uiCachedPackets -= removeExpiredEntries (ui32DestIPAddr, _i64ExpirationTimeInMilliseconds);
+        }
+        _umPacketsCache[ui32DestIPAddr].emplace_back (ui16PacketLen, NOMADSUtil::getTimeInMilliseconds(), pNI, pui8Buf);
+        ++_uiCachedPackets;
+    }
+
+    inline void ARPTableMissCache::remove (uint32 ui32DestIPAddr)
+    {
+        std::lock_guard<std::mutex> lg{_mtx};
+
+        if (!isEmpty() && (_umPacketsCache.count (ui32DestIPAddr) > 0)) {
+            _uiCachedPackets -= _umPacketsCache.at (ui32DestIPAddr).size();
+            _umPacketsCache.erase (ui32DestIPAddr);
+        }
+    }
+
 }
 
 #endif

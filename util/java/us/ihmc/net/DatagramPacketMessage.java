@@ -24,8 +24,8 @@ import java.net.InetAddress;
 
 /*******************************************************
  * @author Marco Carvalho <mcarvalho@ai.uwf.edu>
- * @version $Revision: 1.4 $
- * $Date: 2016/06/09 20:02:46 $
+ * @version $Revision$
+ * $Date$
  * 
  * DatagramPacketMessage 
  *****************************************************/

@@ -86,7 +86,7 @@ public class MocketsCommHelper implements CommHelperInterface
      * @param line line to be sent
      * @throws CommException if problems occur in the writing process
      */
-    public synchronized void sendLine (String line) throws CommException
+    public synchronized int sendLine (String line) throws CommException
     {
         try {
             byte[] buf = line.getBytes();
@@ -95,6 +95,7 @@ public class MocketsCommHelper implements CommHelperInterface
                 throw new CommException("Unable to send data on the mocket");
             }
 
+            return line.getBytes().length;
         }
         catch (Exception e) {
             throw new CommException("Filed to send a line", e);

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,6 +22,7 @@
 
 #if defined (WIN32)
     #include <winsock2.h>
+    #include <Mswsock.h>
 #elif defined (UNIX)
     #include <sys/types.h>
     #include <netinet/in.h>
@@ -71,13 +72,13 @@ namespace NOMADSUtil
             int getLocalSocket (void);
 
             // Get the receive buffer size
-            int getReceiveBufferSize (void);
+            int getReceiveBufferSize (void) const;
 
             // Set the receive buffer size
             int setReceiveBufferSize (int iSize);
 
             // Get the send buffer size
-            int getSendBufferSize (void);
+            int getSendBufferSize (void) const;
 
             // Set the send buffer size
             int setSendBufferSize (int iSize);
@@ -111,7 +112,15 @@ namespace NOMADSUtil
             // Returns the number of bytes received, 0 in case of a timeout, or a negative value to indicate an error
             int receive (void *pBuf, int iBufSize, InetAddr *pRemoteAddr);
 
-            #if defined (UNIX)
+            #if defined (WIN32) && defined (NTDDI_VERSION) && defined (NTDDI_WINXP) && (NTDDI_VERSION >= NTDDI_WINXP)
+                // Receive a packet, the sender's IP address and port, and the receiver's IP address
+                // Returns the number of bytes received, 0 in case of a timeout, or a negative value to indicate an error
+                int receive (void *pBuf, int iBufSize, InetAddr *pLocalAddr, InetAddr *pRemoteAddr, int iFlags = 0);
+            #elif defined (UNIX)
+                // Receive a packet, the sender's IP address and port, and the receiver's IP address
+                // Returns the number of bytes received, 0 in case of a timeout, or a negative value to indicate an error
+                int receive (void *pBuf, int iBufSize, InetAddr *pLocalAddr, InetAddr *pRemoteAddr);
+
                 // Receive a packet, the sender's IP address and port, and the index of the incoming interface.
                 // Returns the number of bytes received, 0 in case of a timeout, or a negative value to indicate an error
                 int receive (void *pBuf, int iBufSize, InetAddr *pRemoteAddr, int &iIncomingIfaceIdx);
@@ -130,11 +139,26 @@ namespace NOMADSUtil
             #elif defined (UNIX)
                 uint32 _ui32TimeOut;
             #endif
+
+        private:
+            #if defined (WIN32) && defined (NTDDI_VERSION) && defined (NTDDI_WINXP) && (NTDDI_VERSION >= NTDDI_WINXP)
+                LPFN_WSARECVMSG WSARecvMsg;
+                GUID WSARecvMsg_GUID = WSAID_WSARECVMSG;
+                DWORD numberOfBytes;
+            #elif defined (UNIX)
+                char msgCtrlBuf[0x100];
+            #endif
     };
+
 
     inline DatagramSocket::SocketType UDPDatagramSocket::getType (void)
     {
         return DatagramSocket::ST_UDP;
+    }
+
+    inline int UDPDatagramSocket::receive (void *pBuf, int iBufSize)
+    {
+        return receive (pBuf, iBufSize, &lastPacketAddr);
     }
 
 }

@@ -5,7 +5,7 @@
  * PacketRouter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,36 +25,39 @@
  */
 
 #include <unordered_set>
+#include <unordered_map>
+#include <memory>
+#include <atomic>
 
 #include "FTypes.h"
-#include "DArray.h"
-#include "ISAACRand.h"
-#include "StringHashset.h"
-#include "UInt32Hashtable.h"
-#include "ManageableThread.h"
 #include "net/NetworkHeaders.h"
+#include "ISAACRand.h"
+#include "Mutex.h"
+#include "Thread.h"
 
 #if defined (USE_DISSERVICE)
     #include "DisseminationService.h"
     #include "DisseminationServiceListener.h"
 #endif
 
-#include "NPDArray2.h"
-#include "ProxyMessages.h"
-#include "PacketBufferManager.h"
-#include "Mutex.h"
 #include "MutexCounter.h"
-#include "MutexUDPQueue.h"
-#include "NetworkInterface.h"
-#include "TapInterface.h"
 #include "ARPCache.h"
 #include "ARPTableMissCache.h"
-#include "MocketConnector.h"
-#include "SocketConnector.h"
-#include "UDPConnector.h"
-#include "GUIUpdateMessage.h"
+#include "PacketBufferManager.h"
+#include "PacketReceiver.h"
+#include "TCPConnTable.h"
+#include "ConnectionManager.h"
+#include "StatisticsManager.h"
 #include "ConfigurationManager.h"
+#include "TCPManager.h"
+#include "LocalUDPDatagramsManager.h"
+#include "LocalTCPTransmitter.h"
+#include "RemoteTCPTransmitter.h"
+#include "AutoConnectionManager.h"
+#include "MemoryCleanerManager.h"
+#include "StatisticsUpdateManager.h"
 #include "NetSensor.h"
+
 
 #if defined (USE_DISSERVICE)
 namespace IHMC_ACI
@@ -63,22 +66,20 @@ namespace IHMC_ACI
 }
 #endif
 
+
 namespace NOMADSUtil
 {
     struct ARPPacket;
-    class ConfigManager;
     struct EtherMACAddr;
-    class InetAddr;
 }
 
 
 namespace ACMNetProxy
 {
-    class ARPCache;
-    class ConnectorReader;
-    class EndpointConfigFileReader;
-    class TCPManager;
-    class UDPDatagramPacket;
+    struct QueryResult;
+
+    class NetworkInterface;
+
 
     #if defined (USE_DISSERVICE)
         class PacketRouter : public IHMC_ACI::DisseminationServiceListener
@@ -86,371 +87,197 @@ namespace ACMNetProxy
         class PacketRouter
     #endif
     {
-        public:
+    public:
+        PacketRouter (void);
+        explicit PacketRouter (const PacketRouter & rPacketRouter) = delete;
+        ~PacketRouter (void);
 
-            static PacketRouter *getPacketRouter (void);
-            ~PacketRouter (void);
+        // Initialize the PacketRouter
+        int init (const std::string & sHomeDir, const std::string & sConfigFilePath);
+        int startThreads (void);
+        int joinThreads (void);
+        void requestTermination (void);
 
-            // Initialize the PacketRouter
-			int init (NetworkInterface * const pInternalInterface, NetworkInterface * const pExternalInterface);
-            int startThreads (void);
-            int joinThreads (void);
+        bool isTerminationRequested (void);
+        std::shared_ptr<NetworkInterface> & getInternalNetworkInterface (void);
+        std::shared_ptr<NetworkInterface> & getExternalNetworkInterfaceWithIP (uint32 ui32IPv4Address);
+        std::shared_ptr<NetworkInterface> selectMainExternalInterfaceInTheSameNetwork (uint32 ui32IPv4DestinationAddress);
 
-            static MutexCounter<uint16> * const getMutexCounter (void);
-            static NetworkInterface * const getInternalNetworkInterface (void);
-            static NetworkInterface * const getExternalNetworkInterface (void);
+        LocalTCPTransmitterThread & getLocalTCPTransmitterThread (void);
+        RemoteTCPTransmitterThread & getRemoteTCPTransmitterThread (void);
 
-            static int sendARPRequestForGatewayMACAddress (void);
+        bool hostBelongsToTheInternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost);
+        bool hostBelongsToTheExternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost);
+        bool isIPv4AddressAssignedToInternalInterface (uint32 ui32IPv4Address);
+        bool isIPv4AddressAssignedToExternalInterface (uint32 ui32IPv4Address);
+        bool isMACAddressAssignedToInternalInterface (const NOMADSUtil::EtherMACAddr & ema);
+        bool isMACAddressAssignedToExternalInterface (const NOMADSUtil::EtherMACAddr & ema);
+        bool areIPv4AndMACAddressAssignedToInternalInterface (uint32 ui32IPv4Address, const NOMADSUtil::EtherMACAddr & ema);
+        bool areIPv4AndMACAddressAssignedToExternalInterface (uint32 ui32IPv4Address, const NOMADSUtil::EtherMACAddr & ema);
 
-            // The following method is useful whenever a new Connection has been established, to reduce latency in case there are enqued packets/requests
-            static void wakeUpAutoConnectionAndRemoteTransmitterThreads (void);
+        void addMACToIntHostsSet (const NOMADSUtil::EtherMACAddr & macAddr);
+        void addMACToExtHostsSet (const NOMADSUtil::EtherMACAddr & macAddr);
+        void updateMulticastBroadcastPacketForwardingRulesForNID (const NetworkInterfaceDescriptor & nid);
 
-            static void requestTermination (void);
-            static bool isRunning (void);
-            static bool isTerminationRequested (void);
+        // The following method is useful whenever a new Connection has been established, to reduce latency in case there are enqued packets/requests
+        void wakeUpAutoConnectionAndRemoteTransmitterThreads (void);
 
-        private:
-            friend class Connection::IncomingMessageHandler;
-            friend class UDPConnector;
-            friend class TCPManager;
-            friend int NetProxyConfigManager::StaticARPTableConfigFileReader::parseAndAddEntry (const char * const pszEntry) const;
-            friend int NetProxyConfigManager::processNetProxyConfigFile (void);
+        int handlePacketFromInternalInterface (uint8 * const pPacket, uint16 ui16PacketLen, NetworkInterface * const pReceivingNetworkInterface);
+        int handlePacketFromExternalInterface (uint8 * const pPacket, uint16 ui16PacketLen, NetworkInterface * const pReceivingNetworkInterface);
 
-            // Receiver thread is responsible for receiving packets from the virtual ethernet interface
-            class InternalReceiverThread : public NOMADSUtil::Thread
-            {
-                public:
-                    InternalReceiverThread (void);
-                    void run (void);
-            };
+        int initializeRemoteConnection (uint32 ui32RemoteProxyID, uint32 ui32LocalInterfaceIPv4Address, uint32 ui32RemoteInterfaceIPv4Address,
+                                        ConnectorType connectorType, EncryptionType encryptionType);
 
-            // Receiver thread is responsible for receiving packets from the virtual ethernet interface
-            class ExternalReceiverThread : public NOMADSUtil::Thread
-            {
-                public:
-                    ExternalReceiverThread (void);
-                    void run (void);
-            };
+        // Ethernet
+        int wrapEthernetIPFrameAndSendToHost (NetworkInterface * const pNI, uint8 * ui8Buf, uint16 ui16PacketLen,
+                                              NOMADSUtil::EtherFrameHeader const * const pEtherFrameHeaderPckt = nullptr);
+        int sendTunneledPacketToLocalHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize);
 
+        // ARP
+        int sendARPRequest (NetworkInterface * const pNI, uint32 ui32TargetProtocolAddress);
+        int sendARPReplyToHost (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
+                                const NOMADSUtil::EtherMACAddr & rSourceHardwreAddress);
+        int sendARPAnnouncement (std::unordered_map<uint32, std::shared_ptr<NetworkInterface>> & umExternalInterfaces,
+                                 const NOMADSUtil::ARPPacket * const pARPReqPacket, uint32 ui32IPAddr);
+        int sendARPAnnouncement (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
+                                 uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr & rMACAddr);
+        int sendARPRequestForGatewayMACAddress (NetworkInterface * const pNI, const NetworkInterfaceDescriptor & nid);
 
-            // LocalUDPDatagramsWrapper thread is responsible for sending received UDP datagrams from the proxy to the virtual ethernet interface
-            class LocalUDPDatagramsManagerThread : public NOMADSUtil::Thread
-            {
-                public:
-                    LocalUDPDatagramsManagerThread (void);
-                    ~LocalUDPDatagramsManagerThread (void);
+        // ICMP
+        int buildAndSendICMPMessageToHost (NetworkInterface * const pNI, NOMADSUtil::ICMPHeader::Type ICMPType,
+                                           NOMADSUtil::ICMPHeader::Code_Destination_Unreachable ICMPCode, uint32 ui32SourceIP,
+                                           uint32 ui32DestinationIP, NOMADSUtil::IPHeader * const pRcvdIPPacket);
+        int forwardICMPMessageToHost (uint32 ui32LocalTargetIP, uint32 ui32RemoteOriginationIP, uint32 ui32RemoteProxyIP, uint8 ui8PacketTTL,
+                                      NOMADSUtil::ICMPHeader::Type ICMPType, NOMADSUtil::ICMPHeader::Code_Destination_Unreachable ICMPCode,
+                                      uint32 ui32RoH, const uint8 * const pICMPData, uint16 ui16PayloadLen);
 
-                    void run (void);
+        // UDP
+        int sendUDPUniCastPacketToHost (uint32 ui32RemoteOriginationIP, uint32 ui32LocalTargetIP, uint8 ui8PacketTTL,
+                                        const NOMADSUtil::UDPHeader * const pUDPPacket, const NOMADSUtil::IPHeader * const pIPHeaderPckt = nullptr,
+                                        NOMADSUtil::EtherFrameHeader const * const pEtherFrameHeaderPckt = nullptr);
+        int sendUDPBCastMCastPacketToHost (const uint8 * const pPacket, uint16 ui16PacketLen);
+        int sendBroadcastPacket (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32BroadcastSrcIP, uint16 ui16SrcPort,
+                                 uint32 ui32BroadcastDestIP, uint16 ui16DestPort, const CompressionSettings & compressionSettings);
+        int sendMulticastPacket (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32MulticastSrcIP, uint16 ui16SrcPort,
+                                 uint32 ui32MulticastDestIP, uint16 ui16DestPort, const CompressionSettings & compressionSettings);
+        int sendBCastMCastPacketToDisService (const uint8 * const pPacket, uint16 ui16PacketLen);
 
-                    int addDatagramToOutgoingQueue (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, Connection * const pConnection, Connector * const pConnector,
-                                                    const CompressionSetting * const pCompressionSetting, const ProxyMessage::Protocol pmProtocol,
-                                                    const NOMADSUtil::IPHeader * const pIPHeader, const NOMADSUtil::UDPHeader * const pUDPHeader);
+        static MutexCounter<uint16> * const getMutexCounter (void);
+        static const NetworkInterfaceDescriptor & getNetworkInterfaceDescriptorWithIP (uint32 ui32IPv4Address);
 
-                private:
-                    int sendEnqueuedDatagramsToRemoteProxy (MutexUDPQueue * const pUDPDatagramsQueue) const;
-
-                    MutexUDPQueue * const _pUDPReassembledDatagramsQueue;
-                    NOMADSUtil::UInt32Hashtable<MutexUDPQueue> _ui32UDPDatagramsQueueHashTable;
-                    NOMADSUtil::Mutex _mUDPDatagramsQueueHashTable;
-
-                    static const uint32 LDMT_TIME_BETWEEN_ITERATIONS = 500;          // Time between each iterations for LDMT
-            };
-
-
-            // LocalTCPTransmitter thread is responsible for sending data received from remote proxies to the local virtual ethernet interface
-            class LocalTCPTransmitterThread : public NOMADSUtil::Thread
-            {
-                public:
-                    LocalTCPTransmitterThread (void);
-                    void run (void);
-
-                private:
-                    static const uint32 LTT_TIME_BETWEEN_ITERATIONS = 250;          // Time between each iterations for LTT
-            };
-
-            // RemoteTCPTransmitter thread is responsible for sending data received from the local virtual ethernet interface to remote proxies
-            class RemoteTCPTransmitterThread : public NOMADSUtil::Thread
-            {
-                public:
-                    RemoteTCPTransmitterThread (void);
-                    void run (void);
-
-                private:
-                    static const uint32 RTT_TIME_BETWEEN_ITERATIONS = 250;          // Time between each iterations for RTT
-            };
+        // Ethernet
+        static int sendPacketToHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize);
+        static int sendPacketToHost (const std::vector<NetworkInterface *> & vExternalInterfaces, const uint8 * const pPacket, int iSize);
+        static int sendPacketToHost (const std::vector<std::shared_ptr<NetworkInterface>> & vspNI, const uint8 * const pPacket, int iSize);
+        static int sendPacketToHost (const std::unordered_set<std::shared_ptr<NetworkInterface>> & usspNI, const uint8 * const pPacket, int iSize);
+        static int sendPacketToHost (std::unordered_map<uint32, std::shared_ptr<NetworkInterface>> & umExternalInterfaces,
+                                     const uint8 * const pPacket, int iSize);
 
 
-            // AutoConnectionManager thread is responsible for establishing and verifying status of any configured autoconnection
-            class AutoConnectionManager : public NOMADSUtil::Thread
-            {
-                public:
-                    AutoConnectionManager (void);
-                    void run (void);
+    private:
+        int setupNetworkInterfaces (void);
+        int setupNetSensor (void);
 
-                    int getNumOfValidAutoConnectionEntries (void);
+        int sendCachedPacketsToDestination (uint32 ui32DestinationIPAddress);
 
-                private:
-                    static const uint32 ACM_TIME_BETWEEN_ITERATIONS = 10000;          // Time between each iterations for ACM
-            };
+        int sendPacketOverTheTunnel (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32SourceIP, uint32 ui32DestinationIP);
+        int sendPacketOverTheTunnelImpl (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32SourceIP, uint32 ui32DestinationIP,
+                                         const QueryResult & qrQuery, ConnectorType ct, EncryptionType et);
 
-            // CleanerThread is responsible for cleaning up connections and memory
-            class CleanerThread : public NOMADSUtil::Thread
-            {
-                public:
-                    CleanerThread (void);
-                    void run (void);
-
-                private:
-                    static const uint32 CT_TIME_BETWEEN_ITERATIONS = 5000;          // Time between each iterations for CT
-                    static const uint32 CT_MEMORY_CLEANING_INTERVAL = 10000U;       // Time between each memory cleanup performed by CleanerThread
-            };
-
-
-            // CleanerThread is responsible for cleaning up connections and memory
-            class UpdateGUIThread : public NOMADSUtil::Thread
-            {
-                public:
-                    UpdateGUIThread (void);
-                    int init (const char * const pszNotificationAddressList);
-
-                    void run (void);
-                    void setupSocket (void);
-
-                private:
-                    static const uint32 UGT_TIME_BETWEEN_ITERATIONS = 5000;          // Time between each iterations for UGT
-
-                    GUIStatsManager * const _pGUIStatsManager;
-                    NOMADSUtil::UDPDatagramSocket _udpSocket;
-                    NPDArray2<std::pair<NOMADSUtil::String, uint16> > _notificationAddressList;
-            };
-
-
-            class EtherMACAddrHasher final
-            {
-                public:
-                    constexpr size_t operator() (const EtherMACAddr& etherMACAddr) const;
-            };
-
-
-            PacketRouter (void);
-            explicit PacketRouter (const PacketRouter& rPacketRouter);
-
-            static int handlePacketFromInternalInterface (const uint8 * const pPacket, uint16 ui16PacketLen);
-            static int handlePacketFromExternalInterface (const uint8 * const pPacket, uint16 ui16PacketLen);
-
-            static int sendCachedPacketsToDestination (uint32 ui32DestinationIPAddress);
-
-            static int sendPacketOverTheTunnel (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32DestinationIP);
-            static int sendPacketOverTheTunnelImpl (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32DestinationIP,
-                                                    const QueryResult query, ConnectorType ct, EncryptionType et);
-
-            // Ethernet
-            static int sendPacketToHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize);
-            static int sendTunneledPacketToHost (NetworkInterface * const pNI, const uint8 * const pPacket, int iSize);
-            static int wrapEthernetFrameAndSendToHost (NetworkInterface * const pNI, uint8 *ui8Buf, uint16 ui16PacketLen,
-                                                       EtherFrameHeader const * const pEtherFrameHeaderPckt = nullptr);
-            // ARP
-            static int sendARPRequest (NetworkInterface * const pNI, uint32 ui32TargetProtocolAddress);
-            static int sendARPReplyToHost (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
-                                           const NOMADSUtil::EtherMACAddr &rSourceHardwreAddress);
-            static int sendARPAnnouncement (NetworkInterface * const pNI, const NOMADSUtil::ARPPacket * const pARPReqPacket,
-                                            uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rMACAddr);
-            static void addEntryToARPTable (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rTargetMACAddr);
-            // ICMP
-            static int buildAndSendICMPMessageToHost (NetworkInterface * const pNI, NOMADSUtil::ICMPHeader::Type ICMPType,
-                                                      NOMADSUtil::ICMPHeader::Code_Destination_Unreachable ICMPCode, uint32 ui32SourceIP,
-                                                      uint32 ui32DestinationIP, NOMADSUtil::IPHeader * const pRcvdIPPacket);
-            static int forwardICMPMessageToHost (uint32 ui32LocalTargetIP, uint32 ui32RemoteOriginationIP, uint32 ui32RemoteProxyIP, uint8 ui8PacketTTL,
-                                                 NOMADSUtil::ICMPHeader::Type ICMPType, NOMADSUtil::ICMPHeader::Code_Destination_Unreachable ICMPCode,
-                                                 uint32 ui32RoH, const uint8 * const pICMPData, uint16 ui16PayloadLen);
-
-            static int initializeRemoteConnection (uint32 ui32RemoteProxyID, ConnectorType connectorType, EncryptionType encryptionType);
-            static int sendUDPUniCastPacketToHost (uint32 ui32RemoteOriginationIP, uint32 ui32LocalTargetIP, uint8 ui8PacketTTL,
-                                                   const NOMADSUtil::UDPHeader * const pUDPPacket, const IPHeader * const pIPHeaderPckt = nullptr,
-                                                   EtherFrameHeader const * const pEtherFrameHeaderPckt = nullptr);
-            static int sendUDPBCastMCastPacketToHost (const uint8 * const pPacket, uint16 ui16PacketLen);
-
-            static int sendRemoteResetRequestIfNeeded (Entry * const pEntry);
-            static int flushAndSendCloseConnectionRequest (Entry * const pEntry);
-
-            static int sendBroadcastPacket (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32BroadcastSrcIP, uint32 ui32BroadcastDestIP,
-                                             uint16 ui16DestPort, const CompressionSetting * const pCompressionSetting);
-            static int sendMulticastPacket (const uint8 * const pPacket, uint16 ui16PacketLen, uint32 ui32MulticastSrcIP, uint32 ui32MulticastDestIP,
-                                             uint16 ui16DestPort, const CompressionSetting * const pCompressionSetting);
-            static int sendBCastMCastPacketToDisService (const uint8 * const pPacket, uint16 ui16PacketLen);
-
-            // Callback methods related to DisService
-            #if defined (USE_DISSERVICE)
-                bool dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pData,
-                                  uint32 ui32Length, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
-                bool chunkArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pChunk,
-                                   uint32 ui32Length, uint8 ui8NChunks, uint8 ui8TotNChunks, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
-                bool metadataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId,
-                                        const void *pMetadata, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
-                bool dataAvailable (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const char * pszId,
+        // Callback methods related to DisService
+        #if defined (USE_DISSERVICE)
+            bool dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pData,
+                                uint32 ui32Length, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
+            bool chunkArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const void *pChunk,
+                                uint32 ui32Length, uint8 ui8NChunks, uint8 ui8TotNChunks, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
+            bool metadataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId,
                                     const void *pMetadata, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
-            #endif
+            bool dataAvailable (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName, uint32 ui32SeqId, const char * pszId,
+                                const void *pMetadata, uint32 ui32MetadataLength, uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority);
+        #endif
 
-            static bool isMACAddrBroadcast (NOMADSUtil::EtherMACAddr macAddr);
-            static bool isMACAddrMulticast (NOMADSUtil::EtherMACAddr macAddr);
+        static bool isMACAddrBroadcast (const NOMADSUtil::EtherMACAddr & macAddr);
+        static bool isMACAddrMulticast (const NOMADSUtil::EtherMACAddr & macAddr);
 
-            static bool hostBelongsToTheInternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost);
-            static bool hostBelongsToTheExternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost);
-            static bool isKnownHost (const NOMADSUtil::EtherMACAddr & emaHost);
+        static void hton (NOMADSUtil::EtherFrameHeader * const pEtherFrame);
+        static void ntoh (NOMADSUtil::EtherFrameHeader * const pEtherFrame);
+        static uint16 getEthernetHeaderLength (NOMADSUtil::EtherFrameHeader * const pEtherFrame);
+        static uint16 getEtherTypeFromEthernetFrame (NOMADSUtil::EtherFrameHeader * const pEtherFrame);
+        static void * getPacketWithinEthernetFrame (NOMADSUtil::EtherFrameHeader * const pEtherFrame);
 
-            static void hton (EtherFrameHeader * const pEtherFrame);
-            static void ntoh (EtherFrameHeader * const pEtherFrame);
-            static uint16 getEthernetHeaderLength (EtherFrameHeader * const pEtherFrame);
-            static uint16 getEtherTypeFromEthernetFrame (EtherFrameHeader * const pEtherFrame);
-            static void * getPacketWithinEthernetFrame (EtherFrameHeader * const pEtherFrame);
-
-            static PacketBufferManager * const _pPBM;
-
-            static bool _bTerminationRequested;
-            static bool _bConnectorsDeleted;
-            static bool _bInternalReceiverThreadRunning;
-            static bool _bExternalReceiverThreadRunning;
-            static bool _bLocalUDPDatagramsManagerThreadRunning;
-            static bool _bLocalTCPTransmitterThreadRunning;
-            static bool _bRemoteTCPTransmitterThreadRunning;
-            static bool _bAutoConnectionManagerThreadRunning;
-            static bool _bCleanerThreadRunning;
-            static bool _bUpdateGUIThreadRunning;
-            static ARPCache _ARPCache;
-            static ARPTableMissCache _ARPTableMissCache;
-            static NOMADSUtil::DArray<NOMADSUtil::EtherMACAddr> _daInternalHosts;
-            static NOMADSUtil::DArray<NOMADSUtil::EtherMACAddr> _daExternalHosts;
-            static NetworkInterface *_pInternalInterface;
-            static NetworkInterface *_pExternalInterface;
+        static int updateMACAddressForDefaultGatewayWithIPv4Address (uint32 ui32IPv4Address, const NOMADSUtil::EtherMACAddr & ema);
+        static int updateDescriptorFromNetworkInterface (NetworkInterfaceDescriptor & nid, std::shared_ptr<NetworkInterface> spNetworkInterface);
 
 
-            static IHMC_NETSENSOR::NetSensor *_pnsNetSensor;
-            static TCPConnTable * const _pTCPConnTable;
-            static ConnectionManager * const _pConnectionManager;
-            static NetProxyConfigManager * const _pConfigurationManager;
-            #if defined (USE_DISSERVICE)
-                static IHMC_ACI::DisseminationService * const _pDisService;
-            #endif
+        std::atomic<bool> _bInitSuccessful;
+        std::atomic<bool> _bTerminationRequested;
 
-            // Handles receiving data from host's virtual interface (in host mode) or from the internal network (in gateway mode)
-            static InternalReceiverThread _internalReceiverThread;
-            // Handles receiving data from the external network (in gateway mode)
-            static ExternalReceiverThread _externalReceiverThread;
-            // Handles storing, buffering, wrapping, and subsequent forwarding of received UDP datagram packets
-            static LocalUDPDatagramsManagerThread _localUDPDatagramsManagerThread;
-            // Handles transmission of data to host's virtual interface
-            static LocalTCPTransmitterThread _localTCPTransmitterThread;
-            // Handles transmission of buffered data to remote proxies
-            static RemoteTCPTransmitterThread _remoteTCPTransmitterThread;
-            // Handles sending AutoConnection requests to remote proxies
-            static AutoConnectionManager _autoConnectionManagerThread;
-            // Handles cleaning up of connections
-            static CleanerThread _cleanerThread;
-            // Handles sending of UpdateGUI messages to the GUI on localhost
-            static UpdateGUIThread _updateGUIThread;
+        std::unordered_set<uint64> _usInternalHosts;
+        std::unordered_set<uint64> _usExternalHosts;
+        std::shared_ptr<NetworkInterface> _spInternalInterface;
+        std::unordered_map<uint32, std::shared_ptr<NetworkInterface>> _umExternalInterfaces;
+        std::unordered_map<std::string, std::unordered_set<std::shared_ptr<NetworkInterface>>>
+            _umInterfacesMulticastPacketsForwardingRules;
+        std::unordered_map<std::string, std::unordered_set<std::shared_ptr<NetworkInterface>>>
+            _umInterfacesBroadcastPacketsForwardingRules;
+        PacketBufferManager _packetBufferManager;
 
-            static NOMADSUtil::Mutex _mLocalUDPDatagramsManager;
-            static NOMADSUtil::Mutex _mLocalTCPTransmitter;
-            static NOMADSUtil::Mutex _mRemoteTCPTransmitter;
-            static NOMADSUtil::Mutex _mAutoConnectionManager;
-            static NOMADSUtil::Mutex _mCleaner;
-            static NOMADSUtil::Mutex _mGUIUpdater;
-            static NOMADSUtil::ConditionVariable _cvLocalUDPDatagramsManager;
-            static NOMADSUtil::ConditionVariable _cvLocalTCPTransmitter;
-            static NOMADSUtil::ConditionVariable _cvRemoteTCPTransmitter;
-            static NOMADSUtil::ConditionVariable _cvAutoConnectionManager;
-            static NOMADSUtil::ConditionVariable _cvCleaner;
-            static NOMADSUtil::ConditionVariable _cvGUIUpdater;
+        ARPCache _ARPCache;
+        ARPTableMissCache _ARPTableMissCache;
+        TCPConnTable _TCPConnTable;
+        ConnectionManager _connectionManager;
+        ConfigurationManager _configurationManager;
+        StatisticsManager _statisticsManager;
+        TCPManager _TCPManager;
+        std::unique_ptr<IHMC_NETSENSOR::NetSensor> _upNetSensor;
+
+        #if defined (USE_DISSERVICE)
+            static IHMC_ACI::DisseminationService * const _pDisService;
+        #endif
+
+        // Handles receiving data from host's virtual interface (in host mode) or from the internal network (in gateway mode)
+        PacketReceiver _internalPacketReceiverThread;
+        // Keeps track of all handlers that receive data from an external interface (in gateway mode)
+        std::vector<PacketReceiver> _vExternalPacketReceiverThreads;
+        // Handles storing, buffering, wrapping, and subsequent forwarding of received UDP datagram packets
+        LocalUDPDatagramsManagerThread _localUDPDatagramsManagerThread;
+        // Handles transmission of data to host's virtual interface
+        LocalTCPTransmitterThread _localTCPTransmitterThread;
+        // Handles transmission of buffered data to remote proxies
+        RemoteTCPTransmitterThread _remoteTCPTransmitterThread;
+        // Handles sending AutoConnection requests to remote proxies
+        AutoConnectionManager _autoConnectionManagerThread;
+        // Handles cleaning up of connections
+        MemoryCleanerManagerThread _memoryCleanerManagerThread;
+        // Handles sending of statsUpdate messages to listeners
+        StatisticsUpdateManagerThread _statisticsUpdateManagerThread;
+
+        std::mutex _mtxIntHostsSet;
+        std::mutex _mtxExtHostsSet;
     };
 
 
-    inline PacketRouter * PacketRouter::getPacketRouter (void)
-    {
-        static PacketRouter packetRouter;
-
-        return &packetRouter;
-    }
+    inline PacketRouter::PacketRouter (void) :
+        _bInitSuccessful{false}, _bTerminationRequested{false}, _ARPCache{}, _packetBufferManager{}, _spInternalInterface{nullptr},
+        _ARPTableMissCache{NetworkConfigurationSettings::DEFAULT_ARP_TABLE_MISS_EXPIRATION_TIME_IN_MS},
+        _configurationManager{_ARPCache, _ARPTableMissCache, _connectionManager, _statisticsManager},
+        _TCPManager{_packetBufferManager, _TCPConnTable, _connectionManager, _configurationManager, _statisticsManager, *this},
+        _upNetSensor{nullptr}, _autoConnectionManagerThread{_connectionManager, _TCPConnTable, _TCPManager, *this, _statisticsManager},
+        _localTCPTransmitterThread{_TCPConnTable, _TCPManager}, _remoteTCPTransmitterThread{_TCPConnTable, _connectionManager, _TCPManager},
+        _memoryCleanerManagerThread{_ARPTableMissCache, _TCPConnTable, _TCPManager}, _statisticsUpdateManagerThread{_statisticsManager}
+    { }
 
     inline PacketRouter::~PacketRouter (void)
     {
         if (NetProxyApplicationParameters::GATEWAY_MODE) {
             if (NetProxyApplicationParameters::ACTIVATE_NETSENSOR) {
-                if (_pnsNetSensor) {
-                    _pnsNetSensor->requestTerminationAndWait();
-			        delete _pnsNetSensor;
+                if (_upNetSensor) {
+                    _upNetSensor->requestTerminationAndWait();
                 }
             }
-
-            delete _pInternalInterface;
-            delete _pExternalInterface;
         }
 
         requestTermination();
-    }
-
-    inline PacketRouter::InternalReceiverThread::InternalReceiverThread (void) {}
-
-    inline PacketRouter::ExternalReceiverThread::ExternalReceiverThread (void) {}
-
-    inline PacketRouter::LocalUDPDatagramsManagerThread::LocalUDPDatagramsManagerThread (void)
-        : _pUDPReassembledDatagramsQueue (new MutexUDPQueue()) {}
-
-    inline PacketRouter::LocalUDPDatagramsManagerThread::~LocalUDPDatagramsManagerThread (void)
-    {
-        delete _pUDPReassembledDatagramsQueue;
-    }
-
-    inline PacketRouter::LocalTCPTransmitterThread::LocalTCPTransmitterThread (void) {}
-
-    inline PacketRouter::RemoteTCPTransmitterThread::RemoteTCPTransmitterThread (void) {}
-
-    inline PacketRouter::AutoConnectionManager::AutoConnectionManager (void) {}
-
-    inline PacketRouter::CleanerThread::CleanerThread (void) {}
-
-    inline PacketRouter::UpdateGUIThread::UpdateGUIThread (void)
-        : _pGUIStatsManager (GUIStatsManager::getGUIStatsManager())
-    {
-        setupSocket();
-    }
-
-    inline void PacketRouter::UpdateGUIThread::setupSocket (void)
-    {
-        _udpSocket.init();
-    }
-
-    inline constexpr size_t PacketRouter::EtherMACAddrHasher::operator() (const EtherMACAddr& etherMACAddr) const
-    {
-        return (sizeof(size_t) < sizeof(EtherMACAddr)) ?
-            static_cast<size_t> (etherMACAddr.ui16Word3) +
-                (static_cast<size_t> (etherMACAddr.ui16Word2 & 0xFF) << 16) + (etherMACAddr.ui16Word2 >> 8) +
-                (static_cast<size_t> (etherMACAddr.ui16Word1) << 8) :
-            static_cast<size_t> (etherMACAddr.ui16Word3) + (static_cast<size_t> (etherMACAddr.ui16Word2) << 16) +
-                (static_cast<size_t> (etherMACAddr.ui16Word1) << 32);
-    }
-
-    inline MutexCounter<uint16> * const PacketRouter::getMutexCounter (void)
-    {
-        static MutexCounter<uint16> gIPIdentProvider (ISAACRand::getRnd ((uint32) getTimeInMilliseconds()));
-
-        return &gIPIdentProvider;
-    }
-
-    inline NetworkInterface * const PacketRouter::getInternalNetworkInterface (void)
-    {
-        return _pInternalInterface;
-    }
-
-    inline NetworkInterface * const PacketRouter::getExternalNetworkInterface (void)
-    {
-        return _pExternalInterface;
-    }
-
-    inline bool PacketRouter::isRunning (void)
-    {
-        return (_bInternalReceiverThreadRunning || _bExternalReceiverThreadRunning || _bLocalUDPDatagramsManagerThreadRunning ||
-                _bLocalTCPTransmitterThreadRunning || _bRemoteTCPTransmitterThreadRunning ||
-                _bCleanerThreadRunning || _bUpdateGUIThreadRunning || !_bConnectorsDeleted);
     }
 
     inline bool PacketRouter::isTerminationRequested (void)
@@ -458,95 +285,176 @@ namespace ACMNetProxy
         return _bTerminationRequested;
     }
 
-    inline PacketRouter::PacketRouter (void) {}
-
-    inline void PacketRouter::addEntryToARPTable (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &rEtherMACAddr)
+    inline std::shared_ptr<NetworkInterface> & PacketRouter::getInternalNetworkInterface (void)
     {
-        _ARPCache.insert (ui32IPAddr, rEtherMACAddr);
+        return _spInternalInterface;
     }
 
-    inline bool PacketRouter::isMACAddrBroadcast (NOMADSUtil::EtherMACAddr macAddr)
+    inline std::shared_ptr<NetworkInterface> & PacketRouter::getExternalNetworkInterfaceWithIP (uint32 ui32IPv4Address)
     {
-        if ((macAddr.ui16Word1 == 0xFFFF) && (macAddr.ui16Word2 == 0xFFFF) && (macAddr.ui16Word3 == 0xFFFF)) {
-            return true;
+        return _umExternalInterfaces.at (ui32IPv4Address);
+    }
+
+    inline LocalTCPTransmitterThread & PacketRouter::getLocalTCPTransmitterThread (void)
+    {
+        return _localTCPTransmitterThread;
+    }
+
+    inline RemoteTCPTransmitterThread & PacketRouter::getRemoteTCPTransmitterThread (void)
+    {
+        return _remoteTCPTransmitterThread;
+    }
+
+    inline bool PacketRouter::hostBelongsToTheInternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost)
+    {
+        std::lock_guard<std::mutex> lg{_mtxIntHostsSet};
+        return _usInternalHosts.count (etherMACAddrTouint64 (emaHost)) == 1;
+    }
+
+    inline bool PacketRouter::hostBelongsToTheExternalNetwork (const NOMADSUtil::EtherMACAddr & emaHost)
+    {
+        std::lock_guard<std::mutex> lg{_mtxExtHostsSet};
+        return _usExternalHosts.count (etherMACAddrTouint64 (emaHost)) == 1;
+    }
+
+    inline bool PacketRouter::isIPv4AddressAssignedToInternalInterface (uint32 ui32IPv4Address)
+    {
+        return NetProxyApplicationParameters::NID_INTERNAL_INTERFACE.ui32IPv4Address == ui32IPv4Address;
+    }
+
+    inline bool PacketRouter::isIPv4AddressAssignedToExternalInterface (uint32 ui32IPv4Address)
+    {
+        return _umExternalInterfaces.count (ui32IPv4Address) == 1;
+    }
+
+    inline bool PacketRouter::isMACAddressAssignedToInternalInterface (const NOMADSUtil::EtherMACAddr & ema)
+    {
+        return NetProxyApplicationParameters::NID_INTERNAL_INTERFACE.emaInterfaceMACAddress == ema;
+    }
+
+    inline bool PacketRouter::isMACAddressAssignedToExternalInterface (const NOMADSUtil::EtherMACAddr & ema)
+    {
+        return std::find_if (NetProxyApplicationParameters::V_NID_EXTERNAL_INTERFACE_LIST.cbegin(),
+                             NetProxyApplicationParameters::V_NID_EXTERNAL_INTERFACE_LIST.cend(),
+                             [ema](const NetworkInterfaceDescriptor & nid)
+        { return nid.emaInterfaceMACAddress == ema; } ) != NetProxyApplicationParameters::V_NID_EXTERNAL_INTERFACE_LIST.cend();
+    }
+
+    inline bool PacketRouter::areIPv4AndMACAddressAssignedToInternalInterface (uint32 ui32IPv4Address, const NOMADSUtil::EtherMACAddr & ema)
+    {
+        return (NetProxyApplicationParameters::NID_INTERNAL_INTERFACE.ui32IPv4Address == ui32IPv4Address) &&
+            (NetProxyApplicationParameters::NID_INTERNAL_INTERFACE.emaInterfaceMACAddress == ema);
+    }
+
+    inline void PacketRouter::addMACToIntHostsSet (const NOMADSUtil::EtherMACAddr & macAddr)
+    {
+        std::lock_guard<std::mutex> lg{_mtxIntHostsSet};
+        _usInternalHosts.emplace (etherMACAddrTouint64 (macAddr));
+    }
+
+    inline void PacketRouter::addMACToExtHostsSet (const NOMADSUtil::EtherMACAddr & macAddr)
+    {
+        std::lock_guard<std::mutex> lg{_mtxExtHostsSet};
+        _usExternalHosts.emplace (etherMACAddrTouint64 (macAddr));
+    }
+
+    inline MutexCounter<uint16> * const PacketRouter::getMutexCounter (void)
+    {
+        static MutexCounter<uint16>
+            gIPIdentProvider{static_cast<uint16> (NOMADSUtil::ISAACRand::getRnd (static_cast<uint32> (NOMADSUtil::getTimeInMilliseconds())))};
+
+        return &gIPIdentProvider;
+    }
+
+    inline bool PacketRouter::isMACAddrBroadcast (const NOMADSUtil::EtherMACAddr & macAddr)
+    {
+        return (macAddr.ui16Word1 == 0xFFFF) && (macAddr.ui16Word2 == 0xFFFF) && (macAddr.ui16Word3 == 0xFFFF);
+    }
+
+    inline bool PacketRouter::isMACAddrMulticast (const NOMADSUtil::EtherMACAddr & macAddr)
+    {
+        return (macAddr.ui8Byte1 == 0x01) && (macAddr.ui8Byte2 == 0x00) && (macAddr.ui8Byte3 == 0x5E);
+    }
+
+    inline bool PacketRouter::areIPv4AndMACAddressAssignedToExternalInterface (uint32 ui32IPv4Address, const NOMADSUtil::EtherMACAddr & ema)
+    {
+        return std::find_if (NetProxyApplicationParameters::V_NID_EXTERNAL_INTERFACE_LIST.cbegin(),
+                             NetProxyApplicationParameters::V_NID_EXTERNAL_INTERFACE_LIST.cend(),
+                             [ui32IPv4Address, ema](const NetworkInterfaceDescriptor & nid)
+        { return (nid.ui32IPv4Address == ui32IPv4Address) && (nid.emaInterfaceMACAddress == ema); } ) !=
+            NetProxyApplicationParameters::V_NID_EXTERNAL_INTERFACE_LIST.cend();
+    }
+
+    inline void PacketRouter::hton (NOMADSUtil::EtherFrameHeader * const pEtherFrame)
+    {
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1Q) {
+            return reinterpret_cast<NOMADSUtil::EtherFrameHeader802_1Q * const> (pEtherFrame)->hton();
         }
-
-        return false;
-    }
-
-    inline bool PacketRouter::isMACAddrMulticast (NOMADSUtil::EtherMACAddr macAddr)
-    {
-        if ((macAddr.ui8Byte1 == 0x01) && (macAddr.ui8Byte2 == 0x00) && (macAddr.ui8Byte3 == 0x5E)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    inline bool PacketRouter::isKnownHost (const NOMADSUtil::EtherMACAddr & emaHost)
-    {
-        return hostBelongsToTheInternalNetwork (emaHost) || hostBelongsToTheExternalNetwork (emaHost);
-    }
-
-    inline void PacketRouter::hton (EtherFrameHeader * const pEtherFrame)
-    {
-        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
-            return reinterpret_cast<EtherFrameHeader802_1Q * const> (pEtherFrame)->hton();
-        }
-        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
-            return reinterpret_cast<EtherFrameHeader802_1AD * const> (pEtherFrame)->hton();
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1AD) {
+            return reinterpret_cast<NOMADSUtil::EtherFrameHeader802_1AD * const> (pEtherFrame)->hton();
         }
 
         return pEtherFrame->hton();
     }
 
-    inline void PacketRouter::ntoh (EtherFrameHeader * const pEtherFrame)
+    inline void PacketRouter::ntoh (NOMADSUtil::EtherFrameHeader * const pEtherFrame)
     {
-        if (ntohs (pEtherFrame->ui16EtherType) == ET_802_1Q) {
-            return reinterpret_cast<EtherFrameHeader802_1Q * const> (pEtherFrame)->ntoh();
+        if (ntohs (pEtherFrame->ui16EtherType) == NOMADSUtil::ET_802_1Q) {
+            return reinterpret_cast<NOMADSUtil::EtherFrameHeader802_1Q * const> (pEtherFrame)->ntoh();
         }
-        if (ntohs (pEtherFrame->ui16EtherType) == ET_802_1AD) {
-            return reinterpret_cast<EtherFrameHeader802_1AD * const> (pEtherFrame)->ntoh();
+        if (ntohs (pEtherFrame->ui16EtherType) == NOMADSUtil::ET_802_1AD) {
+            return reinterpret_cast<NOMADSUtil::EtherFrameHeader802_1AD * const> (pEtherFrame)->ntoh();
         }
 
         return pEtherFrame->ntoh();
     }
 
-    inline uint16 PacketRouter::getEthernetHeaderLength (EtherFrameHeader * const pEtherFrame)
+    inline uint16 PacketRouter::getEthernetHeaderLength (NOMADSUtil::EtherFrameHeader * const pEtherFrame)
     {
-        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
-            return sizeof(EtherFrameHeader802_1Q);
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1Q) {
+            return sizeof(NOMADSUtil::EtherFrameHeader802_1Q);
         }
-        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
-            return sizeof(EtherFrameHeader802_1AD);
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1AD) {
+            return sizeof(NOMADSUtil::EtherFrameHeader802_1AD);
         }
 
-        return sizeof(EtherFrameHeader);
+        return sizeof(NOMADSUtil::EtherFrameHeader);
     }
 
-    inline uint16 PacketRouter::getEtherTypeFromEthernetFrame (EtherFrameHeader * const pEtherFrame)
+    inline uint16 PacketRouter::getEtherTypeFromEthernetFrame (NOMADSUtil::EtherFrameHeader * const pEtherFrame)
     {
-        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
-            return reinterpret_cast<EtherFrameHeader802_1Q * const> (pEtherFrame)->ui16EtherType;
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1Q) {
+            return reinterpret_cast<NOMADSUtil::EtherFrameHeader802_1Q * const> (pEtherFrame)->ui16EtherType;
         }
-        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
-            return reinterpret_cast<EtherFrameHeader802_1AD * const> (pEtherFrame)->ui16EtherType;
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1AD) {
+            return reinterpret_cast<NOMADSUtil::EtherFrameHeader802_1AD * const> (pEtherFrame)->ui16EtherType;
         }
 
         return pEtherFrame->ui16EtherType;
     }
 
-    inline void * PacketRouter::getPacketWithinEthernetFrame (EtherFrameHeader * const pEtherFrame)
+    inline void * PacketRouter::getPacketWithinEthernetFrame (NOMADSUtil::EtherFrameHeader * const pEtherFrame)
     {
         char * pPacket = reinterpret_cast<char *> (pEtherFrame);
-        if (pEtherFrame->ui16EtherType == ET_802_1Q) {
-            return pPacket + sizeof(EtherFrameHeader802_1Q);
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1Q) {
+            return pPacket + sizeof(NOMADSUtil::EtherFrameHeader802_1Q);
         }
-        if (pEtherFrame->ui16EtherType == ET_802_1AD) {
-            return pPacket + sizeof(EtherFrameHeader802_1AD);
+        if (pEtherFrame->ui16EtherType == NOMADSUtil::ET_802_1AD) {
+            return pPacket + sizeof(NOMADSUtil::EtherFrameHeader802_1AD);
         }
 
-        return pPacket + sizeof(EtherFrameHeader);
+        return pPacket + sizeof(NOMADSUtil::EtherFrameHeader);
+    }
+
+    inline int PacketRouter::updateMACAddressForDefaultGatewayWithIPv4Address (uint32 ui32IPv4Address, const NOMADSUtil::EtherMACAddr & ema) {
+        for (auto & nid : NetProxyApplicationParameters::V_NID_EXTERNAL_INTERFACE_LIST) {
+            if (nid.ui32IPv4GatewayAddress == ui32IPv4Address) {
+                nid.emaNetworkGatewayMACAddress = ema;
+                return 1;
+            }
+        }
+
+        return 0;
     }
 }
 

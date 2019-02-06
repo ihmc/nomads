@@ -46,8 +46,8 @@ namespace NOMADSUtil
             InetAddr (unsigned long ulIPAddress);
             InetAddr (unsigned long ulIPAddress, unsigned short usPort);
 
-            InetAddr (const char *pszIPAddress);
-            InetAddr (const char *pszIPAddress, unsigned short usPort);
+            explicit InetAddr (const char * const pszIPAddress);
+            InetAddr (const char * const pszIPAddress, unsigned short usPort);
 
             virtual ~InetAddr (void);
 
@@ -92,7 +92,7 @@ namespace NOMADSUtil
             void updateIPAddrString (void);
 
             struct sockaddr_in _sa;
-            char _szIPAddr [MAX_IPADDR_STRING_LEN];
+            char _szIPAddr[MAX_IPADDR_STRING_LEN];
     };
 
     inline InetAddr::InetAddr (void)
@@ -115,15 +115,14 @@ namespace NOMADSUtil
         updateIPAddrString();
     }
 
-    inline InetAddr::InetAddr (const char *pszIPAddress)
+    inline InetAddr::InetAddr (const char * const pszIPAddress)
     {
         clear();
-        //_sa.sin_addr.s_addr = inet_addr (pszIPAddress);
-        _sa.sin_addr.s_addr = inet_addr(pszIPAddress);
+        _sa.sin_addr.s_addr = inet_addr (pszIPAddress);
         updateIPAddrString();
     }
 
-    inline InetAddr::InetAddr (const char *pszIPAddress, unsigned short usPort)
+    inline InetAddr::InetAddr (const char * const pszIPAddress, unsigned short usPort)
     {
         clear();
         _sa.sin_addr.s_addr = inet_addr (pszIPAddress);

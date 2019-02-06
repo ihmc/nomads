@@ -28,5 +28,5 @@ public interface ConnectionStatusListener
     /*
      * Invoked when the proxy has lost the connection to the Skeleton daemon
      */
-    public void connectionLost();
+    void connectionLost();
 }

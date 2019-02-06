@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -77,7 +77,7 @@ LoggingMutex::LoggingMutex (uint16 ui16Id, SocketType type, const char *pszAddr,
             Socket *pSocket = NULL;
             switch (type) {
                 case UDP_SOCKET:
-                
+
                 case TCP_SOCKET:
                     pSocket = new TCPSocket();
                     if (pSocket != NULL) {

@@ -68,7 +68,7 @@ namespace NOMADSUtil
             void threadBusyStatusChanged (bool bThreadBusy);
 
         private:
-    	    //friend class ThreadPoolWorker;
+            //friend class ThreadPoolWorker;
 
             Queue<ThreadPoolTask> _taskQueue;
             Mutex _mTaskQueue;

@@ -24,40 +24,40 @@ using namespace NOMADSUtil;
 
 namespace IHMC_DTLS
 {
-	bool DtlsEndpoint::fileExists(const char *pszFilePath)
-	{
-		if (FILE *pFile = fopen(pszFilePath, "r")) {
+    bool DtlsEndpoint::fileExists(const char *pszFilePath)
+    {
+        if (FILE *pFile = fopen(pszFilePath, "r")) {
             fclose(pFile);
             return true;
         }
-		else {
-            checkAndLogMsg("DtlsEndpoint::fileExists", 
+        else {
+            checkAndLogMsg("DtlsEndpoint::fileExists",
                 Logger::L_SevereError, "Can't find: %s\n", pszFilePath);
             return false;
         }
-	}
+    }
 
-	int DtlsEndpoint::commonInitializationCTX(void)
-	{
-		int error;
-		dtls_fields* commonHandler;
-		int(*no_client_certificate)(int ok, X509_STORE_CTX* ctx) = noverify;
-		commonHandler = new dtls_fields();
+    int DtlsEndpoint::commonInitializationCTX(void)
+    {
+        int error;
+        dtls_fields* commonHandler;
+        int(*no_client_certificate)(int ok, X509_STORE_CTX* ctx) = noverify;
+        commonHandler = new dtls_fields();
 
         if (getIsServer()) {
             _pServer = commonHandler;
             commonHandler->ctx = SSL_CTX_new(DTLSv1_2_server_method());
         }
-		else {
+        else {
             _pClient = commonHandler;
             commonHandler->ctx = SSL_CTX_new(DTLSv1_2_client_method());
         }
 
         if (!commonHandler->ctx) {
-            checkAndLogMsg("DtlsEndpoint::commonInitializationCTX", Logger::L_SevereError, "ctx is NULL?\n");
+            checkAndLogMsg("DtlsEndpoint::commonInitializationCTX", Logger::L_SevereError, "ctx is nullptr?\n");
             return -1;
         }
-		if (SSL_CTX_set_cipher_list(commonHandler->ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH") != 1) {
+        if (SSL_CTX_set_cipher_list(commonHandler->ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH") != 1) {
             checkAndLogMsg("DtlsEndpoint::commonInitializationCTX", Logger::L_SevereError, "SSL_CTX_set_cipher_list failed?\n");
             return -2;
         }
@@ -65,14 +65,14 @@ namespace IHMC_DTLS
         SSL_CTX_set_verify(commonHandler->ctx, SSL_VERIFY_PEER, no_client_certificate);
         /*
         srtp has bee patched in the latest version of openssl
-		bool useSRTP = false;
-		if (useSRTP) {
-			if (SSL_CTX_set_tlsext_use_srtp(commonHandler->ctx, "SRTP_AES128_CM_SHA1_80") != 0) {
-				//cannot setup srtp
-				return -4;
-			}
-		}
-		*/
+        bool useSRTP = false;
+        if (useSRTP) {
+            if (SSL_CTX_set_tlsext_use_srtp(commonHandler->ctx, "SRTP_AES128_CM_SHA1_80") != 0) {
+                //cannot setup srtp
+                return -4;
+            }
+        }
+        */
 
         if (loadCertificateAndPrivateKey(commonHandler, _cpPathToCertificate, _cpPathToPrivateKey) < 0) {  return -3; }
 
@@ -81,151 +81,151 @@ namespace IHMC_DTLS
             return -4;
         }
         getIsServer() ? (sprintf(commonHandler->name, "+ %s", "server")) : (sprintf(commonHandler->name, "+ %s", "client"));
-		return 0;
-	}
+        return 0;
+    }
 
     int DtlsEndpoint::loadCertificateAndPrivateKey(
-        dtls_fields *pCommonHandler, 
-        const char  *pszCertificate, 
+        dtls_fields *pCommonHandler,
+        const char  *pszCertificate,
         const char  *pszKey)
     {
-        const char *pszMethodName = "DtlsEndpoint::loadCertificateAndPrivateKey";
-        if (pszCertificate == NULL) {
-            getIsServer() ? 
-                (sprintf(_cCertfile, "%s-cert.pem", "server")) : 
-                (sprintf(_cCertfile, "%s-cert.pem", "client")); 
+        const char * const pszMethodName = "DtlsEndpoint::loadCertificateAndPrivateKey";
+        if (pszCertificate == nullptr) {
+            getIsServer() ?
+                (sprintf(_cCertfile, "%s-cert.pem", "server")) :
+                (sprintf(_cCertfile, "%s-cert.pem", "client"));
         }
-        else { 
+        else {
             sprintf(_cCertfile, "%s", pszCertificate);
         }
 
-        if (pszKey == NULL) { 
-            getIsServer() ? 
-                (sprintf(_cKeyfile, "%s-key.pem", "server")) : 
-                (sprintf(_cKeyfile, "%s-key.pem", "client")); 
+        if (pszKey == nullptr) {
+            getIsServer() ?
+                (sprintf(_cKeyfile, "%s-key.pem", "server")) :
+                (sprintf(_cKeyfile, "%s-key.pem", "client"));
         }
-        else { 
+        else {
             sprintf(_cKeyfile, "%s", pszKey);
         }
 
         if (!fileExists(_cCertfile)) {
-            return -1;   
+            return -1;
         }
 
-        if (!fileExists(_cKeyfile)) { 
-            return -2;    
+        if (!fileExists(_cKeyfile)) {
+            return -2;
         }
 
-        checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug, 
+        checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug,
             "Paths: Certificate: %s, Key: %s\n", _cCertfile, _cKeyfile);
 
         if (SSL_CTX_use_certificate_file(pCommonHandler->ctx, _cCertfile, SSL_FILETYPE_PEM) != 1) {
-            checkAndLogMsg(pszMethodName, Logger::L_SevereError, 
+            checkAndLogMsg(pszMethodName, Logger::L_SevereError,
                 "SSL_CTX_use_certificate_file failed?\n");
             return -3;
         }
         if (SSL_CTX_use_PrivateKey_file(pCommonHandler->ctx, _cKeyfile, SSL_FILETYPE_PEM) != 1) {
-            checkAndLogMsg(pszMethodName, Logger::L_SevereError, 
+            checkAndLogMsg(pszMethodName, Logger::L_SevereError,
                 "SSL_CTX_use_PrivateKey_file failed?\n");
             return -4;
         }
         return 0;
     }
 
-	int DtlsEndpoint::commonInitializationSSL(void)
-	{
-        const char *pszMethodName = "DtlsEndpoint::commonInitializationSSL";
-			dtls_fields *pCommonHandler;
-			getIsServer() ? pCommonHandler = _pServer : pCommonHandler = _pClient;
-            if (pCommonHandler == NULL) {
-                checkAndLogMsg(pszMethodName, Logger::L_SevereError, 
+    int DtlsEndpoint::commonInitializationSSL(void)
+    {
+        const char * const pszMethodName = "DtlsEndpoint::commonInitializationSSL";
+            dtls_fields *pCommonHandler;
+            getIsServer() ? pCommonHandler = _pServer : pCommonHandler = _pClient;
+            if (pCommonHandler == nullptr) {
+                checkAndLogMsg(pszMethodName, Logger::L_SevereError,
                     "Ctx object is null?");
                 return -1;
             }
 
             if (!(pCommonHandler->ssl = SSL_new(pCommonHandler->ctx))) {
-                checkAndLogMsg(pszMethodName, Logger::L_SevereError, 
+                checkAndLogMsg(pszMethodName, Logger::L_SevereError,
                     "Couldn't create new SSL, not enough memory?");
                 return -2;
             }
 
             if (!(pCommonHandler->in_bio = BIO_new(BIO_s_mem()))) {
-                checkAndLogMsg(pszMethodName, Logger::L_SevereError, 
+                checkAndLogMsg(pszMethodName, Logger::L_SevereError,
                     "Couldn't create input BIO, not enough memory?");
                 return -3;
             }
 
-			// sets the behaviour of memory BIO when empty.
-			BIO_set_mem_eof_return(pCommonHandler->in_bio, -1);
+            // sets the behaviour of memory BIO when empty.
+            BIO_set_mem_eof_return(pCommonHandler->in_bio, -1);
 
             if (!(pCommonHandler->out_bio = BIO_new(BIO_s_mem()))) {
-                checkAndLogMsg(pszMethodName, Logger::L_SevereError, 
+                checkAndLogMsg(pszMethodName, Logger::L_SevereError,
                     "Couldn't create output BIO, not enough memory?");
                 return -4;
             }
 
-			// sets the behaviour of memory BIO when empty.
-			BIO_set_mem_eof_return(pCommonHandler->out_bio, -1);
+            // sets the behaviour of memory BIO when empty.
+            BIO_set_mem_eof_return(pCommonHandler->out_bio, -1);
 
-			//set SSL to use input and output memory BIO
-			SSL_set_bio(
-                pCommonHandler->ssl, 
-                pCommonHandler->in_bio, 
+            //set SSL to use input and output memory BIO
+            SSL_set_bio(
+                pCommonHandler->ssl,
+                pCommonHandler->in_bio,
                 pCommonHandler->out_bio);
 
-			getIsServer() ? 
-                SSL_set_accept_state(pCommonHandler->ssl) : 
+            getIsServer() ?
+                SSL_set_accept_state(pCommonHandler->ssl) :
                 SSL_set_connect_state(pCommonHandler->ssl);
-		return 0;
-	}
+        return 0;
+    }
 
-	DtlsEndpoint::DtlsEndpoint(
-        const char *pszPathToCertificate, 
+    DtlsEndpoint::DtlsEndpoint(
+        const char *pszPathToCertificate,
         const char *pszPathToPrivateKey)
-	{
-		//Initialize OpenSSL
-		SSL_load_error_strings();
-		SSL_library_init();
-		OpenSSL_add_all_algorithms();
-		ERR_load_BIO_strings();
-		_bHandShakeStarted = false;
+    {
+        //Initialize OpenSSL
+        SSL_load_error_strings();
+        SSL_library_init();
+        OpenSSL_add_all_algorithms();
+        ERR_load_BIO_strings();
+        _bHandShakeStarted = false;
 
-		_pClient = NULL;
-		_pServer = NULL;
-		_bHandShakeFinished = 0;
-		_iMtu = 3000; //this should be changed and not used to transfer the certificates
+        _pClient = nullptr;
+        _pServer = nullptr;
+        _bHandShakeFinished = 0;
+        _iMtu = 3000; //this should be changed and not used to transfer the certificates
 
-        pszPathToCertificate ? 
-            (_cpPathToCertificate = strdup(pszPathToCertificate)) : 
-            (_cpPathToCertificate = NULL);
-        pszPathToPrivateKey ? 
-            (_cpPathToPrivateKey = strdup(pszPathToPrivateKey)) : 
-            (_cpPathToPrivateKey = NULL);
-	}
+        pszPathToCertificate ?
+            (_cpPathToCertificate = strdup(pszPathToCertificate)) :
+            (_cpPathToCertificate = nullptr);
+        pszPathToPrivateKey ?
+            (_cpPathToPrivateKey = strdup(pszPathToPrivateKey)) :
+            (_cpPathToPrivateKey = nullptr);
+    }
 
-	DtlsEndpoint::~DtlsEndpoint(void)
-	{
-		if(_bIsServer) {
-			handlerCleanup(_pServer);
+    DtlsEndpoint::~DtlsEndpoint(void)
+    {
+        if(_bIsServer) {
+            handlerCleanup(_pServer);
             delete _pServer;
-		}
-		else {
-			handlerCleanup(_pClient);
+        }
+        else {
+            handlerCleanup(_pClient);
             delete _pClient;
-		}
+        }
 
-		ERR_remove_state(0);
-		ENGINE_cleanup();
-		CONF_modules_unload(1);
-		ERR_free_strings();
-		EVP_cleanup();
-		//this should be called but there is a problem which causes a double free I need to investigate.
-		//sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
-		CRYPTO_cleanup_all_ex_data();
+        ERR_remove_state(0);
+        ENGINE_cleanup();
+        CONF_modules_unload(1);
+        ERR_free_strings();
+        EVP_cleanup();
+        //this should be called but there is a problem which causes a double free I need to investigate.
+        //sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
+        CRYPTO_cleanup_all_ex_data();
 
         free(_cpPathToCertificate);
         free(_cpPathToPrivateKey);
-	}
+    }
 
     int DtlsEndpoint::getEncryptedBuffer(dtls_fields *pConnection, char *pBuf)
     {
@@ -241,78 +241,78 @@ namespace IHMC_DTLS
 
     void DtlsEndpoint::handlerCleanup(dtls_fields *pHandler)
     {
-        if (pHandler != NULL) {
-            if (pHandler->ctx != NULL) {
+        if (pHandler != nullptr) {
+            if (pHandler->ctx != nullptr) {
                 SSL_CTX_free(pHandler->ctx);
-                pHandler->ctx = NULL;
+                pHandler->ctx = nullptr;
             }
-            if (pHandler->ssl != NULL) {
+            if (pHandler->ssl != nullptr) {
                 SSL_free(pHandler->ssl);
-                pHandler->ssl = NULL;
+                pHandler->ssl = nullptr;
             }
         }
     }
 
-	int DtlsEndpoint::handShake(char **ppMsg)
-	{
-        const char *pszMethodName = "DtlsEndpoint::handShake";
-		int rc = 0;
-		dtls_fields *pConnection;
-		(getIsServer()) ? 
-            (pConnection = _pServer) : 
+    int DtlsEndpoint::handShake(char **ppMsg)
+    {
+        const char * const pszMethodName = "DtlsEndpoint::handShake";
+        int rc = 0;
+        dtls_fields *pConnection;
+        (getIsServer()) ?
+            (pConnection = _pServer) :
             (pConnection = _pClient);
 
-		if (getIsServer()) {
-			checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug, "Server performing handshake\n");
-			return getEncryptedBuffer(pConnection, *ppMsg);
-		}
-		else {
-			checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug, "Client performing handshake\n");
-			if (!handshakeIsStarted()) {
-				rc = SSL_do_handshake(pConnection->ssl);
-				if (rc == 0) {
-					//Connection was not successful but was shut-down controlled
-					checkAndLogMsg(pszMethodName, Logger::L_Warning,
-						"Connection was not successful but was shut-down controlled\n");
-					return -1;
-				}
+        if (getIsServer()) {
+            checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug, "Server performing handshake\n");
+            return getEncryptedBuffer(pConnection, *ppMsg);
+        }
+        else {
+            checkAndLogMsg(pszMethodName, Logger::L_HighDetailDebug, "Client performing handshake\n");
+            if (!handshakeIsStarted()) {
+                rc = SSL_do_handshake(pConnection->ssl);
+                if (rc == 0) {
+                    //Connection was not successful but was shut-down controlled
+                    checkAndLogMsg(pszMethodName, Logger::L_Warning,
+                        "Connection was not successful but was shut-down controlled\n");
+                    return -1;
+                }
 
                 if (rc == 1 || rc == -1) {
                     return getEncryptedBuffer(pConnection, *ppMsg);
-                }             
+                }
 
-				//do_handshake returns a negative number both if it 
-                // needs to continue or if it gets an error, use SSL_get_error() 
+                //do_handshake returns a negative number both if it
+                // needs to continue or if it gets an error, use SSL_get_error()
                 // to know what happened
                 return -2;
-			}
-			//return getEncryptedBuffer(pConnection, *ppMsg);
-		}
-	}
+            }
+            //return getEncryptedBuffer(pConnection, *ppMsg);
+        }
+    }
 
     void DtlsEndpoint::init(bool bIsServer)
     {
-        const char *pszMethodName = "DtlsEndpoint::init";
+        const char * const pszMethodName = "DtlsEndpoint::init";
         int rc;
         setIsServer(bIsServer);
         if ((rc = commonInitializationCTX()) < 0) {
-            checkAndLogMsg(pszMethodName, Logger::L_MildError, 
+            checkAndLogMsg(pszMethodName, Logger::L_MildError,
                 "CTX Initialization failed!\n");
             exit(rc);
         }
         if ((rc = commonInitializationSSL()) < 0) {
-            checkAndLogMsg(pszMethodName, Logger::L_MildError, 
+            checkAndLogMsg(pszMethodName, Logger::L_MildError,
                 "SSL Initialization failed!\n");
             exit(rc);
         }
     }
 
-	bool DtlsEndpoint::isHandshakeOver(void)
-	{
-		dtls_fields *pConnection;
-		(getIsServer()) ? (pConnection = _pServer) : (pConnection = _pClient);	
+    bool DtlsEndpoint::isHandshakeOver(void)
+    {
+        dtls_fields *pConnection;
+        (getIsServer()) ? (pConnection = _pServer) : (pConnection = _pClient);
         return SSL_is_init_finished(pConnection->ssl);
-	}
+    }
 
     int verify_callback(int ok, X509_STORE_CTX *pCtx) // make this part of object
     {
@@ -327,16 +327,16 @@ namespace IHMC_DTLS
         const char* remoteAddress = "123.456.789.323:1234";
 
         long res = 1;
-        SSL_CTX* pctx    = NULL;
-        BIO*     pbioWeb = NULL;
-        BIO*     pbioOut = NULL;
-        SSL*     psslSsl = NULL;
+        SSL_CTX* pctx    = nullptr;
+        BIO*     pbioWeb = nullptr;
+        BIO*     pbioOut = nullptr;
+        SSL*     psslSsl = nullptr;
 
         const SSL_METHOD* psslmMethod = SSLv23_method();
-        if (psslmMethod == NULL) {
+        if (psslmMethod == nullptr) {
             printf("ERROR method\n");
         }
-        if (pctx == NULL) {
+        if (pctx == nullptr) {
             printf("ERROR ctx\n");
         }
 
@@ -347,13 +347,13 @@ namespace IHMC_DTLS
             SSL_OP_NO_COMPRESSION;
 
         SSL_CTX_set_options(pctx, flags);
-        res = SSL_CTX_load_verify_locations(pctx, "random-org-chain.pem", NULL);
+        res = SSL_CTX_load_verify_locations(pctx, "random-org-chain.pem", nullptr);
         if (res != 1) {
             printf("Can't find certificate\n");
         }
 
         pbioWeb = BIO_new_ssl_connect(pctx);
-        if (pbioWeb == NULL) {
+        if (pbioWeb == nullptr) {
             printf("pbioweb error\n");
         }
 
@@ -363,7 +363,7 @@ namespace IHMC_DTLS
         }
 
         BIO_get_ssl(pbioWeb, &psslSsl);
-        if (psslSsl == NULL) {
+        if (psslSsl == nullptr) {
             printf("Failed bio get ssl\n");
         }
 
@@ -379,7 +379,7 @@ namespace IHMC_DTLS
         }
 
         pbioOut = BIO_new_fp(stdout, BIO_NOCLOSE);
-        if (pbioOut == NULL) {
+        if (pbioOut == nullptr) {
             printf("Failed pbioOut\n");
         }
         res = BIO_do_connect(pbioWeb);
@@ -395,7 +395,7 @@ namespace IHMC_DTLS
         // Step 1: verify a server certificate was presented during the negotiation
         X509* cert = SSL_get_peer_certificate(psslSsl);
         if (cert) { X509_free(cert); } /* Free immediately
-        if (cert == NULL) {
+        if (cert == nullptr) {
             printf("cert problem\n");
         }
 
@@ -429,56 +429,56 @@ namespace IHMC_DTLS
         if (pbioOut)
             BIO_free(pbioOut);
 
-        if (pbioWeb != NULL)
+        if (pbioWeb != nullptr)
             BIO_free_all(pbioWeb);
 
-        if (NULL != ctx)
+        if (nullptr != ctx)
             SSL_CTX_free(pctx);
         */
         return 1;
     }
 
-	int DtlsEndpoint::prepareDataForSending(
-        const char *pMsg, 
-        int msgSize, 
+    int DtlsEndpoint::prepareDataForSending(
+        const char *pMsg,
+        int msgSize,
         char **ppEncrypted)
-	{
-		dtls_fields* connection;
-		(getIsServer()) ? (connection = _pServer) : (connection = _pClient);
+    {
+        dtls_fields* connection;
+        (getIsServer()) ? (connection = _pServer) : (connection = _pClient);
         int read = SSL_write(connection->ssl, pMsg, msgSize);
-		//*ppEncrypted = new char[read + 38];
+        //*ppEncrypted = new char[read + 38];
         *ppEncrypted = new char[3000];
-		read = getEncryptedBuffer(connection, *ppEncrypted);
-		return read;
-	}
+        read = getEncryptedBuffer(connection, *ppEncrypted);
+        return read;
+    }
 
-	int DtlsEndpoint::recoverData(
-        const char *pEncrypted, 
-        int enSize, 
+    int DtlsEndpoint::recoverData(
+        const char *pEncrypted,
+        int enSize,
         char **ppDecrypted)
-	{
-		dtls_fields *pConnection;
-		(getIsServer()) ? (pConnection = _pServer) : (pConnection = _pClient);
+    {
+        dtls_fields *pConnection;
+        (getIsServer()) ? (pConnection = _pServer) : (pConnection = _pClient);
 
-		int written = 0;
-		int read = 0;
-		if (enSize > 0) {
-			written = BIO_write(pConnection->in_bio, pEncrypted, enSize);
-		}
-		if (enSize > 0) {
-			if (!SSL_is_init_finished(pConnection->ssl)) {
-				//continue the handshake
-				SSL_do_handshake(pConnection->ssl);
-				return 0;
-			}
-			else {
-				//decript the data from the out bio and copy it in out buf
-				*ppDecrypted = new char[written];
-				read = SSL_read(pConnection->ssl, *ppDecrypted, written);
-				return read;
-			}
-		}
-		return -1;
-	}
+        int written = 0;
+        int read = 0;
+        if (enSize > 0) {
+            written = BIO_write(pConnection->in_bio, pEncrypted, enSize);
+        }
+        if (enSize > 0) {
+            if (!SSL_is_init_finished(pConnection->ssl)) {
+                //continue the handshake
+                SSL_do_handshake(pConnection->ssl);
+                return 0;
+            }
+            else {
+                //decript the data from the out bio and copy it in out buf
+                *ppDecrypted = new char[written];
+                read = SSL_read(pConnection->ssl, *ppDecrypted, written);
+                return read;
+            }
+        }
+        return -1;
+    }
 
 }

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -38,52 +38,53 @@
     <ProjectGuid>{4D5F8A93-53BF-429C-BF14-0AFFCF9BECD3}</ProjectGuid>
     <RootNamespace>NetProxy</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profiling|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -157,7 +158,9 @@
       </Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -183,11 +186,13 @@ call compile_proto.bat</Command>
       <SubSystem>Console</SubSystem>
     </Link>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
-      <Message>Build protobuf classes</Message>
+      <Message>Building protobuf classes</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -217,7 +222,9 @@ call compile_proto.bat</Command>
       </Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -246,7 +253,9 @@ call compile_proto.bat</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -275,7 +284,9 @@ call compile_proto.bat</Command>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -303,7 +314,9 @@ call compile_proto.bat</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -333,7 +346,9 @@ call compile_proto.bat</Command>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -362,7 +377,9 @@ call compile_proto.bat</Command>
       <Profile>true</Profile>
     </Link>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)../proto"
+      <Command>call build_version.bat
+
+cd "$(SolutionDir)../proto"
 call compile_proto.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
@@ -392,18 +409,27 @@ call compile_proto.bat</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\ActiveConnection.cpp" />
-    <ClCompile Include="..\AddressRangeDescriptor.cpp" />
+    <ClCompile Include="..\ConfigurationParameters.cpp" />
+    <ClCompile Include="..\LocalTCPTransmitter.cpp" />
+    <ClCompile Include="..\LocalUDPDatagramsManager.cpp" />
+    <ClCompile Include="..\MemoryCleanerManager.cpp" />
+    <ClCompile Include="..\MocketAdapter.cpp" />
+    <ClCompile Include="..\NetworkAddressRange.cpp" />
     <ClCompile Include="..\ARPTableMissCache.cpp" />
     <ClCompile Include="..\AutoConnectionEntry.cpp" />
+    <ClCompile Include="..\AutoConnectionManager.cpp" />
     <ClCompile Include="..\CircularOrderedBuffer.cpp" />
-    <ClCompile Include="..\CompressionSetting.cpp" />
+    <ClCompile Include="..\CompressionSettings.cpp" />
     <ClCompile Include="..\Connection.cpp" />
     <ClCompile Include="..\ConnectionManager.cpp" />
     <ClCompile Include="..\Connector.cpp" />
     <ClCompile Include="..\ConnectorAdapter.cpp" />
     <ClCompile Include="..\CSRConnector.cpp" />
     <ClCompile Include="..\Entry.cpp" />
-    <ClCompile Include="..\GUIUpdateMessage.cpp" />
+    <ClCompile Include="..\PacketReceiver.cpp" />
+    <ClCompile Include="..\QueryResult.cpp" />
+    <ClCompile Include="..\RemoteTCPTransmitter.cpp" />
+    <ClCompile Include="..\StatisticsManager.cpp" />
     <ClCompile Include="..\measure.pb.cc" />
     <ClCompile Include="..\MutexBuffer.cpp" />
     <ClCompile Include="..\MutexUDPQueue.cpp" />
@@ -417,11 +443,12 @@ call compile_proto.bat</Command>
     <ClCompile Include="..\ProxyMessages.cpp" />
     <ClCompile Include="..\ProxyNetworkMessage.cpp" />
     <ClCompile Include="..\RemoteProxyInfo.cpp" />
+    <ClCompile Include="..\StatisticsUpdateManager.cpp" />
     <ClCompile Include="..\subject.pb.cc" />
     <ClCompile Include="..\TapInterface.cpp" />
     <ClCompile Include="..\ConnectorReader.cpp" />
     <ClCompile Include="..\ConnectorWriter.cpp" />
-    <ClCompile Include="..\SocketConnector.cpp" />
+    <ClCompile Include="..\TCPSocketConnector.cpp" />
     <ClCompile Include="..\MocketConnector.cpp" />
     <ClCompile Include="..\TCPConnTable.cpp" />
     <ClCompile Include="..\PacketRouter.cpp" />
@@ -433,18 +460,24 @@ call compile_proto.bat</Command>
     <ClCompile Include="..\UDPDatagramPacket.cpp" />
     <ClCompile Include="..\UDPSocketAdapter.cpp" />
     <ClCompile Include="..\Utilities.cpp" />
+    <ClCompile Include="..\version.cpp" />
     <ClCompile Include="..\ZLibConnectorReader.cpp" />
     <ClCompile Include="..\ZLibConnectorWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\util\cpp\NPDArray.h" />
     <ClInclude Include="..\ActiveConnection.h" />
-    <ClInclude Include="..\AddressRangeDescriptor.h" />
+    <ClInclude Include="..\LocalTCPTransmitter.h" />
+    <ClInclude Include="..\LocalUDPDatagramsManager.h" />
+    <ClInclude Include="..\MemoryCleanerManager.h" />
+    <ClInclude Include="..\NetworkAddressRange.h" />
     <ClInclude Include="..\ARPCache.h" />
     <ClInclude Include="..\ARPTableMissCache.h" />
     <ClInclude Include="..\AutoConnectionEntry.h" />
+    <ClInclude Include="..\AutoConnectionManager.h" />
+    <ClInclude Include="..\PacketReceiver.h" />
+    <ClInclude Include="..\Range.h" />
     <ClInclude Include="..\CircularOrderedBuffer.h" />
-    <ClInclude Include="..\CompressionSetting.h" />
+    <ClInclude Include="..\CompressionSettings.h" />
     <ClInclude Include="..\Connection.h" />
     <ClInclude Include="..\ConnectivitySolutions.h" />
     <ClInclude Include="..\ConnectionManager.h" />
@@ -452,7 +485,8 @@ call compile_proto.bat</Command>
     <ClInclude Include="..\CSRAdapter.h" />
     <ClInclude Include="..\CSRConnector.h" />
     <ClInclude Include="..\Entry.h" />
-    <ClInclude Include="..\GUIUpdateMessage.h" />
+    <ClInclude Include="..\RemoteTCPTransmitter.h" />
+    <ClInclude Include="..\StatisticsManager.h" />
     <ClInclude Include="..\measure.pb.h" />
     <ClInclude Include="..\NetworkInterface.h" />
     <ClInclude Include="..\MocketAdapter.h" />
@@ -471,24 +505,27 @@ call compile_proto.bat</Command>
     <ClInclude Include="..\OrderableBufferWriter.h" />
     <ClInclude Include="..\ProxyMessages.h" />
     <ClInclude Include="..\QueryResult.h" />
+    <ClInclude Include="..\RangeTrie.h" />
     <ClInclude Include="..\RemoteProxyInfo.h" />
+    <ClInclude Include="..\StatisticsUpdateManager.h" />
     <ClInclude Include="..\subject.pb.h" />
     <ClInclude Include="..\TapInterface.h" />
     <ClInclude Include="..\Connector.h" />
     <ClInclude Include="..\ConnectorReader.h" />
     <ClInclude Include="..\ConnectorWriter.h" />
-    <ClInclude Include="..\SocketConnector.h" />
+    <ClInclude Include="..\TCPSocketConnector.h" />
     <ClInclude Include="..\MocketConnector.h" />
     <ClInclude Include="..\TCPConnTable.h" />
     <ClInclude Include="..\PacketRouter.h" />
-    <ClInclude Include="..\Constants.h" />
     <ClInclude Include="..\TCPManager.h" />
     <ClInclude Include="..\TCPSegment.h" />
     <ClInclude Include="..\TCPSocketAdapter.h" />
+    <ClInclude Include="..\TuplesHashFunction.h" />
     <ClInclude Include="..\UDPConnector.h" />
     <ClInclude Include="..\UDPDatagramPacket.h" />
     <ClInclude Include="..\UDPSocketAdapter.h" />
     <ClInclude Include="..\Utilities.h" />
+    <ClInclude Include="..\version.h" />
     <ClInclude Include="..\ZLibConnectorReader.h" />
     <ClInclude Include="..\ZLibConnectorWriter.h" />
   </ItemGroup>

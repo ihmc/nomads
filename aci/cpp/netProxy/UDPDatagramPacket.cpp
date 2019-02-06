@@ -2,7 +2,7 @@
  * UDPDatagramPacket.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,19 +17,20 @@
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
+#include <cstring>
+
 #include "UDPDatagramPacket.h"
+#include "ProxyMessages.h"
+#include "Connection.h"
 
-
-using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    UDPDatagramPacket::UDPDatagramPacket (const InetAddr * const pRemoteProxyAddr, Connection * const pConnection, Connector * const pConnector,
-                                          const CompressionSetting * const pCompressionSetting, const ProxyMessage::Protocol pmProtocol,
-                                          const IPHeader * const pIPHeader, const UDPHeader * const pUDPHeader) :
-        _pRemoteProxyAddr (pRemoteProxyAddr), _pConnection (pConnection), _pConnector (pConnector), _pCompressionSetting (pCompressionSetting),
-        _ui32IPSource (pIPHeader->srcAddr.ui32Addr), _ui32IPDestination (pIPHeader->destAddr.ui32Addr), _ui16IPIdentification(pIPHeader->ui16Ident),
-        _ui8PMProtocol(pmProtocol), _ui8IPPacketTTL (pIPHeader->ui8TTL), _i64CreationTime (getTimeInMilliseconds())
+    UDPDatagramPacket::UDPDatagramPacket (Connection * const pConnection, const CompressionSettings & compressionSettings, const Protocol protocol,
+                                          const NOMADSUtil::IPHeader * const pIPHeader, const NOMADSUtil::UDPHeader * const pUDPHeader) :
+        _ui32RemoteProxyUniqueID{pConnection ? pConnection->getRemoteNetProxyID() : 0}, _pConnection{pConnection}, _compressionSettings{compressionSettings},
+        _ui32IPSource{pIPHeader->srcAddr.ui32Addr}, _ui32IPDestination{pIPHeader->destAddr.ui32Addr}, _ui16IPIdentification{pIPHeader->ui16Ident},
+        _ui8PMProtocol{static_cast<uint8> (protocol)}, _ui8IPPacketTTL{pIPHeader->ui8TTL}, _i64CreationTime{NOMADSUtil::getTimeInMilliseconds()}
     {
         _bIsFragmented = (pIPHeader->ui16FlagsAndFragOff & IP_MF_FLAG_FILTER) != 0;
         if (!_bIsFragmented) {
@@ -43,21 +44,26 @@ namespace ACMNetProxy
         memcpy (_pui8UDPDatagram, pUDPHeader, _ui16CurrentPayloadLength);
     }
 
-    int UDPDatagramPacket::reassembleFragment (const IPHeader * const pIPHeader, const uint8 * const pui8Fragment)
+    const NOMADSUtil::InetAddr * const UDPDatagramPacket::getRemoteProxyAddr (void) const
+    {
+        return _pConnection ? _pConnection->getRemoteNetProxyInetAddr() : nullptr;
+    }
+
+    int UDPDatagramPacket::reassembleFragment (const NOMADSUtil::IPHeader * const pIPHeader, const uint8 * const pui8Fragment)
     {
         if (!isMissingFragment (pIPHeader)) {
             return -1;
         }
 
         uint16 ui16FragmentLength = pIPHeader->ui16TLen - ((pIPHeader->ui8VerAndHdrLen & 0x0F) * 4);
-        if ((_ui16CurrentPayloadLength + ui16FragmentLength) > ((UDPHeader*) _pui8UDPDatagram)->ui16Len) {
+        if ((_ui16CurrentPayloadLength + ui16FragmentLength) > reinterpret_cast<NOMADSUtil::UDPHeader *> (_pui8UDPDatagram)->ui16Len) {
             return -2;
         }
 
         uint16 ui16Offset = (pIPHeader->ui16FlagsAndFragOff & IP_OFFSET_FILTER) * 8;
         memcpy (_pui8UDPDatagram + ui16Offset, pui8Fragment, ui16FragmentLength);
         _ui16CurrentPayloadLength += ui16FragmentLength;
-        _bIsFragmented = (_ui16CurrentPayloadLength < ((UDPHeader*) _pui8UDPDatagram)->ui16Len);
+        _bIsFragmented = _ui16CurrentPayloadLength < reinterpret_cast<NOMADSUtil::UDPHeader *> (_pui8UDPDatagram)->ui16Len;
 
         return getPacketLen();
     }

@@ -64,14 +64,14 @@ StreamMocket::~StreamMocket (void)
 {
     close();
     delete _pMMocket;
-    _pMMocket = NULL;
+    _pMMocket = nullptr;
     while (!_bThreadTerminated) {
         sleepForMilliseconds (50);
     }
     free (_pTransmitBuf);
-    _pTransmitBuf = NULL;
+    _pTransmitBuf = nullptr;
     free (_pReceiveBuf);
-    _pReceiveBuf = NULL;
+    _pReceiveBuf = nullptr;
 }
 
 void StreamMocket::setIdentifier (const char *pszIdentifier)

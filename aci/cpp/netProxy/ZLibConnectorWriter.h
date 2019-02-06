@@ -5,7 +5,7 @@
  * ZlibConnectorWriter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,15 +27,16 @@
 #include "Mutex.h"
 #include "ConnectorWriter.h"
 
+
 namespace ACMNetProxy
 {
     class ZLibConnectorWriter : public ConnectorWriter
     {
     public:
-        ZLibConnectorWriter (const CompressionSetting * const pCompressionSetting , unsigned long ulOutBufSize = 2048);
+        ZLibConnectorWriter (const CompressionSettings & compressionSettings, unsigned long ulOutBufSize = 2048);
         virtual ~ZLibConnectorWriter (void);
 
-        virtual const ProxyMessage::CompressionType getCompressionFlag (void) const;
+        virtual const CompressionType getCompressionFlag (void) const;
         using ConnectorWriter::getCompressionLevel;
         using ConnectorWriter::getCompressionName;
         using ConnectorWriter::getCompressionSetting;
@@ -50,30 +51,30 @@ namespace ACMNetProxy
 
     private:
         void resetCompStream (void);
-        static void *alloc_mem (void *userdata, uInt items, uInt size);
+        static void * alloc_mem (void *userdata, uInt items, uInt size);
         static void free_mem (void *userdata, void* data);
 
-        unsigned char *_pOutputBuffer;
+        unsigned char * _pOutputBuffer;
         unsigned long _ulOutBufSize;
         z_stream _zsCompStream;
 
-        NOMADSUtil::Mutex _m;
+        NOMADSUtil::Mutex _mtx;
     };
 
 
-    inline const ProxyMessage::CompressionType ZLibConnectorWriter::getCompressionFlag (void) const
+    inline const CompressionType ZLibConnectorWriter::getCompressionFlag (void) const
     {
-        return ProxyMessage::PMC_ZLibCompressedData;
+        return CompressionType::PMC_ZLibCompressedData;
     }
 
     inline int ZLibConnectorWriter::lockConnectorWriter (void)
     {
-        return _m.lock();
+        return _mtx.lock();
     }
 
     inline int ZLibConnectorWriter::unlockConnectorWriter (void)
     {
-        return _m.unlock();
+        return _mtx.unlock();
     }
 
 }

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -42,7 +42,7 @@ int EventNotifier::init (uint16 ui16EventMonitorPort)
 {
     const char * const pszMethodName = "EventNotifier::init";
     int rc;
-    
+
     if ((char*) _instanceName == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "need to set the instance name before calling init()\n");
@@ -51,7 +51,7 @@ int EventNotifier::init (uint16 ui16EventMonitorPort)
 
     if (0 != (rc = _logSocket.init())) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
-                        "failed to initialize DatagramSocket on port %d; rc = %d\n", 
+                        "failed to initialize DatagramSocket on port %d; rc = %d\n",
                         (int) ui16EventMonitorPort, rc);
         return -2;
     }
@@ -59,7 +59,7 @@ int EventNotifier::init (uint16 ui16EventMonitorPort)
     return 0;
 }
 
-int EventNotifier::logEvent (uint16 ui16EventID, const char *pchEventLog, uint16 ui16EventLogLen, 
+int EventNotifier::logEvent (uint16 ui16EventID, const char *pchEventLog, uint16 ui16EventLogLen,
                              const char *pszComponentName, const char *pszInstanceName)
 {
     Event *pEvent = new Event();

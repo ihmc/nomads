@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,7 +22,7 @@
  */
 
 #ifndef INCL_GEO_UTILS_H
-#define	INCL_GEO_UTILS_H
+#define INCL_GEO_UTILS_H
 
 namespace NOMADSUtil
 {
@@ -93,7 +93,7 @@ namespace NOMADSUtil
      * point C and E.
      * The CDEF area is identified only by the coordinate of the upper
      * left cornet (C) and the lower right corner (E).
-     * 
+     *
      * NOTE: returns a negative number in case of error!
      *
      *        Segment           |             Area
@@ -167,7 +167,51 @@ namespace NOMADSUtil
      */
     void addPaddingToBoudingBox (float fMaxLat, float fMinLat, float fMaxLong, float fMinLong, float fPadding,
                                  float &fNewMaxLat, float &fNewMinLat, float &fNewMaxLong, float &fNewMinLong);
+
+    class Point
+    {
+        public:
+            Point (const Point &point);
+            Point (float fLatitude, float fLongitude);
+            ~Point (void);
+
+         public:
+             const float _fLatitude;
+             const float _fLongitude;
+    };
+
+    class BoundingBox
+    {
+        public:
+            BoundingBox (void);
+            BoundingBox (float leftUpperLatitude, float leftUpperLongitude,
+                         float rightLowerLatitude, float rightLowerLongitude);
+            BoundingBox (const BoundingBox &bbox);
+            ~BoundingBox (void);
+
+            float getArea (void) const;
+            Point getBaricenter (void) const;
+            float getHeigth (void) const;
+            bool isValid (void) const;
+
+            // Return the radius in meters
+            float getRadius (void) const;
+
+            float getWidth (void) const;
+
+            // Create a squared bouding box centered in (fLatitude, float fLongitude) and with
+            // each side of approximately 2 * fRange meters.
+            static BoundingBox getBoundingBox (Point &baricenter, float fRange);
+            static BoundingBox getBoundingBox (float fLatitude, float fLongitude, float fRange);
+
+            BoundingBox getIntersection (const BoundingBox &rgBoundingBox) const;
+
+            const bool _bEmpty;
+            const float _leftUpperLatitude;
+            const float _leftUpperLongitude;
+            const float _rightLowerLatitude;
+            const float _rightLowerLongitude;
+    };
 }
 
-#endif	// INCL_GEO_UTILS_H
-
+#endif    // INCL_GEO_UTILS_H

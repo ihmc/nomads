@@ -31,7 +31,7 @@ import java.util.Vector;
  *  about from the accounts file.
  *
  *  @author: Maggie Breedy (NOMADS team)
- *  @version: $Revision: 1.7 $
+ *  @version: $Revision$
  */
 
 @SuppressWarnings({ "rawtypes", "unchecked" })

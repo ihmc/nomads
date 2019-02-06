@@ -22,8 +22,8 @@
  *
  * @author      Marco Arguedas    <marguedas@ihmc.us>
  *
- * @version     $Revision: 1.16 $
- *              $Date: 2016/06/09 20:02:46 $
+ * @version     $Revision$
+ *              $Date$
  */
 
 package us.ihmc.util;

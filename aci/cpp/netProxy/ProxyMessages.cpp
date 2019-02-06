@@ -2,7 +2,7 @@
  * ProxyMessages.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,44 +18,83 @@
  */
 
 #include "ProxyMessages.h"
-#include "CompressionSetting.h"
+#include "CompressionSettings.h"
 
-
-using namespace NOMADSUtil;
 
 namespace ACMNetProxy
 {
-    uint32 ProxyMessage::getMessageHeaderSize (const ProxyMessage * const pProxyMessage)
+    size_t ProxyMessage::getMessageHeaderSize (const ProxyMessage * const pProxyMessage)
     {
         if (!pProxyMessage) {
             return 0;
         }
 
         switch (pProxyMessage->getMessageType()) {
-            case ProxyMessage::PMT_InitializeConnection:
-                return sizeof(InitializeConnectionProxyMessage);
-            case ProxyMessage::PMT_ConnectionInitialized:
-                return sizeof(ConnectionInitializedProxyMessage);
-            case ProxyMessage::PMT_ICMPMessage:
-                return sizeof(ICMPProxyMessage);
-            case ProxyMessage::PMT_UDPUnicastData:
-                return sizeof(UDPUnicastDataProxyMessage);
-            case ProxyMessage::PMT_MultipleUDPDatagrams:
-                return sizeof(MultipleUDPDatagramsProxyMessage);
-            case ProxyMessage::PMT_UDPBCastMCastData:
-                return sizeof(UDPBCastMCastDataProxyMessage);
-            case ProxyMessage::PMT_TCPOpenConnection:
-                return sizeof(OpenConnectionProxyMessage);
-            case ProxyMessage::PMT_TCPConnectionOpened:
-                return sizeof(ConnectionOpenedProxyMessage);
-            case ProxyMessage::PMT_TCPData:
-                return sizeof(TCPDataProxyMessage);
-            case ProxyMessage::PMT_TCPCloseConnection:
-                return sizeof(CloseConnectionProxyMessage);
-            case ProxyMessage::PMT_TCPResetConnection:
-                return sizeof(ResetConnectionProxyMessage);
-            case ProxyMessage::PMT_TunnelPacket:
-                return sizeof(TunnelPacketProxyMessage);
+        case PacketType::PMT_InitializeConnection:
+            {
+                auto * const pICPM = reinterpret_cast<const InitializeConnectionProxyMessage *> (pProxyMessage);
+                return pICPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_ConnectionInitialized:
+            {
+                auto * const pCIPM = reinterpret_cast<const ConnectionInitializedProxyMessage *> (pProxyMessage);
+                return pCIPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_ICMPMessage:
+            {
+                auto * const pICMPPM = reinterpret_cast<const ICMPProxyMessage *> (pProxyMessage);
+                return pICMPPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_UDPUnicastData:
+            {
+                auto * const pUDPUDPM = reinterpret_cast<const UDPUnicastDataProxyMessage *> (pProxyMessage);
+                return pUDPUDPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_MultipleUDPDatagrams:
+            {
+                auto * const pMUDPDPM = reinterpret_cast<const MultipleUDPDatagramsProxyMessage *> (pProxyMessage);
+                return pMUDPDPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_UDPBCastMCastData:
+            {
+                auto * const pUDPBMDPM = reinterpret_cast<const UDPBCastMCastDataProxyMessage *> (pProxyMessage);
+                return pUDPBMDPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_TCPOpenConnection:
+            {
+                auto * const pOTCPCPM = reinterpret_cast<const OpenTCPConnectionProxyMessage *> (pProxyMessage);
+                return pOTCPCPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_TCPConnectionOpened:
+            {
+                auto * const pTCPCOPM = reinterpret_cast<const TCPConnectionOpenedProxyMessage *> (pProxyMessage);
+                return pTCPCOPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_TCPData:
+            {
+                auto * const pTCPDPM = reinterpret_cast<const TCPDataProxyMessage *> (pProxyMessage);
+                return pTCPDPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_TCPCloseConnection:
+            {
+                auto * const pCTCPCPM = reinterpret_cast<const CloseTCPConnectionProxyMessage *> (pProxyMessage);
+                return pCTCPCPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_TCPResetConnection:
+            {
+                auto * const pRTCPCPM = reinterpret_cast<const ResetTCPConnectionProxyMessage *> (pProxyMessage);
+                return pRTCPCPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_TunnelPacket:
+            {
+                auto * const pTPPM = reinterpret_cast<const TunnelPacketProxyMessage *> (pProxyMessage);
+                return pTPPM->getMessageHeaderSize();
+            }
+        case PacketType::PMT_ConnectionError:
+            {
+                auto * const pCEPM = reinterpret_cast<const ConnectionErrorProxyMessage *> (pProxyMessage);
+                return pCEPM->getMessageHeaderSize();
+            }
         }
 
         return 0;
@@ -63,30 +102,30 @@ namespace ACMNetProxy
 
     bool ProxyMessage::belongsToVirtualConnection (const ProxyMessage * const pProxyMessage, uint16 ui16LocalID, uint16 ui16RemoteID)
     {
-        switch (pProxyMessage->_ui8MsgTypeAndReachability) {
-            case (ProxyMessage::PMT_TCPOpenConnection):
+        switch (static_cast<PacketType> (pProxyMessage->_ui8MsgTypeAndReachability & PACKET_TYPE_FLAGS_MASK)) {
+        case PacketType::PMT_TCPOpenConnection:
             {
-                const OpenConnectionProxyMessage * const pOpenConnectionProxyMessage = (const OpenConnectionProxyMessage * const) (pProxyMessage);
+                const auto pOpenConnectionProxyMessage = static_cast<const OpenTCPConnectionProxyMessage * const> (pProxyMessage);
                 return (pOpenConnectionProxyMessage->_ui16LocalID == ui16LocalID);
             }
-            case (ProxyMessage::PMT_TCPConnectionOpened):
+        case PacketType::PMT_TCPConnectionOpened:
             {
-                const ConnectionOpenedProxyMessage * const pConnectionOpenedProxyMessage = (const ConnectionOpenedProxyMessage * const) (pProxyMessage);
+                const auto pConnectionOpenedProxyMessage = static_cast<const TCPConnectionOpenedProxyMessage * const> (pProxyMessage);
                 return (pConnectionOpenedProxyMessage->_ui16LocalID == ui16LocalID) && (pConnectionOpenedProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
-            case (ProxyMessage::PMT_TCPData):
+        case PacketType::PMT_TCPData:
             {
-                const TCPDataProxyMessage * const pTCPDataProxyMessage = (const TCPDataProxyMessage * const) (pProxyMessage);
+                const auto pTCPDataProxyMessage = static_cast<const TCPDataProxyMessage * const> (pProxyMessage);
                 return (pTCPDataProxyMessage->_ui16LocalID == ui16LocalID) && (pTCPDataProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
-            case (ProxyMessage::PMT_TCPCloseConnection):
+        case PacketType::PMT_TCPCloseConnection:
             {
-                const CloseConnectionProxyMessage * const pCloseConnectionProxyMessage = (const CloseConnectionProxyMessage * const) (pProxyMessage);
+                const auto pCloseConnectionProxyMessage = static_cast<const CloseTCPConnectionProxyMessage * const> (pProxyMessage);
                 return (pCloseConnectionProxyMessage->_ui16LocalID == ui16LocalID) && (pCloseConnectionProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
-            case (ProxyMessage::PMT_TCPResetConnection):
+        case PacketType::PMT_TCPResetConnection:
             {
-                const ResetConnectionProxyMessage * const pResetConnectionProxyMessage = (const ResetConnectionProxyMessage * const) (pProxyMessage);
+                const auto pResetConnectionProxyMessage = static_cast<const ResetTCPConnectionProxyMessage * const> (pProxyMessage);
                 return (pResetConnectionProxyMessage->_ui16LocalID == ui16LocalID) && (pResetConnectionProxyMessage->_ui16RemoteID == ui16RemoteID);
             }
         }
@@ -94,61 +133,110 @@ namespace ACMNetProxy
         return false;
     }
 
-    InitializeConnectionProxyMessage::InitializeConnectionProxyMessage (uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
-                                                                        uint16 ui16LocalUDPServerPort, bool bReachability) :
-        ProxyMessage (PMT_InitializeConnection | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui32ProxyUniqueID (ui32ProxyUniqueID),
-        _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort) {}
+    InitializeConnectionProxyMessage::InitializeConnectionProxyMessage (uint32 ui32ProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                        uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
+                                                                        uint16 ui16LocalUDPServerPort, uint8 ui8NumberOfInterfaces,
+                                                                        bool bReachability) :
+        ProxyDataMessage{static_cast<uint8> (static_cast<int> (PacketType::PMT_InitializeConnection) |
+                                             static_cast<int> (bReachability ? HostReachability::PMHR_ReachableHost :
+                                                                               HostReachability::PMHR_UnreachableHost)),
+                         ui8NumberOfInterfaces * sizeof(uint32)},
+        _ui32ProxyUniqueID{ui32ProxyUniqueID}, _ui32LocalInterfaceIPv4Address{ui32LocalInterfaceIPv4Address},
+        _ui16LocalMocketsServerPort{ui16LocalMocketsServerPort}, _ui16LocalTCPServerPort{ui16LocalTCPServerPort},
+        _ui16LocalUDPServerPort{ui16LocalUDPServerPort}, _ui8NumberOfInterfaces{ui8NumberOfInterfaces}
+    { }
 
-    ConnectionInitializedProxyMessage::ConnectionInitializedProxyMessage (uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
-                                                                          uint16 ui16LocalUDPServerPort, bool bReachability) :
-        ProxyMessage (PMT_ConnectionInitialized | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui32ProxyUniqueID (ui32ProxyUniqueID),
-        _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort) {}
+    ConnectionInitializedProxyMessage::ConnectionInitializedProxyMessage (uint32 ui32ProxyUniqueID, uint32 ui32LocalInterfaceIPv4Address,
+                                                                          uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
+                                                                          uint16 ui16LocalUDPServerPort, uint8 ui8NumberOfInterfaces,
+                                                                          bool bReachability) :
+        ProxyDataMessage{static_cast<uint8> (static_cast<int> (PacketType::PMT_ConnectionInitialized) |
+                                         static_cast<int> (bReachability ? HostReachability::PMHR_ReachableHost :
+                                                                           HostReachability::PMHR_UnreachableHost)),
+                         ui8NumberOfInterfaces * sizeof(uint32)},
+        _ui32ProxyUniqueID{ui32ProxyUniqueID}, _ui32LocalInterfaceIPv4Address{ui32LocalInterfaceIPv4Address},
+        _ui16LocalMocketsServerPort{ui16LocalMocketsServerPort}, _ui16LocalTCPServerPort{ui16LocalTCPServerPort},
+        _ui16LocalUDPServerPort{ui16LocalUDPServerPort}, _ui8NumberOfInterfaces{ui8NumberOfInterfaces}
+    { }
 
-    ICMPProxyMessage::ICMPProxyMessage (uint16 ui16PayloadLen, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalIP, uint32 ui32RemoteIP,
-                                        uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
-                                        uint16 ui16LocalUDPServerPort, uint8 ui8PacketTTL, bool bReachability) :
-        ProxyDataMessage (PMT_ICMPMessage | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost), ui16PayloadLen), _ui8Type (ui8Type), _ui8Code (ui8Code), _ui32RoH (ui32RoH),
-        _ui32LocalIP (ui32LocalIP), _ui32RemoteIP (ui32RemoteIP), _ui32ProxyUniqueID (ui32ProxyUniqueID), _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort),
-        _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort), _ui8PacketTTL(ui8PacketTTL) {}
+    ICMPProxyMessage::ICMPProxyMessage (uint16 ui16PayloadLen, uint8 ui8Type, uint8 ui8Code, uint32 ui32RoH, uint32 ui32LocalIP,
+                                        uint32 ui32RemoteIP, uint8 ui8PacketTTL, bool bReachability) :
+        ProxyDataMessage{static_cast<uint8> (static_cast<int> (PacketType::PMT_ICMPMessage) |
+                                             static_cast<int> (bReachability ? HostReachability::PMHR_ReachableHost :
+                                                                               HostReachability::PMHR_UnreachableHost)),
+                         ui16PayloadLen}, _ui8Type{ui8Type}, _ui8Code{ui8Code}, _ui32RoH{ui32RoH},
+        _ui32LocalIP{ui32LocalIP}, _ui32RemoteIP{ui32RemoteIP}, _ui8PacketTTL{ui8PacketTTL}
+    { }
 
-    UDPUnicastDataProxyMessage::UDPUnicastDataProxyMessage (uint16 ui16PayloadLen, uint32 ui32LocalIP, uint32 ui32RemoteIP, uint32 ui32ProxyUniqueID, uint8 ui8PacketTTL,
-                                                            const CompressionSetting * const pCompressionSetting) :
-        ProxyDataMessage (PMT_UDPUnicastData, ui16PayloadLen), _ui32LocalIP (ui32LocalIP), _ui32RemoteIP (ui32RemoteIP), _ui32ProxyUniqueID (ui32ProxyUniqueID),
-        _ui8PacketTTL(ui8PacketTTL), _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
+    UDPUnicastDataProxyMessage::UDPUnicastDataProxyMessage (uint16 ui16PayloadLen, uint32 ui32LocalIP, uint32 ui32RemoteIP,
+                                                            uint8 ui8PacketTTL, const CompressionSettings & compressionSetting) :
+        ProxyDataMessage{static_cast<uint8> (PacketType::PMT_UDPUnicastData), ui16PayloadLen},
+        _ui32LocalIP{ui32LocalIP}, _ui32RemoteIP{ui32RemoteIP}, _ui8PacketTTL{ui8PacketTTL},
+        _ui8CompressionTypeAndLevel {static_cast<uint8> (compressionSetting.getCompressionLevel() |
+                                                         static_cast<int> (compressionSetting.getCompressionType()))}
+    { }
 
-    MultipleUDPDatagramsProxyMessage::MultipleUDPDatagramsProxyMessage (uint16 ui16PayloadLen, uint32 ui32LocalIP, uint32 ui32RemoteIP, uint32 ui32ProxyUniqueID,
-                                                                        uint8 ui8WrappedUDPDatagramsNum, const CompressionSetting * const pCompressionSetting) :
-        ProxyDataMessage (PMT_MultipleUDPDatagrams, ui16PayloadLen), _ui32LocalIP (ui32LocalIP), _ui32RemoteIP (ui32RemoteIP), _ui32ProxyUniqueID (ui32ProxyUniqueID),
-        _ui8WrappedUDPDatagramsNum (ui8WrappedUDPDatagramsNum), _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
+    MultipleUDPDatagramsProxyMessage::MultipleUDPDatagramsProxyMessage (uint16 ui16PayloadLen, uint32 ui32LocalIP, uint32 ui32RemoteIP,
+                                                                        uint8 ui8WrappedUDPDatagramsNum, const CompressionSettings & compressionSetting) :
+        ProxyDataMessage{static_cast<uint8> (PacketType::PMT_MultipleUDPDatagrams), ui16PayloadLen},
+        _ui32LocalIP{ui32LocalIP}, _ui32RemoteIP{ui32RemoteIP}, _ui8WrappedUDPDatagramsNum{ui8WrappedUDPDatagramsNum},
+        _ui8CompressionTypeAndLevel{static_cast<uint8> (compressionSetting.getCompressionLevel() |
+                                                        static_cast<int> (compressionSetting.getCompressionType()))}
+    { }
 
-    UDPBCastMCastDataProxyMessage::UDPBCastMCastDataProxyMessage (uint16 ui16PayloadLen, uint32 ui32ProxyUniqueID, const CompressionSetting * const pCompressionSetting) :
-        ProxyDataMessage (PMT_UDPBCastMCastData, ui16PayloadLen), _ui32ProxyUniqueID(ui32ProxyUniqueID),
-        _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
+    UDPBCastMCastDataProxyMessage::UDPBCastMCastDataProxyMessage (uint16 ui16PayloadLen, const CompressionSettings & compressionSetting) :
+        ProxyDataMessage{static_cast<uint8> (PacketType::PMT_UDPBCastMCastData), ui16PayloadLen},
+        _ui8CompressionTypeAndLevel{static_cast<uint8> (compressionSetting.getCompressionLevel() |
+                                                        static_cast<int> (compressionSetting.getCompressionType()))}
+    { }
 
-    OpenConnectionProxyMessage::OpenConnectionProxyMessage (uint16 ui16LocalID, uint32 ui32LocalIP, uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort,
-                                                            uint32 ui32ProxyUniqueID, uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort,
-                                                            uint16 ui16LocalUDPServerPort, const CompressionSetting * const pCompressionSetting, bool bReachability) :
-        ProxyMessage (PMT_TCPOpenConnection | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui16LocalID (ui16LocalID), _ui32LocalIP (ui32LocalIP),
-        _ui16LocalPort (ui16LocalPort), _ui32RemoteIP (ui32RemoteIP), _ui16RemotePort (ui16RemotePort), _ui32ProxyUniqueID (ui32ProxyUniqueID),
-        _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort), _ui16LocalUDPServerPort (ui16LocalUDPServerPort),
-        _ui8CompressionTypeAndLevel(pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
+    OpenTCPConnectionProxyMessage::OpenTCPConnectionProxyMessage (uint32 ui32ProxyUniqueID, uint16 ui16LocalID, uint32 ui32LocalIP,
+                                                                  uint16 ui16LocalPort, uint32 ui32RemoteIP, uint16 ui16RemotePort,
+                                                                  const CompressionSettings & compressionSetting, bool bReachability) :
+        ProxyMessage{static_cast<uint8> (static_cast<int> (PacketType::PMT_TCPOpenConnection) |
+                                         static_cast<int> (bReachability ? HostReachability::PMHR_ReachableHost :
+                                                                           HostReachability::PMHR_UnreachableHost))},
+        _ui32ProxyUniqueID{ui32ProxyUniqueID}, _ui16LocalID{ui16LocalID}, _ui32LocalIP{ui32LocalIP}, _ui16LocalPort{ui16LocalPort},
+        _ui32RemoteIP{ui32RemoteIP}, _ui16RemotePort{ui16RemotePort},
+        _ui8CompressionTypeAndLevel{static_cast<uint8> (compressionSetting.getCompressionLevel() |
+                                                        static_cast<int> (compressionSetting.getCompressionType()))}
+    { }
 
-    ConnectionOpenedProxyMessage::ConnectionOpenedProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID, uint32 ui32LocalIP, uint32 ui32ProxyUniqueID,
-                                                                uint16 ui16LocalMocketsServerPort, uint16 ui16LocalTCPServerPort, uint16 ui16LocalUDPServerPort,
-                                                                const CompressionSetting * const pCompressionSetting, bool bReachability) :
-        ProxyMessage (PMT_TCPConnectionOpened | (bReachability ? PMHR_ReachableHost : PMHR_UnreachableHost)), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID),
-        _ui32LocalIP (ui32LocalIP), _ui32ProxyUniqueID (ui32ProxyUniqueID), _ui16LocalMocketsServerPort (ui16LocalMocketsServerPort), _ui16LocalTCPServerPort (ui16LocalTCPServerPort),
-        _ui16LocalUDPServerPort (ui16LocalUDPServerPort), _ui8CompressionTypeAndLevel (pCompressionSetting->getCompressionLevel() | pCompressionSetting->getCompressionType()) {}
+    TCPConnectionOpenedProxyMessage::TCPConnectionOpenedProxyMessage (uint32 ui32ProxyUniqueID, uint16 ui16LocalID, uint16 ui16RemoteID,
+                                                                      uint32 ui32LocalIP, const CompressionSettings & compressionSetting,
+                                                                      bool bReachability) :
+        ProxyMessage{static_cast<uint8> (static_cast<int> (PacketType::PMT_TCPConnectionOpened) |
+                                         static_cast<int> (bReachability ? HostReachability::PMHR_ReachableHost :
+                                                                           HostReachability::PMHR_UnreachableHost))},
+        _ui32ProxyUniqueID{ui32ProxyUniqueID}, _ui16LocalID{ui16LocalID}, _ui16RemoteID{ui16RemoteID}, _ui32LocalIP{ui32LocalIP},
+        _ui8CompressionTypeAndLevel{static_cast<uint8> (compressionSetting.getCompressionLevel() |
+                                                        static_cast<int> (compressionSetting.getCompressionType()))}
+    { }
 
     TCPDataProxyMessage::TCPDataProxyMessage (uint16 ui16PayloadLen, uint16 ui16LocalID, uint16 ui16RemoteID, uint8 ui8TCPFlags) :
-        ProxyDataMessage (PMT_TCPData, ui16PayloadLen), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID), _ui8TCPFlags (ui8TCPFlags) {}
+        ProxyDataMessage{static_cast<uint8> (PacketType::PMT_TCPData), ui16PayloadLen}, _ui16LocalID{ui16LocalID},
+        _ui16RemoteID{ui16RemoteID}, _ui8TCPFlags{ui8TCPFlags}
+    { }
 
-    CloseConnectionProxyMessage::CloseConnectionProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID) :
-        ProxyMessage(PMT_TCPCloseConnection), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID) {}
+    CloseTCPConnectionProxyMessage::CloseTCPConnectionProxyMessage (uint16 ui16LocalID, uint16 ui16RemoteID) :
+        ProxyMessage{static_cast<uint8> (PacketType::PMT_TCPCloseConnection)}, _ui16LocalID{ui16LocalID},
+        _ui16RemoteID{ui16RemoteID}
+    { }
 
-    ResetConnectionProxyMessage::ResetConnectionProxyMessage(uint16 ui16LocalID, uint16 ui16RemoteID) :
-    ProxyMessage (PMT_TCPResetConnection), _ui16LocalID (ui16LocalID), _ui16RemoteID (ui16RemoteID) {}
+    ResetTCPConnectionProxyMessage::ResetTCPConnectionProxyMessage(uint16 ui16LocalID, uint16 ui16RemoteID) :
+        ProxyMessage{static_cast<uint8> (PacketType::PMT_TCPResetConnection)}, _ui16LocalID{ui16LocalID},
+        _ui16RemoteID{ui16RemoteID}
+    { }
 
     TunnelPacketProxyMessage::TunnelPacketProxyMessage (uint16 ui16PayloadLen) :
-        ProxyDataMessage (PMT_TunnelPacket, ui16PayloadLen) {}
+        ProxyDataMessage{static_cast<uint8> (PacketType::PMT_TunnelPacket), ui16PayloadLen}
+    { }
+
+    ConnectionErrorProxyMessage::ConnectionErrorProxyMessage (uint32 ui32LocalProxyUniqueID, uint32 ui32RemoteProxyUniqueID,
+                                                              uint32 ui32LocalInterfaceIPv4Address, uint32 ui32RemoteInterfaceIPv4Address,
+                                                              ConnectorType ct) :
+        ProxyMessage{static_cast<uint8> (PacketType::PMT_ConnectionError)}, _ui32LocalProxyUniqueID{ui32LocalProxyUniqueID},
+        _ui32RemoteProxyUniqueID{ui32RemoteProxyUniqueID}, _ui32LocalInterfaceIPv4Address{ui32LocalInterfaceIPv4Address},
+        _ui32RemoteInterfaceIPv4Address{ui32RemoteInterfaceIPv4Address}, _ui8ConnectorType{static_cast<uint8> (ct)}
+    { }
 }

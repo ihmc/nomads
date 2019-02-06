@@ -24,8 +24,8 @@
 #include <limits.h>
 
 #if defined (WIN32)
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
     #include <io.h>
     #include <direct.h>
@@ -69,7 +69,7 @@ bool FileUtils::createDirectory (const char *pszPath)
     #ifndef WIN32
         _mkdir (pszDirPath);
     #endif
-    while ((pszStr = strtok_mt (NULL, getPathSepCharAsString(), &pszTmp)) != NULL) {
+    while ((pszStr = strtok_mt (nullptr, getPathSepCharAsString(), &pszTmp)) != nullptr) {
         strcpy (pszSubDirName, pszStr);
         strcat (pszDirPath, getPathSepCharAsString());
         strcat (pszDirPath, pszSubDirName);
@@ -155,7 +155,7 @@ bool FileUtils::deleteDirectory (const char *pszPath)
     bool bTrailingSlash = (pszPath[strlen (pszPath) - 1] == '/');
 
     #if !defined (ANDROID)
-        if ((n = scandir ((const char*) currentDirPath, &eps, NULL, alphasort)) < 0) {
+        if ((n = scandir ((const char*) currentDirPath, &eps, nullptr, alphasort)) < 0) {
             return false;
         }
     #endif
@@ -177,8 +177,8 @@ bool FileUtils::deleteDirectory (const char *pszPath)
 
         if (S_ISDIR (sb.st_mode)) {
             if (!deleteDirectory ((const char*) currentFilePath)) {
-                for (int i = 0; i < n; i++) {
-                    free (eps[i]);
+                for (int j = 0; j < n; j++) {
+                    free (eps[j]);
                 }
                 if(n > 0) {
                     free (eps);
@@ -214,8 +214,8 @@ bool FileUtils::directoryExists (const char *pszPath)
 
 char ** FileUtils::listFilesInDirectory (const char *pszPath, bool bIncludeDirs)
 {
-    if (pszPath == NULL) {
-        return NULL;
+    if (pszPath == nullptr) {
+        return nullptr;
     }
 
     DArray2<String> files;
@@ -230,7 +230,7 @@ char ** FileUtils::listFilesInDirectory (const char *pszPath, bool bIncludeDirs)
 
     HANDLE hFind = FindFirstFile (szDir, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
-        return NULL;
+        return nullptr;
     }
 
     unsigned int idx = 0;
@@ -251,12 +251,12 @@ char ** FileUtils::listFilesInDirectory (const char *pszPath, bool bIncludeDirs)
 
 #elif defined (UNIX)
     DIR *pDir = opendir (pszPath);
-    if (pDir == NULL) {
-        return NULL;
+    if (pDir == nullptr) {
+        return nullptr;
     }
 
     struct dirent *pDe = readdir (pDir);
-    for (unsigned int i = 0; pDe != NULL; pDe = readdir (pDir)) {
+    for (unsigned int i = 0; pDe != nullptr; pDe = readdir (pDir)) {
         String fullName (pszPath);
         if (!fullName.endsWith ("/")) {
             fullName += "/";
@@ -272,12 +272,12 @@ char ** FileUtils::listFilesInDirectory (const char *pszPath, bool bIncludeDirs)
 #endif
 
     if (files.size() == 0) {
-        return NULL;
+        return nullptr;
     }
 
     char **ppFileList = (char **) calloc (files.size()+1, sizeof (char*));
-    if (ppFileList == NULL) {
-        return NULL;
+    if (ppFileList == nullptr) {
+        return nullptr;
     }
 
     for (unsigned int i = 0; i < files.size(); i++) {
@@ -301,7 +301,7 @@ String * FileUtils::enumSubdirs (const char *pszPath)
     // find the first file
     hFind = FindFirstFile (DirPath, &FindFileData);
     if (hFind == INVALID_HANDLE_VALUE) {
-        return NULL;
+        return nullptr;
     }
 
     // checks how many subdirectories are present
@@ -320,12 +320,12 @@ String * FileUtils::enumSubdirs (const char *pszPath)
         else {
             // no more files there
             if (GetLastError() == ERROR_NO_MORE_FILES) {
-                bSearch = NULL;
+                bSearch = nullptr;
             }
             else {
                 // some error occurred
                 FindClose (hFind);
-                return NULL;
+                return nullptr;
             }
         }
     }
@@ -333,7 +333,7 @@ String * FileUtils::enumSubdirs (const char *pszPath)
     // store the subdirectories names
     hFind = FindFirstFile (DirPath, &FindFileData);
     if (hFind == INVALID_HANDLE_VALUE) {
-        return NULL;
+        return nullptr;
     }
 
     String *pSubDirs = new String[j+1];
@@ -357,7 +357,7 @@ String * FileUtils::enumSubdirs (const char *pszPath)
             else {
                 // some error occurred
                 FindClose (hFind);
-                return NULL;
+                return nullptr;
             }
         }
     }
@@ -376,8 +376,8 @@ String * FileUtils::enumSubdirs (const char *pszPath)
     bool bTrailingSlash = (pszPath[strlen (pszPath) - 1] == '/');
 
     #if !defined (ANDROID)
-        if ((n = scandir (pszPath, &eps, NULL, alphasort)) < 0) {
-            return NULL;
+        if ((n = scandir (pszPath, &eps, nullptr, alphasort)) < 0) {
+            return nullptr;
         }
     #endif
 
@@ -460,7 +460,7 @@ void FileUtils::createDirStructure (const char *pszPath)
 
 int FileUtils::deleteFile (const char *pszPath)
 {
-    if (pszPath == NULL) {
+    if (pszPath == nullptr) {
         return -1;
     }
     if (!fileExists (pszPath)) {
@@ -474,11 +474,11 @@ int FileUtils::deleteFile (const char *pszPath)
 
 int FileUtils::dumpBufferToFile (const void *pBuf, uint64 ui64BufLen, const char *pszPath)
 {
-    if (pszPath == NULL) {
+    if (pszPath == nullptr) {
         return -1;
     }
     FILE *pFile = fopen (pszPath, "wb");
-    if (pFile == NULL) {
+    if (pFile == nullptr) {
         return -2;
     }
     const unsigned char *ptmpbuf = static_cast<const unsigned char *>(pBuf);
@@ -496,7 +496,7 @@ int FileUtils::dumpBufferToFile (const void *pBuf, uint64 ui64BufLen, const char
 
 bool FileUtils::fileExists (const char *pszPath)
 {
-    if (pszPath == NULL) {
+    if (pszPath == nullptr) {
         return false;
     }
     struct stat statinfo;
@@ -520,23 +520,23 @@ int64 FileUtils::fileSize (const char *pszPath)
 void * FileUtils::readFile (const char *pszPath, int64 *pi64FileSize)
 {
     FILE *pFile = fopen (pszPath, "rb");
-    if (pFile == NULL) {
-        return NULL;
+    if (pFile == nullptr) {
+        return nullptr;
     }
     int64 i64FileSize = fileSize (pszPath);
     if (i64FileSize < 0) {
         fclose (pFile);
-        return NULL;
+        return nullptr;
     }
     void *pBuf = malloc (i64FileSize);
-    if (pBuf == NULL) {
+    if (pBuf == nullptr) {
         fclose (pFile);
-        return NULL;
+        return nullptr;
     }
     if (i64FileSize != fread (pBuf, 1, i64FileSize, pFile)) {
         fclose (pFile);
         free (pBuf);
-        return NULL;
+        return nullptr;
     }
     if (pi64FileSize) {
         *pi64FileSize = i64FileSize;

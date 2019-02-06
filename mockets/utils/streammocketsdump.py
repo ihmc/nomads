@@ -3,8 +3,8 @@
 # Simple stream mockets packet dump utility
 #
 # Author: Mauro Tortonesi <mauro@ferrara.linux.it>
-# Revision: $Revision: 1.3 $
-# Last updated: $Date: 2005/09/21 14:43:25 $
+# Revision: $Revision$
+# Last updated: $Date$
 #
 # This program requires the pypcap and dpkt extension modules, which can be
 # found at the following URLs respectively:

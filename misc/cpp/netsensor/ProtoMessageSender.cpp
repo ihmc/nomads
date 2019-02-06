@@ -445,9 +445,51 @@ void ProtoMessageSender::sendICMPFragment(NetSensorContainer *pNewC)
     }
 }
 
+void ProtoMessageSender::sendRTTMeasure(measure::Measure * pMeasure)
+{
+    const char *meName = "ProtoMessageSender::sendRTTMeasure";
+    if (pMeasure == nullptr) {
+        checkAndLogMsg(meName, Logger::L_MildError, "Measure is null\n");
+    }
+    uint32 ui32MeasureSize = pMeasure->ByteSize();
+    if (ui32MeasureSize > 0) {
+        char * pcBuffer = new char[ui32MeasureSize];
+        if (!pcBuffer) {
+            checkAndLogMsg(meName, Logger::L_SevereError, "Memory allocation of %uB failed!\n", ui32MeasureSize);
+        }
+
+        pMeasure->SerializeToArray(pcBuffer, ui32MeasureSize);
+        checkAndLogMsg(meName, Logger::L_MediumDetailDebug, "Sending %uB\n", ui32MeasureSize);
+        sendSerializedData(pcBuffer, ui32MeasureSize);
+        delete[] pcBuffer;
+    }
+
+}
+
+void ProtoMessageSender::sendIWMeasure (measure::Measure * pMeasure)
+{
+    const char *meName = "ProtoMessageSender::sendIWMeasure";
+    if (pMeasure == nullptr) {
+        checkAndLogMsg(meName, Logger::L_MildError, "Measure is null\n");
+    }
+    uint32 ui32MeasureSize = pMeasure->ByteSize();
+    if (ui32MeasureSize > 0) {
+        char * pcBuffer = new char[ui32MeasureSize];
+        if (!pcBuffer) {
+            checkAndLogMsg(meName, Logger::L_SevereError, "Memory allocation of %uB failed!\n", ui32MeasureSize);
+        }
+
+        pMeasure->SerializeToArray(pcBuffer, ui32MeasureSize);
+        checkAndLogMsg(meName, Logger::L_MediumDetailDebug, "Sending %uB\n", ui32MeasureSize);
+        sendSerializedData(pcBuffer, ui32MeasureSize);
+        delete[] pcBuffer;
+    }
+}
+
+
 int ProtoMessageSender::splitAndSendICMPPacket(NetSensorContainer *pOldCont)
 {
-    const char *meName = "HandlerThread::splitAndSendICMPPacket";
+    const char *meName = "ProtoMessageSender::splitAndSendICMPPacket";
     if (pOldCont == NULL)
     {
         checkAndLogMsg(meName, Logger::L_SevereError, "NetSensorContainer param is null");

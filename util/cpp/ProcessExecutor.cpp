@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -25,8 +25,8 @@
 #if defined (WIN32)
     #include <io.h>
     #include <process.h>
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
 
     #define strdup _strdup
@@ -89,7 +89,7 @@ int ProcessExecutor::configure (const char *pszExecutablePath, ...)
         _apszArgs = NULL;
         _iNumArgs = 0;
     }
-    
+
     if (_apszEnvVars) {
         for (int i = 0; i < _iNumEnvVars; i++) {
             free (_apszEnvVars[i]);
@@ -229,7 +229,7 @@ int ProcessExecutor::configure (const char *pszExecutablePath, DArray2<String> &
         _apszArgs[i] = strdup (args[i]);
     }
     _apszArgs[_iNumArgs] = NULL;
-    
+
     _iNumEnvVars = envVars.size();
     _apszEnvVars = new char * [_iNumEnvVars + 1];
     for (i = 0; i < _iNumEnvVars; i++) {
@@ -341,7 +341,7 @@ void ProcessExecutor::ExecutorThread::run (void)
             return;
         }
         else if (_iPID == 0) {
-            // This is the child process 
+            // This is the child process
             // Setup any environment variables
             for (i = 0; i < _ppe->_iNumEnvVars; i++) {
                 if (putenv (_ppe->_apszEnvVars[i])) {
@@ -351,7 +351,7 @@ void ProcessExecutor::ExecutorThread::run (void)
                 }
             }
 
-            // Call exec            
+            // Call exec
             if (execv (_ppe->executablePath, _ppe->_apszArgs)) {
                 checkAndLogMsg ("ProcessExecutor::ExecutorThread::run", Logger::L_MildError,
                                 "failed to exec process; os error = %d\n", errno);

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -121,7 +121,7 @@ int ConfigManager::write (Writer *pWriter)
 void ConfigManager::writeConfigFile (const char *pszFilePath)
 {
     if (pszFilePath == NULL) {
-    	throw ParamException ("pszFilePath == NULL");
+        throw ParamException ("pszFilePath == NULL");
     }
 
     FILE *pFileOutput;
@@ -142,7 +142,7 @@ void ConfigManager::writeConfigFile (void)
 
     if (_pszConfigFile == NULL) {
         sprintf (szBuf, "failed to write Config file as no filename set in _pszConfigFile");
-       	throw IOException (szBuf);
+           throw IOException (szBuf);
     }
     writeConfigFile (_pszConfigFile);
 }

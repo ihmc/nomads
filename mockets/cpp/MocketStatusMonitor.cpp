@@ -41,12 +41,12 @@ using namespace NOMADSUtil;
 
 MocketStatusMonitor::MocketStatusMonitor (void)
 {
-    _pDGSocket = NULL;
+    _pDGSocket = nullptr;
     _ui16RelayPort = 0;
-    _pDGRelaySocket = NULL;
-    _fileLog = NULL;
-    _pHandlerFn = NULL;
-    _pCallbackArg = NULL;
+    _pDGRelaySocket = nullptr;
+    _fileLog = nullptr;
+    _pHandlerFn = nullptr;
+    _pCallbackArg = nullptr;
     _szBuf[0] = '\0';
     _i64delay = 10000;
 }
@@ -55,7 +55,7 @@ MocketStatusMonitor::~MocketStatusMonitor (void)
 {
     delete _pDGSocket;
     delete _pDGRelaySocket;
-    _pDGSocket = NULL;
+    _pDGSocket = nullptr;
 }
 
 void MocketStatusMonitor::setStatsIntervalMillisec (int64 i)
@@ -83,7 +83,7 @@ int MocketStatusMonitor::initReceiveSocket (uint16 ui16StatPort)
 
 int MocketStatusMonitor::initRelaying (const char *pszRelayIP, uint16 ui16RelayPort)
 {
-    if (pszRelayIP == NULL) {
+    if (pszRelayIP == nullptr) {
         return -1;
     }
     int rc;
@@ -100,7 +100,7 @@ int MocketStatusMonitor::initRelaying (const char *pszRelayIP, uint16 ui16RelayP
 
 int MocketStatusMonitor::initFileOutput (FILE *fileLog)
 {
-    if (fileLog == NULL) {
+    if (fileLog == nullptr) {
         _fileLog = stdout;
     }
     else {
@@ -173,11 +173,11 @@ int MocketStatusMonitor::handleConnectionFailedUpdate (const char *pBuf, uint16 
 {
     uint32 ui32PID = getPID (pBuf, ui16BufLen);
     const char *pszIdentifier = getIdentifier (pBuf, ui16BufLen);
-    if (pszIdentifier == NULL) {
+    if (pszIdentifier == nullptr) {
         return -1;
     }
     const EndPointsInfo *pEPI = getEndPointsInfo (pBuf, ui16BufLen);
-    if (pEPI == NULL) {
+    if (pEPI == nullptr) {
         return -2;
     }
 
@@ -211,11 +211,11 @@ int MocketStatusMonitor::handleConnectionEstablishedUpdate (const char *pBuf, ui
 {
     uint32 ui32PID = getPID (pBuf, ui16BufLen);
     const char *pszIdentifier = getIdentifier (pBuf, ui16BufLen);
-    if (pszIdentifier == NULL) {
+    if (pszIdentifier == nullptr) {
         return -1;
     }
     const EndPointsInfo *pEPI = getEndPointsInfo (pBuf, ui16BufLen);
-    if (pEPI == NULL) {
+    if (pEPI == nullptr) {
         return -2;
     }
 
@@ -249,11 +249,11 @@ int MocketStatusMonitor::handleConnectionReceivedUpdate (const char *pBuf, uint1
 {
     uint32 ui32PID = getPID (pBuf, ui16BufLen);
     const char *pszIdentifier = getIdentifier (pBuf, ui16BufLen);
-    if (pszIdentifier == NULL) {
+    if (pszIdentifier == nullptr) {
         return -1;
     }
     const EndPointsInfo *pEPI = getEndPointsInfo (pBuf, ui16BufLen);
-    if (pEPI == NULL) {
+    if (pEPI == nullptr) {
         return -2;
     }
 
@@ -287,15 +287,15 @@ int MocketStatusMonitor::handleStatsUpdate (const char *pBuf, uint16 ui16BufLen)
 {
     uint32 ui32PID = getPID (pBuf, ui16BufLen);
     const char *pszIdentifier = getIdentifier (pBuf, ui16BufLen);
-    if (pszIdentifier == NULL) {
+    if (pszIdentifier == nullptr) {
         return -1;
     }
     const EndPointsInfo *pEPI = getEndPointsInfo (pBuf, ui16BufLen);
-    if (pEPI == NULL) {
+    if (pEPI == nullptr) {
         return -2;
     }
     const StatisticsInfo *pSI = getStatistics (pBuf, ui16BufLen);
-    if (pSI == NULL) {
+    if (pSI == nullptr) {
         return -3;
     }
 
@@ -334,14 +334,14 @@ int MocketStatusMonitor::handleStatsUpdate (const char *pBuf, uint16 ui16BufLen)
         sprintf (buf + 1, "%s %d %s %d %lld %u %u %u %u %u %u %u %u %f %u %u %u %u %u %u", (const char*) localIPAddr, (int) pEPI->ui16LocalPort, (const char*) remoteIPAddr, (int) pEPI->ui16RemotePort, (i64CurrTime - pSI->i64LastContactTime), pSI->ui32SentBytes, pSI->ui32SentPackets, pSI->ui32Retransmits, pSI->ui32ReceivedBytes, pSI->ui32ReceivedPackets, pSI->ui32DuplicatedDiscardedPackets, pSI->ui32NoRoomDiscardedPackets, pSI->ui32ReassemblySkippedDiscardedPackets, pSI->fEstimatedRTT, pSI->ui32PendingDataSize, pSI->ui32PendingPacketQueueSize,  pSI->ui32ReliableSequencedDataSize, pSI->ui32ReliableSequencedPacketQueueSize, pSI->ui32ReliableUnsequencedDataSize, pSI->ui32ReliableUnsequencedPacketQueueSize);
         sprintf (buf2, "%s %d %s %d", (const char*) localIPAddr, (int) pEPI->ui16LocalPort, (const char*) remoteIPAddr, (int) pEPI->ui16RemotePort);
         String *temp = _stats.get (buf2);
-        if (temp != NULL) {
+        if (temp != nullptr) {
             delete temp;
         }
         _stats.put (buf2, new String(buf));
         int64 *oldTime = _timestats.get (buf2);
-        if (oldTime == NULL || i64CurrTime - (*oldTime) > _i64delay) {
+        if (oldTime == nullptr || i64CurrTime - (*oldTime) > _i64delay) {
             _pDGRelaySocket->sendTo (_relayIP, _ui16RelayPort, buf, 1024);
-            if (oldTime != NULL) {
+            if (oldTime != nullptr) {
                 delete oldTime;
             }
             newTime = new int64();
@@ -351,7 +351,7 @@ int MocketStatusMonitor::handleStatsUpdate (const char *pBuf, uint16 ui16BufLen)
     }
 
     const MessageStatisticsInfo *pMSI = getMessageStatistics (pBuf, ui16BufLen);
-    if (pMSI != NULL) {
+    if (pMSI != nullptr) {
         // This is an update from a MessageMocket
         // Handle pMSI appropriately
         snprintf (_szBuf, sizeof(_szBuf)-1, ", %d, %u, %u, %u, %u, %u, %u, %u, %u, %u\n",
@@ -363,8 +363,8 @@ int MocketStatusMonitor::handleStatsUpdate (const char *pBuf, uint16 ui16BufLen)
                  pMSI->ui32CancelledPackets);
         handleMessage();
         // Iterate through the per-type MSIs
-        const MessageStatisticsInfo *pPerTypeMSI = NULL;
-        while (NULL != (pPerTypeMSI = getPerTypeMessageStatistics (pBuf, ui16BufLen, pPerTypeMSI))) {
+        const MessageStatisticsInfo *pPerTypeMSI = nullptr;
+        while (nullptr != (pPerTypeMSI = getPerTypeMessageStatistics (pBuf, ui16BufLen, pPerTypeMSI))) {
             // Handle pPerTypeMSI appropriately
             snprintf (_szBuf, sizeof(_szBuf)-1, ", , , , , , , , , , , , , , , , , , , , , , , , %d, %u, %u, %u, %u, %u, %u, %u, %u, %u\n",
                      (int) pPerTypeMSI->ui16MsgType,
@@ -387,11 +387,11 @@ int MocketStatusMonitor::handleDisconnectionUpdate (const char *pBuf, uint16 ui1
 {
     uint32 ui32PID = getPID (pBuf, ui16BufLen);
     const char *pszIdentifier = getIdentifier (pBuf, ui16BufLen);
-    if (pszIdentifier == NULL) {
+    if (pszIdentifier == nullptr) {
         return -1;
     }
     const EndPointsInfo *pEPI = getEndPointsInfo (pBuf, ui16BufLen);
-    if (pEPI == NULL) {
+    if (pEPI == nullptr) {
         return -2;
     }
     // Handle pszIdentifier and pEPI appropriately
@@ -415,13 +415,13 @@ int MocketStatusMonitor::handleDisconnectionUpdate (const char *pBuf, uint16 ui1
         buf[0] = MSNT_Disconnected;
         sprintf (buf + 1, "%s %d %s %d", (const char*) localIPAddr, (int) pEPI->ui16LocalPort, (const char*) remoteIPAddr, (int) pEPI->ui16RemotePort);
         String *stat = _stats.get(buf + 1);
-        if (stat != NULL) {
+        if (stat != nullptr) {
             _pDGRelaySocket->sendTo (_relayIP, _ui16RelayPort, (char *) (*stat), 1024);
             _stats.remove(buf + 1);
             delete stat;
         }
         int64 * t = _timestats.get(buf + 1);
-        if (t != NULL)
+        if (t != nullptr)
             delete t;
         _timestats.remove(buf + 1);
         _pDGRelaySocket->sendTo (_relayIP, _ui16RelayPort, buf, 1024);
@@ -461,7 +461,7 @@ const EndPointsInfo * MocketStatusMonitor::getEndPointsInfo (const char *pBuf, u
 const StatisticsInfo * MocketStatusMonitor::getStatistics (const char *pBuf, uint16 ui16BufLen)
 {
     if (getUpdateType (pBuf, ui16BufLen) != MSNT_Stats) {
-        return NULL;
+        return nullptr;
     }
     uint16 ui16IdentifierLen = *((uint16*)(pBuf+5));
     return (StatisticsInfo*) (pBuf + 1 + 4 + 2 + ui16IdentifierLen + 1 + sizeof (EndPointsInfo));
@@ -470,12 +470,12 @@ const StatisticsInfo * MocketStatusMonitor::getStatistics (const char *pBuf, uin
 const MessageStatisticsInfo * MocketStatusMonitor::getMessageStatistics (const char *pBuf, uint16 ui16BufLen)
 {
     if (getUpdateType (pBuf, ui16BufLen) != MSNT_Stats) {
-        return NULL;
+        return nullptr;
     }
     uint16 ui16IdentifierLen = *((uint16*)(pBuf+5));
     uint16 ui16Offset = 1 + 4 + 2 + ui16IdentifierLen + 1 + sizeof (EndPointsInfo) + sizeof (StatisticsInfo);
     if (MSF_OverallMessageStatistics != *((uint8*)(pBuf+ui16Offset))) {
-        return NULL;
+        return nullptr;
     }
     return (MessageStatisticsInfo*) (pBuf + ui16Offset + 1);
 }
@@ -483,27 +483,27 @@ const MessageStatisticsInfo * MocketStatusMonitor::getMessageStatistics (const c
 const MessageStatisticsInfo * MocketStatusMonitor::getPerTypeMessageStatistics (const char *pBuf, uint16 ui16BufLen, const MessageStatisticsInfo *pPrev)
 {
     if (getUpdateType (pBuf, ui16BufLen) != MSNT_Stats) {
-        return NULL;
+        return nullptr;
     }
     uint16 ui16Offset;
     uint16 ui16IdentifierLen;
-    if (pPrev == NULL) {
+    if (pPrev == nullptr) {
         ui16IdentifierLen = *((uint16*)(pBuf+5));
         ui16Offset = 1 + 4 + 2 + ui16IdentifierLen + 1 + sizeof (EndPointsInfo) + sizeof (StatisticsInfo);
         if (MSF_OverallMessageStatistics != *((uint8*)(pBuf+ui16Offset))) {
-            return NULL;
+            return nullptr;
         }
         ui16Offset += (1 + sizeof (MessageStatisticsInfo));
     }
     else {
         if ((const char*)pPrev <= pBuf) {
-            return NULL;
+            return nullptr;
         }
         ui16Offset = (uint16) (((const char*)pPrev) - pBuf);
         ui16Offset += (1 + sizeof (MessageStatisticsInfo));
     }
     if (MSF_PerTypeMessageStatistics != *((uint8*)(pBuf+ui16Offset))) {
-        return NULL;
+        return nullptr;
     }
     return (MessageStatisticsInfo*) (pBuf + ui16Offset + 1);
 }

@@ -74,7 +74,7 @@ namespace NOMADSUtil
             DArray (unsigned int uiSize);
             DArray (T initialValue);
             DArray (T initialValue, unsigned int uiSize);
-            DArray (const DArray<T> &SourceArray);       // Copy Constructor
+            DArray (const DArray<T> & SourceArray);       // Copy Constructor
             void setInitialValue (T initialValue);
             void initialize (void);
             T & operator [] (unsigned int uiIndex);      // Indexing operator
@@ -86,12 +86,13 @@ namespace NOMADSUtil
             long getHighestIndex (void) const { return lHighestIndex; }
             void setHighestIndex (long lHighestIdx) {this->lHighestIndex = lHighestIdx;}
             unsigned int size (void) const { return ((unsigned int)lHighestIndex+1); }
-            T* getData(void);
-            T* relinquishData (void);
+            T * getData (void);
+            const T * getData (void) const;
+            T * relinquishData (void);
             ~DArray (void);                              // Destructor
         protected:
-            T *pArray;                           // Storage for elements
-            T *pInitialValue;
+            T * pArray;                           // Storage for elements
+            T * pInitialValue;
             unsigned int uiCurrSize;
             unsigned int uiCurrIncr;
             long lHighestIndex;
@@ -161,7 +162,7 @@ namespace NOMADSUtil
         lHighestIndex = -1L;
     }
 
-    template <class T> DArray<T>::DArray (const DArray<T> &SourceArray)   // Copy constructor
+    template <class T> DArray<T>::DArray (const DArray<T> & SourceArray)   // Copy constructor
     {
         uiCurrSize = SourceArray.uiCurrSize;         // Set size to source array
         uiCurrIncr = SourceArray.uiCurrIncr;         // Set increment value
@@ -206,9 +207,14 @@ namespace NOMADSUtil
         }
     }
 
-    template <class T> T* DArray<T>::getData(void)
+    template <class T> T * DArray<T>::getData (void)
     {
          return pArray;
+    }
+
+    template <class T> const T * DArray<T>::getData (void) const
+    {
+        return pArray;
     }
 
     template <class T> T * DArray<T>::relinquishData (void)

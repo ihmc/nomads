@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -36,19 +36,19 @@
 #include "Writer.h"
 
 namespace NOMADSUtil
-{        
+{
     template <class C> struct Edge
-    {        
+    {
         /*
          * The Edge is composed by three elements:
          * 1) pszDestKey that keeps track of the Destination Vertex Key
          * 2) pszEdgeLabel that keeps track of the label of the Edge.
          * 3) pEdgeCost that keeps the reference of the cost of the Edge
-         * 
+         *
          * Edges are identified uniquely by the pszDestKey and pszEdgeLabel.
          * This means that a Vertex A can NOT have two Edges with the same label
          * pointing toward the same destination.
-         * 
+         *
          * Edge labels can have several application. It can be used to distinguish
          * on edge from another by its network interface. Nodes in the network can
          * be connected in different ways using different network interfaces.
@@ -59,15 +59,15 @@ namespace NOMADSUtil
          */
         Edge (void);
 
-        /* 
+        /*
          * It does make a copy of the Destination Vertex Key, the Edge Label and the Cost.
          */
         Edge (const char *pszDstVertexKey, const char *pszEdgeLabel, C *pEdgeCost);
 
-        /* 
+        /*
          * It does NOT make a copy of the Destination Vertex Key and the Edge Label neither.
          * The pointer to the Edge Cost is set to NULL.
-         * This constructor is called when you need to compare Edges.   
+         * This constructor is called when you need to compare Edges.
          */
         Edge (const char *pszDstVertexKey, const char *pszEdgeLabel);
 
@@ -77,9 +77,9 @@ namespace NOMADSUtil
         /* It does FREE on Destination Vertex Key, Edge Label */
         virtual ~Edge (void);
 
-        /* 
-         * Compare two edges. If the Destination Vertex Key AND the Edge Labels are equal 
-         * it returns 1. 0 otherwise. 
+        /*
+         * Compare two edges. If the Destination Vertex Key AND the Edge Labels are equal
+         * it returns 1. 0 otherwise.
          */
         int operator == (const Edge &rhsEdge);
 
@@ -107,14 +107,14 @@ namespace NOMADSUtil
             virtual ~HTGraph (void);
 
             /*
-             * Adds a new Element T in the Graph. 
+             * Adds a new Element T in the Graph.
              * NOTE : It does NOT make a copy of the element, but it just keeps the reference.
              * Returns 0 if successful, -1 if the Graph contains the Vertex T already.
              */
             int addVertex (const char *pszVertexKey, T *pElement);
 
             /*
-             * Remove a Vertex T from the Graph and its directed Edges and/or undirected Edges. 
+             * Remove a Vertex T from the Graph and its directed Edges and/or undirected Edges.
              * Return 0 if the operation is successful, -1 if the Vertex is not found in the Graph.
              */
             int removeVertex (const char *pszVertexKey);
@@ -136,15 +136,15 @@ namespace NOMADSUtil
             int removeEdge (const char *pszSourceVertexKey, const char *pszDestVertexKey,
                             const char *pszEdgeLabel);
 
-            /* 
+            /*
              * Removes one or more directed/undirected Edges pointing toward a Destination Vertex.
-             * Returns 0 if the removal was successful, a negative number otherwise. 
+             * Returns 0 if the removal was successful, a negative number otherwise.
              */
             int removeEdgeByDestination (const char *pszSourceVertexKey, const char *pszDestVertexKey);
 
             /*
              * Removes one or more directed/undirected Edges with a certain EdgeColor.
-             * Returns 0 if the removal was successful, a negative number otherwise. 
+             * Returns 0 if the removal was successful, a negative number otherwise.
              */
             int removeEdgeByLabel (const char *pszSourceVertexKey, const char *pszEdgeLabel);
 
@@ -164,7 +164,7 @@ namespace NOMADSUtil
              * Returns NULL otherwise
              */
             Vertex<T,C> * getVertexObject (const char *pszVertexKey);
-                    
+
             /*
              * Returns a list containing all the Graph Vertex keys
              * Returns NULL if the Graph is empty
@@ -207,12 +207,12 @@ namespace NOMADSUtil
             int getNeighborsList (const char *pszVertexKey, PtrLList<NOMADSUtil::String> *pNeighborsList);
 
             /*
-             * Returns the minimum number of hops between two nodes. 
+             * Returns the minimum number of hops between two nodes.
              * It is based on Dijkstra algorithm.
              * Note : The class C needs to implement the following methods:
              *        1) C ()
              *        2) void setCost (float fCost);
-             *        3) float getCost ();  
+             *        3) float getCost ();
              * Returns a negative value if path has not been found.
              */
             int getShortestPath (const char *pszSrcVertexKey, const char *pszDestVertexKey,
@@ -230,27 +230,27 @@ namespace NOMADSUtil
              */
             bool hasNeighbor (const char* pszSourceVertexKey, const char *pszNeighborKey);
 
-            /* 
+            /*
              * Checks whether the Graph has the Vertex
-             * Returns true if it is found. False otherwise  
+             * Returns true if it is found. False otherwise
              */
             bool hasVertex (const char *pszVertexKey);
 
             /*
-             * Compares two Vertexes. In order to used this method the template T need 
+             * Compares two Vertexes. In order to used this method the template T need
              * to implement the '!= operator'. It MUST returns true or false.
-             * Return 0 if they are equivalent. A negative value otherwise. 
+             * Return 0 if they are equivalent. A negative value otherwise.
              */
             int compareVertexes (Vertex<T,C> *pSourceVertex, Vertex<T,C> *pDestVertex);
 
             /*
-             * Given the Vertex key, the method deletes the vertexes and Edges that are 
+             * Given the Vertex key, the method deletes the vertexes and Edges that are
              * over the hop number given.
              * Returns the number of Vertexes deleted. Negative value in case of errors
              * Note : The class C needs to implement the following methods:
              *        1) C ()
              *        2) void setCost (float fCost);
-             *        3) float getCost ();  
+             *        3) float getCost ();
              */
             int deleteElements (const char *pszVertexKey, uint16 ui16HopNum);
 
@@ -295,7 +295,7 @@ namespace NOMADSUtil
              * updates the graph. Returns the key of the updated vertex.
              * Returns NULL in case of error or no update.
              */
-            const char * updateNeighborhood (Reader *pReader, uint32 *pui32BytesRead);            
+            const char * updateNeighborhood (Reader *pReader, uint32 *pui32BytesRead);
 
             /*
              * Given a set of Vertex keys, Vertexes and their neighbors in the Reader,
@@ -305,12 +305,12 @@ namespace NOMADSUtil
             PtrLList<const char> * updateGraph (Reader *pReader, uint32 *pui32BytesRead);
 
             /*
-             * This methods writes the number of Vertex written (1), key of the Vertex, 
+             * This methods writes the number of Vertex written (1), key of the Vertex,
              * the Vertex its self and all its neighbors (Neighbor key and its attributes).
              * Returns 0 if successful, negative value otherwise.
-             * It also returns the bytes written in the variable ui32BytesWritten 
+             * It also returns the bytes written in the variable ui32BytesWritten
              */
-            int writeNeighborhood (Writer *pWriter, uint32 *pui32BytesWritten, 
+            int writeNeighborhood (Writer *pWriter, uint32 *pui32BytesWritten,
                                    const char *pszVertexKey);
 
             /*
@@ -334,17 +334,17 @@ namespace NOMADSUtil
 
             /*
              * Performs the deep first traverse of the graph.
-             * It returns all the Vertex reachable from a given Vertex in the Hashtable. 
+             * It returns all the Vertex reachable from a given Vertex in the Hashtable.
              */
             void traverse (Vertex<T,C> *pVertex, StringHashtable<bool> *pVisited);
 
             /*
              * Performs the deep first traverse of the Graph for certain hops deep.
-             * Returns the Vertexes reachable until a certain deep has been reached. 
+             * Returns the Vertexes reachable until a certain deep has been reached.
              */
             void traverse (Vertex<T,C> *pVertex, StringHashtable<bool> *pVisited, uint16 ui16Hops);
 
-        private:        
+        private:
             /*
              * Given a Vertex key, the Vertex and its neighbors in the Reader, this method
              * updates the graph. Returns the key of the updated vertex.
@@ -358,7 +358,7 @@ namespace NOMADSUtil
              * all its neighbors (Neighbor key and its attributes).
              * Returns 0 if successful, negative value otherwise.
              * It also returns the bytes written in the variable ui32BytesWritten.
-             * It is used by the public methods writeNeighborhood and writeGraph. 
+             * It is used by the public methods writeNeighborhood and writeGraph.
              */
             int writePrivateNeighborhood (Writer *pWriter, uint32 *pui32BytesWritten, const char *pszVertexKey);
 
@@ -398,24 +398,24 @@ namespace NOMADSUtil
         _bReferenceKept = false;
     }
 
-    template <class C> Edge<C>::Edge (const char *pszDestVertexKey, const char *pszEdgeLabel) 
+    template <class C> Edge<C>::Edge (const char *pszDestVertexKey, const char *pszEdgeLabel)
     {
         _pszDstVertexKey = (char *) pszDestVertexKey;
         _pszEdgeLabel = (char *) pszEdgeLabel;
         _pEdgeElement = NULL;
         _bReferenceKept = true;
     }
-    
+
     template <class C> Edge<C>::Edge (const char *pszDstVertexKey)
     {
         /* Copy the Destination Key */
-        _pszDstVertexKey = strDup (pszDstVertexKey);        
+        _pszDstVertexKey = strDup (pszDstVertexKey);
         _pszEdgeLabel = strDup (DEFAULT_EDGE_LABEL);
         _pEdgeElement = NULL;
-        _bReferenceKept = false;        
+        _bReferenceKept = false;
     }
 
-    template <class C> Edge<C>::~Edge() 
+    template <class C> Edge<C>::~Edge()
     {
         if (_pszEdgeLabel && !_bReferenceKept) {
             free (_pszEdgeLabel);
@@ -425,10 +425,10 @@ namespace NOMADSUtil
         if (_pszDstVertexKey && !_bReferenceKept) {
             free (_pszDstVertexKey);
             _pszDstVertexKey = NULL;
-        }        
+        }
     }
 
-    template <class C> int Edge<C>::operator == (const Edge &rhsEdge) 
+    template <class C> int Edge<C>::operator == (const Edge &rhsEdge)
     {
         if (strcmp (_pszDstVertexKey, rhsEdge._pszDstVertexKey) == 0 &&
             strcmp (_pszEdgeLabel, rhsEdge._pszEdgeLabel) == 0) {
@@ -478,12 +478,12 @@ namespace NOMADSUtil
         if (pVertexToAdd == NULL) {
             return -3;
         }
-        
+
         // Add the Element T to the Vertex
         pVertexToAdd->_pElement = pElement;
         _vertexHashtable.put (pszVertexKey, pVertexToAdd);
         _ui16VertexNum++;
-        
+
         return 0;
     }
 
@@ -495,18 +495,17 @@ namespace NOMADSUtil
 
         Vertex<T,C> *pVertexToDelete = _vertexHashtable.remove (pszVertexKey);
         if (pVertexToDelete == NULL) {
-            // Vertex not found - can't be removed
+            // Vertex not found - cannot be removed
             return -1;
         }
 
         // Delete the EdgeList of the Vertex to delete
-        _ui16EdgeNum = _ui16EdgeNum - pVertexToDelete->_edgeList.getCount();
-        Edge<C> *pCurr, *pNext, *pDel;
+        _ui16EdgeNum -= pVertexToDelete->_edgeList.getCount();
+        Edge<C> *pCurr, *pNext;
         pNext = pVertexToDelete->_edgeList.getFirst();
         while ((pCurr = pNext) != NULL) {
             pNext = pVertexToDelete->_edgeList.getNext();
-            pDel = pVertexToDelete->_edgeList.remove (pCurr);
-            delete pDel;
+            delete pVertexToDelete->_edgeList.remove (pCurr);
         }
 
         // Delete the Vertex itself
@@ -527,9 +526,8 @@ namespace NOMADSUtil
 
                 if (strcmp (pCurrEdge->_pszDstVertexKey, pszVertexKey) == 0) {
                     Edge<C> edgeToDel (pszVertexKey, pCurrEdge->_pszEdgeLabel);
-                    pDel = pCurrVertex->_edgeList.remove (&edgeToDel);
+                    delete pCurrVertex->_edgeList.remove (&edgeToDel);
                     _ui16EdgeNum--;
-                    delete pDel;
                 }
             }
         }
@@ -549,7 +547,7 @@ namespace NOMADSUtil
         // Ensure that both Source and Destination Vertexes exist before adding an Edge
         if (!_vertexHashtable.containsKey (pszSourceVertexKey) ||
             !_vertexHashtable.containsKey (pszDestVertexKey)) {
-            
+
             return -1;
         }
 
@@ -560,7 +558,7 @@ namespace NOMADSUtil
             if (!hasEdge (pszSourceVertexKey, pszDestVertexKey, pszEdgeLabel)) {
                 pCurrentVertex = _vertexHashtable.get (pszSourceVertexKey);
                 // Create and add a new Edge. Check whether the Edge has been allocated
-                pNewEdge = new Edge<C> (pszDestVertexKey, pszEdgeLabel, pEdgeElement);                
+                pNewEdge = new Edge<C> (pszDestVertexKey, pszEdgeLabel, pEdgeElement);
                 if (pNewEdge == NULL) {
                     return -1;
                 }
@@ -574,19 +572,19 @@ namespace NOMADSUtil
         else {
             // if the Graph is not directed and there is no edge between Destination
             // and Source Vertex, add two Edges
-            if (!hasEdge (pszSourceVertexKey, pszDestVertexKey, pszEdgeLabel) && 
+            if (!hasEdge (pszSourceVertexKey, pszDestVertexKey, pszEdgeLabel) &&
                 !hasEdge (pszDestVertexKey, pszSourceVertexKey, pszEdgeLabel)) {
-                
+
                 pCurrentVertex = _vertexHashtable.get (pszSourceVertexKey);
                 pNewEdge = new Edge<C> (pszDestVertexKey, pszEdgeLabel, pEdgeElement);
                 if (pNewEdge == NULL) {
                     return -1;
                 }
-                
+
                 pCurrentVertex->_edgeList.append (pNewEdge);
                 _ui16EdgeNum++;
- 
-                // Check if the Source Node and Destination Node are the same. 
+
+                // Check if the Source Node and Destination Node are the same.
                 // If so there's no need to add another Edge.
                 if (strcmp (pszSourceVertexKey, pszDestVertexKey) != 0) {
                     pCurrentVertex = _vertexHashtable.get (pszDestVertexKey);
@@ -594,11 +592,11 @@ namespace NOMADSUtil
                     if (pNewEdge == NULL) {
                         return -1;
                     }
-                
+
                     pCurrentVertex->_edgeList.append (pNewEdge);
                     _ui16EdgeNum++;
                 }
-                
+
                 return 0;
             }
             return -2;
@@ -650,7 +648,7 @@ namespace NOMADSUtil
             delete pEdgeToDelete;
             pEdgeToDelete = NULL;
             _ui16EdgeNum--;
-            bFoundDirected = true;            
+            bFoundDirected = true;
         }
 
         // If the Graph is not Directed search and delete the inverse Edges
@@ -679,7 +677,7 @@ namespace NOMADSUtil
                 return 0;
             }
             return -1;
-        }        
+        }
     }
 
     template <class T, class C> int HTGraph<T,C>::removeEdgeByDestination (const char *pszSourceVertexKey, const char *pszDestVertexKey)
@@ -709,7 +707,7 @@ namespace NOMADSUtil
 
         return rc;
     }
-    
+
     template <class T, class C> int HTGraph<T,C>::removeEdgeByLabel (const char *pszSourceVertexKey, const char *pszEdgeLabel)
     {
         if (pszSourceVertexKey == NULL) {
@@ -725,10 +723,10 @@ namespace NOMADSUtil
         int rc = -3;
         for (Edge<C> *pCurrentEdge = pVertex->_edgeList.getFirst(); pCurrentEdge != NULL;
              pCurrentEdge = pVertex->_edgeList.getNext()) {
-            
+
             if (strcmp (pCurrentEdge->_pszEdgeLabel, pszEdgeLabel) == 0) {
                 // Copy the current label to pass to removeEdge. Do NOT pass the pszEdgeLabel as parameter
-                String sCurrDest (pCurrentEdge->_pszDstVertexKey);                
+                String sCurrDest (pCurrentEdge->_pszDstVertexKey);
                 if ((rc = removeEdge (pszSourceVertexKey, sCurrDest.c_str(), pszEdgeLabel)) < 0) {
                     return rc;
                 }
@@ -736,13 +734,13 @@ namespace NOMADSUtil
         }
 
         return rc;
-    }    
+    }
 
     template <class T, class C> uint16 HTGraph<T,C>::getEdgeCount()
     {
         return _ui16EdgeNum;
     }
-    
+
     template <class T, class C> T * HTGraph<T,C>::getVertex (const char *pszKey)
     {
         if (pszKey == NULL) {
@@ -753,15 +751,15 @@ namespace NOMADSUtil
         if (pVertex == NULL) {
             return NULL;
         }
-        
+
         return pVertex->_pElement;
     }
-    
+
     template <class T, class C> Vertex<T,C> * HTGraph<T,C>::getVertexObject (const char *pszVertexKey)
     {
         return _vertexHashtable.get (pszVertexKey);
     }
-    
+
     template <class T, class C> PtrLList<const char> * HTGraph<T,C>::getVertexKeys()
     {
         if (getVertexCount() == 0) {
@@ -806,7 +804,7 @@ namespace NOMADSUtil
 
         return pEdgeListCpy;
     }
-    
+
     template <class T, class C> int HTGraph<T,C>::getEdgeList (const char *pszSourceVertexKey, const char *pszDestVertexKey, PtrLList<Edge<C> > *pEdgeRetList)
     {
         if (pszSourceVertexKey == NULL || pszDestVertexKey == NULL || pEdgeRetList == NULL) {
@@ -845,7 +843,7 @@ namespace NOMADSUtil
             return NULL;
         }
 
-        // Check all the Edges of the Vertex. 
+        // Check all the Edges of the Vertex.
         for (Edge<C> *pCurrEdge = pSrcVertex->_edgeList.getFirst(); pCurrEdge != NULL;
              pCurrEdge = pSrcVertex->_edgeList.getNext()) {
 
@@ -863,7 +861,7 @@ namespace NOMADSUtil
     {
         return _ui16VertexNum;
     }
-    
+
     template <class T, class C> int HTGraph<T,C>::getNeighborsList (const char *pszVertexKey, PtrLList<NOMADSUtil::String> *pNeighborsList)
     {
         if (pszVertexKey == NULL || pNeighborsList == NULL) {
@@ -876,15 +874,18 @@ namespace NOMADSUtil
         }
 
         int iCount = 0;
-        for (Edge<C> *pCurrEdge = pEdgeList->getFirst(); pCurrEdge != NULL; 
+        for (Edge<C> *pCurrEdge = pEdgeList->getFirst(); pCurrEdge != NULL;
              pCurrEdge = pEdgeList->getNext()) {
 
             String *pKey = new String (pCurrEdge->_pszDstVertexKey);
-            if (pKey != NULL && pNeighborsList->search (pKey) == NULL) {
+            if ((pKey != NULL) && (pNeighborsList->search (pKey) == NULL)) {
                 // Element not found, it can be added
                 pNeighborsList->prepend (pKey);
                 iCount++;
-            }          
+            }
+            else {
+                delete pKey;
+            }
        }
 
        delete pEdgeList;
@@ -898,23 +899,23 @@ namespace NOMADSUtil
             return -1;
         }
 
-        uint16 ui16NumOfVertex = getVertexCount();
+        const uint16 ui16NumOfVertex = getVertexCount();
         if (ui16NumOfVertex == 0) {
             return -1;
         }
 
-        StringHashtable<float> distances;
         float *pInitializationArray = (float *) calloc (ui16NumOfVertex, sizeof (float));
-        float fInfinity = 0xFFFFFFFF; 
+        const float fInfinity = 0xFFFFFFFF;
+        StringHashtable<float> distances;
         StringHashtable<const char> previous;
-        PtrQueue<String> candidateQueue;        
+        PtrQueue<String> candidateQueue;
 
         // Initialize data structures
         const char *pszKey;
         int k=0;
         for (typename StringHashtable<Vertex<T,C> >::Iterator i = _vertexHashtable.getAllElements();
              !i.end(); i.nextElement()) {
-            
+
             pszKey = i.getKey();
             pInitializationArray[k] = fInfinity;
             distances.put (pszKey, (pInitializationArray + k));
@@ -938,9 +939,8 @@ namespace NOMADSUtil
             delete candidateQueue.remove (&sClosest);
              // For each neighbors of the closest vertex find the closest neighbor and add it to the MST.
              // It also creates a new Minimum Edge from the closest Vertex to its closest neighbor.
-            PtrLList<Edge<C> > *pNeighborsList = getEdgeList (sClosest.c_str());
+            PtrLList<Edge<C> > *pNeighborsList = getEdgeList (sClosest);
             if (pNeighborsList != NULL) {
-                const char *pszPrev = sClosest.r_str();
                 for (Edge<C> *pEdge = pNeighborsList->getFirst(); pEdge != NULL;
                      pEdge = pNeighborsList->getNext()) {
 
@@ -948,32 +948,34 @@ namespace NOMADSUtil
                     if (bUseCost){
                         fCost = pEdge->_pEdgeElement->getCost();
                     }
-                    float fActualCost = (*distances.get (pszPrev)) + fCost;
+                    float fActualCost = (*distances.get (sClosest)) + fCost;
                     if (fActualCost < (*distances.get (pEdge->_pszDstVertexKey))) {
                         (*distances.get (pEdge->_pszDstVertexKey)) = fActualCost;
-                        previous.put (pEdge->_pszDstVertexKey, pszPrev);
+                        previous.put (pEdge->_pszDstVertexKey, strDup (sClosest));
                     }
                 }
                 delete pNeighborsList;
             }
         }
-
-        // Remove the remaining elements - if any
-        while (!candidateQueue.isEmpty()) {
-            delete candidateQueue.dequeue();
-        }
+        candidateQueue.removeAll (true);
 
         while (previous.get (pszDestVertexKey) != NULL) {
-            pPath->prepend (pszDestVertexKey);
+            pPath->prepend (strDup (pszDestVertexKey));
             pszDestVertexKey = previous.get (pszDestVertexKey);
         }
+        pPath->prepend (strDup (pszDestVertexKey));
 
-        pPath->prepend (pszDestVertexKey);
-
+        auto iter = previous.getAllElements();
+        while (iter.getKey() != nullptr) {
+            auto currKey = iter.getKey();
+            iter.nextElement();
+            free (const_cast<char*> (previous.remove (currKey)));
+        }
         free (pInitializationArray);
+
         return pPath->getCount();
     }
-    
+
     template <class T, class C> bool HTGraph<T,C>::hasEdge (const char *pszSourceVertexKey, const char *pszDestVertexKey, const char *pszEdgeLabel)
     {
         if (pszSourceVertexKey == NULL || pszDestVertexKey == NULL || pszEdgeLabel == NULL) {
@@ -982,7 +984,7 @@ namespace NOMADSUtil
 
         return getEdge (pszSourceVertexKey, pszDestVertexKey, pszEdgeLabel) != NULL;
     }
-    
+
     template <class T, class C> bool HTGraph<T,C>::hasNeighbor (const char *pszSourceVertexKey, const char *pszNeighborKey)
     {
         if (pszSourceVertexKey == NULL || pszNeighborKey == NULL) {
@@ -1001,13 +1003,13 @@ namespace NOMADSUtil
         }
         return false;
     }
-    
+
     template <class T, class C> bool HTGraph<T,C>::hasVertex (const char *pszKey)
     {
         if (pszKey == NULL) {
             return false;
         }
-        
+
         return _vertexHashtable.containsKey (pszKey);
     }
 
@@ -1021,25 +1023,25 @@ namespace NOMADSUtil
         if (ui8N != ui8M) {
             return -1;
         }
-        
+
         for (Edge<C> *pSourceEdge = pSourceVertex->_edgeList.getFirst(); pSourceEdge != NULL;
              pSourceEdge = pSourceVertex->_edgeList.getNext()) {
-            
+
             Edge<C> edgeToSearch (pSourceEdge->_pszDstVertexKey, pSourceEdge->_pszEdgeLabel);
             if (pDestVertex->_edgeList.search (&edgeToSearch) == NULL) {
                 return -1;
             }
         }
-        
+
         return 0;
     }
-    
+
     template <class T, class C> int HTGraph<T,C>::deleteElements (const char *pszVertexKey, uint16 ui16HopNum)
     {
         if (pszVertexKey == NULL || ui16HopNum == 0) {
             return -1;
         }
-        
+
         // Get the minimum spanning tree without considering edge cost
         HTGraph<T,C> *pMST = getShortestPathTree (pszVertexKey, false);
         if (pMST == NULL) {
@@ -1059,22 +1061,21 @@ namespace NOMADSUtil
 
         int iRet = 0;
         const char *pszVertexToDelete;
-		DArray2<String> vertexesToRemove;
+        DArray2<String> vertexesToRemove;
         for (typename StringHashtable<Vertex<T,C> >::Iterator i = _vertexHashtable.getAllElements();
              !i.end(); i.nextElement()) {
 
             pszVertexToDelete = i.getKey();
             if (!reachableVertexes.containsKey (pszVertexToDelete)) {
-				vertexesToRemove[iRet] = pszVertexToDelete;
-                iRet++;
+                vertexesToRemove[iRet++] = pszVertexToDelete;
             }
         }
 
-		for (unsigned int i = 0; i < vertexesToRemove.size(); i++) {
-			if (vertexesToRemove.used (i)) {
-				removeVertex (vertexesToRemove[i].c_str());
-			}
-		}
+        for (unsigned int i = 0; i < vertexesToRemove.size(); i++) {
+            if (vertexesToRemove.used (i)) {
+                removeVertex (vertexesToRemove[i].c_str());
+            }
+        }
 
         // Destroy the MST
         PtrLList<const char> *pKeysList = pMST->getVertexKeys();
@@ -1093,6 +1094,7 @@ namespace NOMADSUtil
         }
         delete pKeysList;
         pMST->_vertexHashtable.removeAll();
+        delete pMST;
 
         return iRet;
     }
@@ -1118,8 +1120,8 @@ namespace NOMADSUtil
         // For each Vertex T in the String Hashtable
         for (typename StringHashtable<Vertex<T,C> >::Iterator i = _vertexHashtable.getAllElements();
              !i.end(); i.nextElement()) {
-            
-            pCurrentVertex = i.getValue();            
+
+            pCurrentVertex = i.getValue();
             if (pCurrentVertex != NULL) {
                 // Print the Vertex Key
                 fprintf (pOutput, "[%s]===>", i.getKey());
@@ -1134,7 +1136,7 @@ namespace NOMADSUtil
             }
         }
     }
-    
+
     template <class T, class C> int HTGraph<T,C>::displayEdges (FILE *pOutput, const char *pszKey)
     {
         if (pszKey == NULL) {
@@ -1151,8 +1153,8 @@ namespace NOMADSUtil
         fprintf (pOutput, "[%s]===>", pszKey);
         for (Edge<C> *pCurrentEdge = pVertex->_edgeList.getFirst();
              pCurrentEdge != NULL; pCurrentEdge = pVertex->_edgeList.getNext()) {
-            
-            fprintf (pOutput, "\t%s, %s", pCurrentEdge->_pszDstVertexKey, pCurrentEdge->_pszEdgeLabel);            
+
+            fprintf (pOutput, "\t%s, %s", pCurrentEdge->_pszDstVertexKey, pCurrentEdge->_pszEdgeLabel);
         }
 
         return 0;
@@ -1202,10 +1204,10 @@ namespace NOMADSUtil
             // If the current vertex in the graph is not in the connected hash table vertexes and
             // is different from the Vertex itself, then delete the Vertex and its Edges from the graph
             if (!connectedVertexes.containsKey (i.getKey()) && (strcmp (pszVertexKey, i.getKey()) != 0)) {
-                vertexesToRemove[k++] = i.getKey();                
+                vertexesToRemove[k++] = i.getKey();
             }
         }
-        
+
         for (unsigned int i = 0; i < vertexesToRemove.size(); i++) {
             if (vertexesToRemove.used (i)) {
                 removeVertex (vertexesToRemove[i].c_str());
@@ -1230,7 +1232,7 @@ namespace NOMADSUtil
         uint16 ui16NumOfVertex;
         pReader->read16 (&ui16NumOfVertex);
         (*pui32BytesRead) = (*pui32BytesRead) + 2;
-        
+
         return updatePrivateNeighborhood (pReader, pui32BytesRead);
     }
 
@@ -1254,7 +1256,7 @@ namespace NOMADSUtil
             }
         }
 
-        return pRet;        
+        return pRet;
     }
 
     template <class T, class C> int HTGraph<T,C>::writeNeighborhood (Writer *pWriter, uint32 *pui32BytesWritten, const char *pszVertexKey)
@@ -1267,9 +1269,9 @@ namespace NOMADSUtil
         pWriter->write16 (&ui16VertexNum);
         (*pui32BytesWritten) = (*pui32BytesWritten) + 2;
 
-        return writePrivateNeighborhood (pWriter, pui32BytesWritten, pszVertexKey);        
+        return writePrivateNeighborhood (pWriter, pui32BytesWritten, pszVertexKey);
     }
-  
+
     template <class T, class C> int HTGraph<T,C>::writeGraph (Writer *pWriter, uint32 *pui32BytesWritten)
     {
         if (pWriter == NULL) {
@@ -1280,7 +1282,7 @@ namespace NOMADSUtil
         uint16 ui16VertexesNo = _ui16VertexNum;
         pWriter->write16 (&ui16VertexesNo);
         (*pui32BytesWritten) = (*pui32BytesWritten) + 2;
-        
+
         for (typename StringHashtable<Vertex<T,C> >::Iterator i = _vertexHashtable.getAllElements();
              !i.end(); i.nextElement()) {
 
@@ -1340,7 +1342,7 @@ namespace NOMADSUtil
                 }
                 pWriter->write8(&ui8Length);
                 pWriter->writeBytes (sDestKey.c_str(), ui8Length);
-                (*pui32BytesWritten) = (*pui32BytesWritten) + ui8Length +1; 
+                (*pui32BytesWritten) = (*pui32BytesWritten) + ui8Length +1;
 
                 // Write length and Edge label
                 String sEdgeLabel (pCurrEdge->_pszEdgeLabel);
@@ -1422,7 +1424,7 @@ namespace NOMADSUtil
     template <class T, class C> const char * HTGraph<T,C>::updatePrivateNeighborhood (Reader *pReader, uint32 *pui32BytesRead)
     {
         char *pszRet = NULL;
-        // Read the length and Vertex key    
+        // Read the length and Vertex key
         uint8 ui8Length;
         pReader->read8 (&ui8Length);
         if (ui8Length == 0) {
@@ -1481,14 +1483,14 @@ namespace NOMADSUtil
                 return NULL;
             }
             pNeighTemp->read (pReader, pui32BytesRead);
-            (*pNeighborsArray)[i] = pNeighTemp;            
+            (*pNeighborsArray)[i] = pNeighTemp;
         }
 
         // If the Graph is Empty do as follow:
-        // 1) Create a new Vertex containing the Template (pVertexTemp) and the Edges read. 
-        //    Then add the Vertex into the Graph. 
+        // 1) Create a new Vertex containing the Template (pVertexTemp) and the Edges read.
+        //    Then add the Vertex into the Graph.
         // 2) For each Neighbor read in the Edge list, create a new Vertex that includes the Neighbor Template
-        //    and an Edge pointing toward the pVertexTemp (if the Graph is not directed)      
+        //    and an Edge pointing toward the pVertexTemp (if the Graph is not directed)
         if (isEmpty()) {
             // Add the Vertex to the Graph
             Vertex<T,C> *pNewVertex = new Vertex<T,C> ();
@@ -1499,7 +1501,7 @@ namespace NOMADSUtil
             // Copy the Edge list
             for (Edge<C> *pCurrEdge = pEdgeList->getFirst(); pCurrEdge != NULL;
                  pCurrEdge = pEdgeList->getNext()) {
-                
+
                 pNewVertex->_edgeList.append (pCurrEdge);
             }
             // Insert the Vertex in the Graph
@@ -1507,13 +1509,13 @@ namespace NOMADSUtil
             // Update Vertex Number and Edge Num
             _ui16VertexNum++;
             _ui16EdgeNum += pEdgeList->getCount();
-            
+
             // Insert all the neighbors vertex along with their Templates in the graph
             int i = 0;
             Edge<C> *pNewEdge;
             for (Edge<C> *pCurrEdge = pEdgeList->getFirst(); pCurrEdge != NULL;
                  pCurrEdge = pEdgeList->getNext()) {
-                
+
                 // Add the Neighbor Vertex and its template
                 addVertex (pCurrEdge->_pszDstVertexKey, &(*pNeighborsArray)[i++]);
                 _ui16VertexNum++;
@@ -1522,7 +1524,7 @@ namespace NOMADSUtil
                     pNewEdge = new Edge<C> (pszVertexKey);
                     if (pNewEdge == NULL) {
                         return NULL;
-                    }                   
+                    }
                     (getEdgeList (pCurrEdge->_pszDstVertexKey))->append (pNewEdge);
                     _ui16EdgeNum++;
                 }
@@ -1541,7 +1543,7 @@ namespace NOMADSUtil
                 // Copy the Edges read in the new empty Edge list
                 for (Edge<C> *pCurrEdge = pEdgeList->getFirst(); pCurrEdge != NULL;
                      pCurrEdge = pEdgeList->getNext()) {
-                
+
                     pNewVertex->_edgeList.append (pCurrEdge);
                 }
                 // Update new Edges if they are found in the old edge list
@@ -1551,11 +1553,11 @@ namespace NOMADSUtil
                      pOldEdge = pOldVertex->_edgeList.getNext()) {
 
                     bool bFound = false;
-                    // Search the Old Edge in the New List. If it is not found add  it to 
+                    // Search the Old Edge in the New List. If it is not found add  it to
                     // DeletedEdges list.
                     for (Edge<C> *pNewEdge = pNewVertex->_edgeList.getFirst(); pNewEdge != NULL;
                          pNewEdge = pNewVertex->_edgeList.getNext()) {
-                        
+
                         // If the Old Edge is found it, maintain the previous information about EdgeLabel and Cost
                         if (strcmp (pNewEdge->_pszDstVertexKey, pOldEdge->_pszDstVertexKey) == 0) {
                             // Copy the Edge Key
@@ -1566,7 +1568,7 @@ namespace NOMADSUtil
                             pNewEdge->_pEdgeElement = pOldEdge->_pEdgeElement;
                             pNewEdge->_bReferenceKept = pOldEdge->_bReferenceKept;
                             bFound = true;
-                       }    
+                       }
                     }
 
                     if (!bFound) {
@@ -1584,9 +1586,9 @@ namespace NOMADSUtil
 
                 // Update Neighbors
                 int i = 0;
-                for (Edge<C> *pCurrNeighEdge = pEdgeList->getFirst(); 
+                for (Edge<C> *pCurrNeighEdge = pEdgeList->getFirst();
                      pCurrNeighEdge != NULL; pCurrNeighEdge = pEdgeList->getNext()) {
-                    
+
                     // If the neighbor does not exist in the Graph add it
                     if (!hasVertex (pCurrNeighEdge->_pszDstVertexKey)) {
                         addVertex (pCurrNeighEdge->_pszDstVertexKey, &(*pNeighborsArray)[i]);
@@ -1605,7 +1607,7 @@ namespace NOMADSUtil
                             bool bFound = false;
                             for (Edge<C> *pEdge = pNeighborList->getFirst();
                                  pEdge != NULL && !bFound; pEdge = pNeighborList->getNext()) {
-                            
+
                                 if (strcmp(pEdge->_pszDstVertexKey, pszVertexKey) == 0) {
                                     bFound = true;
                                 }
@@ -1618,7 +1620,7 @@ namespace NOMADSUtil
 
                             for (Edge<C> *pEdge2Delete = pDeletedEdges->getFirst(); pEdge2Delete != NULL;
                                  pEdge2Delete = pDeletedEdges->getNext()) {
-                                
+
                                 Edge<C> edgeToSearch (pszVertexKey, pEdge2Delete->_pszEdgeLabel);
                                 PtrLList<Edge<C> > *pList = getEdgeList (pEdge2Delete->_pszDstVertexKey);
                                 Edge<C> *pRemovedEdge = pList->remove (&edgeToSearch);
@@ -1629,7 +1631,7 @@ namespace NOMADSUtil
                         }
                     }
                     i++;
-                }    
+                }
 
                 if (pOldVertex != NULL) {
                     delete pOldVertex;
@@ -1639,7 +1641,7 @@ namespace NOMADSUtil
             }
             else {
                 // The source Vertex doesn't exist. Add it to the Graph with its own EdgeList.
-                // Then update its neighbors 
+                // Then update its neighbors
                 Vertex<T,C> *pNewVertex = new Vertex<T,C> ();
                 if (pNewVertex == NULL) {
                     return NULL;
@@ -1649,7 +1651,7 @@ namespace NOMADSUtil
                 // Copy the Edge list
                 for (Edge<C> *pCurrEdge = pEdgeList->getFirst(); pCurrEdge != NULL;
                      pCurrEdge = pEdgeList->getNext()) {
-                
+
                     pNewVertex->_edgeList.append (pCurrEdge);
                 }
 
@@ -1661,7 +1663,7 @@ namespace NOMADSUtil
 
                 // Update Neighbors
                 int i = 0;
-                for (Edge<C> *pCurrNeighEdge = pEdgeList->getFirst(); 
+                for (Edge<C> *pCurrNeighEdge = pEdgeList->getFirst();
                      pCurrNeighEdge != NULL; pCurrNeighEdge = pEdgeList->getNext()) {
 
                     // If the neighbor does not exist in the Graph add it
@@ -1679,7 +1681,7 @@ namespace NOMADSUtil
                         // Update the Template
                         if(!_bDirected){
                             // Check if there is an Edge already toward the Vertex
-                            PtrLList<Edge<C> > *pNeighList = getEdgeList (pCurrNeighEdge->_pszDstVertexKey); 
+                            PtrLList<Edge<C> > *pNeighList = getEdgeList (pCurrNeighEdge->_pszDstVertexKey);
                             bool bFound = false;
                             for (Edge<C> *pEdge = pNeighList->getFirst();
                                  pEdge != NULL && !bFound; pEdge = pNeighList->getNext()) {
@@ -1696,13 +1698,13 @@ namespace NOMADSUtil
                         }
                     }
                     i++;
-                }    
+                }
                 pszRet = pszVertexKey;
             }
         }
 
         delete pEdgeList;
-        return pszRet;        
+        return pszRet;
     }
 
     template <class T, class C> int HTGraph<T,C>::writePrivateNeighborhood (Writer *pWriter, uint32 *pui32BytesWritten, const char *pszVertexKey)
@@ -1723,12 +1725,12 @@ namespace NOMADSUtil
         ui8Length = sVertexKey.length ();
         pWriter->write8 (&ui8Length);
         pWriter->writeBytes (pszVertexKey, ui8Length);
-        (*pui32BytesWritten) = (*pui32BytesWritten) + ui8Length + 1;        
+        (*pui32BytesWritten) = (*pui32BytesWritten) + ui8Length + 1;
 
         // Write the template. Remember to update the value of ui32BytesWritten
         // with the bytes written in the template
         pVertex->_pElement->write (pWriter, pui32BytesWritten);
-        
+
         // Write all the Neighbors
         PtrLList<String> *pNeighborsList = new PtrLList<String>();
         if (pNeighborsList == NULL) {
@@ -1746,7 +1748,7 @@ namespace NOMADSUtil
 
         for (String *pCurrNeighbor = pNeighborsList->getFirst(); pCurrNeighbor != NULL;
              pCurrNeighbor = pNeighborsList->getNext()) {
-       
+
             // Write length and Destination Vertex Key
             String sTemp (pCurrNeighbor->c_str());
             ui8Length = sTemp.length();
@@ -1755,22 +1757,22 @@ namespace NOMADSUtil
             }
             pWriter->write8(&ui8Length);
             pWriter->writeBytes (pCurrNeighbor->c_str(), ui8Length);
-            (*pui32BytesWritten) = (*pui32BytesWritten) + ui8Length + 1; 
+            (*pui32BytesWritten) = (*pui32BytesWritten) + ui8Length + 1;
 
-            // Write the neighbor template 
+            // Write the neighbor template
             pNeighbor = _vertexHashtable.get (pCurrNeighbor->c_str());
             if (pNeighbor == NULL) {
                 return -1;
             }
             pNeighbor->_pElement->write (pWriter, pui32BytesWritten);
         }
-        
+
         delete pNeighborsList;
         return 0;
     }
 
     template <class T, class C> void HTGraph<T,C>::traverse(Vertex<T,C> *pVertex, StringHashtable<bool> *pVisited)
-    {        
+    {
         if (pVertex == NULL || pVisited == NULL) {
             return;
         }
@@ -1794,7 +1796,7 @@ namespace NOMADSUtil
         bool bVisited = true;
         for (Edge<C> *pEdge = pVertex->_edgeList.getFirst(); pEdge != NULL;
              pEdge = pVertex->_edgeList.getNext()) {
-                        
+
             if (pEdge != NULL && !pVisited->containsKey (pEdge->_pszDstVertexKey) && ui16Hops > 0) {
                 pVisited->put (pEdge->_pszDstVertexKey, &bVisited);
                 traverse (_vertexHashtable.get (pEdge->_pszDstVertexKey), pVisited, (ui16Hops-1));
@@ -1820,15 +1822,15 @@ namespace NOMADSUtil
 
         StringHashtable<float> distances;
         float *pInitializationArray = (float *) calloc (ui16NumOfVertex, sizeof (float));
-        float fInfinity = 0xFFFFFFFF;   
-        PtrQueue<String> candidateQueue;         
+        float fInfinity = 0xFFFFFFFF;
+        PtrQueue<String> candidateQueue;
         PtrLList<String> stringList;
 
         // Initialize data structures
         int k = 0;
         for (typename StringHashtable<Vertex<T,C> >::Iterator i = _vertexHashtable.getAllElements();
              !i.end(); i.nextElement()) {
-            
+
             pInitializationArray[k] = fInfinity;
             distances.put (i.getKey(), (pInitializationArray + k));
             candidateQueue.enqueue (new String (i.getKey()));
@@ -1854,10 +1856,10 @@ namespace NOMADSUtil
             // Remove the closest vertex from the candidate queue
             String sClosest (pszClosestVertex);
             stringList.prepend (candidateQueue.remove (&sClosest));
-            
-            // For each neighbors of the closest vertex find the closest neighbor and add it to the MST. 
+
+            // For each neighbors of the closest vertex find the closest neighbor and add it to the MST.
             // It also creates a new Minimum Edge from the closest Vertex to its closest neighbor.
-            PtrLList<Edge<C> > *pNeighborsList = getEdgeList (pszClosestVertex);            
+            PtrLList<Edge<C> > *pNeighborsList = getEdgeList (pszClosestVertex);
             for (Edge<C> *pEdge = pNeighborsList->getFirst(); pEdge != NULL;
                  pEdge = pNeighborsList->getNext()) {
 
@@ -1887,18 +1889,19 @@ namespace NOMADSUtil
                         String sOldEdgeLabel (pOldEdge->_pszEdgeLabel);
                         pRet->removeEdge (pszClosestVertex, sOldDestVertexKey.c_str(), sOldEdgeLabel.c_str());
                         pRet->addEdge (pszClosestVertex, pEdge->_pszDstVertexKey, pEdge->_pszEdgeLabel, pNewCost);
-                    }                    
-                }                                
-            }            
+                    }
+                }
+            }
+            delete pNeighborsList;
         }
 
-        String *pCurr, *pNext, *pDel;
+        String *pCurr, *pNext;
         pNext = stringList.getFirst();
         while ((pCurr = pNext) != NULL) {
             pNext = stringList.getNext();
-            pDel = stringList.remove (pCurr);
-            delete pDel;
-        }        
+            delete stringList.remove (pCurr);
+        }
+        candidateQueue.removeAll (true);
 
         free (pInitializationArray);
         return pRet;
@@ -1910,7 +1913,7 @@ namespace NOMADSUtil
         String *pszRet = NULL;
         for (String *pszCandidate = pQueue->getFirst(); pszCandidate != NULL;
              pszCandidate = pQueue->getNext()) {
-            
+
             if ((*pDistances->get (pszCandidate->c_str())) <= fMin) {
                 fMin = ((*pDistances->get (pszCandidate->c_str())));
                 pszRet = pszCandidate;
@@ -1920,7 +1923,7 @@ namespace NOMADSUtil
             return NULL;
         }
         return pszRet->c_str();
-    }        
+    }
 }
 
 #endif  // INCL_GRAPH_H

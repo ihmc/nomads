@@ -42,7 +42,7 @@ import us.ihmc.util.ConfigLoader;
  *  digital signature operations defined herein as they state that they are not complete - message digest info has not
  *  been included in their signatures. 
  *  These digital signature verification protocols are mirrored in the C++ implementation.
- * $Date: 2016/06/09 20:02:46 $
+ * $Date$
  * $Release: $
  */
 public class MASTPKITools

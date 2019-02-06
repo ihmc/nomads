@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -87,7 +87,7 @@ int Serial2Net::openPort (const char *devstr, int iIPControlPort)
                     tcontrolSocket = SocketError;  // Control port is disabled by caller
                 }
                 else {
-				    tcontrolSocket = tcpipCreateClient (tserverAddress, iIPControlPort);
+                    tcontrolSocket = tcpipCreateClient (tserverAddress, iIPControlPort);
                 }
             }
             else {
@@ -179,7 +179,7 @@ bool Serial2Net::getRTSCTSHandshake (void)
 
 /* if timeout is 0, wait forever, >0 timeout is in 1/10 seconds, -1 is noblock) */
 int Serial2Net::setTimeOut (int tenthOfSecs)
-{   
+{
     return -1;
 }
 
@@ -221,7 +221,7 @@ int Serial2Net::put (unsigned char c)
 //  ttyGetline will
 //    return 0 if nothing read (i.e. timeout)
 //          -1 is error on read
-//          else number of bytes read 
+//          else number of bytes read
 int Serial2Net::getline (unsigned char *bf, int bfln)
 {
     int rc;

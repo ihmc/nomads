@@ -40,7 +40,7 @@ public class SSLConnection
     
     public boolean getServerSocket (int hostEnv)
     {
-        return getServerSocket (new Integer (hostEnv).toString()); 
+        return getServerSocket (Integer.valueOf (hostEnv).toString());
     }
 
     public boolean getServerSocket (String hostEnv)
@@ -110,7 +110,7 @@ public class SSLConnection
             return recvBlockNative ();
         }
         else {
-        	System.out.println ("SSLConnection is in Invalid State for attempted operation");
+            System.out.println ("SSLConnection is in Invalid State for attempted operation");
         }
         return null;
     }

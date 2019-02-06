@@ -2,7 +2,7 @@
  * ZlibConnectorWriter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,13 +23,15 @@
 
 #include "ZLibConnectorWriter.h"
 
-using namespace NOMADSUtil;
 
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    ZLibConnectorWriter::ZLibConnectorWriter (const CompressionSetting * const pCompressionSetting, unsigned long ulOutBufSize) : ConnectorWriter (pCompressionSetting)
+    ZLibConnectorWriter::ZLibConnectorWriter (const CompressionSettings & compressionSettings, unsigned long ulOutBufSize) :
+        ConnectorWriter{compressionSettings}
     {
         if (ulOutBufSize == 0) {
             // Throw C++ exception here
@@ -74,7 +76,7 @@ namespace ACMNetProxy
                     bDone = true;
                 }
                 else {
-                    checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
+                    checkAndLogMsg ("ZLibConnectorWriter::flush", NOMADSUtil::Logger::L_MildError,
                                     "deflate() with flag Z_FINISH returned with error code %d\n", rc);
                     uiDestLen = 0;
                     *pDest = nullptr;
@@ -87,7 +89,7 @@ namespace ACMNetProxy
                     _ulOutBufSize *= 2;
                     _pOutputBuffer = (unsigned char*) realloc (_pOutputBuffer, _ulOutBufSize);
                     if (!_pOutputBuffer) {
-                        checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
+                        checkAndLogMsg ("ZLibConnectorWriter::flush", NOMADSUtil::Logger::L_MildError,
                                         "error trying to realloc %u (previously %u) bytes\n",
                                         _ulOutBufSize, _ulOutBufSize/2);
                         uiDestLen = 0;
@@ -100,8 +102,9 @@ namespace ACMNetProxy
             }
             else if (!bDone) {
                 // deflate was not done but did not put anything into the output buffer
-                checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
-                                "deflate() with flag Z_FINISH didn't produce new output but returned code is not Z_STREAM_END (code: %d)\n", rc);
+                checkAndLogMsg ("ZLibConnectorWriter::flush", NOMADSUtil::Logger::L_MildError,
+                                "deflate() with flag Z_FINISH didn't produce new output "
+                                "but returned code is not Z_STREAM_END (code: %d)\n", rc);
                 uiDestLen = 0;
                 *pDest = nullptr;
                 return -3;
@@ -138,11 +141,11 @@ namespace ACMNetProxy
             if (bLocalFlush) {
                 if (0 != (rc = deflate (&_zsCompStream, Z_SYNC_FLUSH))) {
                     if (rc == Z_BUF_ERROR) {
-                        checkAndLogMsg ("ZLibConnectorWriter::writeData", Logger::L_Warning,
+                        checkAndLogMsg ("ZLibConnectorWriter::writeData", NOMADSUtil::Logger::L_Warning,
                                         "deflate returned with error code Z_BUF_ERROR; returning to caller\n");
                         return 0;
                     }
-                    checkAndLogMsg ("ZLibConnectorWriter::writeData", Logger::L_MildError,
+                    checkAndLogMsg ("ZLibConnectorWriter::writeData", NOMADSUtil::Logger::L_MildError,
                                     "deflate with flag Z_PARTIAL_FLUSH returned with error code %d\n", rc);
                     uiDestLen = 0;
                     *pDest = nullptr;
@@ -152,11 +155,11 @@ namespace ACMNetProxy
             else {
                 if (0 != (rc = deflate (&_zsCompStream, Z_NO_FLUSH))) {
                     if (rc == Z_BUF_ERROR) {
-                        checkAndLogMsg ("ZLibConnectorWriter::writeData", Logger::L_Warning,
+                        checkAndLogMsg ("ZLibConnectorWriter::writeData", NOMADSUtil::Logger::L_Warning,
                                         "deflate returned with error code Z_BUF_ERROR; returning to caller\n");
                         return 0;
                     }
-                    checkAndLogMsg ("ZLibConnectorWriter::writeData", Logger::L_MildError,
+                    checkAndLogMsg ("ZLibConnectorWriter::writeData", NOMADSUtil::Logger::L_MildError,
                                     "deflate with flag Z_NO_FLUSH returned with error code %d\n", rc);
                     uiDestLen = 0;
                     *pDest = nullptr;
@@ -208,7 +211,7 @@ namespace ACMNetProxy
                     bDone = true;
                 }
                 else {
-                    checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
+                    checkAndLogMsg ("ZLibConnectorWriter::flush", NOMADSUtil::Logger::L_MildError,
                                     "deflate() with flag Z_FINISH returned with error code %d\n", rc);
                     uiDestLen = 0;
                     *pDest = nullptr;
@@ -221,7 +224,7 @@ namespace ACMNetProxy
                     _ulOutBufSize *= 2;
                     _pOutputBuffer = (unsigned char*) realloc (_pOutputBuffer, _ulOutBufSize);
                     if (!_pOutputBuffer) {
-                        checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
+                        checkAndLogMsg ("ZLibConnectorWriter::flush", NOMADSUtil::Logger::L_MildError,
                                         "error trying to realloc %u (previously %u) bytes\n",
                                         _ulOutBufSize, _ulOutBufSize/2);
                         uiDestLen = 0;
@@ -234,8 +237,9 @@ namespace ACMNetProxy
             }
             else if (!bDone) {
                 // deflate was not done but did not put anything into the output buffer
-                checkAndLogMsg ("ZLibConnectorWriter::flush", Logger::L_MildError,
-                                "deflate() with flag Z_FINISH didn't produce new output but returned code is not Z_STREAM_END (code: %d)\n", rc);
+                checkAndLogMsg ("ZLibConnectorWriter::flush", NOMADSUtil::Logger::L_MildError,
+                                "deflate() with flag Z_FINISH didn't produce new output "
+                                "but returned code is not Z_STREAM_END (code: %d)\n", rc);
                 uiDestLen = 0;
                 *pDest = nullptr;
                 return -3;

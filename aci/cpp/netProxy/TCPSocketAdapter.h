@@ -5,7 +5,7 @@
  * TCPSocketAdapter.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,10 +24,12 @@
  * methods in terms of the TCPSocket class interface.
  */
 
+#include <memory>
+
 #include "TCPSocket.h"
 
-#include "ConnectorAdapter.h"
 #include "ConfigurationParameters.h"
+#include "ConnectorAdapter.h"
 
 
 namespace ACMNetProxy
@@ -35,58 +37,60 @@ namespace ACMNetProxy
     class TCPSocketAdapter : public ConnectorAdapter
     {
     public:
-        TCPSocketAdapter (NOMADSUtil::TCPSocket * const pTCPSocket);
-        TCPSocketAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, EncryptionType encryptionType);
+        TCPSocketAdapter (NOMADSUtil::TCPSocket * const pTCPSocket, const NOMADSUtil::InetAddr & iaLocalProxyAddr);
+        TCPSocketAdapter (const NOMADSUtil::InetAddr & iaLocalProxyAddr, const NOMADSUtil::InetAddr & iaRemoteProxyAddr,
+                          EncryptionType encryptionType);
         ~TCPSocketAdapter (void);
 
         virtual int bufferingMode (int iMode);
         virtual int readConfigFile (const char * const pszConfigFile);
-        int registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg);
+        virtual int registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg);
 
         virtual bool isConnected (void) const;
         virtual EncryptionType getEncryptionType (void) const;
-        virtual uint32 getOutgoingBufferSize (void);
+        virtual uint32 getOutgoingBufferSize (void) const;
+        virtual uint16 getLocalPort (void) const;
 
         virtual int connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort);
-        virtual int send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr,
-                          bool bReliable, bool bSequenced, const void *pBuf, uint32 ui32BufSize);
+        virtual int send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestinationIPAddr,
+                          bool bReliable, bool bSequenced, const void * pBuf, uint32 ui32BufSize);
         virtual int receiveMessage (void * const pBuf, uint32 ui32BufSize);
         virtual int shutdown (bool bReadMode, bool bWriteMode);
         virtual int close (void);
 
 
     protected:
-        virtual int gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable, bool bSequenced,
-                           const void *pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2);
+        virtual int gsend (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestinationIPAddr,
+                           bool bReliable, bool bSequenced, const void * pBuf1, uint32 ui32BufSize1, va_list valist1, va_list valist2);
         virtual int receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout = 0);
 
 
     private:
-        template <class T> int receiveProxyHeader (T * const pMess, int &iReceived);
+        template <class T> int receiveProxyHeader (T * const pMess, int & iReceived);
 
-        NOMADSUtil::TCPSocket * const _pTCPSocket;
+        std::unique_ptr<NOMADSUtil::TCPSocket> _upTCPSocket;
     };
 
 
-    inline TCPSocketAdapter::TCPSocketAdapter (NOMADSUtil::TCPSocket * const pTCPSocket) :
-        ConnectorAdapter (CT_TCPSOCKET, NOMADSUtil::InetAddr(pTCPSocket->getRemoteHostAddr()).getIPAddress(), pTCPSocket->getRemotePort(),
-        new uint8[NetProxyApplicationParameters::PROXY_MESSAGE_MTU], NetProxyApplicationParameters::PROXY_MESSAGE_MTU), _pTCPSocket (pTCPSocket) { }
+    inline TCPSocketAdapter::TCPSocketAdapter (NOMADSUtil::TCPSocket * const pTCPSocket, const NOMADSUtil::InetAddr & iaLocalProxyAddr) :
+        ConnectorAdapter{CT_TCPSOCKET, iaLocalProxyAddr, NOMADSUtil::InetAddr{pTCPSocket->getRemoteHostAddr(), pTCPSocket->getRemotePort()},
+                         new uint8[NetworkConfigurationSettings::PROXY_MESSAGE_MTU], NetworkConfigurationSettings::PROXY_MESSAGE_MTU},
+        _upTCPSocket{pTCPSocket}
+    { }
 
-    inline TCPSocketAdapter::TCPSocketAdapter (const NOMADSUtil::InetAddr * const pRemoteProxyInetAddr, EncryptionType encryptionType) :
-        ConnectorAdapter (CT_TCPSOCKET, pRemoteProxyInetAddr->getIPAddress(), pRemoteProxyInetAddr->getPort(),
-        new uint8[NetProxyApplicationParameters::PROXY_MESSAGE_MTU], NetProxyApplicationParameters::PROXY_MESSAGE_MTU), _pTCPSocket (new NOMADSUtil::TCPSocket())
+    inline TCPSocketAdapter::TCPSocketAdapter (const NOMADSUtil::InetAddr & iaLocalProxyAddr, const NOMADSUtil::InetAddr & iaRemoteProxyAddr,
+                                               EncryptionType encryptionType) :
+        ConnectorAdapter{CT_TCPSOCKET, iaLocalProxyAddr, iaRemoteProxyAddr, new uint8[NetworkConfigurationSettings::PROXY_MESSAGE_MTU],
+        NetworkConfigurationSettings::PROXY_MESSAGE_MTU}, _upTCPSocket{new NOMADSUtil::TCPSocket()}
     {
         (void) encryptionType;
     }
 
-    inline TCPSocketAdapter::~TCPSocketAdapter (void)
-    {
-        delete _pTCPSocket;
-    }
+    inline TCPSocketAdapter::~TCPSocketAdapter (void) { }
 
     inline int TCPSocketAdapter::bufferingMode (int iMode)
     {
-        return _pTCPSocket->bufferingMode (iMode);
+        return _upTCPSocket->bufferingMode (iMode);
     }
 
     inline int TCPSocketAdapter::readConfigFile (const char * const pszConfigFile)
@@ -94,7 +98,7 @@ namespace ACMNetProxy
         return ConnectorAdapter::readConfigFile (pszConfigFile);
     }
 
-    inline int TCPSocketAdapter::registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void *pCallbackArg)
+    inline int TCPSocketAdapter::registerPeerUnreachableWarningCallback (PeerUnreachableWarningCallbackFnPtr pCallbackFn, void * pCallbackArg)
     {
         (void) pCallbackFn;
         (void) pCallbackArg;
@@ -104,7 +108,7 @@ namespace ACMNetProxy
 
     inline bool TCPSocketAdapter::isConnected (void) const
     {
-        return _pTCPSocket->isConnected() == 1;
+        return _upTCPSocket->isConnected() == 1;
     }
 
     // TO-DO: for the moment, TCP connections are never encrypted
@@ -113,26 +117,38 @@ namespace ACMNetProxy
         return ET_PLAIN;
     }
 
-    inline uint32 TCPSocketAdapter::getOutgoingBufferSize (void)
+    // TO-DO: fix this code to return the actual space available
+    inline uint32 TCPSocketAdapter::getOutgoingBufferSize (void) const
     {
-        /*!!*/ // Fix this code to return the actual space available
         return 4096;
+    }
+
+    inline uint16 TCPSocketAdapter::getLocalPort (void) const
+    {
+        return _upTCPSocket->getLocalPort();
     }
 
     inline int TCPSocketAdapter::connect (const char * const pcRemoteProxyIP, uint16 ui16RemoteProxyPort)
     {
-        return _pTCPSocket->connect (pcRemoteProxyIP, ui16RemoteProxyPort);
+        if (_iaLocalProxyAddr != 0) {
+            if (_upTCPSocket->bind (_iaLocalProxyAddr.getIPAddress(), _iaLocalProxyAddr.getPort()) < 0) {
+                return -100;
+            }
+        }
+
+        return _upTCPSocket->connect (pcRemoteProxyIP, ui16RemoteProxyPort);
     }
 
-    inline int TCPSocketAdapter::send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32DestVirtualIPAddr, bool bReliable,
-                                       bool bSequenced, const void *pBuf, uint32 ui32BufSize)
+    inline int TCPSocketAdapter::send (const NOMADSUtil::InetAddr * const pInetAddr, uint32 ui32SourceIPAddr, uint32 ui32DestinationIPAddr,
+                                       bool bReliable, bool bSequenced, const void *pBuf, uint32 ui32BufSize)
     {
         (void) pInetAddr;
-        (void) ui32DestVirtualIPAddr;
+        (void) ui32SourceIPAddr;
+        (void) ui32DestinationIPAddr;
         (void) bReliable;
         (void) bSequenced;
 
-        int rc = _pTCPSocket->send (pBuf, ui32BufSize);
+        int rc = _upTCPSocket->send (pBuf, ui32BufSize);
         if (rc == ui32BufSize) {
             return 0;
         }
@@ -142,19 +158,19 @@ namespace ACMNetProxy
 
     inline int TCPSocketAdapter::shutdown (bool bReadMode, bool bWriteMode)
     {
-        return _pTCPSocket->shutdown (bReadMode, bWriteMode);
+        return _upTCPSocket->shutdown (bReadMode, bWriteMode);
     }
 
     inline int TCPSocketAdapter::close (void)
     {
-        return _pTCPSocket->disconnect();
+        return _upTCPSocket->disconnect();
     }
 
     inline int TCPSocketAdapter::receive (void * const pBuf, uint32 ui32BufSize, int64 i64Timeout)
     {
         (void) i64Timeout;
 
-        return _pTCPSocket->receive (pBuf, ui32BufSize);
+        return _upTCPSocket->receive (pBuf, ui32BufSize);
     }
 
 }

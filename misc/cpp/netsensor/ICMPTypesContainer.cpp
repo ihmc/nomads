@@ -19,8 +19,9 @@
 * This class stores an instance of an ICMP packet and additional information
 * that can be used by NetSensor recipients.
 */
-#include"ICMPTypesContainer.h"
-#include"InetAddr.h"
+#include "ICMPTypesContainer.h"
+#include "InetAddr.h"
+#include <forward_list>
 
 using namespace IHMC_NETSENSOR_NET_UTILS;
 namespace IHMC_NETSENSOR
@@ -61,20 +62,24 @@ namespace IHMC_NETSENSOR
 
         if (extraIPAddresses.getCount() != 0)
         {
-            NOMADSUtil::String cleaningValues[C_MAX_CLEANING_NUMBER];
-            int cleaningCounter = 0;
+            //NOMADSUtil::String cleaningValues[C_MAX_CLEANING_NUMBER];
+            std::forward_list <NOMADSUtil::String> list;
+            //int cleaningCounter = 0;
             for (NOMADSUtil::StringHashtable<uint32>::Iterator keyVal =
                 extraIPAddresses.getAllElements();
                 !keyVal.end(); keyVal.nextElement())
             {
-                cleaningValues[cleaningCounter] = keyVal.getKey();
-                cleaningCounter++;
+                //cleaningValues[cleaningCounter] = keyVal.getKey();
+                //cleaningCounter++;
+                list.push_front (keyVal.getKey());
             }
-
-            for (uint32 counter = 0; counter < cleaningCounter; counter++)
+            for (auto iter = list.begin(); iter != list.end(); iter++) {
+                delete extraIPAddresses.remove(*iter);
+            }
+            /*for (uint32 counter = 0; counter < cleaningCounter; counter++)
             {
                 delete extraIPAddresses.remove(cleaningValues[counter]);
-            }
+            }*/
         }
     }
 

@@ -24,48 +24,46 @@
 * an incoming TCP packet is received. It does not work in the opposite way.
 *
 */
+#include "UInt32Hashtable.h"
 #include "StringHashtable.h"
+#include "ProtobufWrapper.h"
 #include "LList.h"
+#include "PtrLList.h"
 #include "PacketStructures.h"
 #include "StrClass.h"
 #include "Mutex.h"
 #include "NetSensorConstants.h"
-#include "TCPRTTContainer.h"
+#include "RTTContainer.h"
+#include "UInt32Hashtable.h"
+#include "measure.pb.h"
 
 namespace IHMC_NETSENSOR
 {
-    typedef NOMADSUtil::StringHashtable<TCPRTTContainer>    DPLevel;
-    typedef NOMADSUtil::StringHashtable<DPLevel>  SPLevel;
-    typedef NOMADSUtil::StringHashtable<SPLevel>  DIPLevel;
-    typedef NOMADSUtil::StringHashtable<DIPLevel> SIPLevel;
-
-    struct TCPRTTData
-    {
-        NOMADSUtil::String sSourceIP;
-        NOMADSUtil::String sDestIP;
-        NOMADSUtil::String sSourcePort;
-        NOMADSUtil::String sDestPort;
-
-        int64 i64rcvTime;
-    };
-
+    typedef NOMADSUtil::UInt32Hashtable<RTTContainer> ACKLevel;
+    typedef NOMADSUtil::UInt32Hashtable<ACKLevel>  SeqLevel;
 
     class TCPRTTTable
     {
     public:
-        TCPRTTTable(void);
-        ~TCPRTTTable(void);
+        TCPRTTTable(uint32 ui32msResolution);
 
-        uint32 cleanTables(const uint32 ui32MaxCleaningNumber); 
+        uint32 cleanTables (const uint32 ui32MaxCleaningNumber); 
         uint8 getCount(void);
-        void   put(TCPRTTData & pTCPStruct, bool isSent);
-        void   print(void);
-    private:
-        void checkSent(TCPRTTData & pTCPStruct);
-        void checkReceived(TCPRTTData & pTCPStruct);
+        bool hasAckNum (uint32 ui32AckNum);
+        float getAvgRTT(void);
+        uint32 getMinRTT(void);
+        uint32 getMaxRTT(void);
+        uint32 getMostRecentRTT(void);
+        void print(void);
+        void putNewAckEntry (uint32 ui32AckNum, const int64 i64RcvTimestamp);
+        void putNewSeqEntry (uint32 ui32SeqNum, uint32 ui32NextAckNum,
+            const int64 i64SntTimestamp);
 
+
+    private:
         //<---------------------------------------------->
-        SIPLevel _tcpRTTTable;
+        SeqLevel _tcpRTTTable;
+        TimeIntervalAverage<uint32> _avgRttTIA;
         NOMADSUtil::Mutex _mutex;
     };
 }

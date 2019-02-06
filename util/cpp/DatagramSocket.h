@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -66,13 +66,13 @@ namespace NOMADSUtil
             virtual uint16 getMTU (void) = 0;
 
             // Get the receive buffer size
-            virtual int getReceiveBufferSize (void) = 0;
+            virtual int getReceiveBufferSize (void) const = 0;
 
             // Set the receive buffer size
             virtual int setReceiveBufferSize (int iSize) = 0;
 
             // Get the send buffer size
-            virtual int getSendBufferSize (void) = 0;
+            virtual int getSendBufferSize (void) const = 0;
 
             // Returns true if the socket is configured to receive ancillary data
             bool pktInfoEnabled (void);

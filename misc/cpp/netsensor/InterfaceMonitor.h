@@ -42,9 +42,14 @@ namespace IHMC_NETSENSOR
     public:
         InterfaceMonitor(void);
         ~InterfaceMonitor(void);
+        
+        int initLive (
+            const NOMADSUtil::String & sInterfaceName,
+            bool isInternal = false, 
+            bool rttDetection = false,
+            uint32 ui32ForcedInterfaceAddr = 0,
+            uint32 ui32ForcedNetmask = 0);
 
-        int initLive(const NOMADSUtil::String & sInterfaceName,
-                     bool isInternal = false, bool rttDetection = false);
         int initReplay(const NOMADSUtil::String & sInterfaceName,
                        const NOMADSUtil::String & sReplayFile,
                        uint32 ui32IPAddr, uint32 ui32Netmask, uint32 ui32GwIPAddr,

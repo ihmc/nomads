@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 
 /**
  * @author: Maggie Breedy
- * @version $Revision: 1.4 $
+ * @version $Revision$
  *
  */
 public class IntDataTest

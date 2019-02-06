@@ -37,12 +37,27 @@ public:
     void parseArgs          (const int argCount, const char *args[]);
     void printError         (void);
     void printParamMeanings (void);
+
+private:
+    bool checkForError          (const char * args[], const int *pWordCounter, const char *pszMsg, const char * const id);
+
+    void manageConfigPath       (int * pWordCounter, const char * args[], const int argCount);
+    void manageDeliveryTime     (int * pWordCounter, const char * args[], const int argCount);
+    void manageForcedAddress    (int * pWordCounter, const char * args[], const int argCount);
+    void manageForcedInterfaces (int * pWordCounter, const char * args[], const int argCount);
+    void manageForcedNetmask    (int * pWordCounter, const char * args[], const int argCount);
+    void manageInterfaces       (int * pWordCounter, const char * args[], const int argCount);
+    void manageReplayMode       (int * pWordCounter, const char * args[], const int argCount);
+    void manageNSRecipients     (int * pWordCounter, const char * args[], const int argCount);
+    void manageEnableIW         (int * pWordCounter, const char * args[], const int argCount);
+    void manageUnknown          (const char * pszParam);
     //<----------------------------------------------------->
 private:
     bool _bHasError;
     bool _bHasHelp;
-    ParameterDictionary *_pParamDictionary;
-    CommandLineConfigs  *_pCommandLineConfigs;
+
+    ParameterDictionary * _pParamDictionary;
+    CommandLineConfigs  * _pCommandLineConfigs;
 };
 }
 #endif

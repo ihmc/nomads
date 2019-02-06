@@ -12,7 +12,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -25,8 +25,8 @@
 #include "Serial2Net.h"
 
 #if defined (WIN32)
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
 #elif defined (UNIX)
     #include <stdio.h>
@@ -195,7 +195,7 @@ int Serial::init (const char *pszPort, uint32 ui32DTESpeed, char chParity, uint8
             return -8;
         }
         struct termios tios;
-        memset (&tios, 0, sizeof(tios)); 
+        memset (&tios, 0, sizeof(tios));
         cfmakeraw (&tios);
         speed_t speed = mapDTESpeed (ui32DTESpeed);
         if ((speed == B0) && (ui32DTESpeed != 0)) {
@@ -915,7 +915,7 @@ int Serial::flushOutput (void)
             // are the only speeds that typical serial lines can support.
             // B0 B50 B75 B110 B134 B150 B200 B300 B600 B1200 B1800 B2400
             // B4800 B9600 B19200 B38400 B57600 B115200 B230400 B460800
-			//
+            //
             // Apparently on MacOS the maximum speed allowed for serial lines
             // is B230400. (At least until GCC 4.0.1)
             #if !defined (OSX)

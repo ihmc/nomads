@@ -44,10 +44,10 @@ namespace NOMADSUtil
             InetAddr getLocalAddr (void);
             int getLocalSocket (void);
             uint16 getMTU (void);
-            int getReceiveBufferSize (void);
+            int getReceiveBufferSize (void) const;
             int setReceiveBufferSize (int iSize);
             // Get the send buffer size
-            int getSendBufferSize (void);
+            int getSendBufferSize (void) const;
             bool pktInfoEnabled (void);
             int setSendBufferSize (int iSize);
             int setTimeout (uint32 ui32TimeoutInMS);
@@ -150,7 +150,7 @@ namespace NOMADSUtil
     }
 
     inline
-    int ManageableDatagramSocket::getReceiveBufferSize (void)
+    int ManageableDatagramSocket::getReceiveBufferSize (void) const
     {
         return _pDGramSock->getReceiveBufferSize();
     }
@@ -162,7 +162,7 @@ namespace NOMADSUtil
     }
 
     inline
-    int ManageableDatagramSocket::getSendBufferSize (void)
+    int ManageableDatagramSocket::getSendBufferSize (void) const
     {
         return _pDGramSock->getSendBufferSize();
     }

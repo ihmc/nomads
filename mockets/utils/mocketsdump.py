@@ -3,8 +3,8 @@
 # Simple message mockets packet dump utility
 #
 # Author: Mauro Tortonesi <mauro@ferrara.linux.it>
-# Revision: $Revision: 1.14 $
-# Last updated: $Date: 2006/11/16 10:14:31 $
+# Revision: $Revision$
+# Last updated: $Date$
 #
 # This program requires the pypcap and dpkt extension modules, which can be
 # found at the following URLs respectively:

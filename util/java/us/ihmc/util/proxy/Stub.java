@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import us.ihmc.comm.CommException;
+import us.ihmc.comm.ProtocolException;
 import us.ihmc.comm.CommHelper;
 import us.ihmc.sync.ConcurrentProxy;
 
@@ -42,20 +43,25 @@ public class Stub extends ConcurrentProxy
     private final int _reinitializationAttemptInterval;
     private final CallbackHandlerFactory _handlerFactory;
     private CallbackHandler _handler;
-    protected AtomicBoolean _isInitialized;
-    private final List<ConnectionStatusListener> _connectionStatusListeners = new ArrayList<ConnectionStatusListener>();
+    protected AtomicBoolean _isInitialized = new AtomicBoolean(false);
+    private final List<ConnectionStatusListener> _connectionStatusListeners = new ArrayList<>();
     private long _callbackTheadId;
+    private final String _protocol;
+    private final String _version;
+    private final AtomicBoolean _reinitializing = new AtomicBoolean(false);
 
     protected CommHelper _commHelper;
 
     protected Stub (CallbackHandlerFactory handlerFactory, short applicationId,
-                    String host, int port)
+                    String host, int port, String protocol, String version)
     {
         _applicationId = applicationId;
         _host = host;
         _port = port;
         _reinitializationAttemptInterval = 5000;
         _handlerFactory = handlerFactory;
+        _protocol = protocol;
+        _version = version;
     }
 
     public int init() throws Exception
@@ -63,6 +69,12 @@ public class Stub extends ConcurrentProxy
         int rc = 0;
 
         try {
+            try { _commHelper.closeConnection(); } catch (Exception e) {}
+            if (_handler != null) {
+                _handler.requestTermination();
+                _handler.closeConnection();
+            }
+
             CommHelper ch = connectToServer (_host, _port);
             CommHelper chCallback = connectToServer (_host, _port);
             if (ch != null && chCallback != null) {
@@ -72,7 +84,9 @@ public class Stub extends ConcurrentProxy
                                                            // a different id than requested
                     _commHelper = ch;
                     _handler = _handlerFactory.getHandler (this, chCallback);
-                    new Thread (_handler).start();
+                    Thread t = new Thread (_handler);
+                    t.setDaemon (true);
+		            t.start();
                     _isInitialized.set (true);
                 }
                 else {
@@ -91,11 +105,15 @@ public class Stub extends ConcurrentProxy
         return rc;
     }
  
-    public void reinitialize()
+    public synchronized void reinitialize()
     {
-        new Thread(){
+        Thread t = new Thread(){
             @Override
             public void run() {
+                if(_reinitializing.get()) {
+                    return;
+                }
+                _reinitializing.set(true);
                 while (!isInitialized()) {
                     try {
                         init();
@@ -104,10 +122,14 @@ public class Stub extends ConcurrentProxy
                     catch (InterruptedException ex) {}
                     catch (Exception ex) {
                         Logger.getLogger(Stub.class.getName()).log(Level.SEVERE, null, ex);
-                    }                    
+                    }
                 }
+                _reinitializing.set(false);
             }
-        }.start();
+		};
+        t.setDaemon(true);
+        t.setName(Stub.class.getName() + "-ReInit");
+        t.start();
     }
 
     public boolean isInitialized()
@@ -127,6 +149,19 @@ public class Stub extends ConcurrentProxy
         _connectionStatusListeners.add (listener);
     }
 
+    public void notifyConnectionLoss()
+    {
+        _isInitialized.set (false);
+        for (int i = 0 ; i < _connectionStatusListeners.size() ; i++) {
+            _connectionStatusListeners.get(i).connectionLost();
+        }
+    }
+
+    void setCallbackThreadId (long callbackTheadId)
+    {
+        _callbackTheadId = callbackTheadId;
+    }
+
     protected CommHelper connectToServer (String host, int port)
         throws Exception
     {
@@ -135,16 +170,18 @@ public class Stub extends ConcurrentProxy
         return commHelper;
     }
 
-    protected int registerProxy (CommHelper ch, CommHelper chCallback, int desiredApplicationId) throws CommException
+    protected int registerProxy (CommHelper ch, CommHelper chCallback, int desiredApplicationId) throws CommException, ProtocolException
     {
         try {
             // First register the proxy using the desired application id
             // The ProxyServer will return the assigned application id
+            doHandshake (ch);
             ch.sendLine ("RegisterProxy " + desiredApplicationId);
             String[]  array = ch.receiveRemainingParsed ("OK");
             int applicationId = Short.parseShort (array[0]);
 
             // Now register the callback using the assigned application id
+            doHandshake (chCallback);
             chCallback.sendLine ("RegisterProxyCallback " + applicationId);
             chCallback.receiveMatch ("OK");
             return applicationId;
@@ -159,23 +196,23 @@ public class Stub extends ConcurrentProxy
         }
     }
 
-    public void notifyConnectionLoss()
-    {
-        _isInitialized.set (false);
-        for (int i = 0 ; i < _connectionStatusListeners.size() ; i++) {
-            _connectionStatusListeners.get(i).connectionLost();
-        }
-    }
-
-    void setCallbackThreadId (long callbackTheadId)
-    {
-        _callbackTheadId = callbackTheadId;
-    }
-
     protected void checkConcurrentModification (String exceptionMsg)
     {
         if (Thread.currentThread().getId() == _callbackTheadId) {
             throw new ConcurrentModificationException (exceptionMsg);
+        }
+    }
+
+    private void doHandshake(CommHelper ch) throws CommException, ProtocolException {
+        String handshakeMsg = _protocol + " " + _version;
+        ch.sendLine (handshakeMsg);
+        String[] response = ch.receiveParsed();
+        if ((response == null) || (response.length != 2)) {
+            throw new ProtocolException("Received unparsable response to handshake");
+        }
+        if ((_protocol.compareTo (response[0]) != 0) || (_version.compareTo (response[1]) != 0)) {
+            throw new ProtocolException("Handshake failed: expected <" + handshakeMsg + ">, received <"
+                    + response[0] + " " + response[1] + ">");
         }
     }
 }

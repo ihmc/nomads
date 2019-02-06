@@ -50,9 +50,24 @@ public class ServerMocket
      * @param configFile the path to the configuration file that should be loaded
      */
     public ServerMocket (String configFile)
-        throws IOException
+            throws IOException
     {
         init (configFile);
+    }
+
+    /*
+     * Creates a new <code>ServerMocket</code> with DTLS and uses
+     * the specified file to load the configuration for the ServerMocket
+     * and any Mocket instances created for accepted connections.
+     *
+     * @param configFile the path to the configuration file that should be loaded
+     * @param pathToCertificate the path to the certificate file that should be loaded
+     * @param pathToPrivateKey the path to the Private Key file that should be loaded
+     */
+    public ServerMocket (String configFile, String pathToCertificate, String pathToPrivateKey)
+            throws IOException
+    {
+        initDtls (configFile, pathToCertificate, pathToPrivateKey);
     }
 
     /**
@@ -221,6 +236,18 @@ public class ServerMocket
      * @throws java.lang.IllegalArgumentException
      */
     private native void init (String configFile) throws IOException, IllegalArgumentException;
+
+    /**
+     * Native method that initializes an object <code>ServerMocket DTLS</code>.
+     *
+     * @param configFile    the path to the configuration file that should be loaded
+     * @param pathToCertificate
+     * @param pathToPrivateKey    
+     *
+     * @throws java.io.IOException
+     * @throws java.lang.IllegalArgumentException
+     */
+    private native void initDtls (String configFile, String pathToCertificate, String pathToPrivateKey) throws IOException, IllegalArgumentException;
 
     /**
      * Native method that initializes the server mocket to accept incoming connections on the specified port.

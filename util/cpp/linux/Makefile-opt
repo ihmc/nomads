@@ -1,6 +1,6 @@
 cpp = g++
 
-cppflags = -O2 -DUNIX -DLINUX -DLITTLE_ENDIAN_SYSTEM -I.. -I../../../externals/include
+cppflags = -std=c++11 -O2 -DUNIX -DLINUX -DLITTLE_ENDIAN_SYSTEM -I.. -I../../../externals/include
 
 sources = $(wildcard ../*.cpp) $(wildcard ../*.c)
 objects = $(sources:../%.cpp=%.o) $(sources:../%.c=%.o)

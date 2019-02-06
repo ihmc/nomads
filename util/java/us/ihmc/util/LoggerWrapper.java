@@ -33,7 +33,7 @@ import java.io.*;
  * initilize the Logger.
  *
  * @author  Maggie Breedy <Nomads team>
- * @version $Revision: 1.6 $
+ * @version $Revision$
  *
  **/
 

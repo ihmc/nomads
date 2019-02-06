@@ -164,8 +164,8 @@ String & String::operator += (unsigned char c)
 String & String::operator += (uint32 ui32)
 {
     char szBuf[22];
-    char *pszBuf = i64toa (szBuf, (int64) ui32);
-    return this->operator += (pszBuf);
+    char *pbuf = i64toa (szBuf, (int64) ui32);
+    return this->operator += (pbuf);
 }
 
 char & String::operator [] (int iPos) const

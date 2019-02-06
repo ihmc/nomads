@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -21,6 +21,7 @@
 #define INCL_UDP_RAW_DATAGRAM_SOCKET_H
 
 #if defined (WIN32)
+    #include <mutex>
     #include <winsock2.h>
 #elif defined (UNIX)
     #include <sys/types.h>
@@ -102,10 +103,15 @@ namespace NOMADSUtil
             // Returns the error code for the last failure
             int getLastError (void);
 
+
+            // Returns an InetAddr containing the IPv4 address assigned to the interface that would be used to send datagrams to the target InetAddr, according to the machine's routing rules
+            static InetAddr getLocalIPv4AddressToReachRemoteIPv4Address (const InetAddr & iaRemoteAddress);
+
         protected:
             int sockfd;
             InetAddr lastPacketAddr;
             #if defined (WIN32)
+                static std::mutex _mtxWinsockInit;
                 static bool bWinsockInitialized;
             #endif
             #if defined (UNIX)

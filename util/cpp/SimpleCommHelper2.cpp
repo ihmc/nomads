@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -28,7 +28,7 @@
 
 #if defined (WIN32)
     #if _MCS_VER<1900
-        #define snprintf _snprintf    
+        #define snprintf _snprintf
     #endif
 #endif
 
@@ -496,7 +496,7 @@ const char ** SimpleCommHelper2::receiveParsedDelimited (Error &error, const cha
         pszToken = strtok_mt (NULL, pszDelimiters, &pszTemp);
     }
     _parsedTokens[i] = NULL;
-    if (NULL != pCount) {	
+    if (NULL != pCount) {
         *pCount = i;
     }
     return (const char **) &_parsedTokens[0];

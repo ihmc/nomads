@@ -25,6 +25,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
@@ -48,7 +51,9 @@ public class CertsFileManager
     {
         Hashtable dataTable = new Hashtable (10);
         try {
-            PushbackBufferedReader pbr = new PushbackBufferedReader (new FileReader (filePath));
+            PushbackBufferedReader pbr = new PushbackBufferedReader (
+                    Files.newBufferedReader(Paths.get(filePath), Charset.defaultCharset()));
+
             String str;
             while ((str = pbr.readLine()) != null) {
                 if (str.startsWith ("[Entry]")) {

@@ -27,5 +27,5 @@ import us.ihmc.comm.CommHelper;
  */
 public interface CallbackHandlerFactory
 {    
-    public CallbackHandler getHandler (Stub stub, CommHelper commHelper);
+    CallbackHandler getHandler (Stub stub, CommHelper commHelper);
 }

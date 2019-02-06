@@ -5,7 +5,7 @@
  * LzmaConnectorReader.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,13 +22,14 @@
  * The LzmaConnectorReader class decompresses data compressed using the LZMA library.
  */
 
+#include <mutex>
+
 #ifndef LZMA_API_STATIC
 #define LZMA_API_STATIC
 #endif
 
 #include "lzma.h"
 
-#include "Mutex.h"
 #include "ConnectorReader.h"
 
 #define DEFAULT_IN_BUF_SIZE 1024U
@@ -41,42 +42,41 @@ namespace ACMNetProxy
     class LzmaConnectorReader : public ConnectorReader
     {
     public:
-        virtual const ProxyMessage::CompressionType getCompressionFlag (void) const;
-        using ConnectorReader::getCompressionLevel;
-        using ConnectorReader::getCompressionName;
+        virtual ~LzmaConnectorReader (void);
 
-        virtual int receiveTCPDataProxyMessage (const uint8 *const ui8SrcData, uint16 ui16SrcLen, uint8 **pDest, uint32 &ui32DestLen);
+        virtual const CompressionType getCompressionFlag (void) const;
+
+        virtual int receiveTCPDataProxyMessage (const uint8 * const ui8SrcData, uint16 ui16SrcLen, uint8 ** pDest, uint32 & ui32DestLen);
         virtual int resetAndUnlockConnectorReader (void);
 
 
     private:
         friend class ConnectorReader;
 
-        LzmaConnectorReader (const CompressionSetting * const pCompressionSetting, unsigned int ulInBufSize = DEFAULT_IN_BUF_SIZE,
+        LzmaConnectorReader (const CompressionSettings & compressionSettings, unsigned int ulInBufSize = DEFAULT_IN_BUF_SIZE,
                              unsigned int ulOutBufSize = DEFAULT_OUT_BUF_SIZE);
-        virtual ~LzmaConnectorReader (void);
 
-        virtual int lockConnectorReader (void);
-        virtual int unlockConnectorReader (void);
+        virtual void lockConnectorReader (void) const;
+        virtual void unlockConnectorReader (void) const;
         virtual int resetConnectorReader (void);
         void resetDecompStream (void);
 
-        static void * alloc_mem (void *userdata, uint32_t items, uint32_t size);
-        static void free_mem (void *userdata, void *data);
+        static void * alloc_mem (void * userdata, uint32_t items, uint32_t size);
+        static void free_mem (void * userdata, void * data);
 
-        unsigned char *_pInputBuffer;
+        unsigned char * _pInputBuffer;
         unsigned int _ulInBufSize;
-        unsigned char *_pOutputBuffer;
+        unsigned char * _pOutputBuffer;
         unsigned int _ulOutBufSize;
         lzma_stream _lzmaDecompStream;
 
-        NOMADSUtil::Mutex _m;
+        mutable std::mutex _mtx;
     };
 
 
-    inline const ProxyMessage::CompressionType LzmaConnectorReader::getCompressionFlag (void) const
+    inline const CompressionType LzmaConnectorReader::getCompressionFlag (void) const
     {
-        return ProxyMessage::PMC_LZMACompressedData;
+        return CompressionType::PMC_LZMACompressedData;
     }
 
     inline int LzmaConnectorReader::resetAndUnlockConnectorReader (void)
@@ -84,20 +84,20 @@ namespace ACMNetProxy
         if (0 != resetConnectorReader()) {
             return -1;
         }
+        _mtx.unlock();
 
-        return unlockConnectorReader();
+        return 0;
     }
 
-    inline int LzmaConnectorReader::lockConnectorReader (void)
+    inline void LzmaConnectorReader::lockConnectorReader (void) const
     {
-        return _m.lock();
+        _mtx.lock();
     }
 
-    inline int LzmaConnectorReader::unlockConnectorReader (void)
+    inline void LzmaConnectorReader::unlockConnectorReader (void) const
     {
-        return _m.unlock();
+        _mtx.unlock();
     }
-
 }
 
 #endif // INCL_ZLIB_CONNECTOR_READER_H

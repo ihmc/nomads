@@ -48,16 +48,16 @@ class PacketQueue
 
         // A negative timeout value implies wait indefinitely
         // A zero timeout value implies do not block
-        // Return NULL if no packet was present in the queue
+        // Return nullptr if no packet was present in the queue
         DataBuffer * peek (int64 i64Timeout);
 
         // A negative timeout value implies wait indefinitely
         // A zero timeout value implies do not block
-        // Returns NULL if no packet was avaiable to extract
+        // Returns nullptr if no packet was avaiable to extract
         DataBuffer * extract (int64 i64Timeout);
 
         // Indicates that no additional data will be inserted into this queue
-        // If there is no data left in the queue, calls to extract will return NULL without blocking
+        // If there is no data left in the queue, calls to extract will return nullptr without blocking
         void close (void);
         
         int freeze (NOMADSUtil::ObjectFreezer &objectFreezer);
@@ -82,7 +82,7 @@ class PacketQueue
 inline PacketQueue::PacketQueue (void)
     : _cv (&_m)
 {
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _ui32CumulativeMessageSize = 0;
     _bClosed = false;
@@ -90,18 +90,18 @@ inline PacketQueue::PacketQueue (void)
 
 inline PacketQueue::~PacketQueue (void)
 {
-    while (_pFirstNode != NULL) {
+    while (_pFirstNode != nullptr) {
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode->pData;
         delete pTempNode;
     }
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
 }
 
 inline bool PacketQueue::isEmpty (void)
 {
-    return (_pFirstNode == NULL);
+    return (_pFirstNode == nullptr);
 }
 
 inline uint32 PacketQueue::getPacketCount (void)
@@ -119,7 +119,7 @@ inline void PacketQueue::insert (DataBuffer *pBuffer)
     Node *pNewNode = new Node();
     pNewNode->pData = pBuffer;
     _m.lock();
-    if (_pLastNode == NULL) {
+    if (_pLastNode == nullptr) {
         _pFirstNode = pNewNode;
     }
     else {
@@ -145,7 +145,7 @@ inline DataBuffer * PacketQueue::peek (int64 i64Timeout)
         else {
             if (_bClosed) {
                 _m.unlock();
-                return NULL;
+                return nullptr;
             }
             if (i64Timeout < 0) {
                 _cv.wait();
@@ -154,7 +154,7 @@ inline DataBuffer * PacketQueue::peek (int64 i64Timeout)
                 int64 i64RemainingTime = (i64StartTime + i64Timeout) - NOMADSUtil::getTimeInMilliseconds();
                 if (i64RemainingTime <= 0) {
                     _m.unlock();
-                    return NULL;
+                    return nullptr;
                 }
                 else {
                     _cv.wait (i64RemainingTime);
@@ -172,7 +172,7 @@ inline DataBuffer * PacketQueue::extract (int64 i64Timeout)
         if (_ui32PacketsInQueue > 0) {
             Node *pTempNode = _pFirstNode;
             if (_pFirstNode == _pLastNode) {
-                _pLastNode = NULL;
+                _pLastNode = nullptr;
             }
             _pFirstNode = _pFirstNode->pNext;
             _ui32PacketsInQueue--;
@@ -185,7 +185,7 @@ inline DataBuffer * PacketQueue::extract (int64 i64Timeout)
         else {
             if (_bClosed) {
                 _m.unlock();
-                return NULL;
+                return nullptr;
             }
             if (i64Timeout < 0) {
                 _cv.wait();
@@ -194,7 +194,7 @@ inline DataBuffer * PacketQueue::extract (int64 i64Timeout)
                 int64 i64RemainingTime = (i64StartTime + i64Timeout) - NOMADSUtil::getTimeInMilliseconds();
                 if (i64RemainingTime <= 0) {
                     _m.unlock();
-                    return NULL;
+                    return nullptr;
                 }
                 else {
                     _cv.wait (i64RemainingTime);
@@ -244,7 +244,7 @@ inline int PacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDefroster, P
             return -2;
         }
         pNewNode->pData = pDataBuffer;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             _pFirstNode = _pLastNode = pNewNode;
         }
         else {
@@ -258,8 +258,8 @@ inline int PacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectDefroster, P
 
 inline PacketQueue::Node::Node (void)
 {
-    pNext = NULL;
-    pData = NULL;
+    pNext = nullptr;
+    pData = nullptr;
 }
 
 #endif   // #ifndef INCL_PACKET_QUEUE_H

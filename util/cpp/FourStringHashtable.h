@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -37,19 +37,19 @@ namespace NOMADSUtil
     {
         public:
             /*
-            *  
+            *
             * bCloneKeys: If you don't put this to true the put process will fail during the rehasing if an original key got destroyed
             *
             *
             */
             FourStringHashtable (bool bCaseSensitiveKeys = true,
-                                  bool bCloneKeys = false,
-                                  bool bDeleteKeys = false);
+                                 bool bCloneKeys = false,
+                                 bool bDeleteKeys = false);
 
             FourStringHashtable (unsigned short usInitSize,
-                                  bool bCaseSensitiveKeys = true,
-                                  bool bCloneKeys = false,
-                                  bool bDeleteKeys = false);  
+                                 bool bCaseSensitiveKeys = true,
+                                 bool bCloneKeys = false,
+                                 bool bDeleteKeys = false);
 
             virtual ~FourStringHashtable (void);
 
@@ -66,7 +66,7 @@ namespace NOMADSUtil
                     bool end (void) {
                         return (_pCurrElement == NULL);
                     }
-                    
+
                     bool nextElement (void) {
                         if (_pCurrElement) {
                             if (((HashtableEntry*)_pCurrElement)->pNext) {
@@ -90,21 +90,21 @@ namespace NOMADSUtil
                         }
                         return NULL;
                     }
-                    
+
                     const char * getKeyTwo (void) {
                         if (_pCurrElement) {
                             return ((HashtableEntry*)_pCurrElement)->pszKeyTwo;
                         }
                         return NULL;
                     }
-                    
+
                     const char * getKeyThree (void) {
                         if (_pCurrElement) {
                             return ((HashtableEntry*)_pCurrElement)->pszKeyThree;
                         }
                         return NULL;
                     }
-                    
+
                     const char * getKeyFour (void) {
                         if (_pCurrElement) {
                             return ((HashtableEntry*)_pCurrElement)->pszKeyFour;
@@ -119,7 +119,7 @@ namespace NOMADSUtil
                         }
                         return NULL;
                     }
-                    
+
                 private:
                     Iterator (FourStringHashtable<T> *pTable, unsigned long ulState) {
                         _pTable    = pTable;
@@ -134,7 +134,7 @@ namespace NOMADSUtil
                             _usIndex++;
                         }
                     }
-                    
+
                     FourStringHashtable<T> *_pTable;
                     unsigned long           _ulState;
                     unsigned short          _usIndex;
@@ -144,7 +144,7 @@ namespace NOMADSUtil
                 private:
                     friend class FourStringHashtable<T>;
             };
-            
+
             virtual T * put      (const char *pszKeyOne, const char *pszKeyTwo, const char *pszKeyThree, const char *pszKeyFour, T *Value);
             virtual T * get      (const char *pszKeyOne, const char *pszKeyTwo, const char *pszKeyThree, const char *pszKeyFour);
             virtual T * getCaseS (const char *pszKeyOne, const char *pszKeyTwo, const char *pszKeyThree, const char *pszKeyFour);
@@ -265,7 +265,7 @@ namespace NOMADSUtil
     template <class T> T * FourStringHashtable<T>::put (const char *pszKeyOne,
                                                          const char *pszKeyTwo,
                                                          const char *pszKeyThree,
-                                                         const char *pszKeyFour, 
+                                                         const char *pszKeyFour,
                                                          T* pValue)
     {
         if ( (pszKeyOne == NULL) || (pszKeyTwo == NULL) || (pszKeyThree == NULL) || (pszKeyFour == NULL) || (pValue == NULL) ){
@@ -312,7 +312,7 @@ namespace NOMADSUtil
             _usCount++;
         }
         else if (
-                 (0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) && 
+                 (0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) &&
                  (0 == keycomp (pHTE->pszKeyThree, pszKeyThree)) &&
                  (0 == keycomp (pHTE->pszKeyFour, pszKeyFour)) &&
                  (0 == keycomp (pHTE->pszKeyOne,   pszKeyOne))
@@ -354,9 +354,9 @@ namespace NOMADSUtil
             while (pHTE->pNext != NULL) {
                 pHTE = pHTE->pNext;
                 if (
-                    (0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) && 
-                    (0 == keycomp (pHTE->pszKeyThree, pszKeyThree)) && 
-                    (0 == keycomp (pHTE->pszKeyFour, pszKeyFour)) && 
+                    (0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) &&
+                    (0 == keycomp (pHTE->pszKeyThree, pszKeyThree)) &&
+                    (0 == keycomp (pHTE->pszKeyFour, pszKeyFour)) &&
                     (0 == keycomp (pHTE->pszKeyOne,   pszKeyOne))
                     ) {
                     T * pOldValue = pHTE->pValue;
@@ -430,14 +430,14 @@ namespace NOMADSUtil
         struct HashtableEntry *pHTE;
         // First try linear search if _pFirstAdded is not yet NULL
         for (pHTE = _pFirstAdded; pHTE != NULL; pHTE = pHTE->pNextLinear) {
-    	    if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
-                if ((0 == strcmp (pszKeyTwo,   pHTE->pszKeyTwo)) && 
-            	    (0 == strcmp (pszKeyThree, pHTE->pszKeyThree)) &&
+            if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
+                if ((0 == strcmp (pszKeyTwo,   pHTE->pszKeyTwo)) &&
+                    (0 == strcmp (pszKeyThree, pHTE->pszKeyThree)) &&
                     (0 == strcmp (pszKeyFour, pHTE->pszKeyFour)) &&
                     (0 == strcmp (pszKeyOne,   pHTE->pszKeyOne))) {
                     return (pHTE->pValue);
                 }
-    	    }
+            }
         }
         if ((_pFirstAdded != NULL) || (pszKeyTwo==NULL)) {
             return NULL;
@@ -451,16 +451,16 @@ namespace NOMADSUtil
             if (*(++psk2)=='\0') break;
             psk2++;
         }
-        
+
         for (pHTE = &_pHashtable[hashValue]; pHTE != NULL; pHTE = pHTE->pNext) {
-    	    if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
-    		    if ((0 == strcmp (pszKeyTwo,   pHTE->pszKeyTwo)) && 
-    			    (0 == strcmp (pszKeyThree, pHTE->pszKeyThree)) &&	
-    			    (0 == strcmp (pszKeyFour, pHTE->pszKeyFour)) &&
-    			    (0 == strcmp (pszKeyOne,   pHTE->pszKeyOne))) {
-    			    return (pHTE->pValue);
-    		    }
-    	    }
+            if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
+                if ((0 == strcmp (pszKeyTwo,   pHTE->pszKeyTwo)) &&
+                    (0 == strcmp (pszKeyThree, pHTE->pszKeyThree)) &&
+                    (0 == strcmp (pszKeyFour, pHTE->pszKeyFour)) &&
+                    (0 == strcmp (pszKeyOne,   pHTE->pszKeyOne))) {
+                    return (pHTE->pValue);
+                }
+            }
         }
         return NULL;
     }
@@ -475,14 +475,14 @@ namespace NOMADSUtil
         struct HashtableEntry *pHTE;
         // First try linear search if _pFirstAdded is not yet NULL
         for (pHTE = _pFirstAdded; pHTE != NULL; pHTE = pHTE->pNextLinear) {
-    	    if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
-    		    if ((0 == stricmp (pszKeyTwo,   pHTE->pszKeyTwo)) && 
-    			    (0 == stricmp (pszKeyThree, pHTE->pszKeyThree)) &&	
-    			    (0 == stricmp (pszKeyFour, pHTE->pszKeyFour)) &&
-    			    (0 == stricmp (pszKeyOne,   pHTE->pszKeyOne))) {
-    			    return (pHTE->pValue);
-    		    }
-    	    }
+            if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
+                if ((0 == stricmp (pszKeyTwo,   pHTE->pszKeyTwo)) &&
+                    (0 == stricmp (pszKeyThree, pHTE->pszKeyThree)) &&
+                    (0 == stricmp (pszKeyFour, pHTE->pszKeyFour)) &&
+                    (0 == stricmp (pszKeyOne,   pHTE->pszKeyOne))) {
+                    return (pHTE->pValue);
+                }
+            }
         }
         if ((_pFirstAdded != NULL) || (pszKeyTwo==NULL)) {
             return NULL;
@@ -499,14 +499,14 @@ namespace NOMADSUtil
         }
 
         for (pHTE = &_pHashtable[hashValue]; pHTE != NULL; pHTE = pHTE->pNext) {
-    	    if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
-    		    if ((0 == stricmp (pszKeyTwo,   pHTE->pszKeyTwo)) && 
-    			    (0 == stricmp (pszKeyThree, pHTE->pszKeyThree)) &&
-    			    (0 == stricmp (pszKeyFour, pHTE->pszKeyFour)) &&
-    			    (0 == stricmp (pszKeyOne,   pHTE->pszKeyOne))) {
-    			    return (pHTE->pValue);
-    		    }
-    	    }
+            if (pHTE->pszKeyOne && pHTE->pszKeyTwo && pHTE->pszKeyThree && pHTE->pszKeyFour) {
+                if ((0 == stricmp (pszKeyTwo,   pHTE->pszKeyTwo)) &&
+                    (0 == stricmp (pszKeyThree, pHTE->pszKeyThree)) &&
+                    (0 == stricmp (pszKeyFour, pHTE->pszKeyFour)) &&
+                    (0 == stricmp (pszKeyOne,   pHTE->pszKeyOne))) {
+                    return (pHTE->pValue);
+                }
+            }
         }
         return NULL;
     }
@@ -537,7 +537,7 @@ namespace NOMADSUtil
 
     template <class T> inline int FourStringHashtable<T>::hashCode (const char *pszKeyOne, const char *pszKeyTwo, const char *pszKeyThree, const char *pszKeyFour)
     {
-	    // Horner's method for strings calculating the hashcode on each character.
+        // Horner's method for strings calculating the hashcode on each character.
         int iHashValue;
         if (_bCaseSensitiveKeys) {
             for (iHashValue=0; *pszKeyOne != '\0'; pszKeyOne++) {
@@ -565,58 +565,58 @@ namespace NOMADSUtil
             }
             for (; *pszKeyFour != '\0'; pszKeyFour++) {
                 iHashValue = (64*iHashValue + tolower(*pszKeyFour)) % _usTableSize;
-            }        
+            }
         }
         return iHashValue;
     }
 
     template <class T> inline int FourStringHashtable<T>::hashCode2 (const char *pszKeyOne, const char *pszKeyTwo, const char *pszKeyThree, const char *pszKeyFour)
     {
-        // Horner's method for strings calculating the hashcode on every two characters.   
+        // Horner's method for strings calculating the hashcode on every two characters.
         int iHashValue = 0;
         if (_bCaseSensitiveKeys) {
-    	    while (*pszKeyOne != '\0') {
-   	   		    iHashValue = (64*iHashValue + *pszKeyOne) % _usTableSize;
-   	   		    if (*(++pszKeyOne)=='\0') break;
-   	   			    pszKeyOne++;
-    	    }
-    	    while (*pszKeyTwo != '\0') {
-    		    iHashValue = (64*iHashValue + *pszKeyTwo) % _usTableSize;
-    		    if (*(++pszKeyTwo)=='\0') break;
-    			    pszKeyTwo++;
-    	    }
-    	    while (*pszKeyThree != '\0') {
-    		    iHashValue = (64*iHashValue + *pszKeyThree) % _usTableSize;
-    		    if (*(++pszKeyThree)=='\0') break;
-    			    pszKeyThree++;
-    	    }   
-    	    while (*pszKeyFour != '\0') {
-    		    iHashValue = (64*iHashValue + *pszKeyFour) % _usTableSize;
-    		    if (*(++pszKeyFour)=='\0') break;
-    			    pszKeyFour++;
-    	    }
+            while (*pszKeyOne != '\0') {
+                      iHashValue = (64*iHashValue + *pszKeyOne) % _usTableSize;
+                      if (*(++pszKeyOne)=='\0') break;
+                          pszKeyOne++;
+            }
+            while (*pszKeyTwo != '\0') {
+                iHashValue = (64*iHashValue + *pszKeyTwo) % _usTableSize;
+                if (*(++pszKeyTwo)=='\0') break;
+                    pszKeyTwo++;
+            }
+            while (*pszKeyThree != '\0') {
+                iHashValue = (64*iHashValue + *pszKeyThree) % _usTableSize;
+                if (*(++pszKeyThree)=='\0') break;
+                    pszKeyThree++;
+            }
+            while (*pszKeyFour != '\0') {
+                iHashValue = (64*iHashValue + *pszKeyFour) % _usTableSize;
+                if (*(++pszKeyFour)=='\0') break;
+                    pszKeyFour++;
+            }
         }
         else {
-    	    while (*pszKeyOne != '\0') {
-    	   	    iHashValue = (64*iHashValue + tolower(*pszKeyOne)) % _usTableSize;
-    	        if (*(++pszKeyOne)=='\0') break;
-    	      	    pszKeyOne++;
-   	    	    }
+            while (*pszKeyOne != '\0') {
+                   iHashValue = (64*iHashValue + tolower(*pszKeyOne)) % _usTableSize;
+                if (*(++pszKeyOne)=='\0') break;
+                      pszKeyOne++;
+                   }
             while (*pszKeyTwo != '\0') {
-        	    iHashValue = (64*iHashValue + tolower(*pszKeyTwo)) % _usTableSize;
-  	            if (*(++pszKeyTwo)=='\0') break;
-   	           	    pszKeyTwo++;
-   	        }
-   	        while (*pszKeyThree != '\0') {
-   	            iHashValue = (64*iHashValue + tolower(*pszKeyThree)) % _usTableSize;
-   	            if (*(++pszKeyThree)=='\0') break;
-   	          	    pszKeyThree++;
-   	        }  
-   	        while (*pszKeyFour != '\0') {
-   	    	    iHashValue = (64*iHashValue + tolower(*pszKeyFour)) % _usTableSize;
-   	     	    if (*(++pszKeyFour)=='\0') break;
-   	     		    pszKeyFour++;
-   	        }
+                iHashValue = (64*iHashValue + tolower(*pszKeyTwo)) % _usTableSize;
+                  if (*(++pszKeyTwo)=='\0') break;
+                          pszKeyTwo++;
+               }
+               while (*pszKeyThree != '\0') {
+                   iHashValue = (64*iHashValue + tolower(*pszKeyThree)) % _usTableSize;
+                   if (*(++pszKeyThree)=='\0') break;
+                         pszKeyThree++;
+               }
+               while (*pszKeyFour != '\0') {
+                   iHashValue = (64*iHashValue + tolower(*pszKeyFour)) % _usTableSize;
+                    if (*(++pszKeyFour)=='\0') break;
+                        pszKeyFour++;
+               }
         }
         return iHashValue;
     }
@@ -635,7 +635,7 @@ namespace NOMADSUtil
             return NULL;
         }
         else {
-            if ((0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) && 
+            if ((0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) &&
                 (0 == keycomp (pHTE->pszKeyFour, pszKeyFour)) &&
                 (0 == keycomp (pHTE->pszKeyOne,   pszKeyOne))) {
                 // Deleting entry in hashtable array
@@ -683,8 +683,8 @@ namespace NOMADSUtil
                 pHTE = pHTE->pNext;
                 while (pHTE != NULL) {
                     if ((0 == keycomp (pHTE->pszKeyOne,   pszKeyOne)) &&
-                        (0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) && 
-                        (0 == keycomp (pHTE->pszKeyThree,   pszKeyThree)) && 
+                        (0 == keycomp (pHTE->pszKeyTwo,   pszKeyTwo)) &&
+                        (0 == keycomp (pHTE->pszKeyThree,   pszKeyThree)) &&
                         (0 == keycomp (pHTE->pszKeyFour, pszKeyFour))) {
                         // Found the node
                         T * pOldValue = pHTE->pValue;
@@ -713,7 +713,7 @@ namespace NOMADSUtil
 
     template <class T> void FourStringHashtable<T>::removeAll(void)
     {
-        deleteTable (_pHashtable, _usTableSize);    
+        deleteTable (_pHashtable, _usTableSize);
         _pHashtable  = new HashtableEntry[_usInitSize];
         _usTableSize = _usInitSize;
         _usCount     = 0;

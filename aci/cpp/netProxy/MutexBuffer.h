@@ -5,7 +5,7 @@
  * MutexBuffer.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,20 +53,16 @@ namespace ACMNetProxy
         unsigned int getBufferSize (void) const;
         const unsigned int getInitialBufferSize (void) const;
         const unsigned int getMaxBufferSize (void) const;
-        const bool _isBufferMutex (void) const;
-        const bool _isBufferResizable (void) const;
-
-        operator unsigned char * const (void) const;
 
 
     private:
-        unsigned char *_pBuf;
-        unsigned int _uiCurrBufSize;
-        const unsigned int _uiMinBufSize;
         const unsigned int _uiMaxBufSize;
+        const unsigned int _uiMinBufSize;
         const bool _bResizable;
+        unsigned int _uiCurrBufSize;
+        unsigned char * _pui8Buf;
 
-        NOMADSUtil::Mutex *_pMutex;
+        NOMADSUtil::Mutex * _pMutex;
     };
 
 
@@ -87,7 +83,7 @@ namespace ACMNetProxy
 
     inline unsigned char * MutexBuffer::getBuffer (void) const
     {
-        return _pBuf;
+        return _pui8Buf;
     }
 
     inline unsigned int MutexBuffer::getBufferSize (void) const
@@ -103,11 +99,6 @@ namespace ACMNetProxy
     inline const unsigned int MutexBuffer::getMaxBufferSize (void) const
     {
         return _uiMaxBufSize;
-    }
-
-    inline MutexBuffer::operator unsigned char * const (void) const
-    {
-        return _pBuf;
     }
 }
 

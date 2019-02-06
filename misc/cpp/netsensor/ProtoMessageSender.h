@@ -36,7 +36,7 @@
 #include"topology.pb.h"
 #include"UDPDatagramSocket.h"
 #include"ZlibBufferCompressionInterface.h"
-
+#include "measure.pb.h"
 #include <iostream>
 #include <fstream>
 
@@ -53,6 +53,9 @@ public:
     void sendTopology       (netsensor::NetSensorContainer *pNSC);
     void sendTraffic        (netsensor::NetSensorContainer *pNSC);
     void sendICMP           (netsensor::NetSensorContainer *pNsc);
+    void sendRTTMeasure         (measure::Measure *pMeasure);
+    void sendIWMeasure (measure::Measure * pMeasure);
+
     void configureToUseCompression();
 
 private:

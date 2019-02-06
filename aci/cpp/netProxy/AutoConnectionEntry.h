@@ -5,7 +5,7 @@
  * AutoConnectionEntry.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,116 +23,159 @@
  * It stores parameters read from the configuration files.
  */
 
+#include <bitset>
+#include <array>
+#include <mutex>
+#include <algorithm>
+
 #include "FTypes.h"
+#include "InetAddr.h"
 #include "net/NetworkHeaders.h"
-#include "StrClass.h"
 
-#include "ProxyMessages.h"
-#include "ProtocolSetting.h"
 #include "ConfigurationParameters.h"
-#include "ConnectivitySolutions.h"
+#include "Utilities.h"
 
-
-namespace NOMADSUtil
-{
-    class InetAddr;
-}
 
 namespace ACMNetProxy
 {
     class Connection;
-    class ConnectivitySolutions;
+    class ConnectionManager;
+    class TCPConnTable;
+    class TCPManager;
+    class PacketRouter;
+    class StatisticsManager;
 
     class AutoConnectionEntry
     {
-        public:
-            AutoConnectionEntry (void);
-            AutoConnectionEntry (const uint32 ui32RemoteProxyID, const ConnectorType connectorType,
-                                 const uint32 ui32AutoReconnectTimeInMillis = NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME);
+    public:
+        AutoConnectionEntry (void);
+        AutoConnectionEntry (const uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr & iaLocalInterfaceIPv4Address,
+                             const NOMADSUtil::InetAddr & iaRemoteInterfaceIPv4Address, const ConnectorType connectorType,
+                             const int32 i32AutoReconnectTimeInMillis = NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME);
+        AutoConnectionEntry (const AutoConnectionEntry & rhs);
 
-            const AutoConnectionEntry & operator= (const AutoConnectionEntry &rhs);
+        AutoConnectionEntry & operator= (const AutoConnectionEntry & rhs) = delete;
 
-            void updateEncryptionDescriptor (void);
-            int synchronize (EncryptionType encryptionType);
-            void synchronized (EncryptionType encryptionType);
-            void resetSynch (EncryptionType encryptionType);
-            void setInvalid (EncryptionType encryptionType);
+        void lock (void) const;
+        void unlock (void) const;
 
-            const uint32 getRemoteProxyID (void) const;
-            ConnectorType getConnectorType (void) const;
-            unsigned char getConnectionEncryptionDescriptor (void) const;
-            const NOMADSUtil::InetAddr * const getRemoteProxyInetAddress (EncryptionType encryptionType) const;
-            uint32 getAutoReconnectTimeInMillis (void) const;
-            uint64 getLastConnectionAttemptTime (EncryptionType encryptionType) const;
-            bool isSynchronized (EncryptionType encryptionType) const;
-            bool isValid (EncryptionType encryptionType) const;
-            bool isAnyValid (void) const;
+        int synchronize (EncryptionType encryptionType, ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable,
+                         TCPManager & rTCPManager, PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager);
 
-            void setConnectorType (ConnectorType connectorType);
-            void setAutoReconnectTime (uint32 ui32AutoReconnectTimeInMillis);
-            void updateLastConnectionAttemptTime (EncryptionType encryptionType, int64 i64CurrentTime);
+        void updateEncryptionDescriptor (ConnectionManager & rConnectionManager);
+        void resetSynchronization (EncryptionType encryptionType);
+        void setInvalid (EncryptionType encryptionType);
 
-        private:
-            //explicit AutoConnectionEntry (const AutoConnectionEntry &rAutoConnectionEntry);
-            friend Connection;
+        const uint32 getRemoteNetProxyID (void) const;
+        ConnectorType getConnectorType (void) const;
+        unsigned char getConnectionEncryptionDescriptor (void) const;
+        const NOMADSUtil::InetAddr & getLocalinterfaceInetAddress (void) const;
+        const NOMADSUtil::InetAddr & getRemoteProxyInetAddress (void) const;
+        bool areConnectivitySolutionsAvailableWithEncryption (EncryptionType encryptionType, ConnectionManager & rConnectionManager) const;
+        int32 getAutoReconnectTimeInMillis (void) const;
+        int64 getLastConnectionAttemptTime (EncryptionType encryptionType) const;
+        bool isSynchronized (EncryptionType encryptionType) const;
+        bool isValid (EncryptionType encryptionType) const;
+        bool isAnyValid (void) const;
 
-            void updateRemoteProxyID (uint32 ui32NewRemoteProxyID);
+        void setConnectorType (ConnectorType connectorType);
+        void setAutoReconnectTime (uint32 ui32AutoReconnectTimeInMillis);
+        void updateLastConnectionAttemptTime (EncryptionType encryptionType, int64 i64CurrentTime);
 
-            uint32 _ui32RemoteProxyID;
-            ConnectorType _connectorType;
-            unsigned char _ucAutoConnectionEncryptionDescriptor;
-            uint32 _ui32AutoReconnectTimeInMillis;
-            uint64 _ui64LastConnectionAttemptTime[ET_SIZE];
-            bool _bSynchronized[ET_SIZE];        // A synchronized autoConnection means that an InitializeConnection Proxy Message has been sent to the remote NetProxy, regardless of the encryption used
-            bool _bValid[ET_SIZE];
 
-            static ConnectionManager * const P_CONNECTION_MANAGER;
+    private:
+        friend class ConnectionManager;
+        friend class AutoConnectionManager;
+
+        void updateRemoteProxyID (uint32 ui32NewRemoteProxyID);
+        void setAsSynchronized (EncryptionType encryptionType);
+        void resetAutoConnectionEntry (Connection * const pConnectionToReset);
+
+        uint32 _ui32RemoteProxyID;
+        NOMADSUtil::InetAddr _iaLocalInterfaceIPv4Address;
+        NOMADSUtil::InetAddr _iaRemoteInterfaceIPv4Address;
+        ConnectorType _connectorType;
+        unsigned char _ucAutoConnectionEncryptionDescriptor;
+        int32 _i32AutoReconnectTimeInMillis;
+
+        std::array<int64, ET_SIZE> _ai64LastConnectionAttemptTime;
+        std::bitset<ET_SIZE> _bsSynchronized;                       // _bSynchronized[ET] == true means that an InitializeConnection ProxyMessage has been sent to the remote NetProxy for that particular ET
+        std::bitset<ET_SIZE> _bsValid;
+
+        mutable std::mutex _mtx;
     };
 
 
     inline AutoConnectionEntry::AutoConnectionEntry (void) :
-        _ui32RemoteProxyID(0), _connectorType(CT_UNDEF), _ucAutoConnectionEncryptionDescriptor(ET_UNDEF),
-        _ui32AutoReconnectTimeInMillis(NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME),
-        _ui64LastConnectionAttemptTime{}, _bSynchronized{false}, _bValid{true} { }
+        _ui32RemoteProxyID{0}, _iaLocalInterfaceIPv4Address{}, _iaRemoteInterfaceIPv4Address{}, _connectorType{CT_UNDEF},
+        _ucAutoConnectionEncryptionDescriptor{ET_UNDEF}, _i32AutoReconnectTimeInMillis{NetworkConfigurationSettings::DEFAULT_AUTO_RECONNECT_TIME},
+        _ai64LastConnectionAttemptTime{0LL, }
+    {
+        _bsValid.set();
+    }
 
-    inline void AutoConnectionEntry::synchronized (EncryptionType encryptionType)
+    inline AutoConnectionEntry::AutoConnectionEntry (const uint32 ui32RemoteProxyID, const NOMADSUtil::InetAddr & iaLocalInterfaceIPv4Address,
+                                                     const NOMADSUtil::InetAddr & iaRemoteInterfaceIPv4Address, const ConnectorType connectorType,
+                                                     const int32 i32AutoReconnectTimeInMillis) :
+        _ui32RemoteProxyID{ui32RemoteProxyID}, _iaLocalInterfaceIPv4Address{iaLocalInterfaceIPv4Address},
+        _iaRemoteInterfaceIPv4Address{iaRemoteInterfaceIPv4Address}, _connectorType{connectorType},
+        _ucAutoConnectionEncryptionDescriptor{ET_UNDEF}, _i32AutoReconnectTimeInMillis{i32AutoReconnectTimeInMillis},
+        _ai64LastConnectionAttemptTime{0LL, }
+    {
+        _bsValid.set();
+    }
+
+    inline AutoConnectionEntry::AutoConnectionEntry (const AutoConnectionEntry & rhs) :
+        _ui32RemoteProxyID{rhs._ui32RemoteProxyID}, _iaLocalInterfaceIPv4Address{rhs._iaLocalInterfaceIPv4Address},
+        _iaRemoteInterfaceIPv4Address{rhs._iaRemoteInterfaceIPv4Address}, _connectorType{rhs._connectorType},
+        _ucAutoConnectionEncryptionDescriptor{rhs._ucAutoConnectionEncryptionDescriptor},
+        _i32AutoReconnectTimeInMillis{rhs._i32AutoReconnectTimeInMillis},
+        _ai64LastConnectionAttemptTime{rhs._ai64LastConnectionAttemptTime},
+        _bsSynchronized{rhs._bsSynchronized}, _bsValid{rhs._bsValid}
+    { }
+
+    inline void AutoConnectionEntry::lock (void) const
+    {
+        _mtx.lock();
+    }
+
+    inline void AutoConnectionEntry::unlock (void) const
+    {
+        _mtx.unlock();
+    }
+
+    inline void AutoConnectionEntry::setAsSynchronized (EncryptionType encryptionType)
     {
         if (encryptionType == ET_UNDEF) {
             return;
         }
 
-        _bSynchronized[static_cast<unsigned int> (encryptionType) - 1] = true;
+        _bsSynchronized.set (static_cast<unsigned int> (encryptionType) - 1);
     }
 
     // Passing in ET_UNDEF as an EncryptionType will reset the synchronization flag for all Encryption Types
-    inline void AutoConnectionEntry::resetSynch (EncryptionType encryptionType)
+    inline void AutoConnectionEntry::resetSynchronization (EncryptionType encryptionType)
     {
         if (encryptionType == ET_UNDEF) {
-            for (unsigned int i = 0; i < ET_SIZE; ++i) {
-                _bSynchronized[i] = false;
-            }
-
+            _bsSynchronized.reset();
             return;
         }
 
-        _bSynchronized[static_cast<unsigned int> (encryptionType) - 1] = false;
+        _bsSynchronized.reset (static_cast<unsigned int> (encryptionType) - 1);
     }
 
     // Passing in ET_UNDEF as an EncryptionType will set the validity flag to false for all Encryption Types
     inline void AutoConnectionEntry::setInvalid (EncryptionType encryptionType)
     {
         if (encryptionType == ET_UNDEF) {
-            for (unsigned int i = 0; i < ET_SIZE; ++i) {
-                _bValid[i] = false;
-            }
-
+            _bsValid.reset();
             return;
         }
 
-        _bValid[static_cast<unsigned int> (encryptionType) - 1] = false;
+        _bsValid.reset (static_cast<unsigned int> (encryptionType) - 1);
     }
 
-    inline const uint32 AutoConnectionEntry::getRemoteProxyID (void) const
+    inline const uint32 AutoConnectionEntry::getRemoteNetProxyID (void) const
     {
         return _ui32RemoteProxyID;
     }
@@ -147,14 +190,28 @@ namespace ACMNetProxy
         return _ucAutoConnectionEncryptionDescriptor;
     }
 
-    inline uint32 AutoConnectionEntry::getAutoReconnectTimeInMillis (void) const
+    inline const NOMADSUtil::InetAddr & AutoConnectionEntry::getLocalinterfaceInetAddress (void) const
     {
-        return _ui32AutoReconnectTimeInMillis;
+        return _iaLocalInterfaceIPv4Address;
     }
 
-    inline uint64 AutoConnectionEntry::getLastConnectionAttemptTime (EncryptionType encryptionType) const
+    inline const NOMADSUtil::InetAddr & AutoConnectionEntry::getRemoteProxyInetAddress (void) const
     {
-        return _ui64LastConnectionAttemptTime[encryptionType];
+        return _iaRemoteInterfaceIPv4Address;
+    }
+
+    inline int32 AutoConnectionEntry::getAutoReconnectTimeInMillis (void) const
+    {
+        return _i32AutoReconnectTimeInMillis;
+    }
+
+    inline int64 AutoConnectionEntry::getLastConnectionAttemptTime (EncryptionType encryptionType) const
+    {
+        if (encryptionType == ET_UNDEF) {
+            return 0;
+        }
+
+        return _ai64LastConnectionAttemptTime[static_cast<unsigned int> (encryptionType) - 1];
     }
 
     inline bool AutoConnectionEntry::isSynchronized (EncryptionType encryptionType) const
@@ -163,7 +220,7 @@ namespace ACMNetProxy
             return false;
         }
 
-        return _bSynchronized[static_cast<unsigned int> (encryptionType) - 1];
+        return _bsSynchronized[static_cast<unsigned int> (encryptionType) - 1];
     }
 
     inline bool AutoConnectionEntry::isValid (EncryptionType encryptionType) const
@@ -172,18 +229,12 @@ namespace ACMNetProxy
             return false;
         }
 
-        return _bValid[static_cast<unsigned int> (encryptionType) - 1];
+        return _bsValid[static_cast<unsigned int> (encryptionType) - 1];
     }
 
     inline bool AutoConnectionEntry::isAnyValid (void) const
     {
-        for (unsigned int i = 0; i < ET_SIZE; ++i) {
-            if (_bValid[i]) {
-                return true;
-            }
-        }
-
-        return false;
+        return _bsValid.any();
     }
 
     inline void AutoConnectionEntry::setConnectorType (ConnectorType connectorType)
@@ -193,12 +244,12 @@ namespace ACMNetProxy
 
     inline void AutoConnectionEntry::setAutoReconnectTime (uint32 ui32AutoReconnectTimeInMillis)
     {
-        _ui32AutoReconnectTimeInMillis = ui32AutoReconnectTimeInMillis;
+        _i32AutoReconnectTimeInMillis = ui32AutoReconnectTimeInMillis;
     }
 
     inline void AutoConnectionEntry::updateLastConnectionAttemptTime (EncryptionType encryptionType, int64 i64CurrentTime)
     {
-        _ui64LastConnectionAttemptTime[encryptionType] = i64CurrentTime;
+        _ai64LastConnectionAttemptTime[static_cast<unsigned int> (encryptionType) - 1] = i64CurrentTime;
     }
 
     inline void AutoConnectionEntry::updateRemoteProxyID (uint32 ui32NewRemoteProxyID)

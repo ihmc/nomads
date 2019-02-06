@@ -31,7 +31,7 @@ StreamServerMocket::StreamServerMocket (void)
 StreamServerMocket::~StreamServerMocket (void)
 {
     delete _pMSMocket;
-    _pMSMocket = NULL;
+    _pMSMocket = nullptr;
 }
 
 int StreamServerMocket::listen (uint16 ui16Port)
@@ -47,11 +47,11 @@ int StreamServerMocket::listen (uint16 ui16Port, const char *pszListenAddr)
 StreamMocket * StreamServerMocket::accept (void)
 {
     Mocket *pMMocket = _pMSMocket->accept();
-    if (pMMocket != NULL) {
+    if (pMMocket != nullptr) {
         return new StreamMocket (pMMocket);
     }
     else {
-        return NULL;
+        return nullptr;
     }
 }
 

@@ -5,7 +5,7 @@
  * UDPDatagramPacket.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,36 +23,31 @@
  * methods to reassembly fragmented datagrams.
  */
 
-#include <cstring>
-
 #include "FTypes.h"
-#include "NLFLib.h"
 #include "net/NetworkHeaders.h"
 #include "InetAddr.h"
 
-#include "ProxyMessages.h"
+#include "CompressionSettings.h"
 
 
 namespace ACMNetProxy
 {
-    class Connector;
     class Connection;
-    class CompressionSetting;
+
 
     class UDPDatagramPacket
     {
     public:
-        UDPDatagramPacket (const NOMADSUtil::InetAddr * const pRemoteProxyAddr, Connection * const pConnection, Connector * const pConnector,
-                           const CompressionSetting * const pCompressionSetting, const ProxyMessage::Protocol pmProtocol,
+        UDPDatagramPacket (Connection * const pConnection, const CompressionSettings & compressionSettings, const Protocol protocol,
                            const NOMADSUtil::IPHeader * const pIPHeader, const NOMADSUtil::UDPHeader * const pUDPHeader);
         ~UDPDatagramPacket (void);
 
-        bool operator == (const UDPDatagramPacket &rhs) const;
+        bool operator == (const UDPDatagramPacket & rhs) const;
 
         const NOMADSUtil::InetAddr * const getRemoteProxyAddr (void) const;
+        uint32 getRemoteProxyUniqueID (void) const;
         Connection * const getConnection (void) const;
-        Connector * const getConnector (void) const;
-        const CompressionSetting * const getCompressionSetting (void) const;
+        const CompressionSettings & getCompressionSetting (void) const;
         uint8 getPMProtocol (void) const;
         uint32 getSourceIPAddr (void) const;
         uint16 getSourcePortNum (void) const;
@@ -73,17 +68,17 @@ namespace ACMNetProxy
         bool canBeWrappedTogether (const UDPDatagramPacket * const pUDPDatagramPacket) const;
         bool belongToTheSameStream (const UDPDatagramPacket * const pUDPDatagramPacket) const;
 
+
     private:
-        const NOMADSUtil::InetAddr * const _pRemoteProxyAddr;
+        const uint32 _ui32RemoteProxyUniqueID;
         Connection * const _pConnection;
-        Connector * const _pConnector;
-        const CompressionSetting * const _pCompressionSetting;
+        const CompressionSettings _compressionSettings;
         const uint32 _ui32IPSource;
         const uint32 _ui32IPDestination;
         const uint16 _ui16IPIdentification;
         const uint8 _ui8PMProtocol;
         const uint8 _ui8IPPacketTTL;
-        uint8 *_pui8UDPDatagram;
+        uint8 * _pui8UDPDatagram;
 
         bool _bIsFragmented;
         uint16 _ui16CurrentPayloadLength;
@@ -96,14 +91,14 @@ namespace ACMNetProxy
         delete[] _pui8UDPDatagram;
     }
 
-    inline bool UDPDatagramPacket::operator == (const UDPDatagramPacket &rhs) const
+    inline bool UDPDatagramPacket::operator == (const UDPDatagramPacket & rhs) const
     {
         return (this == &rhs);
     }
 
-    inline const NOMADSUtil::InetAddr * const UDPDatagramPacket::getRemoteProxyAddr (void) const
+    inline uint32 UDPDatagramPacket::getRemoteProxyUniqueID (void) const
     {
-        return _pRemoteProxyAddr;
+        return _ui32RemoteProxyUniqueID;
     }
 
     inline Connection * const UDPDatagramPacket::getConnection (void) const
@@ -111,14 +106,9 @@ namespace ACMNetProxy
         return _pConnection;
     }
 
-    inline Connector * const UDPDatagramPacket::getConnector (void) const
+    inline const CompressionSettings & UDPDatagramPacket::getCompressionSetting (void) const
     {
-        return _pConnector;
-    }
-
-    inline const CompressionSetting * const UDPDatagramPacket::getCompressionSetting (void) const
-    {
-        return _pCompressionSetting;
+        return _compressionSettings;
     }
 
     inline uint8 UDPDatagramPacket::getPMProtocol (void) const
@@ -133,12 +123,12 @@ namespace ACMNetProxy
 
     inline uint16 UDPDatagramPacket::getSourcePortNum (void) const
     {
-        return ((NOMADSUtil::UDPHeader*) _pui8UDPDatagram)->ui16SPort;
+        return reinterpret_cast<NOMADSUtil::UDPHeader *> (_pui8UDPDatagram)->ui16SPort;
     }
 
     inline uint16 UDPDatagramPacket::getDestinationPortNum (void) const
     {
-        return ((NOMADSUtil::UDPHeader*) _pui8UDPDatagram)->ui16DPort;
+        return reinterpret_cast<NOMADSUtil::UDPHeader *> (_pui8UDPDatagram)->ui16DPort;
     }
 
     inline uint32 UDPDatagramPacket::getDestinationIPAddr (void) const
@@ -158,7 +148,8 @@ namespace ACMNetProxy
 
     inline uint16 UDPDatagramPacket::getPacketLen (void) const
     {
-        return _bIsFragmented ? 0 : ((NOMADSUtil::UDPHeader*) _pui8UDPDatagram)->ui16Len;
+        return _bIsFragmented ?
+            0 : reinterpret_cast<NOMADSUtil::UDPHeader *> (_pui8UDPDatagram)->ui16Len;
     }
 
     inline uint16 UDPDatagramPacket::getCurrentPacketLen (void) const
@@ -209,9 +200,11 @@ namespace ACMNetProxy
 
     inline bool UDPDatagramPacket::canBeWrappedTogether (const UDPDatagramPacket * const pUDPDatagramPacket) const
     {
-        return (_pRemoteProxyAddr == pUDPDatagramPacket->_pRemoteProxyAddr) && (_pConnector == pUDPDatagramPacket->_pConnector) &&
-                (_pCompressionSetting == pUDPDatagramPacket->_pCompressionSetting) && (_ui8PMProtocol == pUDPDatagramPacket->_ui8PMProtocol) &&
-                (_ui32IPSource == pUDPDatagramPacket->_ui32IPSource) && (_ui32IPDestination == pUDPDatagramPacket->_ui32IPDestination);
+        return (getRemoteProxyAddr() == pUDPDatagramPacket->getRemoteProxyAddr()) &&
+            (_compressionSettings == pUDPDatagramPacket->_compressionSettings) &&
+            (_ui8PMProtocol == pUDPDatagramPacket->_ui8PMProtocol) &&
+            (_ui32IPSource == pUDPDatagramPacket->_ui32IPSource) &&
+            (_ui32IPDestination == pUDPDatagramPacket->_ui32IPDestination);
     }
 
     inline bool UDPDatagramPacket::belongToTheSameStream (const UDPDatagramPacket * const pUDPDatagramPacket) const

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -30,12 +30,15 @@ namespace NOMADSUtil
 
             // updates the statistics with the new value.
             void update (double value);
-            
+
             // reset all counters to zero
             void reset (void);
 
             // returns the number of values that have been entered via the update() method.
             int getNumValues (void);
+
+            // returns the maximum of the entered values.
+            double getMax (void);
 
             // returns the calculation of the average of the entered values.
             double getAverage (void);
@@ -44,6 +47,7 @@ namespace NOMADSUtil
             double getStDev (void);
 
         private:
+            double _max;
             double _sumValues;
             double _sumSqValues;
             int _totalNumValues;

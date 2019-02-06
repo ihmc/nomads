@@ -107,7 +107,7 @@ Packet::Packet (ObjectDefroster &objectDefroster)
     objectDefroster.getBlob (buf);
     memcpy (_pBuf, buf, size);
     free (buf);
-    buf = NULL;
+    buf = nullptr;
     
     objectDefroster >> _bDataChunkAdded;
     objectDefroster >> _ui16TagId;
@@ -136,7 +136,7 @@ Packet::~Packet (void)
     if (_bDeleteBuf && _pBuf) {
         free (_pBuf);
     }
-    _pBuf = NULL;
+    _pBuf = nullptr;
 }
 
 int Packet::prepareForProcessing (void)
@@ -518,10 +518,10 @@ int Packet::addAbortChunk (void)
 SAckChunkMutator Packet::addSAckChunk (uint32 ui32ControlCumulativeAck, uint32 ui32ReliableSequencedCumulativeAck, uint32 ui32ReliableUnsequencedCumulativeAck)
 {
     if (_bReadMode) {
-        return SAckChunkMutator (NULL, 0, 0, NULL);
+        return SAckChunkMutator (nullptr, 0, 0, nullptr);
     }
     if ((_usBufSize - _usOffset) < CHUNK_HEADER_SIZE + 12) {
-        return SAckChunkMutator (NULL, 0, 0, NULL);
+        return SAckChunkMutator (nullptr, 0, 0, nullptr);
     }
     if (_ui16PiggybackChunksOffset == 0) {
         // This is the first piggyback chunk being added - remember the position
@@ -544,10 +544,10 @@ SAckChunkMutator Packet::addSAckChunk (uint32 ui32ControlCumulativeAck, uint32 u
 SAckChunkMutator Packet::addSAckChunk (uint32 ui32ControlCumulativeAck, uint32 ui32ReliableSequencedCumulativeAck, uint32 ui32ReliableUnsequencedCumulativeAck, int64 i64Timestamp, uint32 ui32BytesReceived)
 {
     if (_bReadMode) {
-        return SAckChunkMutator (NULL, 0, 0, NULL);
+        return SAckChunkMutator (nullptr, 0, 0, nullptr);
     }
     if ((_usBufSize - _usOffset) < CHUNK_HEADER_SIZE + 24) {
-        return SAckChunkMutator (NULL, 0, 0, NULL);
+        return SAckChunkMutator (nullptr, 0, 0, nullptr);
     }
     if (_ui16PiggybackChunksOffset == 0) {
         // This is the first piggyback chunk being added - remember the position
@@ -572,10 +572,10 @@ SAckChunkMutator Packet::addSAckChunk (uint32 ui32ControlCumulativeAck, uint32 u
 CancelledChunkMutator Packet::addCancelledChunk (void)
 {
     if (_bReadMode) {
-        return CancelledChunkMutator (NULL, 0, NULL);
+        return CancelledChunkMutator (nullptr, 0, nullptr);
     }
     if ((_usBufSize - _usOffset) < CHUNK_HEADER_SIZE) {
-        return CancelledChunkMutator (NULL, 0, NULL);
+        return CancelledChunkMutator (nullptr, 0, nullptr);
     }
     if (_ui16PiggybackChunksOffset == 0) {
         // This is the first piggyback chunk being added - remember the position
@@ -862,14 +862,14 @@ int Packet::addSimpleConnectAckChunk (uint32 ui32Validation, uint32 ui32ControlT
 DataChunkMutator Packet::addDataChunk (uint16 ui16TagId)
 {
     if (_bReadMode) {
-        return DataChunkMutator (NULL, 0, NULL);
+        return DataChunkMutator (nullptr, 0, nullptr);
     }
     if (_ui16PiggybackChunksOffset != 0) {
-        return DataChunkMutator (NULL, 0, NULL);
+        return DataChunkMutator (nullptr, 0, nullptr);
     }
     if (_bDataChunkAdded) {
         // Only one data chunk can be added to each message packet
-        return DataChunkMutator (NULL, 0, NULL);
+        return DataChunkMutator (nullptr, 0, nullptr);
     }
     uint16 ui16ChunkType = CT_Data;
     uint16 ui16ChunkSize = DATA_CHUNK_HEADER_SIZE;

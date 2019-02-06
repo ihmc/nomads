@@ -66,15 +66,15 @@ class DataBuffer
 inline DataBuffer::DataBuffer (PacketProcessor *pPacketProcessor)
 {
     _pPacketProcessor = pPacketProcessor;
-    _pFragments = NULL;
-    _pPacket = NULL;
+    _pFragments = nullptr;
+    _pPacket = nullptr;
     _ui32MessageSize = 0;
 }
 
 inline DataBuffer::DataBuffer (PacketProcessor *pPacketProcessor, Packet *pPacket, uint32 ui32MessageSize)
 {
     _pPacketProcessor = pPacketProcessor;
-    _pFragments = NULL;
+    _pFragments = nullptr;
     _pPacket = pPacket;
     _ui32MessageSize = ui32MessageSize;
 }
@@ -84,12 +84,12 @@ inline DataBuffer::DataBuffer (PacketProcessor *pPacketProcessor, NOMADSUtil::LL
     _pPacketProcessor = pPacketProcessor;
     _pFragments = pFragments;
     _ui32MessageSize = ui32MessageSize;
-    _pPacket = NULL;
+    _pPacket = nullptr;
 }
 
 inline bool DataBuffer::fragmentedMessage (void)
 {
-    return (_pFragments != NULL);
+    return (_pFragments != nullptr);
 }
 
 inline uint32 DataBuffer::getMessageSize (void)
@@ -110,7 +110,7 @@ inline NOMADSUtil::LList<Packet*> * DataBuffer::getFragments (void)
 inline int DataBuffer::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
 {
     // Chek if this is a normal message or a fragmented message
-    if (_pPacket != NULL) {
+    if (_pPacket != nullptr) {
         // Normal message it contains a packet. Mark it with a control char 1
         objectFreezer << (unsigned char) 1;
         //Data from _pPacket
@@ -119,7 +119,7 @@ inline int DataBuffer::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
     else {
         // Fragmented message, it contains LList<Packet*>. Mark it with a control char 0
         objectFreezer << (unsigned char) 0;
-        Packet *pCurrPacket = NULL;
+        Packet *pCurrPacket = nullptr;
         _pFragments->getFirst (pCurrPacket);
         //Data from the current Packet
         pCurrPacket->freeze (objectFreezer);

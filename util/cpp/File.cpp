@@ -25,8 +25,8 @@
 #include <string.h>
 
 #if defined (WIN32)
-	#define NOMINMAX
-	#include <winsock2.h>
+    #define NOMINMAX
+    #include <winsock2.h>
     #include <windows.h>
     #define PATH_MAX MAX_PATH
 #endif

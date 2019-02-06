@@ -8,8 +8,8 @@
   ++ modified by Mauro Tortonesi <mtortonesi@ihmc.us>
   ++ modified by Maggie Breedy <mbreedy@ihmc.us>
   ++
-  ++ $Revision: 1.34 $
-  ++ $Date: 2015/01/16 23:05:49 $
+  ++ $Revision$
+  ++ $Date$
   ++ ++++++++++++++++++++++++++++++++++++++++++++++++++
 -->
 
@@ -68,7 +68,8 @@
     <property name="dist.dir" location="./dist"/>
     <property name="javatest.dir" location="test/java"/>
     <!--property name="junittest.dir" location="test/junit"/-->
-
+    <property name="ant.build.javac.source" value="1.7"/>
+    <property name="ant.build.javac.target" value="1.7"/>
     <property name="comp.debug" value="on"/>
     <property name="comp.optimize" value="on"/>
     <property name="comp.deprecation" value="on"/>
@@ -109,7 +110,7 @@
         deprecation="${comp.deprecation}">
 
       <src path="${nomads.home}/util/java/"/>
-
+      <include name="us/ihmc/util/Config.java"/>
       <include name="us/ihmc/util/ConfigLoader.java"/>
       <include name="us/ihmc/util/ByteConverter.java"/>
       <include name="us/ihmc/algos/IntegerMovingAverage.java"/>
@@ -126,7 +127,7 @@
     </javac>
 
     <javac destdir="${build.dir}"
-        source="1.5"
+        source="1.6"
         debug="${comp.debug}"
         verbose="${comp.verbose}"
         optimize="${comp.optimize}"
@@ -156,6 +157,8 @@
         debug="${comp.debug}"
         verbose="${comp.verbose}"
         optimize="${comp.optimize}"
+	source="1.7"
+	target="1.7"
         deprecation="${comp.deprecation}">
 
       <src path="${nomads.home}/util/java/"/>
@@ -180,7 +183,7 @@
     </javac>
 
     <javac destdir="${build.dir}"
-        source="1.5"
+        source="1.6"
         debug="${comp.debug}"
         verbose="${comp.verbose}"
         optimize="${comp.optimize}"
@@ -266,7 +269,7 @@
       description="Compiles the source directory.">
       
     <javac destdir="${build.kryomockets.dir}"
-        source="1.5"
+        source="1.6"
         debug="${comp.debug}"
         verbose="${comp.verbose}"
         optimize="${comp.optimize}"
@@ -310,7 +313,7 @@
     description="Compiles the testcases.">
 
     <javac destdir="${build.dir}"
-           source="1.5"
+           source="1.6"
            debug="${comp.debug}"
            verbose="${comp.verbose}"
            optimize="${comp.optimize}"
@@ -352,7 +355,7 @@
     description="Compiles the testcases.">
 
     <javac destdir="${build.kryomockets.dir}"
-           source="1.5"
+           source="1.6"
            debug="${comp.debug}"
            verbose="${comp.verbose}"
            optimize="${comp.optimize}"

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -34,35 +34,50 @@
     <ClInclude Include="..\..\..\CommandLineParser.h" />
     <ClInclude Include="..\..\..\container.pb.h" />
     <ClInclude Include="..\..\..\datatype.pb.h" />
-    <ClInclude Include="..\..\..\EmbeddingMode.h" />
+    <ClInclude Include="..\..\..\DefaultValues.h" />
+    <ClInclude Include="..\..\..\HTCfg.h" />
+    <ClInclude Include="..\..\..\InterfaceOptions.h" />
+    <ClInclude Include="..\..\..\IWDumpManager.h" />
+    <ClInclude Include="..\..\..\IWStationDump.h" />
+    <ClInclude Include="..\..\..\Mode.h" />
+    <ClInclude Include="..\..\..\FINHandshake.h" />
     <ClInclude Include="..\..\..\HandlerThread.h" />
     <ClInclude Include="..\..\..\ICMPHashTable.h" />
+    <ClInclude Include="..\..\..\ICMPRTTHashTable.h" />
+    <ClInclude Include="..\..\..\ICMPRTTList.h" />
     <ClInclude Include="..\..\..\ICMPTypesContainer.h" />
     <ClInclude Include="..\..\..\InterfaceCaptureMode.h" />
     <ClInclude Include="..\..\..\InterfaceDetector.h" />
     <ClInclude Include="..\..\..\InterfaceInfo.h" />
     <ClInclude Include="..\..\..\InterfaceMonitor.h" />
     <ClInclude Include="..\..\..\InterfacesInfoTable.h" />
-    <ClInclude Include="..\..\..\LocalNetproxyInfo.h" />
+    <ClInclude Include="..\..\..\measure.pb.h" />
     <ClInclude Include="..\..\..\MicroflowNestedHashTable.h" />
     <ClInclude Include="..\..\..\netproxyinfo.pb.h" />
     <ClInclude Include="..\..\..\NetSensor.h" />
+    <ClInclude Include="..\..\..\Netsensor2.h" />
     <ClInclude Include="..\..\..\NetSensorConfigurationManager.h" />
     <ClInclude Include="..\..\..\NetSensorConstants.h" />
     <ClInclude Include="..\..\..\NetSensorDefaultConfigurations.h" />
     <ClInclude Include="..\..\..\NetSensorPacket.h" />
     <ClInclude Include="..\..\..\NetSensorPacketQueue.h" />
     <ClInclude Include="..\..\..\NetSensorRecipient.h" />
+    <ClInclude Include="..\..\..\NetsensorStatus.h" />
     <ClInclude Include="..\..\..\NetSensorUtilities.h" />
     <ClInclude Include="..\..\..\NetworkInterface.h" />
     <ClInclude Include="..\..\..\ParameterDictionary.h" />
     <ClInclude Include="..\..\..\PCapInterface.h" />
     <ClInclude Include="..\..\..\prefix.pb.h" />
+    <ClInclude Include="..\..\..\ProtobufWrapper.h" />
     <ClInclude Include="..\..\..\ProtoMessageSender.h" />
     <ClInclude Include="..\..\..\ReplayModeConfigFileProcesser.h" />
-    <ClInclude Include="..\..\..\TCPRTTContainer.h" />
+    <ClInclude Include="..\..\..\rtt.pb.h" />
+    <ClInclude Include="..\..\..\subject.pb.h" />
+    <ClInclude Include="..\..\..\TCPFlagUtil.h" />
+    <ClInclude Include="..\..\..\RTTContainer.h" />
     <ClInclude Include="..\..\..\TCPRTTInterfaceTable.h" />
-    <ClInclude Include="..\..\..\TCPRTTTable.h" />
+    <ClInclude Include="..\..\..\TCPRTTList.h" />
+    <ClInclude Include="..\..\..\TCPStream.h" />
     <ClInclude Include="..\..\..\topology.pb.h" />
     <ClInclude Include="..\..\..\TopologyCache.h" />
     <ClInclude Include="..\..\..\TopologyDetectionMechanism.h" />
@@ -80,27 +95,41 @@
     <ClCompile Include="..\..\..\CommandLineParser.cpp" />
     <ClCompile Include="..\..\..\container.pb.cc" />
     <ClCompile Include="..\..\..\datatype.pb.cc" />
+    <ClCompile Include="..\..\..\FINHandshake.cpp" />
     <ClCompile Include="..\..\..\HandlerThread.cpp" />
     <ClCompile Include="..\..\..\ICMPHashTable.cpp" />
     <ClCompile Include="..\..\..\ICMPInterfaceTable.cpp" />
+    <ClCompile Include="..\..\..\ICMPRTTHashTable.cpp" />
+    <ClCompile Include="..\..\..\ICMPRTTList.cpp" />
     <ClCompile Include="..\..\..\ICMPTypesContainer.cpp" />
     <ClCompile Include="..\..\..\InterfaceDetector.cpp" />
+    <ClCompile Include="..\..\..\InterfacesInfoTable.cpp" />
     <ClCompile Include="..\..\..\InterfaceMonitor.cpp" />
+    <ClCompile Include="..\..\..\InterfaceOptions.cpp" />
+    <ClCompile Include="..\..\..\IWDumpManager.cpp" />
+    <ClCompile Include="..\..\..\IWStationDump.cpp" />
+    <ClCompile Include="..\..\..\measure.pb.cc" />
     <ClCompile Include="..\..\..\MicroflowNestedHashTable.cpp" />
     <ClCompile Include="..\..\..\netproxyinfo.pb.cc" />
     <ClCompile Include="..\..\..\NetSensor.cpp" />
+    <ClCompile Include="..\..\..\Netsensor2.cpp" />
     <ClCompile Include="..\..\..\NetSensorConfigurationManager.cpp" />
+    <ClCompile Include="..\..\..\NetSensorPacketQueue.cpp" />
     <ClCompile Include="..\..\..\NetSensorUtilities.cpp" />
     <ClCompile Include="..\..\..\NetworkInterface.cpp" />
     <ClCompile Include="..\..\..\PacketStructures.cpp" />
     <ClCompile Include="..\..\..\ParameterDictionary.cpp" />
     <ClCompile Include="..\..\..\PCapInterface.cpp" />
     <ClCompile Include="..\..\..\prefix.pb.cc" />
+    <ClCompile Include="..\..\..\ProtobufWrapper.cpp" />
     <ClCompile Include="..\..\..\ProtoMessageSender.cpp" />
     <ClCompile Include="..\..\..\ReplayModeConfigFileProcessor.cpp" />
-    <ClCompile Include="..\..\..\TCPRTTContainer.cpp" />
+    <ClCompile Include="..\..\..\rtt.pb.cc" />
+    <ClCompile Include="..\..\..\subject.pb.cc" />
+    <ClCompile Include="..\..\..\RTTContainer.cpp" />
     <ClCompile Include="..\..\..\TCPRTTInterfaceTable.cpp" />
-    <ClCompile Include="..\..\..\TCPRTTTable.cpp" />
+    <ClCompile Include="..\..\..\TCPRTTList.cpp" />
+    <ClCompile Include="..\..\..\TCPStream.cpp" />
     <ClCompile Include="..\..\..\topology.pb.cc" />
     <ClCompile Include="..\..\..\TopologyCache.cpp" />
     <ClCompile Include="..\..\..\traffic.pb.cc" />
@@ -111,32 +140,32 @@
     <ProjectGuid>{7A110DE9-306E-4DAB-8709-7221E402627D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>NetSensor</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -175,34 +204,26 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;WPCAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\..\..\externals\zlib;..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals\winpcap\Include;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals\zlib;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals-win\winpcap\v1.1\include\pcap;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>libprotobuf_MT.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;WPCAP;_SCL_sECURE_NO_wARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\..\..\externals\zlib;..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals\winpcap\Include;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals\zlib;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals-win\winpcap\v1.1\include\pcap;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>libprotobuf_MT.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -213,7 +234,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;WPCAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals\winpcap\Include;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals\zlib;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals-win\winpcap\v1.1\include\pcap;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -222,12 +243,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>libprotobuf_MT.lib</AdditionalDependencies>
-    </Lib>
-    <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -238,7 +253,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;WPCAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals\winpcap\Include;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\externals\zlib;..\..\..\..\..\..\externals-win\windows\include;..\..\..\..\..\..\externals-win\winpcap\v1.1\include\pcap;..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -247,10 +262,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <Lib>
-      <AdditionalDependencies>libprotobuf_MT.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

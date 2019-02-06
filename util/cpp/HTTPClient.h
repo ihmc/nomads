@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -49,12 +49,18 @@ namespace NOMADSUtil
                 char *pData;
                 HTTPData (void);
             };
+            struct BasicAuthorization
+            {
+                const char *pszUsername;
+                const char *pszPassword;
+            };
+            static HTTPData postData (const char *pszHost, unsigned short usPort, const char *pszPath, const char *pszData, BasicAuthorization *pAuth = NULL);
             static HTTPData getData (const char *pszHost, unsigned short usPort, const char *pszPath);
             static HTTPData getData (const char *pszURL);
             static HTTPMetaData getDataIntoFile (const char *pszFile, const char *pszURL);
             static HTTPMetaData getDataIntoFile (const char *pszFile, const char *pszHost, unsigned short usPort, const char *pszPath);
         protected:
-            static TCPSocket * openConnection (const char *pszHost, unsigned short usPort); 
+            static TCPSocket * openConnection (const char *pszHost, unsigned short usPort);
     };
 
     inline HTTPClient::HTTPMetaData::HTTPMetaData (void)

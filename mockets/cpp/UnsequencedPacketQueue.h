@@ -1,21 +1,21 @@
 #ifndef _UNSEQUENCEDPACKETQUEUE_H
-#define	_UNSEQUENCEDPACKETQUEUE_H
+#define    _UNSEQUENCEDPACKETQUEUE_H
 
 /*
  * UnsequencedPacketQueue.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -38,9 +38,9 @@ class UnsequencedPacketQueue
 {
     public:
         UnsequencedPacketQueue (bool isReliable);
-        
+
         ~UnsequencedPacketQueue (void);
-        
+
         // Obtains a lock on the queue
         int lock (void);
 
@@ -54,9 +54,9 @@ class UnsequencedPacketQueue
         // it also tries to build a list (pFragments) of fragments that form a complete message.
         // If this fragment completes a new message the list is returned otherwise null is returned.
         NOMADSUtil::LList<Packet*> * insert (Packet *pPacket);
-        
+
         PacketWrapper * peek (void);
-        
+
         // Removes the specified packet from the queue
         // NOTE: The function only compares the pointer values, so the object must be the
         // exact same one that is contained in the queue
@@ -66,7 +66,7 @@ class UnsequencedPacketQueue
         //       list; the method still checks the first packet so it is still efficient
         //       if the packet happens to be the first one
         int remove (Packet *pPacket);
-        
+
         // Removes expired fragments from the queue:
         // A fragments expires if the queue is made of unreliable packets
         // and the packet has resided in the queue longer than DEFAULT_TIMEOUT_TO_EXPIRE_PACKETS
@@ -79,7 +79,7 @@ class UnsequencedPacketQueue
         // can remove it assuming the missing fragments has been lost and won't be
         // retransmitted from the sender
         static const int64 DEFAULT_TIMEOUT_TO_EXPIRE_PACKETS = 3000;
-        
+
         private:
         struct Node
         {
@@ -97,25 +97,25 @@ class UnsequencedPacketQueue
         Node *_pLastNode;
         uint32 _ui32PacketsInQueue;
         bool _bIsRealiablePacketQueue;
-        
+
 };
 
 inline UnsequencedPacketQueue::UnsequencedPacketQueue (bool isReliable)
     : _cv (&_m)
 {
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
     _bIsRealiablePacketQueue = isReliable;
 }
 
 inline UnsequencedPacketQueue::~UnsequencedPacketQueue (void)
 {
-    while (_pFirstNode != NULL) {
+    while (_pFirstNode != nullptr) {
         Node *pTempNode = _pFirstNode;
         _pFirstNode = _pFirstNode->pNext;
         delete pTempNode;
     }
-    _pFirstNode = _pLastNode = NULL;
+    _pFirstNode = _pLastNode = nullptr;
     _ui32PacketsInQueue = 0;
 }
 
@@ -144,17 +144,17 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
         // Check if this is a duplicate packet
         bool duplicatePacket = false;
         //TODO: use some sort of SACK approach
-        
+
         if (duplicatePacket) {
             _m.unlock();
             //checkAndLogMsg ("UnsequencedPacketQueue::insert", NOMADSUtil::Logger::L_LowDetailDebug,
             //            "Received duplicate packet with sequence number: %d\n", pPacket->getSequenceNum());
-            return NULL;
+            return nullptr;
         }
     }
 
     //Check if the list is empty to insert the first element
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // There are no other elements - just insert at the beginning (which is also the end)
         //checkAndLogMsg ("UnsequencedPacketQueue::insert", NOMADSUtil::Logger::L_LowDetailDebug,
         //                "There are no other elements - just insert at the beginning (which is also the end) seqNum %d\n", pPacket->getSequenceNum());
@@ -164,7 +164,7 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
         _pFirstNode = _pLastNode = pNewNode;
         _ui32PacketsInQueue++;
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
 
     // While inserting the new fragment in the queue we also try to build a list (pFragments)
@@ -175,7 +175,7 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
     Node *pTempNode = _pFirstNode;
     bool bAlreadyInserted = false;
     int32 i32LastFragSeqNum = -1;
-    while (pTempNode != NULL) {
+    while (pTempNode != nullptr) {
         // Try to complete a packet with this new fragment, keep trying while pTempNode has a
         // sequence num < of the new fragment to be inserted, or the new fragment has been inserted
         // and possibly the rest of the fragments of the packet are already in the queue
@@ -190,7 +190,7 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
                 pFragments->add(pTempNode->pData);
             }
             else if (i32LastFragSeqNum+1 == pTempNode->pData->getSequenceNum()) {
-                // intermediate or last packet: 
+                // intermediate or last packet:
                 // if the sequence number follows the last saved in the fragments list add this fragment to the list
                 if (pTempNode->pData->isIntermediateFragment()) {
                     //printf ("Intermediate fragment seqNum=%d\n", pTempNode->pData->getSequenceNum());
@@ -205,7 +205,7 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
                     //checkAndLogMsg ("UnsequencedPacketQueue::insert", NOMADSUtil::Logger::L_LowDetailDebug,
                     //    "Last fragment seqNum=%d. We have completed a packet\n", pTempNode->pData->getSequenceNum());
                     pFragments->add(pTempNode->pData);
-                    
+
                     // Remove the packet in pFragments from the queue because they are going to be delivered
                     Packet *pRemovePacket;
                     pFragments->resetGet();
@@ -223,11 +223,11 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
                     return pFragments;
                 }
             }
-            // This fragment is not part of the packet we are building 
+            // This fragment is not part of the packet we are building
             else {
                 // Reset
                 i32LastFragSeqNum = -1;
-                pFragments = NULL;
+                pFragments = nullptr;
             }
             pTempNode = pTempNode->pNext;
         }
@@ -238,7 +238,7 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
                 _m.unlock();
                 //checkAndLogMsg ("UnsequencedPacketQueue::insert", NOMADSUtil::Logger::L_LowDetailDebug,
                 //        "This packet seqNum %d is already in the queue. Duplicate: does not insert\n", pPacket->getSequenceNum());
-                return NULL; // Signal to the PacketProcessor that this fragment is duplicated
+                return nullptr; // Signal to the PacketProcessor that this fragment is duplicated
             }
             else {
                 // Need to insert before pTempNode
@@ -259,13 +259,13 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
                 }
                 _ui32PacketsInQueue++;
                 bAlreadyInserted = true;
-                
+
                 // Keep scanning to see if this fragment completes a packet
                 pTempNode = pNewNode;
             }
         }
 //        pTempNode = pTempNode->pNext;
-        if ((pTempNode == NULL) && (!bAlreadyInserted)) {
+        if ((pTempNode == nullptr) && (!bAlreadyInserted)) {
             // We reached the end of the queue without inserting so the right spot is as last node
             //checkAndLogMsg ("UnsequencedPacketQueue::insert", NOMADSUtil::Logger::L_LowDetailDebug,
             //            "We reached the end of the queue without inserting so the right spot is as last node. SeqNum %d\n", pPacket->getSequenceNum());
@@ -285,13 +285,13 @@ inline NOMADSUtil::LList<Packet*> * UnsequencedPacketQueue::insert (Packet *pPac
     _m.unlock();
     //printf ("***** packets in queue: %d\n", _ui32PacketsInQueue);
     //printf ("insert return null: reached the end of the queue\n");
-    return NULL;
+    return nullptr;
 }
 
 inline int UnsequencedPacketQueue::remove (Packet *pPacket)
 {
     _m.lock();
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // List is empty
         _m.unlock();
         return -1;
@@ -299,12 +299,12 @@ inline int UnsequencedPacketQueue::remove (Packet *pPacket)
     if (_pFirstNode->pData == pPacket) {
         // The node to remove is the first node in the list
         _pFirstNode = _pFirstNode->pNext;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             // The list is now empty
-            _pLastNode = NULL;
+            _pLastNode = nullptr;
         }
         else {
-            _pFirstNode->pPrev = NULL;
+            _pFirstNode->pPrev = nullptr;
         }
         _ui32PacketsInQueue--;
         _m.unlock();
@@ -312,11 +312,11 @@ inline int UnsequencedPacketQueue::remove (Packet *pPacket)
     }
     else {
         Node *pTempNode = _pFirstNode->pNext;
-        while (pTempNode != NULL) {
+        while (pTempNode != nullptr) {
             if (pTempNode->pData == pPacket) {
                 // Found the node to delete
                 pTempNode->pPrev->pNext = pTempNode->pNext;
-                if (pTempNode->pNext == NULL) {
+                if (pTempNode->pNext == nullptr) {
                     // Removed the last node in the list
                     _pLastNode = pTempNode->pPrev;
                 }
@@ -339,7 +339,7 @@ inline int UnsequencedPacketQueue::expireOldPackets (void)
 {
     _m.lock();
     int removedPackets = 0;
-    if (_pFirstNode == NULL) {
+    if (_pFirstNode == nullptr) {
         // List is empty
         _m.unlock();
         return removedPackets;
@@ -347,27 +347,27 @@ inline int UnsequencedPacketQueue::expireOldPackets (void)
     int64 i64Now = NOMADSUtil::getTimeInMilliseconds();
 
     Node *pTempNode = _pFirstNode;
-    while (pTempNode != NULL) {
+    while (pTempNode != nullptr) {
         if ((i64Now - pTempNode->i64Timestamp) > DEFAULT_TIMEOUT_TO_EXPIRE_PACKETS) {
             // Remove this fragment from the list because the timeout is expired
             // we can assume we won't receive the missing fragments for this packet
             // given that the flow in unreliable (no fragments are retransmitted)
             //printf ("UnsequencedPacketQueue::expireOldPackets removing expired fragment with sequence number: %d\n", pTempNode->pData->getSequenceNum());
             Node *pNodeToDelete = pTempNode;
-            if (pTempNode->pPrev == NULL) {
+            if (pTempNode->pPrev == nullptr) {
                 // Removing the first node in the list
                 _pFirstNode = pTempNode->pNext;
-                if (_pFirstNode == NULL) {
+                if (_pFirstNode == nullptr) {
                     // The list is now empty
-                    _pLastNode = NULL;
+                    _pLastNode = nullptr;
                 }
                 else {
-                    _pFirstNode->pPrev = NULL;
+                    _pFirstNode->pPrev = nullptr;
                 }
             }
             else {
                 pTempNode->pPrev->pNext = pTempNode->pNext;
-                if (pTempNode->pNext == NULL) {
+                if (pTempNode->pNext == nullptr) {
                     // Removing the last node in the list
                     //printf ("UnsequencedPacketQueue::expireOldPackets removing last node in the queue\n");
                     _pLastNode = pTempNode->pPrev;
@@ -426,7 +426,7 @@ inline int UnsequencedPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectD
         Packet *pPacket = new Packet (objectDefroster);
         pNewNode->pData = pPacket;
         objectDefroster >> pNewNode->i64Timestamp;
-        if (_pFirstNode == NULL) {
+        if (_pFirstNode == nullptr) {
             _pFirstNode = _pLastNode = pNewNode;
         }
         else {
@@ -440,17 +440,17 @@ inline int UnsequencedPacketQueue::defrost (NOMADSUtil::ObjectDefroster &objectD
 
 inline UnsequencedPacketQueue::Node::Node (void)
 {
-    pPrev = pNext = NULL;
-    pData = NULL;
+    pPrev = pNext = nullptr;
+    pData = nullptr;
 }
 
 inline UnsequencedPacketQueue::Node::~Node (void)
 {
     if (pData) {
         delete pData;
-        pData = NULL;
+        pData = nullptr;
     }
 }
 
-#endif	/* _UNSEQUENCEDPACKETQUEUE_H */
+#endif    /* _UNSEQUENCEDPACKETQUEUE_H */
 

@@ -5,7 +5,7 @@
  * MocketConnector.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,52 +22,38 @@
  * Handles incoming and outgoing Mockets connections with remote NetProxies.
  */
 
-#include "FIFOBuffer.h"
-#include "UInt64Hashtable.h"
-#include "InetAddr.h"
-#include "Thread.h"
+#include <memory>
+
 #include "ManageableThread.h"
-#include "Mutex.h"
-#include "ConditionVariable.h"
-#include "Mocket.h"
 #include "ServerMocket.h"
 
 #include "Connector.h"
-#include "TCPConnTable.h"
-#include "ConfigurationParameters.h"
 
 
 namespace ACMNetProxy
 {
-    class PacketRouter;
-    class NetProxyConfigManager;
-
     class MocketConnector : public NOMADSUtil::ManageableThread, public virtual Connector
     {
     public:
-        MocketConnector (void);
+        MocketConnector (ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable, TCPManager & rTCPManager,
+                         PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager);
         virtual ~MocketConnector (void);
 
-        virtual int init (uint16 ui16MocketPort);
+        virtual int init (uint16 ui16AcceptServerPort, uint32 ui32LocalIPv4Address);
         virtual void terminateExecution (void);
         void run (void);
 
-        static bool peerUnreachableWarning (void *pCallbackArg, unsigned long ulTimeSinceLastContact);
-
-
-    protected:
-        virtual bool isEnqueueingAllowed (void) const;
-
 
     private:
-        ServerMocket *_pServerMocket;
+        std::unique_ptr<ServerMocket> _upServerMocket;
     };
 
 
-    inline bool MocketConnector::isEnqueueingAllowed (void) const
-    {
-        return true;
-    }
+    inline MocketConnector::MocketConnector (ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable, TCPManager & rTCPManager,
+                                             PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager) :
+        Connector{CT_MOCKETS, rConnectionManager, rTCPConnTable, rTCPManager, rPacketRouter, rStatisticsManager}, _upServerMocket{nullptr}
+    { }
+
 }
 
 #endif   // #ifndef INCL_MOCKET_CONNECTOR_H

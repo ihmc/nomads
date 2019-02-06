@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -47,17 +47,17 @@ using namespace CryptoUtils;
 
 MD5Hash::MD5Hash (void)
 {
+    _pMDCTX = EVP_MD_CTX_create();
     _pszHash = NULL;
-    _pMDCTX = malloc (sizeof (EVP_MD_CTX));
-    EVP_MD_CTX_init ((EVP_MD_CTX*)_pMDCTX);
-    EVP_DigestInit_ex ((EVP_MD_CTX*)_pMDCTX, EVP_md5(), NULL);
+    EVP_MD_CTX_init ((EVP_MD_CTX *)_pMDCTX);
+    EVP_DigestInit_ex ((EVP_MD_CTX *)_pMDCTX, EVP_md5(), NULL);
     _bComputed = false;
 }
 
 MD5Hash::~MD5Hash (void)
 {
     delete[] _pszHash;
-    EVP_MD_CTX_cleanup ((EVP_MD_CTX*)_pMDCTX);
+    EVP_MD_CTX_destroy((EVP_MD_CTX *)_pMDCTX);
     free (_pMDCTX);
     _pMDCTX = NULL;
 }
@@ -66,14 +66,14 @@ int MD5Hash::reinit (void)
 {
     delete[] _pszHash;
     _pszHash = NULL;
-    EVP_DigestInit_ex ((EVP_MD_CTX*)_pMDCTX, EVP_md5(), NULL);
+    EVP_DigestInit_ex ((EVP_MD_CTX *)_pMDCTX, EVP_md5(), NULL);
     _bComputed = false;
     return 0;
 }
 
 int MD5Hash::update (const void *pBuf, unsigned long ulSize)
 {
-    EVP_DigestUpdate ((EVP_MD_CTX*)_pMDCTX, pBuf, ulSize);
+    EVP_DigestUpdate ((EVP_MD_CTX *)_pMDCTX, pBuf, ulSize);
     return 0;
 }
 
@@ -85,7 +85,7 @@ const char * MD5Hash::getHashAsBase64String (void)
     else {
         unsigned char auchMDValue [EVP_MAX_MD_SIZE];
         unsigned int uiMDLen;
-        EVP_DigestFinal_ex ((EVP_MD_CTX*)_pMDCTX, auchMDValue, &uiMDLen);
+        EVP_DigestFinal_ex ((EVP_MD_CTX *)_pMDCTX, auchMDValue, &uiMDLen);
         _pszHash = Base64Transcoders::encode (auchMDValue, uiMDLen);
         _bComputed = true;
         return _pszHash;
@@ -99,19 +99,19 @@ const char * MD5Hash::getHashAsBase64String (void)
 */
 void * CryptoUtils::sha256(const char *pszPassword) {
 
-	unsigned char * hash = NULL;
-	hash = (unsigned char *)malloc(sizeof(unsigned char *) * SHA256_DIGEST_LENGTH);
-	memset(hash, 0, sizeof(hash));
+    unsigned char * hash = NULL;
+    hash = (unsigned char *)malloc(sizeof(unsigned char *) * SHA256_DIGEST_LENGTH);
+    memset(hash, 0, sizeof(hash));
 
-	SHA256_CTX sha256;
+    SHA256_CTX sha256;
 
-	SHA256_Init(&sha256);
+    SHA256_Init(&sha256);
 
-	SHA256_Update(&sha256, pszPassword, strlen(pszPassword) +1);
+    SHA256_Update(&sha256, pszPassword, strlen(pszPassword) +1);
 
-	SHA256_Final(hash, &sha256);
+    SHA256_Final(hash, &sha256);
 
-	return (void *)hash;
+    return (void *)hash;
 }
 
 Key::KeyData::KeyData (Type type)
@@ -479,15 +479,15 @@ PublicKeyPair::~PublicKeyPair (void)
 
 // RSA_generate_key is a DEPRECATED METHOD, new version is RSA_generate_key_ex
 int PublicKeyPair::generateNewKeyPair (unsigned short usKeyLength)
-{	
-	#if !defined (ANDROID)
-    	RSA *pKey = RSA_generate_key (usKeyLength, RSA_F4, NULL, NULL);
-	#else
-		BIGNUM *oBigNbr = BN_new();
-		BN_set_word(oBigNbr, RSA_F4);
-		RSA *pKey = RSA_new();
-		RSA_generate_key_ex(pKey, usKeyLength, oBigNbr, NULL);
-	#endif
+{
+    #if !defined (ANDROID)
+        RSA *pKey = RSA_generate_key (usKeyLength, RSA_F4, NULL, NULL);
+    #else
+        BIGNUM *oBigNbr = BN_new();
+        BN_set_word(oBigNbr, RSA_F4);
+        RSA *pKey = RSA_new();
+        RSA_generate_key_ex(pKey, usKeyLength, oBigNbr, NULL);
+    #endif
     if (pKey == NULL) {
         return -1;
     }
@@ -560,16 +560,16 @@ int AES256Key::initKey(const char *pszPassword)
 
 int AES256Key::initKey (unsigned char *pchKey, uint32 ui32len)
 {
-	if (pchKey == NULL) {
-		return -1;
-	}
-	if (ui32len != sKeySize) {
-		return -2;
-	}
+    if (pchKey == NULL) {
+        return -1;
+    }
+    if (ui32len != sKeySize) {
+        return -2;
+    }
     _pKey = (unsigned char*)malloc (sKeySize);
     memcpy (_pKey, pchKey, sKeySize);
     return 0;
-} 
+}
 
 int AES256Key::initKeyFromFile (const char *pszFileName)
 {
@@ -637,234 +637,234 @@ int SecretKey::initKey (const char *pszPassword)
 
 int CryptoUtils::encryptDataUsingSecretKey (SecretKeyInterface *pKey, const void *pData, uint32 ui32DataLen, void *pDestBuf, uint32 ui32BufSize)
 {
-	//the effective encryption depend on the type of the key
-	switch (pKey->getKeyType()) {
-	case SecretKeyInterface::DES:
-		{
-			BufferWriter bw;
-			SecureWriter sw((SecretKey *)pKey, &bw, false);
-			if (sw.writeBytes(pData, ui32DataLen)) {
-				return -1;
-			}
-			sw.flush();
-			if (ui32BufSize < bw.getBufferLength()) {
-				return -2;
-			}
-			memcpy(pDestBuf, bw.getBuffer(), bw.getBufferLength());
-			return (int)bw.getBufferLength();
-		}
-	case SecretKeyInterface::AES256:
-		{
-			EVP_CIPHER_CTX * pctx = NULL;
-			if (!(pctx = EVP_CIPHER_CTX_new())) {
-				return -1;
-			}
-			int iLen = 0;
-			int iEncryptedMsgLen;
-			//From the man of the EVP function. This is the maximum size
-			pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE - 1);
-			// The last parameter is NULL beacuse the encryption is performed in ecb MODE
+    //the effective encryption depend on the type of the key
+    switch (pKey->getKeyType()) {
+    case SecretKeyInterface::DES:
+        {
+            BufferWriter bw;
+            SecureWriter sw((SecretKey *)pKey, &bw, false);
+            if (sw.writeBytes(pData, ui32DataLen)) {
+                return -1;
+            }
+            sw.flush();
+            if (ui32BufSize < bw.getBufferLength()) {
+                return -2;
+            }
+            memcpy(pDestBuf, bw.getBuffer(), bw.getBufferLength());
+            return (int)bw.getBufferLength();
+        }
+    case SecretKeyInterface::AES256:
+        {
+            EVP_CIPHER_CTX * pctx = NULL;
+            if (!(pctx = EVP_CIPHER_CTX_new())) {
+                return -1;
+            }
+            int iLen = 0;
+            int iEncryptedMsgLen;
+            //From the man of the EVP function. This is the maximum size
+            pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE - 1);
+            // The last parameter is NULL beacuse the encryption is performed in ecb MODE
 
-			if (EVP_EncryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
-				return -2;
-			}
+            if (EVP_EncryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
+                return -2;
+            }
 
-			if (EVP_EncryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
-				return -3;
-			}
-			iEncryptedMsgLen = iLen;
+            if (EVP_EncryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
+                return -3;
+            }
+            iEncryptedMsgLen = iLen;
 
-			if (EVP_EncryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
-				return -4;
-			}
-			iEncryptedMsgLen += iLen;
-			EVP_CIPHER_CTX_cleanup(pctx);
-			pctx = NULL;
-			return iEncryptedMsgLen;
-		}
-		//the KeyType is not defined. The encrytpion cannot be performed
-		default:
-			return -6;
-	}
+            if (EVP_EncryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
+                return -4;
+            }
+            iEncryptedMsgLen += iLen;
+            EVP_CIPHER_CTX_cleanup(pctx);
+            pctx = NULL;
+            return iEncryptedMsgLen;
+        }
+        //the KeyType is not defined. The encrytpion cannot be performed
+        default:
+            return -6;
+    }
 }
 
 void * CryptoUtils::encryptDataUsingSecretKey (SecretKeyInterface *pKey, const void *pData, uint32 ui32DataLen, uint32 *pui32BufLen)
 {
-	switch (pKey->getKeyType()) {
-		case SecretKeyInterface::DES:
-		{
-			BufferWriter bw;
-			SecureWriter sw((SecretKey *)pKey, &bw, false);
-			if (sw.writeBytes(pData, ui32DataLen)) {
-				return NULL;
-			}
-			sw.flush();
-			*pui32BufLen = bw.getBufferLength();
-			return bw.relinquishBuffer();
-		}
-		case SecretKeyInterface::AES256:
-		{
-			EVP_CIPHER_CTX * pctx = NULL;
-			if (!(pctx = EVP_CIPHER_CTX_new())) {
-				return NULL;
-			}
-			int iLen = 0;
-			void *pDestBuf = NULL;
-			//From the man of the EVP function. This is the maximum size
-			pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE - 1);
-			/*
-			* The last parameter is NULL beacuse the encryption is performed in ecb MODE, no padding
-			*/
-			if (EVP_EncryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
-				return NULL;
-			}
+    switch (pKey->getKeyType()) {
+        case SecretKeyInterface::DES:
+        {
+            BufferWriter bw;
+            SecureWriter sw((SecretKey *)pKey, &bw, false);
+            if (sw.writeBytes(pData, ui32DataLen)) {
+                return NULL;
+            }
+            sw.flush();
+            *pui32BufLen = bw.getBufferLength();
+            return bw.relinquishBuffer();
+        }
+        case SecretKeyInterface::AES256:
+        {
+            EVP_CIPHER_CTX * pctx = NULL;
+            if (!(pctx = EVP_CIPHER_CTX_new())) {
+                return NULL;
+            }
+            int iLen = 0;
+            void *pDestBuf = NULL;
+            //From the man of the EVP function. This is the maximum size
+            pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE - 1);
+            /*
+            * The last parameter is NULL beacuse the encryption is performed in ecb MODE, no padding
+            */
+            if (EVP_EncryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
+                return NULL;
+            }
 
-			if (EVP_EncryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
-				return NULL;
-			}
-			*pui32BufLen = iLen;
+            if (EVP_EncryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
+                return NULL;
+            }
+            *pui32BufLen = iLen;
 
-			if (EVP_EncryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
-				return NULL;
-			}
-			*pui32BufLen += iLen;
-			EVP_CIPHER_CTX_cleanup(pctx);
-			pctx = NULL;
-			return pDestBuf;
-		}
-		//the KeyType is not defined. The encrytpion cannot be performed
-		default:
-			return NULL;
-	}
+            if (EVP_EncryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
+                return NULL;
+            }
+            *pui32BufLen += iLen;
+            EVP_CIPHER_CTX_cleanup(pctx);
+            pctx = NULL;
+            return pDestBuf;
+        }
+        //the KeyType is not defined. The encrytpion cannot be performed
+        default:
+            return NULL;
+    }
 }
 
 int CryptoUtils::decryptDataUsingSecretKey (SecretKeyInterface *pKey, const void *pData, uint32 ui32DataLen, void *pDestBuf, uint32 ui32BufSize)
 {
-	switch (pKey->getKeyType()) {
-		case SecretKeyInterface::DES:
-		{
-			BufferReader br(pData, ui32DataLen);
-			SecureReader sr((SecretKey *)pKey, &br, false);
-			BufferWriter bw;
-			while (true) {
-				char buf[128];
-				int iBytesRead = sr.read(buf, sizeof(buf));
-				if (iBytesRead <= 0) {
-					break;
-				}
-				bw.writeBytes(buf, iBytesRead);
-			}
-			if (ui32BufSize < bw.getBufferLength()) {
-				return -1;
-			}
-			memcpy(pDestBuf, bw.getBuffer(), bw.getBufferLength());
-			return (int)bw.getBufferLength();
-		 }
-		case SecretKeyInterface::AES256:
-		{
-			EVP_CIPHER_CTX * pctx = NULL;
-			if (!(pctx = EVP_CIPHER_CTX_new())) {
-				return -1;
-			}
-			int iLen = 0;
-			int iDecryptedMsgLen;
-			//From the man of the EVP function. This is the maximum size
-			pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE);
-			// The last parameter is NULL beacuse the encryption is performed in ecb MODE
+    switch (pKey->getKeyType()) {
+        case SecretKeyInterface::DES:
+        {
+            BufferReader br(pData, ui32DataLen);
+            SecureReader sr((SecretKey *)pKey, &br, false);
+            BufferWriter bw;
+            while (true) {
+                char buf[128];
+                int iBytesRead = sr.read(buf, sizeof(buf));
+                if (iBytesRead <= 0) {
+                    break;
+                }
+                bw.writeBytes(buf, iBytesRead);
+            }
+            if (ui32BufSize < bw.getBufferLength()) {
+                return -1;
+            }
+            memcpy(pDestBuf, bw.getBuffer(), bw.getBufferLength());
+            return (int)bw.getBufferLength();
+         }
+        case SecretKeyInterface::AES256:
+        {
+            EVP_CIPHER_CTX * pctx = NULL;
+            if (!(pctx = EVP_CIPHER_CTX_new())) {
+                return -1;
+            }
+            int iLen = 0;
+            int iDecryptedMsgLen;
+            //From the man of the EVP function. This is the maximum size
+            pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE);
+            // The last parameter is NULL beacuse the encryption is performed in ecb MODE
 
-			if (EVP_DecryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
-				return -2;
-			}
+            if (EVP_DecryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
+                return -2;
+            }
 
-			if (EVP_DecryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
-				return -3;
-			}
-			iDecryptedMsgLen = iLen;
+            if (EVP_DecryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
+                return -3;
+            }
+            iDecryptedMsgLen = iLen;
 
-			if (EVP_DecryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
-				//reset the messages if the decrypt fails
-				iDecryptedMsgLen = ui32DataLen;
-				if (pDestBuf != NULL) {
-					free(pDestBuf);
-				}
-				pDestBuf = (void *)malloc(ui32DataLen);				
-				memcpy(pDestBuf, pData, ui32DataLen);
-				EVP_CIPHER_CTX_cleanup(pctx);
-				return ui32DataLen;
-			}
-			iDecryptedMsgLen += iLen;
-			EVP_CIPHER_CTX_cleanup(pctx);
-			pctx = NULL;
-			return iDecryptedMsgLen;
-		}
-		//the KeyType is not defined. The encrytpion cannot be performed
-		default:
-			return -5;
-	} 
+            if (EVP_DecryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
+                //reset the messages if the decrypt fails
+                iDecryptedMsgLen = ui32DataLen;
+                if (pDestBuf != NULL) {
+                    free(pDestBuf);
+                }
+                pDestBuf = (void *)malloc(ui32DataLen);
+                memcpy(pDestBuf, pData, ui32DataLen);
+                EVP_CIPHER_CTX_cleanup(pctx);
+                return ui32DataLen;
+            }
+            iDecryptedMsgLen += iLen;
+            EVP_CIPHER_CTX_cleanup(pctx);
+            pctx = NULL;
+            return iDecryptedMsgLen;
+        }
+        //the KeyType is not defined. The encrytpion cannot be performed
+        default:
+            return -5;
+    }
 }
 
 void * CryptoUtils::decryptDataUsingSecretKey (SecretKeyInterface *pKey, const void *pData, uint32 ui32DataLen, uint32 *pui32BufLen)
 {
-	switch (pKey->getKeyType()) {
-		case SecretKeyInterface::DES:
-		{
-			BufferReader br(pData, ui32DataLen);
-			SecureReader sr((SecretKey *)pKey, &br, false);
-			BufferWriter bw;
-			while (true) {
-				char buf[128];
-				int iBytesRead = sr.read(buf, sizeof(buf));
-				if (iBytesRead <= 0) {
-					break;
-				}
-				bw.writeBytes(buf, iBytesRead);
-			}
-			*pui32BufLen = bw.getBufferLength();
-			return bw.relinquishBuffer();
-		}
-		case SecretKeyInterface::AES256:
-		{
-			EVP_CIPHER_CTX * pctx = NULL;
-			if (!(pctx = EVP_CIPHER_CTX_new())) {
-				return NULL;
-			}
-			int iLen = 0;
-			void *pDestBuf = NULL;
-			//From the manual of the EVP function. This is the maximum size
-			pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE);
-			/*
-			* The last parameter is NULL beacuse the encryption is performed in ecb MODE
-			*/
-			if (EVP_DecryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
-				return NULL;
-			}
+    switch (pKey->getKeyType()) {
+        case SecretKeyInterface::DES:
+        {
+            BufferReader br(pData, ui32DataLen);
+            SecureReader sr((SecretKey *)pKey, &br, false);
+            BufferWriter bw;
+            while (true) {
+                char buf[128];
+                int iBytesRead = sr.read(buf, sizeof(buf));
+                if (iBytesRead <= 0) {
+                    break;
+                }
+                bw.writeBytes(buf, iBytesRead);
+            }
+            *pui32BufLen = bw.getBufferLength();
+            return bw.relinquishBuffer();
+        }
+        case SecretKeyInterface::AES256:
+        {
+            EVP_CIPHER_CTX * pctx = NULL;
+            if (!(pctx = EVP_CIPHER_CTX_new())) {
+                return NULL;
+            }
+            int iLen = 0;
+            void *pDestBuf = NULL;
+            //From the manual of the EVP function. This is the maximum size
+            pDestBuf = (void *)malloc(ui32DataLen + AES_BLOCK_SIZE);
+            /*
+            * The last parameter is NULL beacuse the encryption is performed in ecb MODE
+            */
+            if (EVP_DecryptInit_ex(pctx, EVP_aes_256_cfb(), NULL, (const unsigned char *)pKey->getKey(), NULL) != 1) {
+                return NULL;
+            }
 
-			if (EVP_DecryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
-				return NULL;
-			}
-			*pui32BufLen = iLen;
+            if (EVP_DecryptUpdate(pctx, (unsigned char *)pDestBuf, &iLen, (unsigned char *)pData, ui32DataLen) != 1) {
+                return NULL;
+            }
+            *pui32BufLen = iLen;
 
-			if (EVP_DecryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
-				//if the decrypt fails just return the messages as it was
-				*pui32BufLen = ui32DataLen;
-				if (pDestBuf != NULL) {
-					free(pDestBuf);
-				}
-				pDestBuf = (void *)malloc(ui32DataLen);				
-				memcpy(pDestBuf, pData, ui32DataLen);
-				EVP_CIPHER_CTX_cleanup(pctx);
-				return pDestBuf; 
-			}
-			*pui32BufLen += iLen;
-			EVP_CIPHER_CTX_cleanup(pctx);
-			pctx = NULL;
-			return pDestBuf;
-		}
-		//the KeyType is not define. The encrytpion cannot be performed
-		default:
-			return NULL;
-	}
-    
+            if (EVP_DecryptFinal_ex(pctx, (unsigned char *)pDestBuf + iLen, &iLen) != 1) {
+                //if the decrypt fails just return the messages as it was
+                *pui32BufLen = ui32DataLen;
+                if (pDestBuf != NULL) {
+                    free(pDestBuf);
+                }
+                pDestBuf = (void *)malloc(ui32DataLen);
+                memcpy(pDestBuf, pData, ui32DataLen);
+                EVP_CIPHER_CTX_cleanup(pctx);
+                return pDestBuf;
+            }
+            *pui32BufLen += iLen;
+            EVP_CIPHER_CTX_cleanup(pctx);
+            pctx = NULL;
+            return pDestBuf;
+        }
+        //the KeyType is not define. The encrytpion cannot be performed
+        default:
+            return NULL;
+    }
+
 }
 
 int CryptoUtils::encryptDataUsingPublicKey (PublicKey *pKey, const void *pData, uint32 ui32DataLen, void *pDestBuf, uint32 ui32BufSize)

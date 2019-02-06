@@ -2,7 +2,7 @@
  * ActiveConnection.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,25 +22,30 @@
 #include "UDPConnector.h"
 
 
-using namespace NOMADSUtil;
-
 namespace ACMNetProxy
 {
+    ActiveConnection::ActiveConnection (Connection * const pConnection) :
+        _connectionTable{}
+    {
+        if (pConnection) {
+            _connectionTable[pConnection->getConnectorType()][pConnection->getEncryptionType() - 1] = pConnection;
+        }
+    }
+
     Connection * const ActiveConnection::setNewActiveConnection (Connection * const pActiveConnection)
     {
         if (!pActiveConnection) {
             return nullptr;
         }
-
-        Connection * const pOldConnection = getActiveConnection (pActiveConnection->getConnectorType(), pActiveConnection->getEncryptionType());
-        if (pOldConnection == pActiveConnection) {
+        const ConnectorType ct = pActiveConnection->getConnectorType();
+        const EncryptionType et = pActiveConnection->getEncryptionType();
+        if ((ct == CT_UNDEF) || (et == ET_UNDEF)) {
             return nullptr;
         }
 
-        const ConnectorType ct = pActiveConnection->getConnectorType();
-        const EncryptionType et = pActiveConnection->getEncryptionType();
-        if ((ct == CT_UDPSOCKET) || (ct == CT_UNDEF)) {
-            return nullptr;
+        auto * const pOldConnection = getActiveConnection (ct, et);
+        if (pOldConnection == pActiveConnection) {
+            return pActiveConnection;
         }
         _connectionTable[ct][et - 1] = pActiveConnection;
 
@@ -49,8 +54,7 @@ namespace ACMNetProxy
 
     Connection * const ActiveConnection::removeActiveConnection (const Connection * const pActiveConnection)
     {
-        if (!pActiveConnection || (pActiveConnection->getConnectorType() == CT_UNDEF) ||
-            (pActiveConnection->getConnectorType() == CT_UDPSOCKET)) {
+        if (!pActiveConnection || (pActiveConnection->getConnectorType() == CT_UNDEF)) {
             return nullptr;
         }
 

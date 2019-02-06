@@ -21,6 +21,7 @@ package us.ihmc.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 /**
  * LineReaderInputStream.java
@@ -41,6 +42,7 @@ public class LineReaderInputStream extends InputStream
      * Tests if this input stream supports the mark and reset methods
      * @return always false
      */
+    @Override
     public boolean markSupported ()
     {
         return false;
@@ -50,16 +52,18 @@ public class LineReaderInputStream extends InputStream
      * Marks the current position in this input stream
      * @param readlimit the maximum limit of bytes that can be read before the mark position becomes invalid
      */
+    @Override
     public void mark (int readlimit)
             throws RuntimeException
     {
-    	throw new RuntimeException ("mark() operation is not supported in LinReaderInputStream");
+        throw new RuntimeException ("mark() operation is not supported in LinReaderInputStream");
     }
 
     /**
      * Closes this input stream and releases any system resources associated with the stream
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public void close ()
             throws IOException
     {
@@ -70,6 +74,7 @@ public class LineReaderInputStream extends InputStream
      * Repositions this stream to the position at the time the mark method was last called on this input stream
      * @throws IOException if this stream has not been marked or if the mark has been invalidated
      */
+    @Override
     public void reset ()
             throws IOException
     {
@@ -82,6 +87,7 @@ public class LineReaderInputStream extends InputStream
      * @return the actual number of bytes skipped
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public long skip (long n)
             throws IOException
     {
@@ -89,8 +95,8 @@ public class LineReaderInputStream extends InputStream
             return _is.skip (n);
         }
         else {
-		    _bufferEmpty = true;
-			_bufferedByte = 0;
+            _bufferEmpty = true;
+            _bufferedByte = 0;
             return _is.skip (n-1);
         }
     }
@@ -101,6 +107,7 @@ public class LineReaderInputStream extends InputStream
      * @return the number of bytes that can be read from this input stream without blocking
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public int available ()
             throws IOException
     {
@@ -165,7 +172,7 @@ public class LineReaderInputStream extends InputStream
                 }
             }
         }
-        return new String (buf, 0, count);
+        return new String (buf, 0, count, Charset.defaultCharset());
     }
 
     /**
@@ -175,19 +182,20 @@ public class LineReaderInputStream extends InputStream
      * @return the next byte of data, or -1 if the end of the stream is reached
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public int read ()
             throws IOException
     {
         int value;
         if (_bufferEmpty) {
             value = _is.read();
-            return value;        	
+            return value;
         }
         else {
-        	value = _bufferedByte;
-        	_bufferedByte = 0;
-        	_bufferEmpty = true;
-        	return value;
+            value = _bufferedByte;
+            _bufferedByte = 0;
+            _bufferEmpty = true;
+            return value;
         }
     }
 
@@ -197,13 +205,13 @@ public class LineReaderInputStream extends InputStream
      */
     private void putBackByte (byte b)
     {
-    	if (_bufferEmpty) {
+        if (_bufferEmpty) {
             _bufferedByte = b;
             _bufferEmpty = false;
-    	}
-    	else {
-    		throw new RuntimeException ("trying to putBackByte() while there is already a byte in the buffer");
-    	}
+        }
+        else {
+            throw new RuntimeException ("trying to putBackByte() while there is already a byte in the buffer");
+        }
     }
 
     private final InputStream _is;

@@ -20,6 +20,8 @@
 #ifndef INCL_MANAGEABLE_THREAD_H
 #define INCL_MANAGEABLE_THREAD_H
 
+#include <atomic>
+
 #include "ConditionVariable.h"
 #include "Mutex.h"
 #include "Thread.h"
@@ -64,10 +66,10 @@ class ManageableThread : public Thread
         void terminating                        (void);
 
     private:
-        bool                        _bRunning;
-        bool                        _bTerminateRequested;
+        std::atomic<bool>           _bRunning;
+        std::atomic<bool>           _bTerminateRequested;
+        std::atomic<bool>           _bTerminated;
         int                         _iTerminatingResultCode;
-        bool                        _bTerminated;
         TerminationCallbackFnPtr    _pTerminationCallbackFn;
         void                        *_pTerminationCallbackArg;
         Mutex                       _m;

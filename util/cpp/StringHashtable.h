@@ -113,7 +113,7 @@ template <class T> class StringHashtable
 
                 //bool IPCompare (const char *pszString, const char *pszTemplate);
             //private:
-                Iterator (StringHashtable<T> *pTable, unsigned long ulState) {
+                Iterator (const StringHashtable<T> *pTable, unsigned long ulState) {
                     _pTable = pTable;
                     _ulState = ulState;
                     _ui32Index = 0;
@@ -128,7 +128,7 @@ template <class T> class StringHashtable
                 }
 
             private:
-                StringHashtable<T> *_pTable;
+                const StringHashtable<T> *_pTable;
                 unsigned long _ulState;
                 uint32 _ui32Index;
                 void *_pCurrElement;
@@ -155,7 +155,7 @@ template <class T> class StringHashtable
         // Returns the number of elements in the hashtable
         virtual uint32 getCount (void) const;
 
-        virtual Iterator getAllElements (void);
+        virtual Iterator getAllElements (void) const;
 
         virtual void printStructure (void);
 
@@ -355,7 +355,7 @@ template <class T> T * StringHashtable<T>::put (const char *pszKey, T *pValue)
 
 template <class T> bool StringHashtable<T>::containsKey (const char *pszKey) const
 {
-	return (get(pszKey) != NULL);
+    return (get (pszKey) != NULL);
 }
 
 template <class T> T * StringHashtable<T>::get (const char *pszKey) const
@@ -518,7 +518,7 @@ template <class T> void StringHashtable<T>::removeAll()
     _ulState = 0;
 }
 
-template <class T> typename StringHashtable<T>::Iterator StringHashtable<T>::getAllElements (void)
+template <class T> typename StringHashtable<T>::Iterator StringHashtable<T>::getAllElements (void) const
 {
     return Iterator (this, _ulState);
 }

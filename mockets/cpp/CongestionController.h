@@ -1,5 +1,5 @@
 #ifndef INCL_CONGESTION_CONTROLLER_H
-#define	INCL_CONGESTION_CONTROLLER_H
+#define    INCL_CONGESTION_CONTROLLER_H
 
 /*
  * CongestionController.h
@@ -22,8 +22,8 @@
  */
 
 #if !defined (ANDROID) //No std support on ANDROID
-	#include <fstream>
-	#include <sstream>
+    #include <fstream>
+    #include <sstream>
 #endif
 #include "FTypes.h"
 #include "Mocket.h"
@@ -41,7 +41,7 @@ class CongestionController : public CongestionControl
         void update (void);
         void reactToLosses (uint8 ui8Code);
         uint32 adaptToCongestionWindow (uint32 ui32SpaceAvailable);
-	void reset (void);
+    void reset (void);
         void printState (void);
 
     private:
@@ -71,4 +71,4 @@ inline uint32 CongestionController::getCongestionWindow (void)
     return _ui32CongestionWindowSize;
 }
 
-#endif	/* _CONGESTION_CONTROLLER_H */
+#endif    /* _CONGESTION_CONTROLLER_H */

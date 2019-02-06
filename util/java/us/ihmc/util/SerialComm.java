@@ -34,8 +34,8 @@ import javax.comm.*;
  *  @author Tom Cowin
  *  @author Chris Eagle
  *  - modifications
- *  @version $Revision: 1.14 $ 
- *  $Date: 2016/06/09 20:02:46 $
+ *  @version $Revision$ 
+ *  $Date$
  */
 public class SerialComm
 {

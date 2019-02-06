@@ -23,7 +23,7 @@
  * @author Maggie Breedy
  * @author Enrico Casini (ecasini@ihmc.us)
  *
- * @version $Revision: 1.27 $
+ * @version $Revision$
  */
 
 package us.ihmc.mockets;

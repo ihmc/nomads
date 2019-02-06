@@ -2,15 +2,15 @@ CC  = gcc
 CXX = g++
 
 CXXFLAGS = -g -DUNIX -DLINUX -DENABLE_DEBUG -DERROR_CHECKING -DRTT_TIMESTAMP \
-           -DLITTLE_ENDIAN_SYSTEM -fPIC -I../../../../externals/openssl/1.0.2h/linux/include -I../.. \
+           -DLITTLE_ENDIAN_SYSTEM -fPIC -I../../../../externals/openssl/1.1.0f/linux64/include -I../.. \
            -I../../../../externals/include \
            -I../../../../util/cpp \
            -I../../../../util/cpp/security \
            -I../../../../externals/JDK -I../../../../externals/JDK/linux 
 
 #openssl static libraries compiled with -fPIC flag
-EXTRA_LIBS = ../openssl_linux/libssl.a
-EXTRA_LIBS += ../openssl_linux/libcrypto.a
+EXTRA_LIBS = ../../../../externals/openssl/1.0.2h/linux64/lib/libssl.a
+EXTRA_LIBS += ../../../../externals/openssl/1.0.2h/linux64/lib/libcrypto.a
 
 
 wrappers = $(wildcard ../*Wrapper.cpp)
@@ -29,7 +29,7 @@ libutil.a :
 	make -C ../../../../util/cpp/linux
 
 libmocketsjavawrapper.so: $(wrappers_objs) libutil.a libsecurity.a libmockets.a 
-	$(CXX) -Wall -Wextra -Werror -shared -o ../../../bin/libmocketsjavawrapper.so \
+	$(CXX) -Wall -Wextra -Werror -shared -o ../../../lib/libmocketsjavawrapper.so \
 	$(wrappers_objs) \
 	../../linux/libmockets.a \
 	../../../../util/cpp/linux/libsecurity.a \

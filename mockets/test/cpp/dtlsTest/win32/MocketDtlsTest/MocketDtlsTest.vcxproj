@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FA111937-A0BE-4188-9496-49C46238C8D3}</ProjectGuid>
+    <RootNamespace>MocketDtlsTest</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\include;..\..\..\..\..\..\misc\cpp\dtlsInfrastructure;..\..\..\..\..\..\externals\include;..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\mockets\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Users\nomads\Desktop\work-git\nomads\mockets\test\cpp\dtlsTest\win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mockets.lib</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MD.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Debug &amp; 
+copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MDd.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Debug &amp; 
+copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MD.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Debug &amp;
+copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MDd.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Debug
+
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\include;..\..\..\..\..\..\externals\include;..\..\..\..\..\..\util\cpp\net;..\..\..\..\..\..\util\cpp;..\..\..\..\..\..\mockets\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>..\..\..\..\..\..\externals\lib\win32;..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libeay32MD.lib;ssleay32MD.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MD.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Release &amp; 
+copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\libeay32MDd.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Release &amp; 
+copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MD.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Release &amp;
+copy /Y ..\..\..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2013\bin\ssleay32MDd.dll ..\..\..\..\..\..\mockets\test\cpp\dtlsTest\win32\MocketDtlsTest\Release
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\launcher.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\..\util\cpp\win32\utillib.vcxproj">
+      <Project>{8b739421-e28c-4fc1-b6ed-26d635617f7b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\cpp\win32\mockets.vcxproj">
+      <Project>{b5b29df6-3670-4806-a979-47f87d27961a}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

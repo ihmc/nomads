@@ -126,8 +126,8 @@ namespace NOMADSUtil
             // All whitespace between words is trimmed
             const char ** receiveParsed (int* pCount = NULL) throw (CommException);
 
-		    // Same as receiveParsed, except that a custom delimiter can be be used
-		    const char ** receiveParsedDelimited (const char* pszDelimiters, int* pCount = NULL) throw (CommException);
+            // Same as receiveParsed, except that a custom delimiter can be be used
+            const char ** receiveParsedDelimited (const char* pszDelimiters, int* pCount = NULL) throw (CommException);
 
             // Same as above except that the parsing is done according to the specified parse format string
             // The parse format string specifies the number of words that should be grouped into one

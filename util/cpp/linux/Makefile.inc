@@ -19,7 +19,7 @@ options=
 
 INCLUDES=-I.. -I../ -I../../../externals/include
 
-cppflags= -g -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
+cppflags= -std=c++11 -g -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
 sources = $(wildcard ../*.cpp)
 sources += $(wildcard ../*.c)
 objects = $(sources:../%.cpp=%.o)

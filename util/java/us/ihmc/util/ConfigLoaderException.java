@@ -23,8 +23,8 @@ package us.ihmc.util;
  * ConfigLoaderException
  *
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.5 $
- * @ $Date: 2016/06/09 20:02:46 $
+ * @version $Revision$
+ * @ $Date$
  * @ Created on Jul 20, 2005 at 2:37:58 PM
  */
 public class ConfigLoaderException extends RuntimeException

@@ -5,7 +5,7 @@
  * UDPConnector.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,63 +22,66 @@
  * Handles incoming and outgoing UDP datagrams to/from remote NetProxies.
  */
 
+#include <unordered_map>
+#include <mutex>
+#include <memory>
 #if defined (LINUX)
     #include <algorithm>
 #endif
 
 #include "ManageableThread.h"
 
-#include "Connector.h"
-#include "Connection.h"
+#include "ConfigurationParameters.h"
 #include "UDPSocketAdapter.h"
+#include "Connector.h"
 
 
 namespace ACMNetProxy
 {
-    class NetProxyConfigManager;
+    class Connection;
+
 
     class UDPConnector : public NOMADSUtil::ManageableThread, public virtual Connector
     {
     public:
-        UDPConnector (void);
+        UDPConnector (ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable, TCPManager & rTCPManager,
+                      PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager);
         virtual ~UDPConnector (void);
 
-        static Connection * getUDPConnection (void);
-
-        virtual int init (uint16 ui16SocketPort);
+        virtual int init (uint16 ui16AcceptServerPort, uint32 ui32LocalIPv4Address);
         virtual void terminateExecution (void);
         void run (void);
 
-        unsigned int removeTCPTypePacketsFromTransmissionQueue (uint16 uiLocalID, uint16 uiRemoteID);
-
-
-    protected:
-        virtual bool isEnqueueingAllowed (void) const;
+        UDPSocketAdapter * const getUDPSocketAdapter (void) const;
 
 
     private:
-        unsigned char _pucInBuf[NetProxyApplicationParameters::PROXY_MESSAGE_MTU];
+        static uint64 generateUDPConnectionsTableKey (const NOMADSUtil::InetAddr & iaRemoteNetProxy);
+
+
+        unsigned char _pucInBuf[NetworkConfigurationSettings::PROXY_MESSAGE_MTU];
         int32 _i32BytesInBuffer;
 
-        static UDPSocketAdapter * const _pUDPSocketAdapter;
+        std::unordered_map<uint64, std::shared_ptr<Connection>> _umUDPConnections;
+
+        std::unique_ptr<UDPSocketAdapter> _upUDPSocketAdapter;
     };
 
 
-    inline Connection * UDPConnector::getUDPConnection (void)
-    {
-        static Connection udpConnection (_pUDPSocketAdapter, nullptr);
+    inline UDPConnector::UDPConnector (ConnectionManager & rConnectionManager, TCPConnTable & rTCPConnTable, TCPManager & rTCPManager,
+                                       PacketRouter & rPacketRouter, StatisticsManager & rStatisticsManager) :
+        Connector{CT_UDPSOCKET, rConnectionManager, rTCPConnTable, rTCPManager, rPacketRouter, rStatisticsManager},
+        _pucInBuf{0, }, _i32BytesInBuffer{0}, _upUDPSocketAdapter{nullptr}
+    { }
 
-        return &udpConnection;
+    inline UDPSocketAdapter * const UDPConnector::getUDPSocketAdapter (void) const
+    {
+        return _upUDPSocketAdapter.get();
     }
 
-    inline bool UDPConnector::isEnqueueingAllowed (void) const
+    inline uint64 UDPConnector::generateUDPConnectionsTableKey (const NOMADSUtil::InetAddr & iaRemoteNetProxy)
     {
-        return _pUDPSocketAdapter->_udpConnectionThread.getBufferedBytesAmount() < NetworkConfigurationSettings::UDP_CONNECTION_BUFFER_SIZE;
-    }
-
-    inline unsigned int UDPConnector::removeTCPTypePacketsFromTransmissionQueue (uint16 uiLocalID, uint16 uiRemoteID)
-    {
-        return _pUDPSocketAdapter->_udpConnectionThread.removeTCPTypePacketsFromTransmissionQueue (uiLocalID, uiRemoteID);
+        return generateUInt64Key (iaRemoteNetProxy.getIPAddress(), iaRemoteNetProxy.getPort(), CT_UDPSOCKET, ET_PLAIN);
     }
 }
 

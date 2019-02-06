@@ -26,7 +26,7 @@ import java.io.IOException;
  * the system's browser.
  *
  * @author Matteo Rebeschini <mrebeschini@ihmc.us>
- * @version $Revision: 1.4 $ $Date: 2016/06/09 20:02:46 $
+ * @version $Revision$ $Date$
  */
 public class BrowserLauncher
 {

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package iw;
+
+option go_package = "iw";
+option java_package = "us.ihmc.sensei.proto.subjects.iw";
+option java_generate_equals_and_hash = true;
+option java_outer_classname = "iw";
+
+// all keys are lowercase, words separated by _
+enum Str {
+    mac_address = 0;
+    dev_name = 1; 
+    tx_bitrate = 2; 
+    p_link_state = 3; 
+    peer_power_mode = 4;
+	local_power_mode = 5;
+	preamble = 6;
+}
+
+// all values are expressed in bytes
+enum Int {
+    inactive_time = 0;
+    rx_bytes = 1; 
+    rx_packets = 2;
+    tx_bytes = 3; 
+    tx_packets = 4;
+    tx_retries = 5;
+    tx_failed = 6;
+    signal_power = 7;
+    singal_power_avg = 8;
+    t_offset = 9;
+    mesh_llid = 10;      
+    mesh_plid = 11;      
+    authenticated = 12; // Boolean if authenticated
+    authorized = 13;
+    wmm_wme = 14;       // Boolean if WME enabled
+    mfp = 15;           // Boolean if MFP enabled
+    tdls = 16;          // Boolean if TDLS enabled
+}
+
+
+

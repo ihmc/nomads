@@ -2,7 +2,7 @@
  * ConnectorWriter.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,44 +18,41 @@
  */
 
 #include "ConnectorWriter.h"
+#include "CompressionSettings.h"
 #include "LzmaConnectorWriter.h"
 #include "ZLibConnectorWriter.h"
 
 
 namespace ACMNetProxy
 {
-    ConnectorWriter *ConnectorWriter::connectorWriterFactory (const CompressionSetting * const pCompressionSetting)
+    ConnectorWriter * ConnectorWriter::connectorWriterFactory (const CompressionSettings & compressionSettings)
     {
-        if (!pCompressionSetting) {
-            return nullptr;
-        }
-
-        switch (pCompressionSetting->getCompressionType()) {
-            case ProxyMessage::PMC_UncompressedData:
-                return new ConnectorWriter (pCompressionSetting);
-            case ProxyMessage::PMC_ZLibCompressedData:
-                return new ZLibConnectorWriter (pCompressionSetting);
-            #if !defined (ANDROID)
-                case ProxyMessage::PMC_LZMACompressedData:
-                    return new LzmaConnectorWriter (pCompressionSetting);
-            #endif
+        switch (compressionSettings.getCompressionType()) {
+        case CompressionType::PMC_UncompressedData:
+            return new ConnectorWriter{compressionSettings};
+        case CompressionType::PMC_ZLibCompressedData:
+            return new ZLibConnectorWriter{compressionSettings};
+        #if !defined (ANDROID)
+            case CompressionType::PMC_LZMACompressedData:
+                return new LzmaConnectorWriter{compressionSettings};
+        #endif
         }
 
         return nullptr;
     }
 
-    ConnectorWriter * const ConnectorWriter::getAndLockUPDConnectorWriter (uint8 ui8CompressionTypeAndLevel)
+    ConnectorWriter * const ConnectorWriter::getAndLockUPDConnectorWriter (const CompressionSettings & compressionSettings)
     {
-        ConnectorWriter *&pConnectorWriter = _UDPConnectorWriters[ui8CompressionTypeAndLevel];
+        auto *&pConnectorWriter = _UDPConnectorWriters[compressionSettings.getCompressionTypeAndLevel()];
         if (!pConnectorWriter) {
-            pConnectorWriter = ConnectorWriter::connectorWriterFactory (ui8CompressionTypeAndLevel);
+            pConnectorWriter = ConnectorWriter::connectorWriterFactory (compressionSettings);
         }
         pConnectorWriter->lockConnectorWriter();
 
         return pConnectorWriter;
     }
 
-    int ConnectorWriter::flush (unsigned char **pDest, unsigned int &uiDestLen) {
+    int ConnectorWriter::flush (unsigned char ** pDest, unsigned int & uiDestLen) {
         *pDest = (unsigned char *) 0;
         uiDestLen = 0;
         _bFlushed = true;
@@ -63,7 +60,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int ConnectorWriter::writeData (const unsigned char *pSrc, unsigned int uiSrcLen, unsigned char **pDest, unsigned int &uiDestLen, bool bLocalFlush)
+    int ConnectorWriter::writeData (const unsigned char * pSrc, unsigned int uiSrcLen, unsigned char ** pDest, unsigned int & uiDestLen, bool bLocalFlush)
     {
         (void) bLocalFlush;
 
@@ -74,7 +71,7 @@ namespace ACMNetProxy
         return 0;
     }
 
-    int ConnectorWriter::writeDataAndResetWriter (const unsigned char *pSrc, unsigned int uiSrcLen, unsigned char **pDest, unsigned int &uiDestLen)
+    int ConnectorWriter::writeDataAndResetWriter (const unsigned char * pSrc, unsigned int uiSrcLen, unsigned char ** pDest, unsigned int & uiDestLen)
     {
         *pDest = const_cast<unsigned char *> (pSrc);
         uiDestLen = uiSrcLen;
@@ -83,4 +80,6 @@ namespace ACMNetProxy
         return 0;
     }
 
+
+    std::unordered_map<uint8, ConnectorWriter *> ConnectorWriter::_UDPConnectorWriters;
 }

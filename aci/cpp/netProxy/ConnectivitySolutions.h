@@ -5,7 +5,7 @@
  * ConnectivitySolutions.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,22 +26,24 @@
  * to it (object instance of RemoteProxyInfo).
  */
 
-#include "Utilities.h"
+#include <memory>
+
 #include "QueryResult.h"
 #include "RemoteProxyInfo.h"
 #include "ActiveConnection.h"
-#include "UDPConnector.h"
+#include "Utilities.h"
 
 
 namespace ACMNetProxy
 {
     class Connection;
 
+
     class ConnectivitySolutions
     {
         /* Class that contains all possible connectivity
          * solutions to reach a remote NetProxy.
-         * So far, possible solutions comprehends:
+         * So far, possible solutions comprehend:
          *      - an ActiveConnection instance, with currently
          *        opened connections to the remote NetProxy;
          *      - a RemoteProxyInfo instance, with the necessary
@@ -49,73 +51,90 @@ namespace ACMNetProxy
          *        remote NetProxy.
          */
     public:
-        ConnectivitySolutions (const RemoteProxyInfo & remoteProxyInfo);
-        ConnectivitySolutions (Connection * const pActiveConnectionToRemoteProxy, const RemoteProxyInfo & remoteProxyInfo);
+        ConnectivitySolutions (uint32 ui32LocalInterfaceIPv4Address, uint32 ui32RemoteInterfaceIPv4Address,
+                               const std::shared_ptr<RemoteProxyInfo> & spRemoteProxyInfo);
+        ConnectivitySolutions (uint32 ui32LocalInterfaceIPv4Address, uint32 ui32RemoteInterfaceIPv4Address,
+                               Connection * const pActiveConnectionToRemoteProxy,
+                               const std::shared_ptr<RemoteProxyInfo> & spRemoteProxyInfo);
 
         bool operator== (const ConnectivitySolutions & rhs) const;
         bool operator!= (const ConnectivitySolutions & rhs) const;
 
         static const ConnectivitySolutions & getInvalidConnectivitySolutions (void);
 
-        const uint32 getRemoteProxyID (void) const;
+        const uint32 getRemoteNetProxyID (void) const;
+        const uint32 getLocalInterfaceIPv4Address (void) const;
+        const uint32 getRemoteInterfaceIPv4Address (void) const;
         const ActiveConnection & getActiveConnections (void) const;
         const RemoteProxyInfo & getRemoteProxyInfo (void) const;
         const unsigned char getEncryptionDescription (ConnectorType connectorType) const;
-        Connection * const getActiveConnectionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const;
-        const QueryResult getBestConnectionSolutionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const;
+        Connection * const getActiveConnectionForConnectorAndEncryptionType (ConnectorType connectorType, EncryptionType encryptionType) const;
+        const QueryResult getBestConnectionSolutionForConnectorAndEncryptionType (ConnectorType connectorType, EncryptionType encryptionType) const;
+
+        bool hasSolutionToConnectToIPv4Address (uint32 ui32InterfaceIPv4Address) const;
 
         Connection * const setActiveConnection (Connection * const pConnection);
         Connection * const removeActiveConnection (const Connection * const pConnection);
         void setEncryptionDescription (ConnectorType connectorType, EncryptionType encryptionType);
+        void setRemoteProxyInfo (std::shared_ptr<RemoteProxyInfo> & spRemoteProxyInfo);
+
 
     private:
-        friend class ConnectionManager;
+        void addInterfaceIPv4AddressToRemoteProxyInfo (const NOMADSUtil::InetAddr & iaInterfaceIPv4Address);
 
-        ConnectivitySolutions (void);
-
-        ActiveConnection _activeConnections{UDPConnector::getUDPConnection()};
-        RemoteProxyInfo _remoteProxyInfo;
-        unsigned char _connEncryptionDescriptor[CT_SIZE];
+        uint8 _connEncryptionDescriptor[CT_SIZE];
+        const uint32 _ui32LocalInterfaceIPv4Address;
+        const uint32 _ui32RemoteInterfaceIPv4Address;
+        ActiveConnection _activeConnections;
+        std::shared_ptr<RemoteProxyInfo> _spRemoteProxyInfo;
     };
 
 
-    inline ConnectivitySolutions::ConnectivitySolutions (void)
-    {
-        memset (_connEncryptionDescriptor, 0, CT_SIZE);
-    }
+    inline ConnectivitySolutions::ConnectivitySolutions (uint32 ui32LocalInterfaceIPv4Address, uint32 ui32RemoteInterfaceIPv4Address,
+                                                         const std::shared_ptr<RemoteProxyInfo> & spRemoteProxyInfo) :
+        _connEncryptionDescriptor{}, _ui32LocalInterfaceIPv4Address{ui32LocalInterfaceIPv4Address},
+        _ui32RemoteInterfaceIPv4Address{ui32RemoteInterfaceIPv4Address}, _spRemoteProxyInfo{spRemoteProxyInfo}
+    { }
 
-    inline ConnectivitySolutions::ConnectivitySolutions (const RemoteProxyInfo & remoteProxyInfo) : _remoteProxyInfo(remoteProxyInfo)
-    {
-        memset (_connEncryptionDescriptor, 0, CT_SIZE);
-    }
-
-    inline ConnectivitySolutions::ConnectivitySolutions (Connection * const pActiveConnectionToRemoteProxy, const RemoteProxyInfo & remoteProxyInfo) :
-        _remoteProxyInfo(remoteProxyInfo)
-    {
-        _activeConnections.setNewActiveConnection (pActiveConnectionToRemoteProxy);
-        memset (_connEncryptionDescriptor, 0, CT_SIZE);
-    }
+    inline ConnectivitySolutions::ConnectivitySolutions (uint32 ui32LocalInterfaceIPv4Address, uint32 ui32RemoteInterfaceIPv4Address,
+                                                         Connection * const pActiveConnectionToRemoteProxy,
+                                                         const std::shared_ptr<RemoteProxyInfo> & spRemoteProxyInfo) :
+        _connEncryptionDescriptor{}, _ui32LocalInterfaceIPv4Address{ui32LocalInterfaceIPv4Address},
+        _ui32RemoteInterfaceIPv4Address{ui32RemoteInterfaceIPv4Address}, _activeConnections{pActiveConnectionToRemoteProxy},
+        _spRemoteProxyInfo{spRemoteProxyInfo}
+    { }
 
     inline bool ConnectivitySolutions::operator== (const ConnectivitySolutions & rhs) const
     {
-        return this->getRemoteProxyID() == rhs.getRemoteProxyID();
+        return (getRemoteNetProxyID() == rhs.getRemoteNetProxyID()) &&
+            (getRemoteInterfaceIPv4Address() == rhs.getRemoteInterfaceIPv4Address());
     }
 
     inline bool ConnectivitySolutions::operator!= (const ConnectivitySolutions & rhs) const
     {
-        return this->getRemoteProxyID() != rhs.getRemoteProxyID();
+        return !(*this == rhs);
     }
 
     inline const ConnectivitySolutions & ConnectivitySolutions::getInvalidConnectivitySolutions (void)
     {
-        static ConnectivitySolutions INVALID_CONNECTIVITY_SOLUTIONS;
+        static ConnectivitySolutions INVALID_CONNECTIVITY_SOLUTIONS{0, 0, nullptr};
 
         return INVALID_CONNECTIVITY_SOLUTIONS;
     }
 
-    inline const uint32 ConnectivitySolutions::getRemoteProxyID (void) const
+    inline const uint32 ConnectivitySolutions::getRemoteNetProxyID (void) const
     {
-        return _remoteProxyInfo.getRemoteProxyID();
+        return _spRemoteProxyInfo->getRemoteNetProxyID();
+    }
+
+    inline const uint32 ConnectivitySolutions::getLocalInterfaceIPv4Address (void) const
+    {
+        return _ui32LocalInterfaceIPv4Address;
+    }
+
+    inline const uint32 ConnectivitySolutions::getRemoteInterfaceIPv4Address (void) const
+    {
+        return _ui32RemoteInterfaceIPv4Address;
     }
 
     inline const ActiveConnection & ConnectivitySolutions::getActiveConnections (void) const
@@ -125,7 +144,7 @@ namespace ACMNetProxy
 
     inline const RemoteProxyInfo & ConnectivitySolutions::getRemoteProxyInfo (void) const
     {
-        return _remoteProxyInfo;
+        return *_spRemoteProxyInfo;
     }
 
     inline const unsigned char ConnectivitySolutions::getEncryptionDescription (ConnectorType connectorType) const
@@ -133,17 +152,24 @@ namespace ACMNetProxy
         return _connEncryptionDescriptor[connectorType];
     }
 
-    inline Connection * const ConnectivitySolutions::getActiveConnectionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const
+    inline Connection * const ConnectivitySolutions::getActiveConnectionForConnectorAndEncryptionType (ConnectorType connectorType, EncryptionType encryptionType) const
     {
         return _activeConnections.getActiveConnection (connectorType, encryptionType);
     }
 
-    inline const QueryResult ConnectivitySolutions::getBestConnectionSolutionForConnectorType (ConnectorType connectorType, EncryptionType encryptionType) const
+    inline const QueryResult ConnectivitySolutions::getBestConnectionSolutionForConnectorAndEncryptionType (ConnectorType connectorType, EncryptionType encryptionType) const
     {
         // The InetAddr of the remote NetProxy server is included only if the remote NetProxy is reachable from the local host
-        return QueryResult (_remoteProxyInfo.getRemoteProxyID(),
-                            _remoteProxyInfo.isRemoteProxyReachableFromLocalHost() ? _remoteProxyInfo.getRemoteProxyInetAddr (connectorType) : nullptr,
-                            encryptionType, getActiveConnectionForConnectorType (connectorType, encryptionType));
+        const auto & iaRemoteNetProxy = _spRemoteProxyInfo->isRemoteProxyReachableFromLocalHost() ?
+            _spRemoteProxyInfo->getRemoteServerInetAddrForIPv4AddressAndConnectorType (_ui32RemoteInterfaceIPv4Address, connectorType) :
+            NetProxyApplicationParameters::IA_INVALID_ADDR;
+        return QueryResult{_spRemoteProxyInfo->getRemoteNetProxyID(), getLocalInterfaceIPv4Address(), iaRemoteNetProxy, connectorType,
+                           encryptionType, getActiveConnectionForConnectorAndEncryptionType (connectorType, encryptionType)};
+    }
+
+    inline bool ConnectivitySolutions::hasSolutionToConnectToIPv4Address (uint32 ui32InterfaceIPv4Address) const
+    {
+        return _spRemoteProxyInfo->hasInterfaceIPv4Address (ui32InterfaceIPv4Address);
     }
 
     inline Connection * const ConnectivitySolutions::setActiveConnection (Connection * const pConnection)
@@ -159,6 +185,16 @@ namespace ACMNetProxy
     inline void ConnectivitySolutions::setEncryptionDescription (ConnectorType connectorType, EncryptionType encryptionType)
     {
         _connEncryptionDescriptor[connectorType] |= encryptionType;
+    }
+
+    inline void ConnectivitySolutions::setRemoteProxyInfo (std::shared_ptr<RemoteProxyInfo> & spRemoteProxyInfo)
+    {
+        _spRemoteProxyInfo = spRemoteProxyInfo;
+    }
+
+    inline void ConnectivitySolutions::addInterfaceIPv4AddressToRemoteProxyInfo (const NOMADSUtil::InetAddr & iaInterfaceIPv4Address)
+    {
+        _spRemoteProxyInfo->addRemoteServerAddr (iaInterfaceIPv4Address);
     }
 
 }

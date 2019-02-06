@@ -35,4 +35,13 @@ public abstract class CallbackHandler implements Runnable
         _stub = stub;
         _commHelper = commHelper;
     }
+
+    void closeConnection() {
+        try {
+            _commHelper.closeConnection();
+        }
+        catch(Exception e) {}
+    }
+
+    public abstract void requestTermination();
 }

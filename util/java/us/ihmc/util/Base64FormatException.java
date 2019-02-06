@@ -2,7 +2,7 @@ package us.ihmc.util;
 
 /**
  * Base64FormatException.java
- * $Id: Base64FormatException.java,v 1.4 2013/03/06 19:18:12 nsuri Exp $
+ * $Id$
  * (c) COPYRIGHT MIT and INRIA, 1996.
  * Please first read the full copyright statement in file COPYRIGHT.html
  * Exception for invalid BASE64 streams.

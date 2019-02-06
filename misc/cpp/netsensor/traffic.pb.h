@@ -518,36 +518,36 @@ inline const ::std::string& TrafficByInterface::monitoringinterface() const {
   return monitoringinterface_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline void TrafficByInterface::set_monitoringinterface(const ::std::string& value) {
-
+  
   monitoringinterface_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:netsensor.TrafficByInterface.monitoringInterface)
 }
 inline void TrafficByInterface::set_monitoringinterface(const char* value) {
-
+  
   monitoringinterface_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:netsensor.TrafficByInterface.monitoringInterface)
 }
 inline void TrafficByInterface::set_monitoringinterface(const char* value, size_t size) {
-
+  
   monitoringinterface_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:netsensor.TrafficByInterface.monitoringInterface)
 }
 inline ::std::string* TrafficByInterface::mutable_monitoringinterface() {
-
+  
   // @@protoc_insertion_point(field_mutable:netsensor.TrafficByInterface.monitoringInterface)
   return monitoringinterface_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* TrafficByInterface::release_monitoringinterface() {
   // @@protoc_insertion_point(field_release:netsensor.TrafficByInterface.monitoringInterface)
-
+  
   return monitoringinterface_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline void TrafficByInterface::set_allocated_monitoringinterface(::std::string* monitoringinterface) {
   if (monitoringinterface != NULL) {
-
+    
   } else {
-
+    
   }
   monitoringinterface_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), monitoringinterface);
   // @@protoc_insertion_point(field_set_allocated:netsensor.TrafficByInterface.monitoringInterface)
@@ -599,7 +599,7 @@ inline ::google::protobuf::uint32 Microflow::ipsrc() const {
   return ipsrc_;
 }
 inline void Microflow::set_ipsrc(::google::protobuf::uint32 value) {
-
+  
   ipsrc_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Microflow.ipSrc)
 }
@@ -613,7 +613,7 @@ inline ::google::protobuf::uint32 Microflow::ipdst() const {
   return ipdst_;
 }
 inline void Microflow::set_ipdst(::google::protobuf::uint32 value) {
-
+  
   ipdst_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Microflow.ipDst)
 }
@@ -657,7 +657,7 @@ inline ::google::protobuf::uint32 Microflow::latency() const {
   return latency_;
 }
 inline void Microflow::set_latency(::google::protobuf::uint32 value) {
-
+  
   latency_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Microflow.latency)
 }
@@ -678,7 +678,7 @@ inline ::netsensor::StatType Stat::stattype() const {
   return static_cast< ::netsensor::StatType >(stattype_);
 }
 inline void Stat::set_stattype(::netsensor::StatType value) {
-
+  
   stattype_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Stat.statType)
 }
@@ -692,36 +692,36 @@ inline const ::std::string& Stat::protocol() const {
   return protocol_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline void Stat::set_protocol(const ::std::string& value) {
-
+  
   protocol_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:netsensor.Stat.protocol)
 }
 inline void Stat::set_protocol(const char* value) {
-
+  
   protocol_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:netsensor.Stat.protocol)
 }
 inline void Stat::set_protocol(const char* value, size_t size) {
-
+  
   protocol_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:netsensor.Stat.protocol)
 }
 inline ::std::string* Stat::mutable_protocol() {
-
+  
   // @@protoc_insertion_point(field_mutable:netsensor.Stat.protocol)
   return protocol_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Stat::release_protocol() {
   // @@protoc_insertion_point(field_release:netsensor.Stat.protocol)
-
+  
   return protocol_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline void Stat::set_allocated_protocol(::std::string* protocol) {
   if (protocol != NULL) {
-
+    
   } else {
-
+    
   }
   protocol_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), protocol);
   // @@protoc_insertion_point(field_set_allocated:netsensor.Stat.protocol)
@@ -736,7 +736,7 @@ inline ::google::protobuf::uint32 Stat::srcport() const {
   return srcport_;
 }
 inline void Stat::set_srcport(::google::protobuf::uint32 value) {
-
+  
   srcport_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Stat.srcPort)
 }
@@ -750,7 +750,7 @@ inline ::google::protobuf::uint32 Stat::dstport() const {
   return dstport_;
 }
 inline void Stat::set_dstport(::google::protobuf::uint32 value) {
-
+  
   dstport_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Stat.dstPort)
 }
@@ -801,7 +801,7 @@ inline ::google::protobuf::uint32 Average::resolution() const {
   return resolution_;
 }
 inline void Average::set_resolution(::google::protobuf::uint32 value) {
-
+  
   resolution_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Average.resolution)
 }
@@ -815,7 +815,7 @@ inline ::netsensor::Prefix Average::prefix() const {
   return static_cast< ::netsensor::Prefix >(prefix_);
 }
 inline void Average::set_prefix(::netsensor::Prefix value) {
-
+  
   prefix_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Average.prefix)
 }
@@ -829,7 +829,7 @@ inline ::google::protobuf::uint32 Average::sent() const {
   return sent_;
 }
 inline void Average::set_sent(::google::protobuf::uint32 value) {
-
+  
   sent_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Average.sent)
 }
@@ -843,7 +843,7 @@ inline ::google::protobuf::uint32 Average::received() const {
   return received_;
 }
 inline void Average::set_received(::google::protobuf::uint32 value) {
-
+  
   received_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Average.received)
 }
@@ -857,7 +857,7 @@ inline ::google::protobuf::uint32 Average::observed() const {
   return observed_;
 }
 inline void Average::set_observed(::google::protobuf::uint32 value) {
-
+  
   observed_ = value;
   // @@protoc_insertion_point(field_set:netsensor.Average.observed)
 }

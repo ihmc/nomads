@@ -280,7 +280,7 @@ public final class Config
      */
     public static synchronized boolean hasKey (String key)
     {
-        return getInstance()._properties.contains(key);
+        return getInstance()._properties.containsKey(key);
     }
 
     /**

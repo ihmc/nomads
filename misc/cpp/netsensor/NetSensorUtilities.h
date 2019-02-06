@@ -40,12 +40,20 @@ inline int64 getTimeInNanos(void)
     return NOMADSUtil::getTimeInMilliseconds() * 1000;
 }
 
-inline uint32 convertIpToHostOrder(uint32 ui32networkOrderIp)
+inline uint32 convertIpToHostOrder (uint32 ui32networkOrderIp)
 {
-    NOMADSUtil::IPv4Addr ip{ui32networkOrderIp};
+    NOMADSUtil::IPv4Addr ip {ui32networkOrderIp};
     ip.hton();
 
     return ip.ui32Addr;
+};
+
+inline uint32 getIpInHostOrder (NOMADSUtil::String sAddr)
+{
+	uint32 ui32SrcAddr = NOMADSUtil::InetAddr(sAddr).getIPAddress();
+	NOMADSUtil::IPv4Addr ip{ ui32SrcAddr };
+	ip.hton();
+	return ip.ui32Addr;
 };
 
 void tokenizeStr(const char *str, const char separator,

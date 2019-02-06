@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -253,99 +253,99 @@ namespace CryptoUtils
     class SecretKeyInterface
     {
         public:
-			
-			//define the type of the secret key
-			enum KeyType {
-				DES,
-				AES256
-			};
 
-			SecretKeyInterface(void);
+            //define the type of the secret key
+            enum KeyType {
+                DES,
+                AES256
+            };
+
+            SecretKeyInterface(void);
             // virtual Destructor
-			virtual ~SecretKeyInterface(void);
+            virtual ~SecretKeyInterface(void);
             //This method initiliaze the key with a given string
             virtual int initKey (const char *pszPassword) = 0;
-			//This function returns the type of the key as defined in the enum KeyType
-			KeyType getKeyType(void);
-			//return the pointer to key
-			void * getKey(void);
+            //This function returns the type of the key as defined in the enum KeyType
+            KeyType getKeyType(void);
+            //return the pointer to key
+            void * getKey(void);
 
         protected:
-			void *_pKey;
-			KeyType _keyType;
+            void *_pKey;
+            KeyType _keyType;
             friend class SecureReader;
             friend class SecureWriter;
 
     };
 
-	/*
-	* Define the SecretKey class. This class is used to hold a DES-style secret key
-	*/
-	class SecretKey : public SecretKeyInterface
-	{
-	public:
-		//constructor
-		SecretKey(void);
+    /*
+    * Define the SecretKey class. This class is used to hold a DES-style secret key
+    */
+    class SecretKey : public SecretKeyInterface
+    {
+    public:
+        //constructor
+        SecretKey(void);
 
-		// Copy constructor
-		SecretKey(const SecretKey &key);
+        // Copy constructor
+        SecretKey(const SecretKey &key);
 
-		// Destructor
-		~SecretKey(void);
+        // Destructor
+        ~SecretKey(void);
 
-		// Assignment operator
-		SecretKey & operator = (const SecretKey &rhsKey);
+        // Assignment operator
+        SecretKey & operator = (const SecretKey &rhsKey);
 
-		// Initializes this key using the specified password
-		// NOTE: If the password is longer than 8 characters, only the first 8 are used
-		int initKey(const char *pszPassword);
+        // Initializes this key using the specified password
+        // NOTE: If the password is longer than 8 characters, only the first 8 are used
+        int initKey(const char *pszPassword);
 
-	};
+    };
 
-	/*
-	* Defines the AES256Key class that is used to hold a secretAES256 key for AES
-	* cryptography
-	*
-	*/
-	class AES256Key : public SecretKeyInterface
-	{
-	public:
-		//Constructor for AES256Key
-		AES256Key(void);
+    /*
+    * Defines the AES256Key class that is used to hold a secretAES256 key for AES
+    * cryptography
+    *
+    */
+    class AES256Key : public SecretKeyInterface
+    {
+    public:
+        //Constructor for AES256Key
+        AES256Key(void);
 
-		// Copy constructor
-		AES256Key(const AES256Key &key);
+        // Copy constructor
+        AES256Key(const AES256Key &key);
 
-		// Destructor
-		~AES256Key(void);
+        // Destructor
+        ~AES256Key(void);
 
-		// Assignment operator
-		AES256Key & operator = (const AES256Key &rhsKey);
+        // Assignment operator
+        AES256Key & operator = (const AES256Key &rhsKey);
 
-		//init the Key using a stream of bytes
-		int initKey (unsigned char *pchKey, uint32 ui32len);
+        //init the Key using a stream of bytes
+        int initKey (unsigned char *pchKey, uint32 ui32len);
 
-		//init the Key using a passsword
-		int initKey(const char *pszPassword);
+        //init the Key using a passsword
+        int initKey(const char *pszPassword);
 
-		//init the AES256Key from a file
-		int initKeyFromFile (const char *pszFileName);
+        //init the AES256Key from a file
+        int initKeyFromFile (const char *pszFileName);
 
-		//the size of the key in bytes
-		static const size_t sKeySize = 32;
-	};
+        //the size of the key in bytes
+        static const size_t sKeySize = 32;
+    };
 
     // Utility Functions
 
-	//generate a sha256digest
-	//This funcrion will be used to generate the AES256 key from
-	//an input password
-	void * sha256(const char *pszPassword);
+    //generate a sha256digest
+    //This funcrion will be used to generate the AES256 key from
+    //an input password
+    void * sha256(const char *pszPassword);
 
     // Encrypts the data passed in pData using the specified key and writes the result into pDestBuf
     // Returns a negative value in case of a failure or if the destination buffer is too small (only for DES)
-	// ui32BufSize can be set to NULL when using a AES256 key type.
-	// The function accept a SecretKeyInterface class as key.
+    // ui32BufSize can be set to NULL when using a AES256 key type.
+    // The function accept a SecretKeyInterface class as key.
     int encryptDataUsingSecretKey (SecretKeyInterface *pKey, const void *pData, uint32 ui32DataLen, void *pDestBuf, uint32 ui32BufSize);
 
     // Encrypts the data passed in pData using the specified key and returns the result in a newly allocated buffer
@@ -355,8 +355,8 @@ namespace CryptoUtils
     void * encryptDataUsingSecretKey (SecretKeyInterface *pKey, const void *pData, uint32 ui32DataLen, uint32 *pui32BufLen);
 
     // Decrypts the data passed in pData using the specified key and write the result into pDestBuf
-	// Returns a negative value in case of a failure or if the destination buffer is too small (only for DES)
-	// ui32BufSize can be set to NULL when using a AES256 key type.
+    // Returns a negative value in case of a failure or if the destination buffer is too small (only for DES)
+    // ui32BufSize can be set to NULL when using a AES256 key type.
     int decryptDataUsingSecretKey (SecretKeyInterface *pKey, const void *pData, uint32 ui32DataLen, void *pDestBuf, uint32 ui32BufSize);
 
     // Decrypts the data passed in pData using the specified key and returns the result in a newly allocated buffer
@@ -475,31 +475,31 @@ namespace CryptoUtils
         _pKey = NULL;
     }
 
-	inline SecretKeyInterface::~SecretKeyInterface(void)
-	{
-	}
+    inline SecretKeyInterface::~SecretKeyInterface(void)
+    {
+    }
 
     inline void * SecretKeyInterface::getKey (void)
     {
         return _pKey;
     }
 
-	inline  SecretKeyInterface::KeyType SecretKeyInterface::getKeyType (void)
-	{
-		return _keyType;
-	}
+    inline  SecretKeyInterface::KeyType SecretKeyInterface::getKeyType (void)
+    {
+        return _keyType;
+    }
 
-	inline SecretKey::SecretKey (void)
-	{
-		_pKey = NULL;
-		_keyType = DES;
-	}
+    inline SecretKey::SecretKey (void)
+    {
+        _pKey = NULL;
+        _keyType = DES;
+    }
 
-	inline AES256Key::AES256Key (void)
-	{
-		_pKey = NULL;
-		_keyType = AES256;
-	}
+    inline AES256Key::AES256Key (void)
+    {
+        _pKey = NULL;
+        _keyType = AES256;
+    }
 
 }
 

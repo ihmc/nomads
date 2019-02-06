@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -24,7 +24,7 @@ using namespace NOMADSUtil;
 CompressedWriter::CompressedWriter (Writer *pw, bool bDeleteWhenDone, unsigned long ulOutBufSize)
 {
     if ((pw == NULL) || (ulOutBufSize == 0)) {
-        // Throw C++ exception here 
+        // Throw C++ exception here
     }
     _pWriter = pw;
     _ulOutBufSize = ulOutBufSize;

@@ -24,43 +24,63 @@
 
 #include "StrClass.h"
 #include "LList.h"
-#include "EmbeddingMode.h"
-
+#include "Mode.h"
+#include <iostream>   // std::cout
+#include <string>     // std::string, std::stoi
 namespace IHMC_NETSENSOR
 {
-    class CommandLineConfigs
-    {
-    public:
-        CommandLineConfigs(void);
-        ~CommandLineConfigs(void);
+class CommandLineConfigs
+{
+public:
+    CommandLineConfigs (void);
+    ~CommandLineConfigs (void);
+    bool bHasDifferentDeliveryTime;
+    bool bUseCompression;
+    bool bUseExternalTopology;
+    bool bCalculateTCPRTT;
+    bool bHasInterfaces;
+    bool bHasForcedInterfaces;
+    bool bEnableIW;
+    Mode em;
+    NOMADSUtil::LList<NOMADSUtil::String> interfaceNameList;
+    NOMADSUtil::String sConfigPath;
+    NOMADSUtil::String sReplayConfigPath;
+    NOMADSUtil::String sRecipient;
+    NOMADSUtil::String sIWIface;
+    uint32 ui32msStatsDeliveryTime;
 
-        bool bUseCompression;
-        bool bUseExternalTopology;
-        bool bCalculateTCPRTT;
-        bool bHasInterfaces;
-        EmbeddingMode em;
-        NOMADSUtil::LList<NOMADSUtil::String> interfaceNameList;
-        NOMADSUtil::String sConfigPath;
-        NOMADSUtil::String sReplayConfigPath;
-        NOMADSUtil::String sRecipient;
-    };
+    bool bHasForcedAddr;
+    uint32 ui32ForcedInterfaceAddr;
+
+    bool bHasForcedNetmask;
+    uint32 ui32ForcedNetmask;
+
+};
 
 
-    inline CommandLineConfigs::CommandLineConfigs(void):
-        bUseCompression(false),
-        bUseExternalTopology(false),
-        bHasInterfaces(false),
-        bCalculateTCPRTT(false),
-        em(EmbeddingMode::EM_NONE),
-        sConfigPath(""),
-        sReplayConfigPath(""),
-        sRecipient("")
-    {
-    }
+inline CommandLineConfigs::CommandLineConfigs (void) :
+    bHasDifferentDeliveryTime (false),
+    bUseCompression (false),
+    bUseExternalTopology (false),
+    bHasInterfaces (false),
+    bCalculateTCPRTT (false),
+    em (Mode::EM_NONE),
+    sConfigPath (""),
+    sReplayConfigPath (""),
+    sRecipient (""),
+    bHasForcedAddr (false),
+    bHasForcedNetmask (false),
+    bHasForcedInterfaces (false),
+    ui32ForcedInterfaceAddr (0),
+    ui32ForcedNetmask (0),
+    bEnableIW (false),
+    sIWIface ("")
+{
+}
 
-    inline CommandLineConfigs::~CommandLineConfigs(void)
-    {
-    }
+inline CommandLineConfigs::~CommandLineConfigs(void)
+{
+}
 }
 
 #endif

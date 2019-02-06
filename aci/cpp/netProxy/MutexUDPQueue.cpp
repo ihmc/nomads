@@ -2,7 +2,7 @@
  * MutexUDPQueue.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,18 +22,16 @@
 #include "MutexUDPQueue.h"
 
 
-using namespace NOMADSUtil;
-
 namespace ACMNetProxy
 {
-    UDPDatagramPacket * MutexUDPQueue::findPacketFromIPHeader (const IPHeader * const pIPHeader)
+    UDPDatagramPacket * MutexUDPQueue::findPacketFromIPHeader (const NOMADSUtil::IPHeader * const pIPHeader)
     {
         if (!pIPHeader) {
             return nullptr;
         }
 
         resetGet();
-        UDPDatagramPacket *pUDPDatagramPacket = nullptr;
+        UDPDatagramPacket * pUDPDatagramPacket = nullptr;
         while ((pUDPDatagramPacket = getNext())) {
             if (pUDPDatagramPacket->matchesIPPacket (pIPHeader)) {
                 return pUDPDatagramPacket;
@@ -63,7 +61,7 @@ namespace ACMNetProxy
         return ENQUEUING_SUCCEDED;
     }
 
-    int MutexUDPQueue::reassembleUDPDatagram (const IPHeader * const pIPHeader, const UDPHeader * const pUDPHeader)
+    int MutexUDPQueue::reassembleUDPDatagram (const NOMADSUtil::IPHeader * const pIPHeader, const NOMADSUtil::UDPHeader * const pUDPHeader)
     {
         if (!pIPHeader || !pUDPHeader) {
             return REASSEMBLING_NULL;
@@ -75,7 +73,7 @@ namespace ACMNetProxy
             resetGet();
             while ((pUDPDatagramPacket = getNext())) {
                 if (!pUDPDatagramPacket->isDatagramComplete() &&
-                    SequentialArithmetic::lessThan (pUDPDatagramPacket->getIPIdentification(), pIPHeader->ui16Ident)) {
+                    NOMADSUtil::SequentialArithmetic::lessThan (pUDPDatagramPacket->getIPIdentification(), pIPHeader->ui16Ident)) {
                     // Old incomplete fragments can be deleted from the queue
                     delete remove (pUDPDatagramPacket);
                 }

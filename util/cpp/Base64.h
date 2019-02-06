@@ -4,7 +4,7 @@
  * Binary-to-text encoding schema that represent binary data in an ASCII string format by translating it into a radix-64 representation.
  * This is usefull to leave the data unlikely to be modified in transit through information systems
  *
- * The following printable characters have been selected: 
+ * The following printable characters have been selected:
  * ABCDEFGHIJKLMNOPQRSTUVWXYZ
  * abcdefghijklmnopqrstuvwxyz
  * 0123456789+/
@@ -18,7 +18,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -36,7 +36,7 @@ namespace NOMADSUtil
     * @return A string containing the encoded bytes
     */
     String base64_encode (unsigned char const *bytes_to_encode, unsigned int in_len);
-    
+
     /**
     * @param s: base64 encoded String
     * @return A string containing the decoded bytes

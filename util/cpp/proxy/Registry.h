@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -30,7 +30,7 @@
  */
 
 #ifndef INCL_REGISTRY_H
-#define	INCL_REGISTRY_H
+#define INCL_REGISTRY_H
 
 #include "ConnHandler.h"
 #include "InetAddr.h"
@@ -55,7 +55,7 @@ namespace NOMADSUtil
 
             uint16 registerSkeleton (uint16 ui16ApplicationId, Skeleton<S> *pAdapor);
             void removedSkeleton (uint16 ui16ApplicationId);
-            
+
             void run (void);
 
             // Overrides of ManageableThread methods
@@ -146,9 +146,9 @@ namespace NOMADSUtil
         // It assumes that _pSvc is thread-safe!
         return _pSvc;
     }
-   
+
     template<class S>
-    void Registry<S>::run (void) 
+    void Registry<S>::run (void)
     {
         const char * const pszMethodName = "Registry::run";
         setName (pszMethodName);
@@ -202,5 +202,4 @@ namespace NOMADSUtil
     }
 }
 
-#endif	/* INCL_REGISTRY_H */
-
+#endif    /* INCL_REGISTRY_H */

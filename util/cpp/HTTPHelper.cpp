@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -46,7 +46,7 @@ HTTPHelper::~HTTPHelper (void)
     if (_bDeleteCommHelper && _pch) {
         delete _pch;
     }
-    
+
     delete _pHeaderFieldsHT;
 }
 
@@ -99,7 +99,7 @@ int HTTPHelper::sendHeader (const char *pszMethodName, const char * pszResourceN
 
     try {
         _pch->sendLine (buf);
-    
+
         for (StringStringHashtable::Iterator i = headerFields.getAllElements(); !i.end(); i.nextElement()) {
             strcpy (buf, i.getKey());
             strcat (buf, ": ");
@@ -123,14 +123,14 @@ int HTTPHelper::sendHeader (const char *pszMethodName, const char * pszResourceN
 int HTTPHelper::expectResponseCode (uint16 ui16ResponseCode)
 {
     char buf[BUFF_LENGTH];
-    
+
     try {
         _pch->receiveLine (buf, BUFF_LENGTH);
     }
     catch (CommException) {
         return -1;
     }
-    
+
     char *pszAux, *pszCode;
     strtok_mt (buf, " ", &pszAux);
     pszCode = strtok_mt (NULL, " ", &pszAux);
@@ -197,7 +197,7 @@ int HTTPHelper::receiveHeader (const char* pszProtoLine)
 
     _requestMethod = strtok_mt (pszProtoLine, " ", &pszTmp);
     _resourceName  = strtok_mt (NULL, " ", &pszTmp);
-    
+
     return receiveHeader();
 }
 

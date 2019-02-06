@@ -3,7 +3,7 @@
  *
  * Provides a fixed-length circular buffer. If buffer is full and
  * additional elements are appended, the oldest elements are overwritten.
- * 
+ *
  * NOTE: When elements are overwritten, they are not deleted. This could
  * cause memory leaks with elements allocated on the heap.
  *
@@ -16,7 +16,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be

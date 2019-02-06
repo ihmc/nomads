@@ -1,18 +1,18 @@
 /*
  * Transmitter.cpp
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
@@ -30,8 +30,8 @@
 #include "NLFLib.h"
 
 #if !defined (ANDROID) //No std support on ANDROID
-	#include <cmath>
-	#include <iostream>
+    #include <cmath>
+    #include <iostream>
 #endif
 
 #if defined (UNIX)
@@ -58,7 +58,7 @@ Transmitter::Transmitter (Mocket *pMocket, bool bEnableXMitLogging)
     _ui32RemoteAddress = pMocket->getRemoteAddress();
     _ui16RemotePort = pMocket->getRemotePort();
 
-    _filePacketXMitLog = NULL;
+    _filePacketXMitLog = nullptr;
     _i64LogStartTime = _i64LastXMitLogTime = getTimeInMilliseconds();
     enableTransmitLogging (bEnableXMitLogging);
 
@@ -87,15 +87,15 @@ Transmitter::Transmitter (Mocket *pMocket, bool bEnableXMitLogging)
     _bSendReEstablishAck = false;
     _bSendSimpleSuspendAck = false;
 
-    _pFastRetransmitControlPackets = NULL;
-    _pFastRetransmitReliableSequencedPackets = NULL;
-    _pFastRetransmitReliableUnsequencedPackets = NULL;
+    _pFastRetransmitControlPackets = nullptr;
+    _pFastRetransmitReliableSequencedPackets = nullptr;
+    _pFastRetransmitReliableUnsequencedPackets = nullptr;
 
     _fSRTT = (float) pMocket->getInitialAssumedRTT();
     _i64LastRTTEstimationTime = getTimeInMilliseconds();
 
-    _pCongestionControl = NULL;
-    _pBandwidthEstimator = NULL;
+    _pCongestionControl = nullptr;
+    _pBandwidthEstimator = nullptr;
 
     _ui16NumberOfAcknowledgedPackets = 0;
 
@@ -103,8 +103,8 @@ Transmitter::Transmitter (Mocket *pMocket, bool bEnableXMitLogging)
 
     _i64LastRecTimeTimestamp = 0;
     _ui32RecSideBytesReceived = 0;
-    
-    _pByteSentPerInterval = NULL;
+
+    _pByteSentPerInterval = nullptr;
 
 }
 
@@ -112,33 +112,33 @@ Transmitter::~Transmitter (void)
 {
     if (_filePacketXMitLog) {
         fclose (_filePacketXMitLog);
-        _filePacketXMitLog = NULL;
+        _filePacketXMitLog = nullptr;
     }
 
-    if(_pBandwidthEstimator != NULL) {
+    if(_pBandwidthEstimator != nullptr) {
         delete _pBandwidthEstimator;
-        _pBandwidthEstimator = NULL;
+        _pBandwidthEstimator = nullptr;
     }
 
-    if(_pCongestionControl != NULL) {
+    if(_pCongestionControl != nullptr) {
         delete _pCongestionControl;
-        _pCongestionControl = NULL;
+        _pCongestionControl = nullptr;
     }
-    if (_pFastRetransmitControlPackets != NULL) {
+    if (_pFastRetransmitControlPackets != nullptr) {
         delete _pFastRetransmitControlPackets;
-        _pFastRetransmitControlPackets = NULL;
+        _pFastRetransmitControlPackets = nullptr;
     }
-    if (_pFastRetransmitReliableSequencedPackets != NULL) {
+    if (_pFastRetransmitReliableSequencedPackets != nullptr) {
         delete _pFastRetransmitReliableSequencedPackets;
-        _pFastRetransmitReliableSequencedPackets = NULL;
+        _pFastRetransmitReliableSequencedPackets = nullptr;
     }
-    if (_pFastRetransmitReliableUnsequencedPackets != NULL) {
+    if (_pFastRetransmitReliableUnsequencedPackets != nullptr) {
         delete _pFastRetransmitReliableUnsequencedPackets;
-        _pFastRetransmitReliableUnsequencedPackets = NULL;
+        _pFastRetransmitReliableUnsequencedPackets = nullptr;
     }
-    if (_pByteSentPerInterval != NULL) {
+    if (_pByteSentPerInterval != nullptr) {
         delete _pByteSentPerInterval;
-        _pByteSentPerInterval = NULL;
+        _pByteSentPerInterval = nullptr;
     }
 }
 
@@ -158,7 +158,7 @@ void Transmitter::enableTransmitLogging (bool bEnableXMitLogging)
             String remoteIPAddr = remoteAddr.getIPAsString();
             sprintf (szLogFileName, "mmxmit_%s_%d_%s_%d.log",
                      (const char*) localIPAddr, _pMocket->getLocalPort(), (const char*) remoteIPAddr, _ui16RemotePort);
-            if (NULL != (_filePacketXMitLog = fopen (szLogFileName, "a"))) {
+            if (nullptr != (_filePacketXMitLog = fopen (szLogFileName, "a"))) {
                 fprintf (_filePacketXMitLog, "********** Starting logging at %s", logStartTime.ctime());
                 fprintf (_filePacketXMitLog, "Time, DTime, Size, SeqNo, Reliable, Sequenced, Fragment, Tag, Purpose\n");
             }
@@ -172,7 +172,7 @@ void Transmitter::enableTransmitLogging (bool bEnableXMitLogging)
     else {
         if (_filePacketXMitLog) {
             fclose (_filePacketXMitLog);
-            _filePacketXMitLog = NULL;
+            _filePacketXMitLog = nullptr;
         }
         else {
             // Logging is already disabled - nothing to do
@@ -187,15 +187,15 @@ int Transmitter::setTransmitRateLimit (uint32 ui32TransmitRateLimit)
     // High bandwidth limit, use the bandwidth limit based on calculations of packets sent over time
     if (ui32TransmitRateLimit > _pMocket->BANDWIDTH_LIMITATION_THRESHOLD) {
         _resLimits.ui32BytesPerInterval = ui32TransmitRateLimit * _pMocket->BANDWIDTH_LIMITATION_DEFAULT_INTERVAL / 1000;
-        if (_pByteSentPerInterval == NULL) {
+        if (_pByteSentPerInterval == nullptr) {
             _pByteSentPerInterval = new TimeIntervalAverage<uint32> (_pMocket->BANDWIDTH_LIMITATION_DEFAULT_INTERVAL);
         }
     }
     else {
         // Setting a small bandwidth limit (or removing the limit), stop enqueuing data in _pByteSentPerInterval
-        if (_pByteSentPerInterval != NULL) {
+        if (_pByteSentPerInterval != nullptr) {
             delete _pByteSentPerInterval;
-            _pByteSentPerInterval = NULL;
+            _pByteSentPerInterval = nullptr;
         }
     }
     return 0;
@@ -346,7 +346,7 @@ int Transmitter::gsend (bool bReliable, bool bSequenced, uint16 ui16Tag, uint8 u
         ui16SpacePerPacket -= Packet::DELIVERY_PREREQUISITES_SIZE;
     }
     uint32 ui32TotalBytes = ui32BufSize1;
-    while (va_arg (valist1, const void*) != NULL) {
+    while (va_arg (valist1, const void*) != nullptr) {
         ui32TotalBytes += va_arg (valist1, uint32);
     }
 
@@ -358,14 +358,14 @@ int Transmitter::gsend (bool bReliable, bool bSequenced, uint16 ui16Tag, uint8 u
         ui32MessageTSN = _ui32MessageTSN++;
     }
 
-    Packet *pPacket = NULL;
+    Packet *pPacket = nullptr;
     DataChunkMutator dcm;
     const void *pBuf = pBuf1;
     uint32 ui32BufSize = ui32BufSize1;
-    while (pBuf != NULL) {
+    while (pBuf != nullptr) {
         uint32 ui32BytesLeft = ui32BufSize;
         while (ui32BytesLeft > 0) {
-            if (pPacket == NULL) {
+            if (pPacket == nullptr) {
                 pPacket = new Packet (_pMocket);
                 if (_pMocket->isCrossSequencingEnabled()) {
                     pPacket->allocateSpaceForDeliveryPrerequisites();
@@ -418,7 +418,7 @@ int Transmitter::gsend (bool bReliable, bool bSequenced, uint16 ui16Tag, uint8 u
                 _pMocket->getStatistics()->_ui32PendingDataSize = _pendingPacketQueue.getBytesInQueue();
                 _pMocket->getStatistics()->_ui32PendingPacketQueueSize = _pendingPacketQueue.getPacketsInQueue();
                 _m.unlock();
-                pPacket = NULL;
+                pPacket = nullptr;
             }
         }
         pBuf = va_arg (valist2, const void*);
@@ -526,7 +526,7 @@ void Transmitter::run (void)
                                 "sendSAckPacket() failed with rc = %d\n", rc);
             }
         }
-        
+
         if (_bSendSimpleSuspendAck) {
             checkAndLogMsg ("Transmitter::run", Logger::L_MediumDetailDebug,
                             "transmitting an empty packet with SimpleSuspendAck due to an incoming Suspend message received\n");
@@ -536,7 +536,7 @@ void Transmitter::run (void)
             }
             _bSendSimpleSuspendAck = false;
         }
-        
+
         if (_bSendSuspendAck) {
             checkAndLogMsg ("Transmitter::run", Logger::L_MediumDetailDebug,
                             "transmitting an empty packet with SuspendAck due to an incoming Suspend message received\n");
@@ -546,7 +546,7 @@ void Transmitter::run (void)
             }
             _bSendSuspendAck = false;
         }
-        
+
         if (_bSendResumeAck) {
             checkAndLogMsg ("Transmitter::run", Logger::L_MediumDetailDebug,
                             "transmitting an empty packet with ResumeAck due to an incoming Resume message received\n");
@@ -556,7 +556,7 @@ void Transmitter::run (void)
             }
             _bSendResumeAck = false;
         }
-        
+
         if (_bSendReEstablishAck) {
             checkAndLogMsg ("Transmitter::run", Logger::L_MediumDetailDebug,
                             "transmitting an empty packet with ReEstablishAck due to an incoming reEstablish message received\n");
@@ -568,15 +568,16 @@ void Transmitter::run (void)
         }
 
         // Check the state of the connection
-        StateMachine::State state = _pMocket->getStateMachine()->getCurrentState();
+        const auto smCurrentState = _pMocket->getStateMachine()->getCurrentState();
+
         // If the state is S_SUSPEND_RECEIVED we don't want to send messages, only
         // suspend/resume related messages are allowed and they have been taken care of already
-        if (state != StateMachine::S_SUSPEND_RECEIVED) {
+        if (smCurrentState != StateMachine::S_SUSPEND_RECEIVED) {
             // Check for packets to transmit
             bool bHavePacketsToTransmit = (!_pendingPacketQueue.isEmpty()) || (!_upqControlPackets.isEmpty()) ||
                                           (!_upqReliableSequencedPackets.isEmpty()) || (!_upqReliableUnsequencedPackets.isEmpty());
-            
-            if (state == StateMachine::S_SHUTDOWN_SENT) {
+
+            if (smCurrentState == StateMachine::S_SHUTDOWN_SENT) {
                 if (iShutdownsSent >= _pMocket->getMaxShutdownAttempts()) {
                     // Abort the connection
                     _pMocket->getStateMachine()->setClosed();
@@ -593,7 +594,7 @@ void Transmitter::run (void)
                     i64TimeToWait = _pMocket->getShutdownTimeout();
                 }
             }
-            else if (state == StateMachine::S_SHUTDOWN_ACK_SENT) {
+            else if (smCurrentState == StateMachine::S_SHUTDOWN_ACK_SENT) {
                 if (iShutdownAcksSent >= _pMocket->getMaxShutdownAttempts()) {
                     // Abort the connection
                     _pMocket->getStateMachine()->setClosed();
@@ -611,7 +612,7 @@ void Transmitter::run (void)
                     i64TimeToWait = _pMocket->getShutdownTimeout();
                 }
             }
-            else if (state == StateMachine::S_CLOSED) {
+            else if (smCurrentState == StateMachine::S_CLOSED) {
                 // Send SHUTDOWN_COMPLETE
                 // Send three shutdown complete packets to improve the probability of the receiver getting it (in case of lossy channel)
                 for (int i=0; i<3; i++) {
@@ -623,10 +624,15 @@ void Transmitter::run (void)
                 _pMocket->notifyPacketProcessor();
                 bDone = true;
             }
+            else if (smCurrentState == StateMachine::S_APPLICATION_ABORT) {
+                checkAndLogMsg ("Transmitter::run", Logger::L_LowDetailDebug,
+                                "application abort sent to the trasmitter thread");
+                bDone = true;
+            }
             else if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_SUSPENDED) {
                 bDone = true;
             }
-            else if (state == StateMachine::S_SUSPEND_SENT) {
+            else if (smCurrentState == StateMachine::S_SUSPEND_SENT) {
                 // Send suspend message
                 if (_pMocket->areKeysExchanged()) {
                     if (0 != (rc = sendSimpleSuspendPacket())) {
@@ -645,8 +651,8 @@ void Transmitter::run (void)
             else if (bHavePacketsToTransmit) {
                 uint32 ui32LingerTime = _pMocket->getConnectionLingerTime();
                 // Check if we are flushing the queues
-                if ((state == StateMachine::S_SHUTDOWN_PENDING ||
-                     state == StateMachine::S_SHUTDOWN_RECEIVED) &&
+                if ((smCurrentState == StateMachine::S_SHUTDOWN_PENDING ||
+                     smCurrentState == StateMachine::S_SHUTDOWN_RECEIVED) &&
                     ui32LingerTime && _i64ShutdownStartTime + ui32LingerTime < getTimeInMilliseconds()) {
                         // If linger time is expired, then close the connection
                         _pMocket->getStateMachine()->outstandingQueueFlushed(); // Enters the SHUTDOWN_SENT or the SHUTDOWN_ACK_SENT state
@@ -681,13 +687,13 @@ void Transmitter::run (void)
                 }
             }
             // There are no packets to be transmitted at this time
-            else if ((state == StateMachine::S_SHUTDOWN_PENDING) || (state == StateMachine::S_SHUTDOWN_RECEIVED)) {
+            else if ((smCurrentState == StateMachine::S_SHUTDOWN_PENDING) || (smCurrentState == StateMachine::S_SHUTDOWN_RECEIVED)) {
                 // Since there are no more packets to be transmitted, proceed with shutdown
                 //_i64ShutdownStartTime = getTimeInMilliseconds();
                 _pMocket->getStateMachine()->outstandingQueueFlushed(); // Enters the SHUTDOWN_SENT or the SHUTDOWN_ACK_SENT state
                 i64TimeToWait = 1; // Don't wait so that SHUTDOWN can be sent right away in the next iteration of the loop
             }
-            else if (state == StateMachine::S_SUSPEND_PENDING) {
+            else if (smCurrentState == StateMachine::S_SUSPEND_PENDING) {
                 // No more data to transmit proceed with suspension
                 _mFlushData.lock();
                 _cvFlushData.notifyAll();
@@ -720,7 +726,7 @@ void Transmitter::run (void)
                 // _i64LastSAckTransmitTime will be updated by sendSAckPacket() i.e. by appendPiggybackDataAndTransmitPacket() called from sendSAckPacket
             }
             if (_pMocket->usingKeepAlive()) {
-                if (((_i64LastTransmitTime + _pMocket->getKeepAliveTimeout()) < i64CurrTime) && (state == StateMachine::S_ESTABLISHED)) {
+                if (((_i64LastTransmitTime + _pMocket->getKeepAliveTimeout()) < i64CurrTime) && (smCurrentState == StateMachine::S_ESTABLISHED)) {
                     checkAndLogMsg ("Transmitter::run", Logger::L_MediumDetailDebug,
                                     "transmitting a keep alive packet due to inactivity\n");
                     if (0 != (rc = sendHeartbeatPacket())) {
@@ -826,7 +832,7 @@ int Transmitter::processSAckChunk (SAckChunkAccessor sackChunkAccessor)
                                     "c (%u) %u - %u\n", ui32LastAcknowledgedControlPacket, sackChunkAccessor.getStartTSN(), sackChunkAccessor.getEndTSN());
                     if (_pMocket->usingFastRetransmit()) {
                         for (uint32 i=ui32LastAcknowledgedControlPacket+1; i<sackChunkAccessor.getStartTSN(); i++) {
-                            _pFastRetransmitControlPackets->pushTail(i); 
+                            _pFastRetransmitControlPackets->pushTail(i);
                         }
                         // Erika: this way we may be retransmitting packets that have been acknowledged singularly
                         // (not a range) since these are at the end of the range chuncks in an SACK.
@@ -843,7 +849,7 @@ int Transmitter::processSAckChunk (SAckChunkAccessor sackChunkAccessor)
                                     "rs (%u) %u - %u\n", ui32LastAcknowledgedReliableSequencedPacket, sackChunkAccessor.getStartTSN(), sackChunkAccessor.getEndTSN());
                     if (_pMocket->usingFastRetransmit()) {
                         for (uint32 i=ui32LastAcknowledgedReliableSequencedPacket+1; i<sackChunkAccessor.getStartTSN(); i++) {
-                           _pFastRetransmitReliableSequencedPackets->pushTail(i); 
+                           _pFastRetransmitReliableSequencedPackets->pushTail(i);
                         }
                         ui32LastAcknowledgedReliableSequencedPacket = sackChunkAccessor.getEndTSN();
                         // Erika: this way we may be retransmitting packets that have been acknowledged singularly
@@ -861,7 +867,7 @@ int Transmitter::processSAckChunk (SAckChunkAccessor sackChunkAccessor)
                                     "ru (%u) %u - %u\n", ui32LastAcknowledgedReliableUnsequencedPacket, sackChunkAccessor.getStartTSN(), sackChunkAccessor.getEndTSN());
                     if (_pMocket->usingFastRetransmit()) {
                         for (uint32 i=ui32LastAcknowledgedReliableUnsequencedPacket+1; i<sackChunkAccessor.getStartTSN(); i++) {
-                            _pFastRetransmitReliableUnsequencedPackets->pushTail(i); 
+                            _pFastRetransmitReliableUnsequencedPackets->pushTail(i);
                         }
                         ui32LastAcknowledgedReliableUnsequencedPacket = sackChunkAccessor.getEndTSN();
                         // Erika: this way we may be retransmitting packets that have been acknowledged singularly
@@ -897,11 +903,11 @@ int Transmitter::processSAckChunk (SAckChunkAccessor sackChunkAccessor)
         }
 
         delete _pFastRetransmitControlPackets;
-        _pFastRetransmitControlPackets = NULL;
+        _pFastRetransmitControlPackets = nullptr;
         delete _pFastRetransmitReliableSequencedPackets;
-        _pFastRetransmitReliableSequencedPackets = NULL;
+        _pFastRetransmitReliableSequencedPackets = nullptr;
         delete _pFastRetransmitReliableUnsequencedPackets;
-        _pFastRetransmitReliableUnsequencedPackets = NULL;
+        _pFastRetransmitReliableUnsequencedPackets = nullptr;
     }
 
     // Update Statistics
@@ -910,7 +916,7 @@ int Transmitter::processSAckChunk (SAckChunkAccessor sackChunkAccessor)
     _pMocket->getStatistics()->_ui32ReliableUnsequencedDataSize = _upqReliableUnsequencedPackets.getQueuedDataSize();
     _pMocket->getStatistics()->_ui32ReliableUnsequencedPacketQueueSize = _upqReliableUnsequencedPackets.getPacketCount();
 
-    if (_pBandwidthEstimator != NULL) {
+    if (_pBandwidthEstimator != nullptr) {
         // Fetch the number of packets in pending packet queue to use for the next
         // bandwidth estimation: if few packets are in the queue it means the sender
         // is not sending at full speed which means this sample should have little weight in the bandwidth estimation.
@@ -924,7 +930,7 @@ int Transmitter::processSAckChunk (SAckChunkAccessor sackChunkAccessor)
     }
 
     // Update Congestion Control
-    if(_pCongestionControl != NULL) {
+    if(_pCongestionControl != nullptr) {
         _pCongestionControl->update();
     }
 
@@ -980,7 +986,7 @@ bool Transmitter::waitForFlush (void)
     if (_pMocket->getStateMachine()->getCurrentState() != StateMachine::S_SUSPEND_PENDING) {
         // If mocket receives a shutdown message while flushing queue it goes in SHUTDOWN_PENDING state
         // If it receives a suspend message from the other side it goes in SUSPEND_RECEIVED
-        // return an error during suspension process to the application 
+        // return an error during suspension process to the application
         return false;
     }
     return true;
@@ -1029,8 +1035,8 @@ void Transmitter::processSimpleSuspendPacket (SimpleSuspendChunkAccessor simpleS
             return;
         }
     }
-    
-    // Local node is being suspended 
+
+    // Local node is being suspended
     // Enters the SUSPEND_RECEIVED state
     if (!_pMocket->getStateMachine()->receivedSuspend()) {
         //**// Ignore the message, not in a consistent state to suspend
@@ -1038,14 +1044,14 @@ void Transmitter::processSimpleSuspendPacket (SimpleSuspendChunkAccessor simpleS
                         "not in a consistent state for being suspended\n");
         return;
     }
-    
+
     // Proceed with the suspension process
     requestSimpleSuspendAckTransmission();
     return;
 }
 
 void Transmitter::processSimpleSuspendAckPacket (SimpleSuspendAckChunkAccessor simpleSuspendAckChunkAccessor)
-{ 
+{
     if (!_pMocket->getStateMachine()->receivedSuspendAck()) {
         //**// Ignore the message, not in a consistent state
         checkAndLogMsg ("Transmitter::processSuspendAckPacket", Logger::L_MildError,
@@ -1090,41 +1096,41 @@ void Transmitter::processSuspendPacket (SuspendChunkAccessor suspendChunkAccesso
                 return;
             }
         }
-        
+
         // Local node is being suspended
         //printf ("Transmitter::processSuspendPacket local node is being suspended\n");
         // Reconstruct and save the public key received with the Suspend packet
         uint32 ui32KeyLength = suspendChunkAccessor.getKeyLength();
         //printf ("ui32KeyLength = %lu\n", ui32KeyLength);
         const char *pKeyDataBuff = suspendChunkAccessor.getKeyData();
-        
+
         PublicKey *pPubKey = new PublicKey();
         Key::KeyData *pKeyData = new Key::KeyData (Key::KeyData::X509, pKeyDataBuff, ui32KeyLength);
-        
+
         if (0 != pPubKey->setKeyFromDEREncodedX509Data (pKeyData)) {
             checkAndLogMsg ("Transmitter::processSuspendPacket", Logger::L_MildError,
                             "unable to create the public key\n");
             return;
         }
-        
+
         delete pKeyData;
-        pKeyData = NULL;
-        
+        pKeyData = nullptr;
+
         //**// Print the received key reconstructed
         //pPubKey->storeKeyAsDEREncodedX509Data("publicKeyRecReconstr.txt");
 
         _pMocket->_pKeyPair = new PublicKeyPair();
         // Save the key
         _pMocket->_pKeyPair->setPublicKey(pPubKey);
-        
-        pPubKey = NULL;
-        
+
+        pPubKey = nullptr;
+
         // Create a new UUID for the current mocket
         _pMocket->newMocketUUID();
-        
+
         // Create a new secret key
         _pMocket->newSecretKey();
-        
+
         // Enters the SUSPEND_RECEIVED state
         if (!_pMocket->getStateMachine()->receivedSuspend()) {
             //**// Ignore the message, not in a consistent state to suspend
@@ -1132,7 +1138,7 @@ void Transmitter::processSuspendPacket (SuspendChunkAccessor suspendChunkAccesso
                             "not in a consistent state for being suspended\n");
             return;
         }
-        
+
         // Proceed with the suspension process
         requestSuspendAckTransmission();
         return;
@@ -1149,12 +1155,12 @@ void Transmitter::processSuspendAckPacket (SuspendAckChunkAccessor suspendAckChu
         // Extract
         uint32 ui32EncryptedDataLength = suspendAckChunkAccessor.getEncryptedDataLength();
         const char *pDataBuff = suspendAckChunkAccessor.getEncryptedData();
-        
+
         // Decrypt
         uint32 ui32ReceivedDataLength;
         void *pReceivedData;
         pReceivedData = CryptoUtils::decryptDataUsingPrivateKey (_pMocket->_pKeyPair->getPrivateKey(), pDataBuff, ui32EncryptedDataLength, &ui32ReceivedDataLength);
-        
+
         // Extract and save the password
         // No need to create the new secret key from the password received
         // the mocket will be frozen and the secret key will be created in resumeFromSuspension()
@@ -1163,11 +1169,11 @@ void Transmitter::processSuspendAckPacket (SuspendAckChunkAccessor suspendAckChu
         memcpy (pwd, pReceivedData, 9);
         _pMocket->setPassword (pwd);
         ui32BuffPos += 9;
-        
+
         // Extract and save the UUID
         uint32 ui32UUID = *((uint32*)(((char*)pReceivedData) + ui32BuffPos));
         _pMocket->setMocketUUID (ui32UUID);
-        
+
         if (!_pMocket->getStateMachine()->receivedSuspendAck()) {
             //**// Ignore the message, not in a consistent state
             checkAndLogMsg ("Transmitter::processSuspendAckPacket", Logger::L_MildError,
@@ -1181,7 +1187,7 @@ void Transmitter::processSuspendAckPacket (SuspendAckChunkAccessor suspendAckChu
         return;
     #endif
 }
-    
+
 void Transmitter::processResumePacket (ResumeChunkAccessor resumeChunkAccessor, uint32 ui32NewRemoteAddress, uint16 ui16NewRemotePort)
 {
     #ifdef MOCKETS_NO_CRYPTO
@@ -1203,7 +1209,7 @@ void Transmitter::processResumePacket (ResumeChunkAccessor resumeChunkAccessor, 
             uint32 ui32ReceivedNonceLength;
             void *pReceivedData = CryptoUtils::decryptDataUsingSecretKey (_pMocket->_pSecretKey, pNonceDataBuff, ui32EncryptedUUIDLength, &ui32ReceivedNonceLength);
 
-            uint32 ui32BuffPos = 0;       
+            uint32 ui32BuffPos = 0;
             // Extract and save the UUID
             uint32 ui32ReceivedNonce = *((uint32*)((char*)pReceivedData));
             ui32BuffPos += 4;
@@ -1228,12 +1234,12 @@ void Transmitter::processResumePacket (ResumeChunkAccessor resumeChunkAccessor, 
             }
             else {
                 // Error: the nonce received is not the one sent
-                checkAndLogMsg ("Transmitter::processResumePacket", Logger::L_MildError, 
+                checkAndLogMsg ("Transmitter::processResumePacket", Logger::L_MildError,
                                 "the received nonce is not the one sent, or IP, port are not the one in the UDP packet\n");
             }
             //free pReceivedData;
         }
-        // Ignore this message if it is received in a state different from ESTABLISHED or SUSPEND_RECEIVED 
+        // Ignore this message if it is received in a state different from ESTABLISHED or SUSPEND_RECEIVED
         return;
     #endif
 }
@@ -1246,12 +1252,12 @@ void Transmitter::processReEstablishPacket (ReEstablishChunkAccessor reEstablish
     #else
         //printf ("* REMOTE ip %lu * port %d *\n", ui32NewRemoteAddress, ui16NewRemotePort);
         // TODO: check if security information are set
-        if (_pMocket->_pSecretKey == NULL) {
+        if (_pMocket->_pSecretKey == nullptr) {
             checkAndLogMsg ("Transmitter::processReEstablishPacket", Logger::L_MildError,
                             "secret key non exchanged: illegal reconnection\n");
             return;
         }
-        
+
         // Extract the UUID
         uint32 ui32EncryptedUUIDLength = reEstablishChunkAccessor.getEncryptedNonceLength();
         const char *pNonceDataBuff = reEstablishChunkAccessor.getEncryptedNonce();
@@ -1259,7 +1265,7 @@ void Transmitter::processReEstablishPacket (ReEstablishChunkAccessor reEstablish
         uint32 ui32ReceivedNonceLength;
         void *pReceivedData = CryptoUtils::decryptDataUsingSecretKey (_pMocket->_pSecretKey, pNonceDataBuff, ui32EncryptedUUIDLength, &ui32ReceivedNonceLength);
 
-        uint32 ui32BuffPos = 0;       
+        uint32 ui32BuffPos = 0;
         // Extract and save the UUID
         uint32 ui32ReceivedNonce = *((uint32*)((char*)pReceivedData));
         ui32BuffPos += 4;
@@ -1284,7 +1290,7 @@ void Transmitter::processReEstablishPacket (ReEstablishChunkAccessor reEstablish
         }
         else {
             // Error: the nonce received is not the one sent
-            checkAndLogMsg ("Transmitter::processReEstablishPacket", Logger::L_MildError, 
+            checkAndLogMsg ("Transmitter::processReEstablishPacket", Logger::L_MildError,
                             "the received nonce is not the one sent, or IP, port are not the one in the UDP packet\n");
         }
         //free pReceivedData;
@@ -1305,7 +1311,7 @@ int Transmitter::freeze (ObjectFreezer &objectFreezer)
     objectFreezer.putUInt32 (_ui32ReliableUnsequencedID);
     objectFreezer.putUInt32 (_ui32UnreliableUnsequencedID);
     objectFreezer.putFloat (_fSRTT);
-    
+
 /*    printf ("Transmitter\n");
     printf ("_ui32RemoteWindowSize %lu\n", _ui32RemoteWindowSize);
     printf ("_ui32ControlTSN %lu\n", _ui32ControlTSN);
@@ -1314,7 +1320,7 @@ int Transmitter::freeze (ObjectFreezer &objectFreezer)
     printf ("_ui32ReliableUnsequencedID %lu\n", _ui32ReliableUnsequencedID);
     printf ("_ui32UnreliableUnsequencedID %lu\n", _ui32UnreliableUnsequencedID);
     printf ("_fSRTT %.2f\n", _fSRTT);*/
-    
+
     if (0 != _pendingPacketQueue.freeze (objectFreezer)) {
         // return -1 is if objectFreezer.endObject() don't end with success
         return -2;
@@ -1331,7 +1337,7 @@ int Transmitter::freeze (ObjectFreezer &objectFreezer)
     if (0 != _resLimits.freeze (objectFreezer)) {
         return -6;
     }
-    
+
     return objectFreezer.endObject();
 }
 
@@ -1348,7 +1354,7 @@ int Transmitter::defrost (ObjectDefroster &objectDefroster)
     objectDefroster >> _ui32ReliableUnsequencedID;
     objectDefroster >> _ui32UnreliableUnsequencedID;
     objectDefroster >> _fSRTT;
-    
+
 /*    printf ("Transmitter\n");
     printf ("_ui32RemoteWindowSize %lu\n", _ui32RemoteWindowSize);
     printf ("_ui32ControlTSN %lu\n", _ui32ControlTSN);
@@ -1356,7 +1362,7 @@ int Transmitter::defrost (ObjectDefroster &objectDefroster)
     printf ("_ui32UnreliableSequencedTSN %lu\n", _ui32UnreliableSequencedTSN);
     printf ("_ui32ReliableUnsequencedID %lu\n", _ui32ReliableUnsequencedID);
     printf ("_fSRTT %.2f\n", _fSRTT);*/
-    
+
     if (0 != _pendingPacketQueue.defrost (objectDefroster)) {
         return -2;
     }
@@ -1372,7 +1378,7 @@ int Transmitter::defrost (ObjectDefroster &objectDefroster)
     if (0 != _resLimits.defrost (objectDefroster)) {
         return -6;
     }
-    
+
     return objectDefroster.endObject();
 }
 
@@ -1498,7 +1504,7 @@ int Transmitter::processPendingPacketQueue (void)
                                             _upqReliableUnsequencedPackets.getQueuedDataSize();
             _lckRemoteWindowSize.lock();
             uint32 ui32SpaceAvailable = _ui32RemoteWindowSize;
-            if( _pCongestionControl != NULL) {
+            if( _pCongestionControl != nullptr) {
                 ui32SpaceAvailable = _pCongestionControl->adaptToCongestionWindow (ui32SpaceAvailable);
                 checkAndLogMsg ("Transmitter::processPendingPacketQueue", Logger::L_MediumDetailDebug,
                                 "congestion window applied, space available is %lu; remote window size is %lu\n",
@@ -1603,7 +1609,7 @@ int Transmitter::processUnacknowledgedPacketQueues (void)
         i64CurrTime = getTimeInMilliseconds();
         bool bSentPackets = false;
         _upqControlPackets.lock();
-        if (NULL != (pWrapper = _upqControlPackets.getNextTimedOutPacket())) {
+        if (nullptr != (pWrapper = _upqControlPackets.getNextTimedOutPacket())) {
             // Here i could check if (iAllowedNumOfBytesToSend > pWrapper->getPacket()->getPacketSize()) and break otherwise,
             // or risk to send at most 1 MTU-1 bytes outside the bandwidth limit
             pWrapper->getPacket()->setRetransmittedPacket();
@@ -1639,7 +1645,7 @@ int Transmitter::processUnacknowledgedPacketQueues (void)
             iCount++;
             _pMocket->getStatistics()->_ui32Retransmits++;
 
-            if (_pCongestionControl != NULL) {
+            if (_pCongestionControl != nullptr) {
                 if (pWrapper->getRetransmitCount() == 1) {
                     iFirstTimeoutNum++;
                 }
@@ -1657,7 +1663,7 @@ int Transmitter::processUnacknowledgedPacketQueues (void)
 
         if (allowedToSend()) {
             _upqReliableSequencedPackets.lock();
-            if (NULL != (pWrapper = _upqReliableSequencedPackets.getNextTimedOutPacket())) {
+            if (nullptr != (pWrapper = _upqReliableSequencedPackets.getNextTimedOutPacket())) {
                 if ((pWrapper->getRetryTimeout() != 0) && (pWrapper->getEnqueueTime() + pWrapper->getRetryTimeout()) < i64CurrTime) {
                     // The retry timeout has expired for the packet
                     checkAndLogMsg ("Transmitter::processUnacknowledgedPacketQueues", Logger::L_MediumDetailDebug,
@@ -1707,7 +1713,7 @@ int Transmitter::processUnacknowledgedPacketQueues (void)
                     iCount++;
                     _pMocket->getStatistics()->_ui32Retransmits++;
 
-                    if (_pCongestionControl != NULL) {
+                    if (_pCongestionControl != nullptr) {
                         if (pWrapper->getRetransmitCount()==1) {
                             iFirstTimeoutNum++;
                         }
@@ -1727,7 +1733,7 @@ int Transmitter::processUnacknowledgedPacketQueues (void)
 
         if (allowedToSend()) {
             _upqReliableUnsequencedPackets.lock();
-            if (NULL != (pWrapper = _upqReliableUnsequencedPackets.getNextTimedOutPacket())) {
+            if (nullptr != (pWrapper = _upqReliableUnsequencedPackets.getNextTimedOutPacket())) {
                 if ((pWrapper->getRetryTimeout() != 0) && (pWrapper->getEnqueueTime() + pWrapper->getRetryTimeout()) < i64CurrTime) {
                     // The retry timeout has expired for the packet
                     checkAndLogMsg ("Transmitter::processUnacknowledgedPacketQueues", Logger::L_MediumDetailDebug,
@@ -1777,7 +1783,7 @@ int Transmitter::processUnacknowledgedPacketQueues (void)
                     iCount++;
                     _pMocket->getStatistics()->_ui32Retransmits++;
 
-                    if(_pCongestionControl != NULL) {
+                    if(_pCongestionControl != nullptr) {
                         if (pWrapper->getRetransmitCount()==1) {
                             iFirstTimeoutNum++;
                         }
@@ -1802,7 +1808,7 @@ int Transmitter::processUnacknowledgedPacketQueues (void)
         }
     }
 
-    if(_pCongestionControl != NULL) {
+    if(_pCongestionControl != nullptr) {
         if (iOtherTimeoutNum) {
             _pCongestionControl->reactToLosses (0);
         }
@@ -1915,7 +1921,7 @@ int Transmitter::sendSimpleSuspendPacket (void)
 {
     //printf ("Transmitter::sendSimpleSuspendPacket\n");
     Packet packet (_pMocket);
-    
+
     if (packet.addSimpleSuspendChunk ()) {
         return -1;
     }
@@ -1975,7 +1981,7 @@ int Transmitter::sendSuspendAckPacket (void)
         // Insert in a buffer the UUID and the password to initialize Ks
         char pchBuff[1024];
         uint32 ui32BuffSize = 0;
-        
+
         // Insert password
         memset (pchBuff, 0, 1024);
         strncpy (pchBuff, _pMocket->getPassword(), _pMocket->getPasswordLength());
@@ -1984,11 +1990,11 @@ int Transmitter::sendSuspendAckPacket (void)
         // Insert the UUID
         *((uint32*)(pchBuff+ui32BuffSize)) = _pMocket->getMocketUUID();
         ui32BuffSize += 4;
-        
+
         // Encrypt the buffer with the received Ka
         uint32 ui32EncryptedParamLen = 0;
         void *pEncryptedParam = CryptoUtils::encryptDataUsingPublicKey (_pMocket->_pKeyPair->getPublicKey() , pchBuff, ui32BuffSize, &ui32EncryptedParamLen);
-        
+
         if (packet.addSuspendAckChunk (pEncryptedParam, ui32EncryptedParamLen)) {
             return -1;
         }
@@ -2009,7 +2015,7 @@ int Transmitter::sendResumeAckPacket (void)
     if (transmitPacket (&packet, "ResumeAck")) {
         return -2;
     }
-    return 0;    
+    return 0;
 }
 
 int Transmitter::sendReEstablishAckPacket (void)
@@ -2022,7 +2028,7 @@ int Transmitter::sendReEstablishAckPacket (void)
     if (transmitPacket (&packet, "ReEstablishAck")) {
         return -2;
     }
-    return 0;    
+    return 0;
 }
 
 int Transmitter::appendPiggybackDataAndTransmitPacket (Packet *pPacket, const char *pszPurpose)
@@ -2110,6 +2116,10 @@ int Transmitter::transmitPacket (Packet *pPacket, const char *pszPurpose)
     InetAddr sendToAddr (_ui32RemoteAddress, _ui16RemotePort);
     int rc = _pCommInterface->sendTo (&sendToAddr, pPacket->getPacket(), pPacket->getPacketSize());
     if (rc <= 0) {
+        if (_pMocket->getStateMachine()->getCurrentState() == StateMachine::S_APPLICATION_ABORT) {
+            checkAndLogMsg("Transmitter::transmitPacket", Logger::L_MildError,"failed to send packet, State Machine set to Application Abort");
+            return -1;
+        }
         checkAndLogMsg ("Transmitter::transmitPacket", Logger::L_MildError,
                         "failed to send packet; rc = %d\n", rc);
         return -1;
@@ -2132,8 +2142,8 @@ int Transmitter::transmitPacket (Packet *pPacket, const char *pszPurpose)
                         pPacket->isSequencedPacket() ? "sequenced" : "unsequenced",
                         pPacket->getSequenceNum(), (int) pPacket->getPacketSize(),
                         pPacket->getWindowSize());
-        /* 
-		("Transmitter::transmitPacket transmitted a data packet of type %s:%s with sequence number %u and size %d; local window size is %lu\n",
+        /*
+        ("Transmitter::transmitPacket transmitted a data packet of type %s:%s with sequence number %u and size %d; local window size is %lu\n",
                         pPacket->isReliablePacket() ? "reliable" : "unreliable",
                         pPacket->isSequencedPacket() ? "sequenced" : "unsequenced",
                         pPacket->getSequenceNum(), (int) pPacket->getPacketSize(),
@@ -2192,7 +2202,7 @@ int Transmitter::setBandwidthEstimationActive (uint16 ui16InitialAssumedBandwidt
 int Transmitter::setCongestionControlActive (const char *pszCongestionControl)
 {
     // For each new subclass of CongestionControl some code needs to be added here
-    if (pszCongestionControl == NULL) {
+    if (pszCongestionControl == nullptr) {
         checkAndLogMsg ("Transmitter::setCongestionControlActive", Logger::L_MildError,
                         "ERROR: must define a CongestionControl subclass to instanciate\n");
         return -1;

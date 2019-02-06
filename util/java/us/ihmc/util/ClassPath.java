@@ -62,7 +62,7 @@ import java.io.*;
    * Responsible for loading (class) files from the CLASSPATH. Inspired by
    * sun.tools.ClassPath.
    *
-   * @version $Id: ClassPath.java,v 1.3 2013/03/06 19:18:12 nsuri Exp $
+   * @version $Id$
    * @author  <A HREF="mailto:markus.dahm@berlin.de">M. Dahm</A>
    * @author  <A HREF="mailto:tcowin@ai.uwf.edu">Tom Cowin</A>
    *    modified to add the ability to find files other than 
@@ -115,16 +115,19 @@ import java.io.*;
      
         /*** @return used class path string
         */
+        @Override
         public String toString() 
         {
             return class_path;
         }
-       
+
+        @Override
         public int hashCode() 
         {
             return class_path.hashCode();
         }
-     
+
+        @Override
         public boolean equals (Object o) 
         {
             if (o instanceof ClassPath) {
@@ -167,12 +170,13 @@ import java.io.*;
             for (Iterator e = dirs.iterator(); e.hasNext(); ) {
                 File ext_dir = new File ((String)e.next());
                 String[] extensions = ext_dir.list (new FilenameFilter() {
-     	                                            public boolean accept (File dir, String name) 
-                                                    {
-     	                                                name = name.toLowerCase();
-     	                                                return name.endsWith(".zip") || name.endsWith(".jar");
-     	                                            }
-                                                });
+                    @Override
+     	            public boolean accept (File dir, String name)
+                    {
+     	                name = name.toLowerCase();
+     	                return name.endsWith(".zip") || name.endsWith(".jar");
+                    }
+                });
      
                 if (extensions != null)
      	            for (int i = 0; i < extensions.length; i++)
@@ -368,6 +372,7 @@ import java.io.*;
             }
          
             @SuppressWarnings("resource")
+            @Override
 			InputStream getFile (String name, String suffix) 
                 throws IOException 
             {
@@ -375,7 +380,8 @@ import java.io.*;
                 //System.out.println("searching dir: " + dir);
                 return file.exists()? new FileInputStream (file) : null;
             } 
-         
+
+            @Override
             ClassFile getClassFile (String name, String suffix) 
                 throws IOException 
             {

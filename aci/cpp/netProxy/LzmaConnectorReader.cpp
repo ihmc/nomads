@@ -2,7 +2,7 @@
  * ZLibConnectorReader.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,29 +25,12 @@
 #include "LzmaConnectorReader.h"
 
 
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
-    LzmaConnectorReader::LzmaConnectorReader (const CompressionSetting * const pCompressionSetting, unsigned int ulInBufSize, unsigned int ulOutBufSize) : ConnectorReader (pCompressionSetting)
-    {
-         if ((ulOutBufSize == 0) || (ulInBufSize == 0) ||
-             (nullptr == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
-             (nullptr == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
-            // throw a c++ exception here
-        }
-        _ulInBufSize = ulInBufSize;
-        _ulOutBufSize = ulOutBufSize;
-
-        resetDecompStream();
-
-        if (LZMA_OK != lzma_stream_decoder (&_lzmaDecompStream, lzma_easy_decoder_memusage (getCompressionLevel()), DECODER_FLAGS)) {
-            // throw a c++ exception here
-        }
-    }
-
     LzmaConnectorReader::~LzmaConnectorReader (void)
     {
         lzma_end (&_lzmaDecompStream);
@@ -61,7 +44,7 @@ namespace ACMNetProxy
         _pInputBuffer = nullptr;
     }
 
-    int LzmaConnectorReader::receiveTCPDataProxyMessage (const uint8 *const ui8SrcData, uint16 ui16SrcLen, uint8 **pDest, uint32 &ui32DestLen)
+    int LzmaConnectorReader::receiveTCPDataProxyMessage (const uint8 * const ui8SrcData, uint16 ui16SrcLen, uint8 ** pDest, uint32 & ui32DestLen)
     {
         int rc = 0;
         ui32DestLen = 0;
@@ -72,7 +55,7 @@ namespace ACMNetProxy
                 uiIncreaseRate *= 2;
             }
             if (nullptr == (_pInputBuffer = (unsigned char*) realloc (_pInputBuffer, uiIncreaseRate * _ulInBufSize))) {
-                checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", Logger::L_MildError,
+                checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", NOMADSUtil::Logger::L_MildError,
                                 "error reallocating memory for _pInputBuffer; impossible to increase size from %u to %u bytes\n",
                                 _ulInBufSize, uiIncreaseRate*_ulInBufSize);
                 return -1;
@@ -92,7 +75,7 @@ namespace ACMNetProxy
                 if (rc == LZMA_MEMLIMIT_ERROR) {
                     // doubling memory limit
                     if (LZMA_OK != (rc = lzma_memlimit_set (&_lzmaDecompStream, 2*lzma_memlimit_get (&_lzmaDecompStream)))) {
-                        checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", Logger::L_MildError,
+                        checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", NOMADSUtil::Logger::L_MildError,
                                         "error calling lzma_memlimit_set() with new memory limit equal to %llu bytes; returned error code is %d\n",
                                         2*lzma_memlimit_get (&_lzmaDecompStream), rc);
                         return -2;
@@ -107,17 +90,17 @@ namespace ACMNetProxy
                     _lzmaDecompStream.avail_out = _ulOutBufSize - ui32DestLen;
                     _lzmaDecompStream.next_out = _pOutputBuffer + ui32DestLen;
 
-                    checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", Logger::L_Warning,
+                    checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", NOMADSUtil::Logger::L_Warning,
                                     "set a new memory limit of %llu bytes in the LZMA decompressor", lzma_memlimit_get (&_lzmaDecompStream));
                     continue;
                 }
                 else if ((rc >= LZMA_NO_CHECK) && (rc <= LZMA_GET_CHECK)) {
-                    checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", Logger::L_HighDetailDebug,
+                    checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", NOMADSUtil::Logger::L_HighDetailDebug,
                                     "calling to lzma_code() with flag LZMA_RUN returned check code %d; ignoring\n", rc);
                     bIterate = true;
                     continue;
                 }
-                checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", Logger::L_MildError,
+                checkAndLogMsg ("LzmaConnectorReader::receiveTCPDataProxyMessage", NOMADSUtil::Logger::L_MildError,
                                 "error calling lzma_code() with flag LZMA_RUN; returned error code is %d\n", rc);
                 return -3;
             }
@@ -151,6 +134,37 @@ namespace ACMNetProxy
         return 0;
     }
 
+    LzmaConnectorReader::LzmaConnectorReader (const CompressionSettings & compressionSettings, unsigned int ulInBufSize, unsigned int ulOutBufSize) :
+        ConnectorReader{compressionSettings}
+    {
+         if ((ulOutBufSize == 0) || (ulInBufSize == 0) ||
+             (nullptr == (_pOutputBuffer = new unsigned char[ulOutBufSize])) ||
+             (nullptr == (_pInputBuffer = new unsigned char[ulInBufSize]))) {
+            // throw a c++ exception here
+        }
+        _ulInBufSize = ulInBufSize;
+        _ulOutBufSize = ulOutBufSize;
+
+        resetDecompStream();
+
+        if (LZMA_OK != lzma_stream_decoder (&_lzmaDecompStream, lzma_easy_decoder_memusage (getCompressionLevel()), DECODER_FLAGS)) {
+            // throw a c++ exception here
+        }
+    }
+
+    int LzmaConnectorReader::resetConnectorReader (void)
+    {
+        lzma_end (&_lzmaDecompStream);
+
+        resetDecompStream();
+
+        if (LZMA_OK != lzma_stream_decoder (&_lzmaDecompStream, lzma_easy_decoder_memusage (getCompressionLevel()), DECODER_FLAGS)) {
+            return -1;
+        }
+
+        return 0;
+    }
+
     void LzmaConnectorReader::resetDecompStream (void)
     {
         _lzmaDecompStream.allocator = nullptr;
@@ -174,26 +188,13 @@ namespace ACMNetProxy
         _lzmaDecompStream.reserved_enum2 = LZMA_RESERVED_ENUM;
     }
 
-    int LzmaConnectorReader::resetConnectorReader (void)
-    {
-        lzma_end (&_lzmaDecompStream);
-
-        resetDecompStream();
-
-        if (LZMA_OK != lzma_stream_decoder (&_lzmaDecompStream, lzma_easy_decoder_memusage (getCompressionLevel()), DECODER_FLAGS)) {
-            return -1;
-        }
-
-        return 0;
-    }
-
-    void * LzmaConnectorReader::alloc_mem (void *userdata, uint32_t items, uint32_t size)
+    void * LzmaConnectorReader::alloc_mem (void * userdata, uint32_t items, uint32_t size)
     {
         (void) userdata;
         return malloc (items * size);
     }
 
-    void LzmaConnectorReader::free_mem (void *userdata, void *data)
+    void LzmaConnectorReader::free_mem (void * userdata, void * data)
     {
         (void) userdata;
         free (data);

@@ -104,7 +104,7 @@ namespace NOMADSUtil
                         return NULL;
                     }
 
-                    Iterator (UInt32Hashtable<T> *pTable) {
+                    Iterator (const UInt32Hashtable<T> *pTable) {
                         _pTable = pTable;
                         _ulIndex = 0;
                         _pCurrElement = NULL;
@@ -118,7 +118,7 @@ namespace NOMADSUtil
                     }
 
                 private:
-                    UInt32Hashtable<T> *_pTable;
+                    const UInt32Hashtable<T> *_pTable;
                     unsigned long _ulIndex;
                     void *_pCurrElement;
                 private:
@@ -137,7 +137,7 @@ namespace NOMADSUtil
             // Returns the current size of the hashtable (NOTE: this is NOT the number of elements in the hashtable)
             virtual unsigned long getTableSize (void) const;
 
-            virtual Iterator getAllElements (void);
+            virtual Iterator getAllElements (void) const;
 
             virtual void printStructure (void) const;
 
@@ -366,7 +366,7 @@ namespace NOMADSUtil
         return _ulTableSize;
     }
 
-    template <class T> inline typename UInt32Hashtable<T>::Iterator UInt32Hashtable<T>::getAllElements (void)
+    template <class T> inline typename UInt32Hashtable<T>::Iterator UInt32Hashtable<T>::getAllElements (void) const
     {
         return Iterator (this);
     }

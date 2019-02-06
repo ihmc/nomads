@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -24,7 +24,7 @@
 
 using namespace NOMADSUtil;
 
-static const std::string base64_chars = 
+static const std::string base64_chars =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 "abcdefghijklmnopqrstuvwxyz"
 "0123456789+/";
@@ -90,7 +90,7 @@ char * NOMADSUtil::base64_decode (String const& encoded_string, unsigned int &bu
     BufferWriter bw;
 
     while (in_len-- && ( encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
-        char_array_4[i++] = encoded_string[in_]; 
+        char_array_4[i++] = encoded_string[in_];
         in_++;
         if (i ==4) {
             for (i = 0; i <4; i++) {

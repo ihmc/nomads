@@ -25,7 +25,7 @@ import us.ihmc.ds.fgraph.FGraph;
  * Server
  * 
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.3 $ Created on Jul 13, 2004 at 11:34:52 PM $Date: 2016/06/09 20:02:46 $ Copyright (c) 2004, The
+ * @version $Revision$ Created on Jul 13, 2004 at 11:34:52 PM $Date$ Copyright (c) 2004, The
  *          Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class Server

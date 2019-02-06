@@ -2,7 +2,7 @@
  * PacketBufferManager.cpp
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,24 +22,24 @@
 #include "PacketBufferManager.h"
 
 
-using namespace NOMADSUtil;
-
-#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define checkAndLogMsg(_f_name_, _log_level_, ...) \
+    if (NOMADSUtil::pLogger && (NOMADSUtil::pLogger->getDebugLevel() >= _log_level_)) \
+        NOMADSUtil::pLogger->logMsg (_f_name_, _log_level_, __VA_ARGS__)
 
 namespace ACMNetProxy
 {
     char * const PacketBufferManager::getAndLockWriteBuf (void)
     {
         for (int i = 0; i < NetProxyApplicationParameters::WRITE_PACKET_BUFFERS; i++) {
-            if (_mTAPBuf[i].tryLock() == Mutex::RC_Ok) {
+            if (_amtxTAPBuf[i].try_lock()) {
                 return _cTAPBuf[i];
             }
         }
 
-        checkAndLogMsg ("PacketBufferManager::getWriteBuf", Logger::L_Warning,
+        checkAndLogMsg ("PacketBufferManager::getWriteBuf", NOMADSUtil::Logger::L_Warning,
                         "could not find a free buffer; waiting for one to be freed\n");
 
-        _mTAPBuf[0].lock();
+        _amtxTAPBuf[0].lock();
         return _cTAPBuf[0];
     }
 
@@ -47,19 +47,12 @@ namespace ACMNetProxy
     {
         for (int i = 0; i < NetProxyApplicationParameters::WRITE_PACKET_BUFFERS; i++) {
             if ((const void * const) _cTAPBuf[i] == pui8Buf) {
-                _mTAPBuf[i].unlock();
+                _amtxTAPBuf[i].unlock();
                 return 0;
             }
         }
 
         return -1;
-    }
-
-    PacketBufferManager::PacketBufferManager (void)
-    {
-        for (int i = 0; i < NetProxyApplicationParameters::WRITE_PACKET_BUFFERS; i++) {
-            memset (_cTAPBuf[i], 0, NetProxyApplicationParameters::ETHERNET_MAX_MFS);
-        }
     }
 
 }

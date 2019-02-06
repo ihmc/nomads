@@ -5,7 +5,7 @@
  * ARPCache.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,7 +25,10 @@
  * that node as the value for that key.
  */
 
-#include "UInt32Hashtable.h"
+#include <mutex>
+#include <unordered_map>
+
+#include "ConfigurationParameters.h"
 
 #include "net/NetworkHeaders.h"
 
@@ -34,28 +37,33 @@ namespace ACMNetProxy
 {
     class ARPCache
     {
-        public:
-            ARPCache (void);
+    public:
+        ARPCache (void);
 
-            int insert (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &pMACAddr);
-            const NOMADSUtil::EtherMACAddr * const lookup (uint32 ui32IPAddr) const;
+        void insert (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr & pMACAddr);
+        const NOMADSUtil::EtherMACAddr & lookup (uint32 ui32IPAddr) const;
 
-        private:
-            NOMADSUtil::UInt32Hashtable<NOMADSUtil::EtherMACAddr> _arpCache;
+
+    private:
+        std::unordered_map<uint32, NOMADSUtil::EtherMACAddr> _umARPCache;
+
+        mutable std::mutex _mtx;
     };
 
 
-    inline ARPCache::ARPCache (void) : _arpCache (true) {}
+    inline ARPCache::ARPCache (void) { }
 
-    inline const NOMADSUtil::EtherMACAddr * const ARPCache::lookup (uint32 ui32IPAddr) const
+    inline const NOMADSUtil::EtherMACAddr & ARPCache::lookup (uint32 ui32IPAddr) const
     {
-        return _arpCache.get (ui32IPAddr);
+        std::lock_guard<std::mutex> lg{_mtx};
+        return (_umARPCache.count (ui32IPAddr) == 1) ?
+            _umARPCache.at (ui32IPAddr) : NetProxyApplicationParameters::EMA_INVALID_ADDRESS;
     }
 
-    inline int ARPCache::insert (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr &pMACAddr)
+    inline void ARPCache::insert (uint32 ui32IPAddr, const NOMADSUtil::EtherMACAddr & ema)
     {
-        delete _arpCache.put (ui32IPAddr, new NOMADSUtil::EtherMACAddr (pMACAddr));
-        return 0;
+        std::lock_guard<std::mutex> lg{_mtx};
+        _umARPCache[ui32IPAddr] = ema;
     }
 }
 

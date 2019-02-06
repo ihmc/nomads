@@ -3,19 +3,19 @@
 
 /*
  * PacketWrapper.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -99,7 +99,7 @@ inline PacketWrapper::PacketWrapper (Packet *pPacket, int64 i64LastIOTime)
 
 inline PacketWrapper::PacketWrapper (uint32 ui32CancelledSequenceNum, int64 i64LastIOTime)
 {
-    _pPacket = NULL;
+    _pPacket = nullptr;
     _ui32CancelledSequenceNum = ui32CancelledSequenceNum;
     _i64EnqueueTime = 0;
     _i64LastIOTime = i64LastIOTime;
@@ -200,7 +200,7 @@ inline void PacketWrapper::setRetransmitTimeout (uint32 ui32RetransmitTimeout)
 
 inline uint16 PacketWrapper::getRetransmitCount (void)
 {
-	return _ui16RetransmitCount;
+    return _ui16RetransmitCount;
 }
 
 inline void PacketWrapper::resetRetransmitCount (void)
@@ -210,14 +210,14 @@ inline void PacketWrapper::resetRetransmitCount (void)
 
 inline void PacketWrapper::incrementRetransmitCount (void)
 {
-	_ui16RetransmitCount++;
+    _ui16RetransmitCount++;
 }
 
 inline int PacketWrapper::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
 {
     //Data from _pPacket
     _pPacket->freeze (objectFreezer);
-    
+
     objectFreezer.putUInt32 (_ui32CancelledSequenceNum);
     // We need to freeze _i64EnqueueTime and _i64LastIOTime
     // Since it is a time we freeze the time elapsed from these times to now
@@ -229,13 +229,13 @@ inline int PacketWrapper::freeze (NOMADSUtil::ObjectFreezer &objectFreezer)
     objectFreezer.putUInt32 (ui32ElapsedTime);
     ui32ElapsedTime = (uint32) (NOMADSUtil::getTimeInMilliseconds() - _i64LastIOTime);
     objectFreezer.putUInt32 (ui32ElapsedTime);
-    
+
     objectFreezer.putUInt16 (_ui8Priority); // putUInt8 does not exist
     objectFreezer.putUInt32 (_ui32MessageTSN);
     objectFreezer.putUInt32 (_ui32RetryTimeout);
     objectFreezer.putUInt32 (_ui32RetransmitTimeout);
     objectFreezer.putUInt16 (_ui16RetransmitCount);
-    
+
 /*    printf ("_ui32CancelledSequenceNum %lu\n", _ui32CancelledSequenceNum);
     printf ("_ui8Priority %d\n", (int) _ui8Priority);
     printf ("_ui32RetryTimeout %lu\n", _ui32RetryTimeout);
@@ -250,14 +250,14 @@ inline int PacketWrapper::defrost (NOMADSUtil::ObjectDefroster &objectDefroster)
     // Recontract the object Packet
     Packet *pPacket = new Packet (objectDefroster);
     _pPacket = pPacket;
-    
+
     objectDefroster >> _ui32CancelledSequenceNum;
     uint32 ui32ElapsedTime;
     objectDefroster >> ui32ElapsedTime;
     _i64EnqueueTime = NOMADSUtil::getTimeInMilliseconds() - (int64) ui32ElapsedTime;
     objectDefroster >> ui32ElapsedTime;
     _i64LastIOTime = NOMADSUtil::getTimeInMilliseconds() - (int64) ui32ElapsedTime;
-    
+
     uint16 ui16Priority;
     objectDefroster >> ui16Priority;
     _ui8Priority = (uint8) ui16Priority;
@@ -265,13 +265,13 @@ inline int PacketWrapper::defrost (NOMADSUtil::ObjectDefroster &objectDefroster)
     objectDefroster >> _ui32RetryTimeout;
     objectDefroster >> _ui32RetransmitTimeout;
     objectDefroster >> _ui16RetransmitCount;
-    
+
 /*    printf ("_ui32CancelledSequenceNum %lu\n", _ui32CancelledSequenceNum);
     printf ("_ui8Priority %d\n", (int) _ui8Priority);
     printf ("_ui32RetryTimeout %lu\n", _ui32RetryTimeout);
     printf ("_ui32RetransmitTimeout %lu\n", _ui32RetransmitTimeout);
     printf ("_ui16RetransmitCount %d\n", (int)_ui16RetransmitCount );*/
-    
+
     return 0;
 }
 

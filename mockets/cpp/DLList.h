@@ -1,18 +1,18 @@
 /*
  * DLList.h
- * 
+ *
  * This file is part of the IHMC Mockets Library/Component
  * Copyright (c) 2002-2014 IHMC.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 3 (GPLv3) as published by the Free Software Foundation.
- * 
+ *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
  * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
- * 
+ *
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
@@ -20,8 +20,8 @@
  */
 
 #if !defined (ANDROID) //No std support on ANDROID
-	#include <stdexcept>
-	#include <iostream>
+    #include <stdexcept>
+    #include <iostream>
 #endif
 #include "FTypes.h"
 #include "NLFLib.h"
@@ -76,19 +76,19 @@ template <class T> class DLList
 template <class T> DLList<T>::DLList (uint32 ui32MaxNumNodes)
 {
     _ui32MaxNumNodes = ui32MaxNumNodes;
-    _pCurrent =_pHead = _pTail = NULL;
+    _pCurrent =_pHead = _pTail = nullptr;
     _ui32NumNodes = 0;
 }
 
 template <class T> DLList<T>::~DLList (void)
 {
-    while (_pHead != NULL) {
+    while (_pHead != nullptr) {
         Node *pTemp = _pHead;
         _pHead = _pHead->pNext;
         delete pTemp;
     }
-    _pCurrent = NULL;
-    _pTail = NULL;
+    _pCurrent = nullptr;
+    _pTail = nullptr;
     _ui32NumNodes = 0;
 }
 
@@ -109,7 +109,7 @@ template <class T> void DLList<T>::pushTail (T el)
     pNewNode->el = el;
 
     // If the list is empty...
-    if (_pTail == NULL) {
+    if (_pTail == nullptr) {
         _pCurrent = _pHead = _pTail = pNewNode;
         _ui32NumNodes++;
         return;
@@ -123,7 +123,7 @@ template <class T> void DLList<T>::pushTail (T el)
 
     // Add the new node after the tail
     pNewNode->pPrev = _pTail;
-    pNewNode->pNext = NULL;
+    pNewNode->pNext = nullptr;
     _pTail->pNext = pNewNode;
     _pTail = pNewNode;
     _ui32NumNodes++;
@@ -137,7 +137,7 @@ template <class T> void DLList<T>::pushHead (T el)
     pNewNode->el = el;
 
     // If the list is empty...
-    if ( _pHead == NULL ) {
+    if ( _pHead == nullptr ) {
         _pCurrent = _pHead = _pTail = pNewNode;
         _ui32NumNodes++;
         return;
@@ -151,7 +151,7 @@ template <class T> void DLList<T>::pushHead (T el)
 
     // Add the new node before the head
     pNewNode->pNext = _pHead;
-    pNewNode->pPrev = NULL;
+    pNewNode->pPrev = nullptr;
     _pHead->pPrev = pNewNode;
     _pCurrent = _pHead = pNewNode;
     _ui32NumNodes++;
@@ -161,7 +161,7 @@ template <class T> void DLList<T>::pushHead (T el)
 template <class T> void DLList<T>::popTail(void)
 {
     // If the list is empty...
-    if( _pTail == NULL ) {
+    if( _pTail == nullptr ) {
         // ... then do nothing
         return;
     }
@@ -170,15 +170,15 @@ template <class T> void DLList<T>::popTail(void)
 
     // If there is just one node...
     if( _ui32NumNodes == 1 ) {
-        _pCurrent = _pHead = _pTail = NULL;
+        _pCurrent = _pHead = _pTail = nullptr;
     }
     // otherwise...
     else {
         if( _pCurrent == _pTail )
             _pCurrent = _pTail->pPrev;
         _pTail = pTempNode->pPrev;
-        _pTail->pNext = NULL;
-        pTempNode->pPrev = NULL;
+        _pTail->pNext = nullptr;
+        pTempNode->pPrev = nullptr;
     }
 
     _ui32NumNodes--;
@@ -189,7 +189,7 @@ template <class T> void DLList<T>::popTail(void)
 template <class T> void DLList<T>::popHead(void)
 {
     // If the list is empty...
-    if( _pHead == NULL ) {
+    if( _pHead == nullptr ) {
         // ... then do nothing
         return;
     }
@@ -198,15 +198,15 @@ template <class T> void DLList<T>::popHead(void)
 
     // If there is just one node...
     if( _ui32NumNodes == 1 ) {
-        _pCurrent = _pHead = _pTail = NULL;
+        _pCurrent = _pHead = _pTail = nullptr;
     }
     // otherwise...
     else {
         if( _pCurrent == _pHead )
             _pCurrent = _pHead->pNext;
         _pHead = pTempNode->pNext;
-        _pHead->pPrev = NULL;
-        pTempNode->pNext = NULL;
+        _pHead->pPrev = nullptr;
+        pTempNode->pNext = nullptr;
     }
 
     _ui32NumNodes--;
@@ -298,8 +298,8 @@ template <class T> int DLList<T>::getLast( T &el )
 }
 
 template <class T> DLList<T>::Node::Node (void) {
-    pPrev = NULL;
-    pNext = NULL;
+    pPrev = nullptr;
+    pNext = nullptr;
 }
 
 /*
@@ -311,14 +311,14 @@ template <class T> DLList<T>::Node::Node (void) {
 template <class T> void DLList<T>::printNodes (void)
 {
     Node *pTempNode = _pHead;
-	
-	#if !defined (ANDROID) //No std support on ANDROID
-    	std::cout << "Nodes: " << _ui32NumNodes << " (Size: " << sizeof( *_pHead )
+
+    #if !defined (ANDROID) //No std support on ANDROID
+        std::cout << "Nodes: " << _ui32NumNodes << " (Size: " << sizeof( *_pHead )
         << " bytes)" << std::endl;
-	#endif
+    #endif
 
     // If the list is empty...
-    if( pTempNode == NULL )  {
+    if( pTempNode == nullptr )  {
         return;
     }
     else {
@@ -326,21 +326,21 @@ template <class T> void DLList<T>::printNodes (void)
             pTempNode->printAddress();
             pTempNode = pTempNode->pNext;
         }
-        while ( pTempNode != NULL );
+        while ( pTempNode != nullptr );
     }
 }
 
 #if !defined (ANDROID) //No std support on ANDROID
 template <class T> void DLList<T>::Node::printAddress (void)
 {
-    if( pNext == NULL && pPrev == NULL ) {
-        std::cout << this << " (PREV: NULL, NEXT: NULL)" << std::endl;
+    if( pNext == nullptr && pPrev == nullptr ) {
+        std::cout << this << " (PREV: nullptr, NEXT: nullptr)" << std::endl;
     }
-    else if ( pNext == NULL ) {
-        std::cout << this << " (PREV: " << pPrev << ", NEXT: NULL)" << std::endl;
+    else if ( pNext == nullptr ) {
+        std::cout << this << " (PREV: " << pPrev << ", NEXT: nullptr)" << std::endl;
     }
-    else if ( pPrev == NULL ) {
-        std::cout << this << " (PREV: NULL, NEXT: " << pNext << ")" << std::endl;
+    else if ( pPrev == nullptr ) {
+        std::cout << this << " (PREV: nullptr, NEXT: " << pNext << ")" << std::endl;
     }
     else {
         std::cout << this << " (PREV: " << pPrev << ", NEXT: " << pNext << ")" <<

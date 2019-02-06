@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -224,7 +224,7 @@ void Time::set (int h, int m, int s, int dw, int dm, int mon)     // dw is ignor
          secs = dm*SECS_IN_DAY + h*SECS_IN_HOUR + m*SECS_IN_MIN + s;
          for (int i = 0; i < mon; i++)
          {
-			 secs += secondsInMonth ((Time::Month)i);      // Will be incorrect if this is a leap year!
+             secs += secondsInMonth ((Time::Month)i);      // Will be incorrect if this is a leap year!
          }
     }
 }
@@ -349,7 +349,7 @@ void ATime::adjustMonth (int mon)
     int h = t->tm_hour;
     if (dm > secondsInMonth ( (Time::Month)(mon+1))/SECS_IN_DAY)
     {
-		dm = (int) (secondsInMonth ((Time::Month)(mon+1))/SECS_IN_DAY);
+        dm = (int) (secondsInMonth ((Time::Month)(mon+1))/SECS_IN_DAY);
     }
     while ((t->tm_mon != mon) || (t->tm_mday != dm) || (t->tm_hour != h))
     {
@@ -553,5 +553,4 @@ int DTime::cmp (const DTime &rhsDTime)
     }
     return 0;
 }
-
 

@@ -5,7 +5,7 @@
  * ActiveConnection.h
  *
  * This file is part of the IHMC NetProxy Library/Component
- * Copyright (c) 2010-2016 IHMC.
+ * Copyright (c) 2010-2018 IHMC.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,45 +24,42 @@
  */
 
 #include "Utilities.h"
-#include "Connection.h"
 
-
-namespace NOMADSUtil
-{
-    class InetAddr;
-}
 
 namespace ACMNetProxy
 {
+    class Connection;
+
+
     class ActiveConnection
     {
     public:
-        ActiveConnection (Connection * const pUDPConnection);
+        ActiveConnection (void);
+        ActiveConnection (Connection * const pConnection);
         ~ActiveConnection (void);
 
-        const bool isAnyConnectorActive (void) const;
+        const bool isAnyConnectionActive (void) const;
         Connection * const getActiveConnection (ConnectorType connectorType, EncryptionType encryptionType) const;
-        const NOMADSUtil::InetAddr * const getActiveConnectionAddr (ConnectorType connectorType, EncryptionType encryptionType) const;
 
         Connection * const setNewActiveConnection (Connection * const pActiveConnection);
         Connection * const removeActiveConnection (const Connection * const pActiveConnection);
 
+
     private:
         Connection * const removeActiveConnectionByType (ConnectorType connectorType, EncryptionType encryptionType);
+
 
         Connection * _connectionTable[CT_SIZE][ET_SIZE];
     };
 
 
-    inline ActiveConnection::ActiveConnection (Connection * const pUDPConnection) : _connectionTable{} {
-        if (pUDPConnection && (pUDPConnection->getConnectorType() == CT_UDPSOCKET)) {
-            _connectionTable[CT_UDPSOCKET][ET_PLAIN - 1] = pUDPConnection;
-        }
-    }
+    inline ActiveConnection::ActiveConnection(void) :
+        _connectionTable{nullptr}
+    { }
 
     inline ActiveConnection::~ActiveConnection (void) { }
 
-    inline const bool ActiveConnection::isAnyConnectorActive (void) const
+    inline const bool ActiveConnection::isAnyConnectionActive (void) const
     {
         for (ConnectorType ct : CT_AVAILABLE) {
             for (EncryptionType et : ET_AVAILABLE) {
@@ -88,17 +85,10 @@ namespace ACMNetProxy
         return _connectionTable[connectorType][encryptionType - 1];
     }
 
-    inline const InetAddr * const ActiveConnection::getActiveConnectionAddr (ConnectorType connectorType, EncryptionType encryptionType) const
-    {
-        Connection * const pConnection = getActiveConnection (connectorType, encryptionType);
-
-        return pConnection ? pConnection->getRemoteProxyInetAddr() : nullptr;
-    }
-
     // This method is private and should only be invoked with a MOCKETS, SOCKET, or CSR connectorType
     inline Connection * const ActiveConnection::removeActiveConnectionByType (ConnectorType connectorType, EncryptionType encryptionType)
     {
-        Connection * const pOldConnection = getActiveConnection (connectorType, encryptionType);
+        auto * const pOldConnection = getActiveConnection (connectorType, encryptionType);
         _connectionTable[connectorType][encryptionType - 1] = nullptr;
 
         return pOldConnection;

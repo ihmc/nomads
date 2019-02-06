@@ -1,4 +1,4 @@
-prefix=/home/nomads/IHMC/code/externals/openssl/1.0.2h/linux
+prefix=/usr/local/ssl
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include

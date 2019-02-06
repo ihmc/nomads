@@ -31,9 +31,9 @@ import java.net.InetAddress;
  * ServerMocketHandler
  * 
  * @author Marco Carvalho (mcarvalho@ihmc.us)
- * @version $Revision: 1.11 $
+ * @version $Revision$
  *          Created on Apr 30, 2004 at 7:18:53 PM
- *          $Date: 2016/06/09 20:02:46 $
+ *          $Date$
  *          Copyright (c) 2004, The Institute for Human and Machine Cognition (www.ihmc.us)
  */
 public class ServerMocketHandler extends Thread implements MocketStatusListener

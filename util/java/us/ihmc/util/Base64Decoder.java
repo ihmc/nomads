@@ -4,7 +4,7 @@ import java.io.* ;
 
 /**
  * Base64Decoder.java
- * $Id: Base64Decoder.java,v 1.4 2013/03/06 19:18:12 nsuri Exp $
+ * $Id$
  * (c) COPYRIGHT MIT and INRIA, 1996.
  * Please first read the full copyright statement in file COPYRIGHT.html
  * 
@@ -22,21 +22,21 @@ public class Base64Decoder {
     boolean      stringp = false ;
 
     private void printHex (int x) {
-	int h = (x&0xf0) >> 4 ;
-	int l = (x&0x0f) ;
-	System.out.print 
-	    ((new Character((char)((h>9) ? 'A'+h-10 : '0'+h))).toString()
-	     +(new Character((char)((l>9) ? 'A'+l-10 : '0'+l))).toString());
+    int h = (x&0xf0) >> 4 ;
+    int l = (x&0x0f) ;
+    System.out.print 
+        ((Character.valueOf((char)((h>9) ? 'A'+h-10 : '0'+h))).toString()
+         +(Character.valueOf((char)((l>9) ? 'A'+l-10 : '0'+l))).toString());
     }
 
     private void printHex (byte buf[], int off, int len) {
-	while (off < len) {
-	    printHex (buf[off++]) ;
-	    System.out.print (" ") ;
-	}
-	System.out.println ("") ;
+        while (off < len) {
+            printHex (buf[off++]) ;
+            System.out.print (" ") ;
+        }
+        System.out.println ("") ;
     }
-	    
+
     @SuppressWarnings("unused")
 	private void printHex (String s) {
 	byte bytes[] ;
