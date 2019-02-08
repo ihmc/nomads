@@ -23,16 +23,15 @@ using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
 CommAdaptor::CommAdaptor (unsigned int uiId, AdaptorType adaptorType, bool bSupportsCaching,
-                          bool bSupportsDirectConnection, const char *pszNodeId, const char *pszSessionId,
+                          bool bSupportsDirectConnection, const char *pszNodeId,
                           CommAdaptorListener *pListener)
     : _pListener (pListener),
       _nodeId (pszNodeId),
-      _sessionId (pszSessionId),
       _adptorProperties (uiId, adaptorType, bSupportsCaching, bSupportsDirectConnection)
 {
 }
 
-CommAdaptor::~CommAdaptor()
+CommAdaptor::~CommAdaptor (void)
 {
 }
 
@@ -57,7 +56,7 @@ const char * CommAdaptor::getAdaptorAsString()
             static const char *pszUnknown = "UNKNOWN";
             return pszUnknown;
         }
-    }    
+    }
 }
 
 String CommAdaptor::getNodeId() const
@@ -65,13 +64,20 @@ String CommAdaptor::getNodeId() const
     return _nodeId;
 }
 
-String CommAdaptor::getSessionId() const
-{
-    return _sessionId;
-}
-
 bool CommAdaptor::supportsDirectConnection (void)
 {
     return _adptorProperties.bSupportsDirectConnection;
 }
 
+CommAdaptor::Subscription::Subscription (const char *pszGroupName)
+    : ui8Priority ((uint8)0),
+      bGroupReliable (false),
+      bMsgReliable (false),
+      bSequenced (false),
+      groupName (pszGroupName)
+{
+}
+
+CommAdaptor::Subscription::~Subscription (void)
+{
+}

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -23,6 +23,8 @@
 #include "Mutex.h"
 #include "NetworkMessageServiceInterface.h"
 
+#include "MessageFactory.h"
+
 #include <stddef.h>
 
 #define NMS_BROADCAST_ADDRESS "255.255.255.255"
@@ -32,14 +34,12 @@ namespace NOMADSUtil
 {
     class ConfigManager;
     class ManageableDatagramSocketManager;
-
     class MessageFactory;
     class NetworkMessageServiceListener;
     class NetworkMessageServiceProxyServer;
     class NICInfo;
     class NMSCommandProcessor;
     class Reassembler;
-
     class NetworkInterfaceManager;
     class NetworkMessageServiceImpl;
 
@@ -62,13 +62,13 @@ namespace NOMADSUtil
         public:
             NetworkMessageService (PROPAGATION_MODE mode=MULTICAST, bool bAsyncDelivery = false,
                                    bool bAsyncTransmission = false, uint8 ui8MessageVersion = 1,
-                                   bool bReplyViaUnicast = false);
+                                   bool bReplyViaUnicast = false, const char * pszSessionKey = NULL, const char * pszGroupKeyFilename = NULL);
             virtual ~NetworkMessageService (void);
 
             static const int NO_TARGET = 0;
             static const uint8 NMS_CTRL_MSG = 0x00;
 
-            static NetworkMessageService * getInstance (ConfigManager *pCfgMgr);
+            static NetworkMessageService * getInstance (ConfigManager *pCfgMgr, const char * pszSessionKey = NULL);
             static NetworkMessageServiceProxyServer * getProxySvrInstance (ConfigManager *pCfgMgr);
 
             NMSCommandProcessor * getCmdProcessor (void);
@@ -79,16 +79,20 @@ namespace NOMADSUtil
              *
              * if PROPAGATION_MODE == MULTICAST this will set the pszDestAddr to
              * NMS_MULTICAST_ADDRESS
+             *
              */
-
             int init (ConfigManager *pCfgMgr);
             int init (uint16 ui16Port = DEFAULT_PORT, const char **ppszBindingInterfaces = NULL,
                       const char **ppszIgnoredInterfaces = NULL, const char **ppszAddedInterfaces = NULL,
                       const char *pszDestAddr = NULL, uint8 ui8McastTTL = DEFAULT_MCAST_TTL);
 
+            String getEncryptionKeyHash (void);
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
+
             // Set the retransmit timeout (in milliseconds) for reliable messages
             int setRetransmissionTimeout (uint32 ui32Timeout);
             int setPrimaryInterface (const char *pszInterfaceAddr);
+
             int start (void);
             int stop (void);
 
@@ -137,6 +141,7 @@ namespace NOMADSUtil
              *
              * pszHints - optional hints that might be used to modify the behavior of the broadcast
              *
+             * bSecure - optional this flag is set the payload of the message will be encrypted
              */
             int broadcastMessage (uint8 ui8MsgType, const char **ppszOutgoingInterfaces,
                                   uint32 ui32BroadcastAddress, uint16 ui16MsgId,
@@ -212,14 +217,13 @@ namespace NOMADSUtil
              * get the max size of the queue
              */
             uint32 getTransmissionQueueMaxSize (const char *pszOutgoingInterface);
-
             uint32 getTransmitRateLimit (const char *pszInterface);
 
             /**
              * set the max size of the transmission queue
              */
             int setTransmissionQueueMaxSize (const char *pszOutgoingInterface, uint32 ui32MaxSize);
-            
+
             /**
              * Set the transmit rate limit for this socket
              * The target address, if specified, sets this limit only when sending data
@@ -267,4 +271,5 @@ namespace NOMADSUtil
     };
 }
 
-#endif   // #ifndef INCL_NETWORK_MESSAGE_SERVICE_H
+#endif   // INCL_NETWORK_MESSAGE_SERVICE_H
+

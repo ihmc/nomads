@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -235,7 +235,7 @@ void ManycastForwardingNetworkInterface::setAutoResizeQueue (bool bEnable, uint3
     _pNetInt->setAutoResizeQueue (bEnable, ui32MaxTimeInQueue);
 }
 
-uint32 ManycastForwardingNetworkInterface::getAutoResizeQueue (void)           
+uint32 ManycastForwardingNetworkInterface::getAutoResizeQueue (void)
 {
     return _pNetInt->getAutoResizeQueue();
 }
@@ -245,7 +245,7 @@ int ManycastForwardingNetworkInterface::receive (void *pBuf, int iBufSize, InetA
     return _pNetInt->receive (pBuf, iBufSize, pIncomingIfaceByAddr, pRemoteAddr);
 }
 
-int ManycastForwardingNetworkInterface::sendMessage (const NetworkMessage *pNetMsg, bool bExpedited, const char *pszHints)           
+int ManycastForwardingNetworkInterface::sendMessage (const NetworkMessage *pNetMsg, bool bExpedited, const char *pszHints)
 {
     return _pNetInt->sendMessage (pNetMsg, bExpedited, pszHints);
 }

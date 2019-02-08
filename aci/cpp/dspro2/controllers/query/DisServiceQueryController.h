@@ -25,16 +25,11 @@
 
 #include "QueryController.h"
 
-#include "PtrLList.h"
-#include "SearchProperties.h"
-#include "StringHashtable.h"
-
 namespace IHMC_ACI
 {
     class DataCacheInterface;
     class MetaData;
     class MetadataConfiguration;
-    class SQLAVList;
 
     class DisServiceQueryController : public QueryController
     {

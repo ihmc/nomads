@@ -1,6 +1,6 @@
-/* 
+/*
  * PreviousMessageIds.h
- * 
+ *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
  *
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_PREVIOUS_MESSAGE_IDS_H
-#define	INCL_PREVIOUS_MESSAGE_IDS_H
+#define INCL_PREVIOUS_MESSAGE_IDS_H
 
 #include "StringStringHashtable.h"
 
@@ -35,12 +35,13 @@ namespace IHMC_ACI
 
             void add (const char *pszNodeId, const char *pszPreviosMessageId);
             NOMADSUtil::String getPreviousMessageIdForPeer (const char *pszNodeId);
+            NOMADSUtil::String getLatestResetMessageId (void);
             bool isEmpty (void);
 
             operator const char * (void);
             PreviousMessageIds & operator = (const char *pszStr);
 
-        private:            
+        private:
             mutable NOMADSUtil::String _stringRepresentation;
             NOMADSUtil::StringStringHashtable _nodeIdToPrevMsgId;
     };
@@ -60,17 +61,22 @@ namespace IHMC_ACI
 
     inline void PreviousMessageIds::add (const char *pszNodeId, const char *pszPreviosMessageId)
     {
-        if ((pszNodeId != NULL) && (pszPreviosMessageId != NULL)) {
+        if ((pszNodeId != nullptr) && (pszPreviosMessageId != nullptr)) {
             _nodeIdToPrevMsgId.put (pszNodeId, NOMADSUtil::strDup (pszPreviosMessageId));
         }
     }
 
     inline NOMADSUtil::String PreviousMessageIds::getPreviousMessageIdForPeer (const char *pszNodeId)
     {
-        if (pszNodeId == NULL) {
+        if (pszNodeId == nullptr) {
             return NOMADSUtil::String();
         }
         return NOMADSUtil::String (_nodeIdToPrevMsgId.get (pszNodeId));
+    }
+
+    inline NOMADSUtil::String PreviousMessageIds::getLatestResetMessageId (void)
+    {
+        return getPreviousMessageIdForPeer ("*");
     }
 
     inline bool PreviousMessageIds::isEmpty (void)
@@ -88,7 +94,7 @@ namespace IHMC_ACI
     {
         _nodeIdToPrevMsgId.removeAll();
         NOMADSUtil::StringStringHashtable *ptmp = NOMADSUtil::StringStringHashtable::parseStringStringHashtable (pszStr);
-        if (ptmp != NULL) {
+        if (ptmp != nullptr) {
             NOMADSUtil::StringStringHashtable::Iterator iter = ptmp->getAllElements();
             for (; !iter.end(); iter.nextElement()) {
                 add (iter.getKey(), iter.getValue());
@@ -99,5 +105,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_PREVIOUS_MESSAGE_IDS_H */
-
+#endif    /* INCL_PREVIOUS_MESSAGE_IDS_H */

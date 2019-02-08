@@ -17,24 +17,29 @@ public class LegacyDSProProxyListener implements DSProProxyListener
         _listener = listener;
     }
 
+    @Override
     public boolean pathRegistered(NodePath path, String nodeId, String teamId, String mission)
     {
         return _listener.pathRegistered (path, nodeId, teamId, mission);
     }
 
+    @Override
     public boolean positionUpdated(float latitude, float longitude, float altitude, String nodeId)
     {
         return _listener.positionUpdated (latitude, longitude, altitude, nodeId);
     }
 
+    @Override
     public void newNeighbor(String peerID)
     {
     }
 
+    @Override
     public void deadNeighbor(String peerID)
     {
     }
 
+    @Override
     public boolean dataArrived (String id, String groupName, String objectId, String instanceId,
                                 String annotatedObjMsgId, String mimeType, byte[] data, short chunkNumber,
                                 short totChunksNumber, String queryId)
@@ -72,6 +77,7 @@ public class LegacyDSProProxyListener implements DSProProxyListener
         return true;                           
     }
 
+    @Override
     public boolean metadataArrived (String id, String groupName, String objectId,
                                     String instanceId, String XMLMetadata,
                                     String referredDataId, String queryId)
@@ -90,6 +96,13 @@ public class LegacyDSProProxyListener implements DSProProxyListener
                                    (byte) 0,   // priority
                                    queryId);
         return true;
+    }
+
+    @Override
+    public boolean dataAvailable (String id, String groupName, String objectId, String instanceId, String referredDataId,
+                                  String mimeType, byte[] metadata, String queryId)
+    {
+        return false;
     }
 
     public void searchArrived (String groupName, String queryType, String queryQualifiers, byte[] query)

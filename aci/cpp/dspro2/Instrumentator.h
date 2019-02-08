@@ -1,4 +1,4 @@
-/** 
+/**
  * Instrumentator.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,13 +21,12 @@
  */
 
 #ifndef INCL_INSTRUMENTATOR_H
-#define	INCL_INSTRUMENTATOR_H
+#define INCL_INSTRUMENTATOR_H
 
 #include "MatchmakingIntrumentation.h"
 
 #include "DArray2.h"
 #include "FTypes.h"
-#include "Logger.h"
 #include "LoggingMutex.h"
 #include "PtrLList.h"
 
@@ -38,7 +37,7 @@ namespace IHMC_ACI
     class Instrumentator
     {
         public:
-            Instrumentator (NOMADSUtil::LoggingMutex *pmCallback);
+            explicit Instrumentator (NOMADSUtil::LoggingMutex *pmCallback);
             virtual ~Instrumentator (void);
 
             int registerAndEnableMatchmakingLogListener (uint16 ui16ClientId, MatchmakingLogListener *pMatchmakingListener, uint16 &ui16AssignedClientId);
@@ -63,7 +62,6 @@ namespace IHMC_ACI
     };
 
     extern Instrumentator *pInstrumentator;
-    extern NOMADSUtil::Logger *pNetLog;
 
     inline bool Instrumentator::isEnabled()
     {
@@ -71,5 +69,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	// INCL_INSTRUMENTATOR_H
-
+#endif    // INCL_INSTRUMENTATOR_H

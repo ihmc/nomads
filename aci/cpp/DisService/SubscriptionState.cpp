@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -53,7 +53,7 @@ SubscriptionState::SubscriptionState(DisseminationService *pDisService, LocalNod
 }
 
 SubscriptionState::~SubscriptionState()
-{        
+{
 }
 
 int SubscriptionState::messageArrived (Message *pMsg, RequestDetails *pDetails)
@@ -319,12 +319,12 @@ bool SubscriptionState::isRelevantInternal (const char *pszGroupName, const char
 void SubscriptionState::setSubscriptionState (const char *pszGroupName, const char *pszSenderNodeID, uint32 ui32NewExpectedSeqId)
 {
     _m.lock (246);
-    ByGroup *pByGroup = _states.get(pszGroupName);
+    ByGroup *pByGroup = _states.get (pszGroupName);
     if (pByGroup == NULL) {
          pByGroup = new ByGroup();
         _states.put (pszGroupName, pByGroup);
     }
-    State *pState = pByGroup->_statesBySender.get(pszSenderNodeID);
+    State *pState = pByGroup->_statesBySender.get (pszSenderNodeID);
     if (pState == NULL) {
         bool bSeq, bRel;
         bSeq = _pLocalNodeInfo->requireSequentiality (pszGroupName, 0);
@@ -662,7 +662,7 @@ SubscriptionState::ByGroup::ByGroup()
                        true,  // bCloneKeys
                        true,  // bDeleteKeys
                        true)  // bDeleteValues
-{        
+{
 }
 
 SubscriptionState::ByGroup::~ByGroup()
@@ -812,7 +812,7 @@ void SubscriptionState::SequentialReliableCommunicationState::fillUpMissingMessa
                 // helps here. anyways, check that one for details
                 (*pCounter) += 1;
             }
-            
+
         }
     }
     i64LastMissingMessageRequestTime = i64CurrentTime;
@@ -1057,7 +1057,7 @@ int SubscriptionState::ReceivedChunks::put (const char *pszGroupName,
 
 bool SubscriptionState::ReceivedChunks::contains (const char *pszGroupName,
                                                   const char *pszSenderNodeId,
-                                                  uint32 ui32MsgSeqId, 
+                                                  uint32 ui32MsgSeqId,
                                                   uint8 ui8ChunkId)
 {
     BySender *pBySender = _byGroupName.get (pszGroupName);

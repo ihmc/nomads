@@ -31,7 +31,7 @@
  */
 
 #ifndef INCL_COMM_COMM_ADAPTOR_H
-#define	INCL_COMM_COMM_ADAPTOR_H
+#define INCL_COMM_COMM_ADAPTOR_H
 
 #include "CommAdaptor.h"
 #include "ConnHandler.h"
@@ -56,13 +56,15 @@ namespace IHMC_ACI
 
             void run (void);
 
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
+            int subscribe (Subscription &sub);
+
             int startAdaptor (void);
             int stopAdaptor (void);
 
         protected:
             ConnCommAdaptor (AdaptorId uiId, AdaptorType adaptorType, bool bSupportsCaching,
-                             const char *pszNodeId, const char *pszSessionId,
-                             CommAdaptorListener *pListener, uint16 ui16Port);
+                             const char *pszNodeId, CommAdaptorListener *pListener, uint16 ui16Port);
 
             virtual int connectToPeerInternal (const char *pszRemotePeerAddr, uint16 ui16Port) = 0;
 
@@ -115,9 +117,8 @@ namespace IHMC_ACI
             NOMADSUtil::LList<DisconnectedPeer> _handlersToReconnectToByIPAddr;
             NOMADSUtil::Queue<DisconnectedPeer> _disconnectedPeers;
             NOMADSUtil::Mutex _mDisconnectedPeers;
-            
+
     };
 }
 
-#endif	/* INCL_COMM_COMM_ADAPTOR_H */
-
+#endif    /* INCL_COMM_COMM_ADAPTOR_H */

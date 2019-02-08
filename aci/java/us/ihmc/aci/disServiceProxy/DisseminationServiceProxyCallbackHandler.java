@@ -19,6 +19,8 @@
 
 package us.ihmc.aci.disServiceProxy;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 import us.ihmc.comm.CommException;
@@ -33,11 +35,12 @@ import us.ihmc.util.StringUtil;
  * Date: Jun 2, 2008
  * Time: 10:22:35 AM
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.41 $
+ * @version $Revision$
  */
 
 public class DisseminationServiceProxyCallbackHandler extends ManageableThread
 {
+    
     public DisseminationServiceProxyCallbackHandler (DisseminationServiceProxy proxy, CommHelper commHelper)
     {
         if (proxy == null || commHelper == null) {
@@ -100,13 +103,13 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             int seqNum = _commHelper.read32();
 
             byte[] b = _commHelper.receiveBlock();
-            String objectId = b != null ? new String (b) : null;
+            String objectId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String instanceId = b != null ? new String (b) : null;
+            String instanceId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String mimeType = b != null ? new String (b) : null;
+            String mimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             int dataLength = _commHelper.read32();
             int metadataLength = _commHelper.read32();
@@ -117,7 +120,7 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             byte priority = _commHelper.read8();
 
             b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             try {
                 _proxy.dataArrived (Utils.getMessageID(sender, groupname, seqNum), sender,
@@ -147,13 +150,13 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             int seqNum = _commHelper.read32();
 
             byte[] b = _commHelper.receiveBlock();
-            String objectId = b != null ? new String (b) : null;
+            String objectId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String instanceId = b != null ? new String (b) : null;
+            String instanceId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String mimeType = b != null ? new String (b) : null;
+            String mimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             int dataLength = _commHelper.read32();
             byte[] data = new byte [dataLength];
@@ -166,7 +169,7 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             byte priority = _commHelper.read8();
 
             b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             try {
             _proxy.chunkArrived (Utils.getChunkMessageID(sender, groupname, seqNum), sender, groupname,
@@ -196,13 +199,13 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             int seqNum = _commHelper.read32();
 
             byte[] b = _commHelper.receiveBlock();
-            String objectId = b != null ? new String (b) : null;
+            String objectId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String instanceId = b != null ? new String (b) : null;
+            String instanceId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String mimeType = b != null ? new String (b) : null;
+            String mimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             int dataLength = _commHelper.read32();
             byte[] data = new byte [dataLength];
@@ -213,7 +216,7 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             byte priority = _commHelper.read8();
 
             b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             try {
                 _proxy.metadataArrived (Utils.getMessageID(sender, groupname, seqNum),
@@ -243,13 +246,13 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             int seqNum = _commHelper.read32();
 
             byte[] b = _commHelper.receiveBlock();
-            String objectId = b != null ? new String (b) : null;
+            String objectId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String instanceId = b != null ? new String (b) : null;
+            String instanceId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String mimeType = b != null ? new String (b) : null;
+            String mimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             int len = _commHelper.read32();
             String id = (len > 0 ? new String (_commHelper.receiveBlob(len)) : null);
@@ -261,7 +264,7 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
             byte priority = _commHelper.read8();
 
             b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             try {
                 _proxy.dataAvailable (Utils.getMessageID(sender, groupname, seqNum),
@@ -285,7 +288,7 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
     public void doNewPeerCallback()
     {
         try {
-            String peerID = new String (_commHelper.receiveBlock());
+            String peerID = new String (_commHelper.receiveBlock(), StandardCharsets.UTF_8);
             _logger.info (String.format ("DisseminationServiceProxyCallbackHandler:doNewPeerCallback: %s", peerID));
             _proxy.newPeer(peerID);
 
@@ -301,7 +304,7 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
     {
         
         try {
-            String peerID = new String (_commHelper.receiveBlock());
+            String peerID = new String (_commHelper.receiveBlock(), StandardCharsets.UTF_8);
             _logger.info (String.format ("DisseminationServiceProxyCallbackHandler:doDeadPeerCallback: %s", peerID));
             _proxy.deadPeer(peerID);
 
@@ -318,19 +321,19 @@ public class DisseminationServiceProxyCallbackHandler extends ManageableThread
     {
         try {
             byte[] b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String groupName = b != null ? new String (b) : null;
+            String groupName = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String querier = b != null ? new String (b) : null;
+            String querier = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String queryType = b != null ? new String (b) : null;
+            String queryType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String queryQualifiers = b != null ? new String (b) : null;
+            String queryQualifiers = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             byte[] query = null;
             int queryLen = _commHelper.read32();

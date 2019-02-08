@@ -1,6 +1,6 @@
-/* 
+/*
  * Scheduler.h
- * 
+ *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
  *
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_SCHEDULER_H
-#define	INCL_SCHEDULER_H
+#define INCL_SCHEDULER_H
 
 #include "MessageRequestServer.h"
 #include "Rank.h"
@@ -32,6 +32,7 @@
 #include "ManageableThread.h"
 #include "SetUniquePtrLList.h"
 #include "StringHashset.h"
+#include "LList.h"
 
 namespace NOMADSUtil
 {
@@ -71,6 +72,13 @@ namespace IHMC_ACI
             static const char * TIME_SENSITIVE_MIME_TYPES_PROPERTY;
 
             enum PrevPushedMsgInfoMode {
+                /*
+                 * In the following enums, "SESSION" refers to the status of the scheduler concerning
+                 * some peer before a change in that peer's node context triggers a new matchmaking
+                 * for all the stored messages that have not been sent to that peer in the past.
+                 * When this happens, the queue of messages to be sent to that peer is cleared,
+                 * matchmaking is recomputed, and a new "SESSION" begins.
+                 */
                 PREV_PUSH_MSG_INFO_DISABLED       = 0x00,  // The ID of the last message sent is not stored
                 PREV_PUSH_MSG_INFO_SESSION_AWARE  = 0x01,  // The ID of the last message sent is stored
                                                            // and reset every time a new pre-staging session
@@ -84,7 +92,7 @@ namespace IHMC_ACI
             static Scheduler * getScheduler (NOMADSUtil::ConfigManager *pCfgMgr, DSProImpl *pDSPro,
                                              CommAdaptorManager *pAdaptorMgr, DataStore *pDataStore,
                                              NodeContextManager *pNodeCtxtMgr, InformationStore *pInfoStore,
-                                             Topology *pTopology);
+                                             Topology *pTopology, IHMC_VOI::Voi *pVoi);
 
             /**
              * Changes the configuration at run-time.
@@ -94,20 +102,24 @@ namespace IHMC_ACI
             int addMessageRequest (const char *pszRequestingPeer, const char *pszMsgId,
                                    NOMADSUtil::DArray<uint8> *pCachedChunks);
 
+            int addMessageToDisseminated (const char *pszMsgId);
+
             /**
              * Add the message id to the current queue of the outgoing messages.
              */
-            void addToCurrentPreStaging (Rank *pRank);
+            void addToCurrentPreStaging (IHMC_VOI::Rank *pRank);
 
             /**
-             * Reset the queue of the outgoing messages and set a new one.
+             * Reset the queue of the outgoing messages for the peer with ID pszTargetNodeId and set a new one.
              */
-            void startNewPreStagingForPeer (const char *pszTargetNodeId, Ranks *pRanks);
+            void startNewPreStagingForPeer (const char *pszTargetNodeId, IHMC_VOI::Ranks *pRanks);
+
+            NOMADSUtil::String getLatestResetMessage (void);
 
             /**
              * NOTE: the returned ID must be deallocated by the caller
              */
-            char * getLatestMessageReplicatedToPeer (const char *pszPeerId);
+            NOMADSUtil::String getLatestMessageReplicatedToPeer (const char *pszPeerId);
 
             void run (void);
             void send (void);
@@ -145,9 +157,9 @@ namespace IHMC_ACI
 
                 uint8 ui8Priority;
                 NOMADSUtil::String msgId;
-                RankObjectInfo rankObjInfo;
-                NodeIdSet matchingNodeIds;
-                RankByTargetMap rankByTarget;
+                IHMC_VOI::RankObjectInfo rankObjInfo;
+                IHMC_VOI::NodeIdSet matchingNodeIds;
+                IHMC_VOI::RankByTargetMap rankByTarget;
             };
 
             struct MsgIDWrapper {
@@ -156,7 +168,7 @@ namespace IHMC_ACI
                     BiIndex   = 1
                 };
 
-                MsgIDWrapper (Type type, Rank *pRank);
+                MsgIDWrapper (Type type, IHMC_VOI::Rank *pRank);
                 virtual ~MsgIDWrapper (void);
 
                 virtual float getFirstIndex (void) const = 0;
@@ -168,13 +180,13 @@ namespace IHMC_ACI
 
                 const Type _type;
                 NOMADSUtil::String _msgId;
-                RankObjectInfo _rankObjInfo;
-                NodeIdSet _matchingNodeIds;
-                RankByTargetMap _rankByTarget;
+                IHMC_VOI::RankObjectInfo _rankObjInfo;
+                IHMC_VOI::NodeIdSet _matchingNodeIds;
+                IHMC_VOI::RankByTargetMap _rankByTarget;
             };
 
             struct MonoIndexMsgIDWrapper : public MsgIDWrapper {
-                MonoIndexMsgIDWrapper (Rank *pRank, float fPrimaryIndex);
+                MonoIndexMsgIDWrapper (IHMC_VOI::Rank *pRank, float fPrimaryIndex);
                 virtual ~MonoIndexMsgIDWrapper (void);
 
                 virtual float getFirstIndex (void) const;
@@ -185,11 +197,11 @@ namespace IHMC_ACI
                 const float _fIndex1;
 
                 protected:
-                    MonoIndexMsgIDWrapper (Type type, Rank *pRank, float fPrimaryIndex);
+                    MonoIndexMsgIDWrapper (Type type, IHMC_VOI::Rank *pRank, float fPrimaryIndex);
             };
 
             struct BiIndexMsgIDWrapper : public MonoIndexMsgIDWrapper {
-                BiIndexMsgIDWrapper (Rank *pRank, float fPrimaryIndex, float fSecondaryIndex);
+                BiIndexMsgIDWrapper (IHMC_VOI::Rank *pRank, float fPrimaryIndex, float fSecondaryIndex);
                 virtual ~BiIndexMsgIDWrapper (void);
 
                 bool operator > (const MsgIDWrapper &rhsMsgWr) const;
@@ -205,7 +217,7 @@ namespace IHMC_ACI
                 void display (FILE *pFileOut);
 
                 /**
-                 * Returns the element, if it was not added, NULL otherwise 
+                 * Returns the element, if it was not added, nullptr otherwise
                  */
                 MsgIDWrapper * insert (MsgIDWrapper *pMsgIDWr);
                 int getCount (void);
@@ -241,12 +253,13 @@ namespace IHMC_ACI
                        Topology *pTopology, TransmissionHistoryInterface *pTrHistory,
                        const QueueReplacementPolicy *pReplacementPolicy,
                        const MetadataMutationPolicy *pMutatorPolicy,
-                       PrevPushedMsgInfoMode preStagingSessionAwarePrevMsgID);
+                       PrevPushedMsgInfoMode preStagingSessionAwarePrevMsgID,
+                       IHMC_VOI::Voi *pVoi);
 
             int addMessageRequestInternal (const char *pszRequestingPeer, const char *pszMsgId,
                                            ChunkIds *pChunkIds);
             void addToCurrentPreStagingInternal (const char *pszTargetPeerNodeID, MsgIDWrapper *pMsgdIdWr);
-            void startNewPreStaging (Rank *pRank, PeerQueue *pPeerQueue, unsigned int uiMsgSessionIndex);
+            void startNewPreStaging (IHMC_VOI::Rank *pRank, PeerQueue *pPeerQueue, unsigned int uiMsgSessionIndex);
 
             NOMADSUtil::String getLatestMessageSentToTargetInternal (const char *pszTargetNode);
             int replicateMessageInternal (MsgProperties *pszMsgId, const char *pszDestination,
@@ -255,7 +268,7 @@ namespace IHMC_ACI
                                               const char *pszDestination, Targets **ppTargets);
 
             void sendInternal (void);
-            void setIndexes (Rank *pRank, float &fPrimaryIndex, float &fSecondaryIndex);
+            void setIndexes (IHMC_VOI::Rank *pRank, float &fPrimaryIndex, float &fSecondaryIndex);
             static void checkIndexes (float &fPrimaryIndex, float &fSecondaryIndex);
 
        private:
@@ -283,12 +296,15 @@ namespace IHMC_ACI
             MessageRequestServer _msgReqSrv;
             NOMADSUtil::LoggingMutex _m;
             NOMADSUtil::LoggingMutex _mQueues;
+            NOMADSUtil::LoggingMutex _mEnqueuedDisseminations;
             NOMADSUtil::LoggingMutex _mEnqueuedRequests;
             NOMADSUtil::LoggingMutex _mEnqueuedMessageIdWrappers;
             NOMADSUtil::PtrLList<ChunkIdWrapper> _enqueuedMessageRequests;
-            NOMADSUtil::StringHashtable<NOMADSUtil::PtrLList<MsgIDWrapper> >_enqueuedMessageIdWrappers;
+            // Contains all messages, divided by peer ID, following a successful matchmaking
+            NOMADSUtil::StringHashtable<NOMADSUtil::PtrLList<MsgIDWrapper> >_enqueuedMessageIdWrappersByPeerId;
             IterableStringHashtable<PeerQueue> _queues;
             SchedulerCache _latestMsgPushedByTarget;
+            NOMADSUtil::LList<NOMADSUtil::String> _disseminate;
             NOMADSUtil::StringHashset _timeSensitiveMIMETypes;
             NOMADSUtil::StringHashset _peersMatchmakingOnlyLocalData;
     };
@@ -309,7 +325,7 @@ namespace IHMC_ACI
 
     inline bool Scheduler::PeerQueue::isEmpty (void)
     {
-        return _msgIDs.getFirst() == NULL;
+        return _msgIDs.getFirst() == nullptr;
     }
 
     inline void Scheduler::PeerQueue::lock (void)
@@ -342,7 +358,7 @@ namespace IHMC_ACI
     // MsgIDWrapper
     //==========================================================================
 
-    inline Scheduler::MsgIDWrapper::MsgIDWrapper (Type type, Rank *pRank)
+    inline Scheduler::MsgIDWrapper::MsgIDWrapper (Type type, IHMC_VOI::Rank *pRank)
         : _type (type), _msgId (pRank->_msgId), _rankObjInfo (pRank->_objectInfo),
           _matchingNodeIds (pRank->_targetId), _rankByTarget (pRank->_rankByTarget)
     {
@@ -366,13 +382,13 @@ namespace IHMC_ACI
     // MonoIndexMsgIDWrapper
     //==========================================================================
 
-    inline Scheduler::MonoIndexMsgIDWrapper::MonoIndexMsgIDWrapper (Rank *pRank, float fPrimaryIndex)
+    inline Scheduler::MonoIndexMsgIDWrapper::MonoIndexMsgIDWrapper (IHMC_VOI::Rank *pRank, float fPrimaryIndex)
         : Scheduler::MsgIDWrapper (MonoIndex, pRank),
           _fIndex1 (fPrimaryIndex)
     {
     }
 
-    inline Scheduler::MonoIndexMsgIDWrapper::MonoIndexMsgIDWrapper (Type type, Rank *pRank,
+    inline Scheduler::MonoIndexMsgIDWrapper::MonoIndexMsgIDWrapper (Type type, IHMC_VOI::Rank *pRank,
                                                                     float fPrimaryIndex)
         : Scheduler::MsgIDWrapper (type, pRank),
           _fIndex1 (fPrimaryIndex)
@@ -404,7 +420,7 @@ namespace IHMC_ACI
     // BiIndexMsgIDWrapper
     //==========================================================================
 
-    inline Scheduler::BiIndexMsgIDWrapper::BiIndexMsgIDWrapper (Rank *pRank, float fPrimaryIndex, float fSecondaryIndex)
+    inline Scheduler::BiIndexMsgIDWrapper::BiIndexMsgIDWrapper (IHMC_VOI::Rank *pRank, float fPrimaryIndex, float fSecondaryIndex)
         : Scheduler::MonoIndexMsgIDWrapper (BiIndex, pRank, fPrimaryIndex),
           _fIndex2 (fSecondaryIndex)
     {
@@ -421,12 +437,12 @@ namespace IHMC_ACI
     inline Scheduler::ChunkIdWrapper::ChunkIdWrapper (const char *pszRequestingPeer, const char *pszMsgId)
         : requestingPeer (pszRequestingPeer), msgId (pszMsgId)
     {
-        pChunkIds = NULL;
+        pChunkIds = nullptr;
     }
 
     inline Scheduler::ChunkIdWrapper::~ChunkIdWrapper (void)
     {
-        pChunkIds = NULL;
+        pChunkIds = nullptr;
     }
 
     inline bool Scheduler::ChunkIdWrapper::operator > (const ChunkIdWrapper &rhsChunkIdWr)
@@ -455,7 +471,7 @@ namespace IHMC_ACI
     {
         return (requestingPeer == rhsChunkIdWr.requestingPeer) && (msgId == rhsChunkIdWr.msgId);
     }
-    
+
     inline Scheduler::MsgProperties::MsgProperties (void)
         : ui8Priority (0)
     {
@@ -466,5 +482,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	// INCL_SCHEDULER_H
-
+#endif    // INCL_SCHEDULER_H

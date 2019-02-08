@@ -14,7 +14,7 @@
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
- * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details. 
+ * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
 #ifndef INCL_DATA_STORE_H
@@ -59,7 +59,7 @@ namespace IHMC_ACI
              * @thread-safe
              */
             virtual int insert (const char *pszId, const char *pszObjectId, const char *pszInstanceId,
-                                const char *pszAnnotatedObjMsgId, const void *pAnnotationMetadata, uint32 ui32AnnotationMetdataLen, 
+                                const char *pszAnnotatedObjMsgId, const void *pAnnotationMetadata, uint32 ui32AnnotationMetdataLen,
                                 const char *pszMimeType, const char *pszChecksum, const char *pszReferredObjectId,
                                 const void *pBuf, uint32 ui32Len, bool bIsMetadata, int64 i64ExpirationTimeout, uint8 ui8ChunkId,
                                 uint8 ui8TotNChunks);
@@ -93,7 +93,7 @@ namespace IHMC_ACI
             /**
              * Returns the list of DSPro identifiers that correspond to the
              * object id in pszObjectId, and to the instance id in pszInstanceId.
-             * If pszInstanceId is set to NULL, then all the DSPro ids that
+             * If pszInstanceId is set to nullptr, then all the DSPro ids that
              * correspond to pszObjectId are returned.
              */
             char ** getDSProIds (const char *pszObjectId, const char *pszInstanceId);
@@ -114,6 +114,7 @@ namespace IHMC_ACI
             NOMADSUtil::PtrLList<MessageHeader> * getMessageInfos (const char *pszSQLStatement);
 
             PropertyStoreInterface * getPropertyStore (void);
+            IHMC_MISC::ChunkingManager * getChunkingManager (void);
 
             void lock (void);
             void unlock (void);

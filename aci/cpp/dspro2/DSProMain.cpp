@@ -27,14 +27,12 @@
 #include "Instrumentator.h"
 #include "Topology.h"
 
-#include "CommAdaptor.h"
-
 #include "ConfigManager.h"
 #include "FileUtils.h"
 
 #include "NetUtils.h"
 #include "NLFLib.h"
- #ifdef UNIX
+#ifdef UNIX
     #include "SigFaultHandler.h"
 #endif
 #include "StrClass.h"
@@ -43,6 +41,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <time.h>
+#include "Voi.h"
 
 #ifdef UNIX
     #include <execinfo.h>
@@ -54,7 +53,7 @@
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
-namespace IHMC_ACI
+namespace IHMC_ACI_DSPRO_MAIN
 {
     static NOMADSUtil::String Application_Executable_Name;
     static char BUILD_TIME[] = __DATE__ " " __TIME__;
@@ -66,22 +65,29 @@ namespace IHMC_ACI
         Arguments() {}
         ~Arguments() {}
 
+	bool bEnableShell = true;
         String pathToExecutable;
         String configFilePath;
         String metadataValuesFile;
         String metadataExtraAttributesFile;
     };
 
-    void printUsage()
+    void printVersion (void)
+    {
+        printf ("DSPro Version: %s.\n", BUILD_TIME);
+    }
+
+    void printUsage (void)
     {
         printf (usage);
         printf ("-c, --conf.\t\t\tSet the location of DS Pro property file.\n");
         printf ("-e, --metadataExtraAttr.\tSet the location of the XML file describing the extra metadata attributes to be used.\n");
         printf ("-v, --metadataValues.\t\tSet the location of the XML file describing the values that the metadata attributes can assume.\n");
+        printf ("--version, Prints the DSPro version.\n");
         printf ("-h, --help.\t\t\tPrint this help.\n");
     }
 
-    void printUsageAndExitWithError()
+    void printUsageAndExitWithError (void)
     {
         printUsage();
         exit(-1);
@@ -172,6 +178,18 @@ namespace IHMC_ACI
         return NULL;
     }
 
+    String getLogFileName (const char *pszLogDir, const char *pszLogFileName, const char *pszTimestamp)
+    {
+        String filename ((pszLogDir == NULL) ? "" : pszLogDir);
+        if (filename.length () > 0) {
+            filename += getPathSepCharAsString ();
+        }
+        filename += pszTimestamp;
+        filename += "-";
+        filename += pszLogFileName;
+        return filename;
+    }
+
     void initializeLogger (Logger **pLogger, const char *pszLogDir, const char *pszLogFileName,
                            const char *pszTimestamp, bool bEnableScreenOutput)
     {
@@ -188,13 +206,7 @@ namespace IHMC_ACI
             }
 
             // File output
-            String filename ((pszLogDir == NULL) ? "" : pszLogDir);
-            if (filename.length() > 0) {
-                filename += getPathSepCharAsString();
-            }
-            filename += pszTimestamp;
-            filename += "-";
-            filename += pszLogFileName;
+            String filename (getLogFileName (pszLogDir, pszLogFileName,pszTimestamp));
             (*pLogger)->initLogFile (filename.c_str(), false);
             (*pLogger)->enableFileOutput();
             printf ("Enabled logging on file %s\n", filename.c_str());
@@ -205,7 +217,7 @@ namespace IHMC_ACI
         }
     }
 
-    void initializeLoggers (const char *pszLogDir)
+    void initializeLoggers (const char *pszLogDir, ConfigManager &cfgMgr)
     {
         if (!FileUtils::directoryExists (pszLogDir)) {
             if (!FileUtils::createDirectory (pszLogDir)) {
@@ -222,9 +234,14 @@ namespace IHMC_ACI
         printf ("Running DSPro (Version built on %s).\n", BUILD_TIME);
         initializeLogger (&pLogger, pszLogDir, "dspro.log", timestamp, false);
         checkAndLogMsg ("main", Logger::L_Info, "Running DSPro version built on %s.\n", BUILD_TIME);
-        initializeLogger (&pNetLog, pszLogDir, "dspro-matchmaking.log", timestamp, false);
+        initializeLogger (&IHMC_VOI::pNetLog, pszLogDir, "dspro-matchmaking.log", timestamp, false);
         initializeLogger (&pTopoLog, pszLogDir, "dspro-topology.log", timestamp, false);
         initializeLogger (&pCmdProcLog, pszLogDir, "dspro-notifications.log", timestamp, false);
+
+        if (!cfgMgr.hasValue ("aci.dspro.stats.file")) {
+            String filename (getLogFileName (pszLogDir, "dsprostats.csv", timestamp));
+            cfgMgr.setValue ("aci.dspro.stats.file", filename);
+        }
     }
 
     int initializeAndStartProxyServer (DSPro *pDSPro, ConfigManager *pCfgMgr, DSProProxyServer &proxySrv)
@@ -270,6 +287,13 @@ namespace IHMC_ACI
             else if (option == "-v" || option == "--metadataValues") {
                 arguments.metadataValuesFile = getValue (argc, argv, ++i);
             }
+            else if (option == "--version") {
+                printVersion();
+                exit (0);
+            }
+	    else if ((option == "-n") || (option == "--no-shell")) {
+                arguments.bEnableShell = false;
+	    }
             else if (option == "-h" || option == "--help") {
                 printUsage();
                 exit(0);
@@ -285,7 +309,14 @@ namespace IHMC_ACI
         TERMINATE = true;
         exit (0);
     }
+
+    void sigPipeHandler (int sig)
+    {
+        checkAndLogMsg ("DSProMain", Logger::L_MildError, "SIGPIPE\n");
+    }
 }
+
+using namespace IHMC_ACI_DSPRO_MAIN;
 
 int main (int argc, char *argv[])
 {
@@ -293,30 +324,30 @@ int main (int argc, char *argv[])
     const char *pszMethodName = "DSProMain::main";
     #ifdef UNIX
         SigFaultHandler handler (Application_Executable_Name);
+        if (signal (SIGPIPE, sigPipeHandler) == SIG_ERR) {
+            fprintf (stderr, "Error registering SIGINT handler\n");
+            exit (-1);
+        }
+        signal (SIGPIPE, SIG_IGN);
     #endif
+
     if (signal (SIGINT, sigIntHandler) == SIG_ERR) {
         fprintf (stderr, "Error registering SIGINT handler\n");
         exit (-1);
     }
 
     // Parse arguments
-    IHMC_ACI::Arguments arguments;
-    IHMC_ACI::parseArguments (argc, argv, arguments);
+    Arguments arguments;
+    parseArguments (argc, argv, arguments);
 
     String homeDir;
     getHomeDir (arguments.pathToExecutable, homeDir);
 
-    String logDir (homeDir);
-    logDir += getPathSepCharAsString();
-    logDir += "logs";
-    IHMC_ACI::initializeLoggers (logDir);
-
     if (arguments.configFilePath.length() <= 0) {
-        IHMC_ACI::getDefaultConfigFile (homeDir, "dspro.properties", arguments.configFilePath, false);
+        getDefaultConfigFile (homeDir, "dspro.properties", arguments.configFilePath);
     }
     if (!FileUtils::fileExists (arguments.configFilePath.c_str())) {
-        checkAndLogMsg (pszMethodName, Logger::L_Info, "The config file at "
-                        "location: %s does not exist!\n", arguments.configFilePath.c_str());
+        printf ("The config file at location: %s does not exist!\n", arguments.configFilePath.c_str());
     }
 
     ConfigManager cfgMgr;
@@ -326,9 +357,16 @@ int main (int argc, char *argv[])
         exit (1);
     }
     if ((rc = cfgMgr.readConfigFile (arguments.configFilePath)) != 0) {
-        checkAndLogMsg (pszMethodName, Logger::L_Warning, "Error in config file "
-                        "%s reading. Returned code %d\n", arguments.configFilePath.c_str(), rc);
+        printf ("Error in config file %s reading. Returned code %d\n", arguments.configFilePath.c_str(), rc);
     }
+    else {
+        printf ("Config file %s read correctly.\n", arguments.configFilePath.c_str());
+    }
+
+    String logDir (homeDir);
+    logDir += getPathSepCharAsString();
+    logDir += "log";
+    initializeLoggers (logDir, cfgMgr);
 
     //Initializing and starting DSPro
     String nodeId;
@@ -340,7 +378,7 @@ int main (int argc, char *argv[])
     // Read extra-attributes if necessary
     char *pszMetadataExtraAttributes = NULL;
     if (arguments.metadataExtraAttributesFile.length() <= 0) {
-        IHMC_ACI::getDefaultConfigFile (homeDir, "metadataExtraAttributes.xml", arguments.metadataExtraAttributesFile);
+        getDefaultConfigFile (homeDir, "metadataExtraAttributes.xml", arguments.metadataExtraAttributesFile);
     }
     if (arguments.metadataExtraAttributesFile.length() > 0) {
         DSLib::readFileIntoString (arguments.metadataExtraAttributesFile, &pszMetadataExtraAttributes);
@@ -349,7 +387,7 @@ int main (int argc, char *argv[])
     // Read extra-values if necessary
     char *pszMetadataValues = NULL;
     if (arguments.metadataValuesFile.length() <= 0) {
-        IHMC_ACI::getDefaultConfigFile (homeDir, "metadataExtraValues.xml", arguments.metadataExtraAttributesFile);
+        getDefaultConfigFile (homeDir, "metadataExtraValues.xml", arguments.metadataExtraAttributesFile);
     }
     if (arguments.metadataValuesFile.length() > 0) {
         DSLib::readFileIntoString (arguments.metadataValuesFile, &pszMetadataValues);
@@ -362,14 +400,9 @@ int main (int argc, char *argv[])
         return 3;
     }
 
-    uint16 ui16;
-    uint16 ui16ClientId = 0;
-    DSProCmdProcessor dsproCmdProc (&dspro);
-    dspro.registerDSProListener (ui16ClientId, &dsproCmdProc, ui16);
-    dspro.registerSearchListener (ui16ClientId, &dsproCmdProc, ui16);
-
     //Initializing and starting ProxyServer
-    DSProProxyServer proxySrv;
+    const bool bStrictProxy = cfgMgr.getValueAsBool ("aci.dspro.proxy.server.strict", false);
+    DSProProxyServer proxySrv (bStrictProxy);
     rc = initializeAndStartProxyServer (&dspro, &cfgMgr, proxySrv);
     if (rc != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "DSProProxyServer has failed to initialize. Return code: %d\n", rc);
@@ -378,7 +411,19 @@ int main (int argc, char *argv[])
 
     // Connect to peers
     DSProUtils::addPeers (dspro, cfgMgr);
-    dsproCmdProc.run();
+    if (arguments.bEnableShell) {
+        uint16 ui16;
+        uint16 ui16ClientId = 0;
+        DSProCmdProcessor dsproCmdProc (&dspro);
+        dspro.registerDSProListener (ui16ClientId, &dsproCmdProc, ui16);
+        dspro.registerSearchListener (ui16ClientId, &dsproCmdProc, ui16);
+        dsproCmdProc.run();
+    }
+    else {
+        while (true) {
+            sleepForMilliseconds (3000);
+        }
+    }
 
     // Request Termination
     proxySrv.requestTerminationAndWait();
@@ -386,8 +431,8 @@ int main (int argc, char *argv[])
     // And delete objects
     delete pLogger;
     pLogger = NULL;
-    delete pNetLog;
-    pNetLog = NULL;
+    delete IHMC_VOI::pNetLog;
+    IHMC_VOI::pNetLog = NULL;
     delete pTopoLog;
     pTopoLog = NULL;
 

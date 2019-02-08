@@ -1,4 +1,4 @@
-/* 
+/*
  * TCPEndPoint.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_TCP_END_POINT_H
-#define	INCL_TCP_END_POINT_H
+#define INCL_TCP_END_POINT_H
 
 #include "ConnEndPoint.h"
 
@@ -52,5 +52,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_TCP_END_POINT_H */
-
+#endif    /* INCL_TCP_END_POINT_H */

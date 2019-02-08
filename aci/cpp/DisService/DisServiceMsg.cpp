@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,6 +27,7 @@
 #include "MessageRequestScheduler.h"
 #include "Subscription.h"
 #include "RangeDLList.h"
+#include "SessionId.h"
 
 #include "BufferReader.h"
 #include "InstrumentedWriter.h"
@@ -203,7 +204,7 @@ int DisServiceMsg::write (Writer *pWriter, uint32 ui32MaxSize)
     }
     uint8 ui8 = _type;
     if (pWriter->write8 (&ui8) < 0) {
-        return -1; 
+        return -1;
     }
 
     // Write _targetNodeId
@@ -291,12 +292,12 @@ bool DisServiceMsg::Range::operator < (const Range &range) const
 
 uint32 DisServiceMsg::Range::getFrom (void) const
 {
-   return from; 
+   return from;
 }
 
 uint32 DisServiceMsg::Range::getTo (void) const
 {
-   return to; 
+   return to;
 }
 
 //==============================================================================
@@ -599,6 +600,72 @@ int DisServiceDataMsg::write (Writer *pWriter, uint32 ui32MaxSize)
     return 0;
 }
 
+//==============================================================================
+//  DisServiceSessionSyncMsg
+//==============================================================================
+DisServiceSessionSyncMsg::DisServiceSessionSyncMsg (void)
+    : DisServiceCtrlMsg (DSMT_SessionSync)
+{
+    _sync.i64Timestamp = 0;
+}
+
+DisServiceSessionSyncMsg::DisServiceSessionSyncMsg (const char *pszSenderNodeId)
+    : DisServiceCtrlMsg (DSMT_SessionSync, pszSenderNodeId)
+{
+    int64 i64Timestamp = 0;
+    String sessionId (SessionId::getInstance()->getSessionIdAndTimestamp (i64Timestamp));
+
+    _sync._sessionId = sessionId;
+    _sync.i64Timestamp = i64Timestamp;
+}
+
+DisServiceSessionSyncMsg::~DisServiceSessionSyncMsg (void)
+{
+}
+
+String DisServiceSessionSyncMsg::getSessionSync (int64 &i64Timestamp)
+{
+    i64Timestamp = _sync.i64Timestamp;
+    return _sync._sessionId;
+}
+
+int DisServiceSessionSyncMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
+{
+    if (DisServiceCtrlMsg::read (pReader, ui32MaxSize) != 0) {
+        return -1;
+    }
+
+    char *pszSession = NULL;
+    if (pReader->readString (&pszSession) < 0) {
+        return -2;
+    }
+    int64 i64Timestamp = 0;
+    if (pReader->read64 (&i64Timestamp) < 0) {
+        return -3;
+    }
+
+    _sync._sessionId = pszSession;
+    _sync.i64Timestamp = i64Timestamp;
+
+    return 0;
+}
+
+int DisServiceSessionSyncMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
+{
+    _sessionId = "*";
+    if (DisServiceCtrlMsg::write (pWriter, ui32MaxSize) != 0) {
+        return -1;
+    }
+
+    if (pWriter->writeString (_sync._sessionId) < 0) {
+        return -2;
+    }
+    if (pWriter->write64 (&_sync.i64Timestamp) < 0) {
+        return -3;
+    }
+
+    return 0;
+}
 
 //==============================================================================
 //  DisServiceDataReqMsg
@@ -607,21 +674,25 @@ const uint8 DisServiceDataReqMsg::HAS_NEXT = 1;
 const uint8 DisServiceDataReqMsg::DOES_NOT_HAVE_NEXT = 0;
 
 DisServiceDataReqMsg::DisServiceDataReqMsg()
-    : DisServiceCtrlMsg (DSMT_DataReq)
+    : DisServiceCtrlMsg (DSMT_DataReq),
+      _ui16NumberOfNeighbors (0),
+      _pFragmentRequests (NULL),
+      _pCompleteMessageRequests (NULL),
+      _i64SendingTime (getTimeInMilliseconds())
 {
-    _pFragmentRequests = NULL;
-    _pCompleteMessageRequests = NULL;
 }
 
 DisServiceDataReqMsg::DisServiceDataReqMsg (const char *pszSenderNodeId, const char *pszQueryTargetNodeId,
                                             uint16 ui16NumberOfNeighbors,
                                             PtrLList<FragmentRequest> *pMessageRequests,
                                             PtrLList<FragmentRequest> *pFragmentRequests)
-    : DisServiceCtrlMsg (DSMT_DataReq, pszSenderNodeId), _queryTargetNodeId (pszQueryTargetNodeId)
+    : DisServiceCtrlMsg (DSMT_DataReq, pszSenderNodeId),
+      _ui16NumberOfNeighbors (ui16NumberOfNeighbors),
+      _pFragmentRequests (pFragmentRequests),
+      _pCompleteMessageRequests (pMessageRequests),
+      _i64SendingTime (getTimeInMilliseconds()),
+      _queryTargetNodeId (pszQueryTargetNodeId)
 {
-    _pFragmentRequests = pFragmentRequests;
-    _pCompleteMessageRequests = pMessageRequests;
-    _ui16NumberOfNeighbors = ui16NumberOfNeighbors;
 }
 
 DisServiceDataReqMsg::~DisServiceDataReqMsg()
@@ -760,54 +831,78 @@ int DisServiceDataReqMsg::read (Reader *pReader, uint32 ui32MaxSize)
     }
 
     // read the number of neighboring peers
-    pReader->read16 (&_ui16NumberOfNeighbors);
+    if (pReader->read16 (&_ui16NumberOfNeighbors) < 0) {
+        return -3;
+    }
 
     if (_pFragmentRequests == NULL) {
         _pFragmentRequests = new PtrLList<DisServiceDataReqMsg::FragmentRequest>();
     }
 
     // Read elements
-    PtrLList<Range> *pLL = NULL;
-    MessageHeader *pMH = NULL;
-    //MessageInfo * pMI = NULL;
-    pReader->getTotalBytesRead();
     uint8 ui8HasNext;
-    for (pReader->read8 (&ui8HasNext); ui8HasNext == 1; pReader->read8 (&ui8HasNext)) {
-        pLL = new PtrLList<Range>();
+    for (int rc = pReader->read8 (&ui8HasNext); (ui8HasNext == 1) && (rc >= 0); rc = pReader->read8 (&ui8HasNext)) {
+        PtrLList<Range> *pLL = new PtrLList<Range>();
         uint16 ui16;
-        pReader->read16 (&ui16);
+        if (pReader->read16 (&ui16) < 0) {
+            return -4;
+        }
         char *pszGroupName = new char [ui16 + 1];
-        pReader->readBytes (pszGroupName, ui16);
+        if (pReader->readBytes (pszGroupName, ui16) < 0) {
+            return -5;
+        }
         pszGroupName[ui16] = '\0';
-        pReader->read16 (&ui16);
+        if (pReader->read16 (&ui16) < 0) {
+            return -6;
+        }
         char *pszSenderNodeId = new char [ui16 + 1];
-        pReader->readBytes (pszSenderNodeId, ui16);
+        if (pReader->readBytes (pszSenderNodeId, ui16) < 0) {
+            return -7;
+        }
         pszSenderNodeId[ui16] = '\0';
         uint32 ui32MsgSeqId;
-        pReader->read32 (&ui32MsgSeqId);
+        if (pReader->read32 (&ui32MsgSeqId) < 0) {
+            return -8;
+        }
 
-        pReader->read16 (&ui16);
+        if (pReader->read16 (&ui16) < 0) {
+            return -9;
+        }
         char *pszObjectId = NULL;
         if (ui16 > 0) {
             pszObjectId = new char [ui16 + 1];
-            pReader->readBytes (pszObjectId, ui16);
+            if (pReader->readBytes (pszObjectId, ui16) < 0) {
+                return -10;
+            }
             pszObjectId[ui16] = '\0';
         }
 
-        pReader->read16 (&ui16);
+        if (pReader->read16 (&ui16) < 0) {
+            return -12;
+        }
         char *pszInstanceId = NULL;
         if (ui16 > 0) {
             pszInstanceId = new char [ui16 + 1];
-            pReader->readBytes (pszInstanceId, ui16);
+            if (pReader->readBytes (pszInstanceId, ui16) < 0) {
+                return -13;
+            }
             pszInstanceId[ui16] = '\0';
         }
 
         uint16 ui16Tag;
-        pReader->read16 (&ui16Tag);  // read the tag
-        uint32 ui32TotMsgLen;
-        pReader->read32 (&ui32TotMsgLen);  // read the TotalMessageLengtht
+        if (pReader->read16 (&ui16Tag) < 0) {  // read the tag
+            return -14;
+        }
+        uint32 ui32TotMsgLen = 0U;
+        if (pReader->read32 (&ui32TotMsgLen) < 0) { // read the TotalMessageLengtht
+            return -15;
+        }
         uint8 ui8ChunkId;
-        pReader->read8 (&ui8ChunkId);
+        if (pReader->read8 (&ui8ChunkId) < 0) {
+            return -16;
+        }
+
+        MessageHeader *pMH = NULL;
         if (ui8ChunkId == MessageHeader::UNDEFINED_CHUNK_ID) {
             pMH = new MessageInfo (pszGroupName, pszSenderNodeId, ui32MsgSeqId, pszObjectId, pszInstanceId, ui16Tag,
                                    0, // ui16ClientId - it's not actually used in this context
@@ -821,7 +916,9 @@ int DisServiceDataReqMsg::read (Reader *pReader, uint32 ui32MaxSize)
         else {
             // Read also the ChunkId
             uint8 ui8TotNChunks;
-            pReader->read8 (&ui8TotNChunks);
+            if (pReader->read8 (&ui8TotNChunks) < 0) {
+                return -17;
+            }
             pMH = new ChunkMsgInfo (pszGroupName, pszSenderNodeId, ui32MsgSeqId, ui8ChunkId,
                                     pszObjectId, pszInstanceId, ui16Tag,
                                     0, // ui16ClientId - it's not actually used in this context
@@ -837,11 +934,18 @@ int DisServiceDataReqMsg::read (Reader *pReader, uint32 ui32MaxSize)
         for (pReader->read8 (&ui8HasNext); ui8HasNext == 1; pReader->read8 (&ui8HasNext)) {
             uint32 ui32From;
             uint16 ui16Length;
-            pReader->read32 (&ui32From);
-            pReader->read16 (&ui16Length);
+            if (pReader->read32 (&ui32From) < 0) {
+                return -18;
+            }
+            if (pReader->read16 (&ui16Length) < 0) {
+                return -19;
+            }
             pLL->insert (new Range (ui32From, ui32From + ui16Length));
         }
-        _pFragmentRequests->insert (new FragmentRequest (pMH, pLL));
+        FragmentRequest *ptmp = new FragmentRequest (pMH, pLL);
+        if (ptmp != NULL) {
+            _pFragmentRequests->insert (ptmp);
+        }
 
         delete[] pszGroupName;
         pszGroupName = NULL;
@@ -884,7 +988,7 @@ int DisServiceDataReqMsg::writeRequests (PtrLList<FragmentRequest> *pRequests, I
     if (pRequests == NULL) {
         return 0;
     }
-    
+
     BufferWriter bw (ui32MaxSize, ui32MaxSize);
     int rc = 0;
 
@@ -932,12 +1036,12 @@ int DisServiceDataReqMsg::writeRequest (FragmentRequest *pFragmentRequest, Buffe
 
     String tmp (pMH->getGroupName());
     uint16 ui16 = tmp.length();
-    bwTemp.write16(&ui16);
+    bwTemp.write16 (&ui16);
     bwTemp.writeBytes ((const char*) tmp, ui16);
 
     tmp = pMH->getPublisherNodeId();
     ui16 = tmp.length();
-    bwTemp.write16(&ui16);
+    bwTemp.write16 (&ui16);
     bwTemp.writeBytes ((const char*) tmp, ui16);
 
     uint32 ui32MsgSeqId = pMH->getMsgSeqId();
@@ -1085,8 +1189,10 @@ int DisServiceIncrementalDataReqMsg::write (NOMADSUtil::Writer *pWriter, uint32 
     FragmentRequest *pFragReq = _pReqScheduler->getRequest();
     while ((pFragReq != NULL) && (add (&iw, pFragReq) == 0)) {
         bAtLeastOneRequest = true;
+        delete pFragReq;
         pFragReq = _pReqScheduler->getRequest();
     }
+    delete pFragReq;
 
     if (!bAtLeastOneRequest) {
         return 1;
@@ -1271,13 +1377,15 @@ DisServiceDataReqMsg::ChunkMessageRequest::~ChunkMessageRequest()
 
 DisServiceWorldStateSeqIdMsg::DisServiceWorldStateSeqIdMsg()
     : DisServiceCtrlMsg (DSMT_WorldStateSeqId)
-{    
+{
     _ui32TopologyStateUpdateSeqId = 0;
     _ui16SubscriptionStateCRC = 0;
     _ui32DataCacheStateUpdateSeqId = 0;
     _ui8repCtrlType = 0;
     _ui8fwdCtrlType = 0;
     _ui8NodeImportance = 0;
+    _seqId = 0;
+
 }
 
 DisServiceWorldStateSeqIdMsg::DisServiceWorldStateSeqIdMsg (const char *pszSenderNodeId,
@@ -1461,6 +1569,10 @@ void DisServiceWorldStateSeqIdMsg::setNodesInConnectivityHistory (uint8 ui8Nodes
 void DisServiceWorldStateSeqIdMsg::setNodesRepetitivity (uint8 ui8NodesRepetitivity)
 {
     _ui8NodesRepetitivity = ui8NodesRepetitivity;
+}
+
+void DisServiceWorldStateSeqIdMsg::setPubAdv (const String &group, uint32 ui32) {
+
 }
 
 //==============================================================================
@@ -1676,16 +1788,16 @@ StringHashtable<uint32> * DisServiceSubscriptionStateReqMsg::getSubscriptionStat
 //==============================================================================
 DisServiceDataCacheQueryMsg::DisServiceDataCacheQueryMsg()
     : DisServiceCtrlMsg (DSMT_DataCacheQuery)
-{ 
+{
 }
 
 DisServiceDataCacheQueryMsg::DisServiceDataCacheQueryMsg (const char *pszSenderNodeId, const char *pszQueryTargetNodeId)
     : DisServiceCtrlMsg (DSMT_DataCacheQuery, pszSenderNodeId, pszQueryTargetNodeId )
-{ 
+{
 }
 
 DisServiceDataCacheQueryMsg::~DisServiceDataCacheQueryMsg()
-{ 
+{
 }
 
 int DisServiceDataCacheQueryMsg::read (Reader *pReader, uint32 ui32MaxSize)
@@ -1715,7 +1827,7 @@ int DisServiceDataCacheQueryMsg::read (Reader *pReader, uint32 ui32MaxSize)
 }
 
 int DisServiceDataCacheQueryMsg::write (Writer *pWriter, uint32 ui32MaxSize)
-{ 
+{
     InstrumentedWriter iw (pWriter);
     if (DisServiceCtrlMsg::write (&iw, ui32MaxSize) != 0) {
         return -1;
@@ -1725,7 +1837,7 @@ int DisServiceDataCacheQueryMsg::write (Writer *pWriter, uint32 ui32MaxSize)
     ui16Length = (uint16)(_queries.getHighestIndex() + 1);
     iw.write16(&ui16Length);
     BufferWriter bw (1024, 1024);
-    for (uint16 i = 0; i <= _queries.getHighestIndex(); i++) { 
+    for (uint16 i = 0; i <= _queries.getHighestIndex(); i++) {
         if (_queries.used(i)) {
             ui16Length = _queries[i].length();
             bw.write16 (&ui16Length);
@@ -1737,7 +1849,7 @@ int DisServiceDataCacheQueryMsg::write (Writer *pWriter, uint32 ui32MaxSize)
             else {
                 break;
             }
-        }        
+        }
     }
 
     _ui16Size = iw.getBytesWritten();
@@ -1756,7 +1868,7 @@ int DisServiceDataCacheQueryMsg::addQuery (DisServiceDataCacheQuery * pQuery)
 }
 
 uint16 DisServiceDataCacheQueryMsg::getQueryCount()
-{ 
+{
     return (uint16)(_queries.getHighestIndex() + 1);
 }
 
@@ -1903,7 +2015,7 @@ const char * DisServiceDataCacheQueryReplyMsg::getID (uint16 ui16Index)
 DisServiceDataCacheMessagesRequestMsg::DisServiceDataCacheMessagesRequestMsg()
     : DisServiceCtrlMsg (DSMT_DataCacheMessagesRequest)
 {
-    _pMessageIDs = NULL;	
+    _pMessageIDs = NULL;
     _bDeleteMessageIDs = false;
 }
 
@@ -1913,7 +2025,7 @@ DisServiceDataCacheMessagesRequestMsg::DisServiceDataCacheMessagesRequestMsg (co
     : DisServiceCtrlMsg (DSMT_DataCacheMessagesRequest, pszSenderNodeId),
       _targetNodeId (pszQueryTargetNodeId)
 {
-    _pMessageIDs = pMessageIDs;	
+    _pMessageIDs = pMessageIDs;
     _bDeleteMessageIDs = false;
 }
 
@@ -1995,7 +2107,7 @@ int DisServiceDataCacheMessagesRequestMsg::write (Writer *pWriter, uint32 ui32Ma
                 else {
                     break;
                 }
-            }        
+            }
         }
     }
 
@@ -2060,12 +2172,12 @@ int DisServiceAcknowledgmentMessage::read (Reader *pReader, uint32 ui32MaxSize)
 
     delete[] pszMsgToAck;
     _ui16Size = pReader->getTotalBytesRead();
-    return 0;    
+    return 0;
 }
 
 int DisServiceAcknowledgmentMessage::write (Writer *pWriter, uint32 ui32MaxSize)
 {
-    InstrumentedWriter iw (pWriter);  
+    InstrumentedWriter iw (pWriter);
     if (DisServiceCtrlMsg::write (&iw, ui32MaxSize) != 0) {
         return -1;
     }
@@ -2098,7 +2210,7 @@ DisServiceCompleteMessageReqMsg::DisServiceCompleteMessageReqMsg (const char* ps
 }
 
 DisServiceCompleteMessageReqMsg::~DisServiceCompleteMessageReqMsg()
-{   
+{
 }
 
 int DisServiceCompleteMessageReqMsg::read (Reader *pReader, uint32 ui32MaxSize)
@@ -2117,10 +2229,10 @@ int DisServiceCompleteMessageReqMsg::read (Reader *pReader, uint32 ui32MaxSize)
     pReader->readBytes (pszMsgId, ui16length);
     pszMsgId [ui16length] = '\0';
     _pMsgId = pszMsgId;
-    
+
     delete[] pszMsgId;
     _ui16Size = pReader->getTotalBytesRead();
-    return 0;    
+    return 0;
 }
 
 int DisServiceCompleteMessageReqMsg::write (Writer *pWriter, uint32 ui32MaxSize)
@@ -2157,7 +2269,7 @@ DisServiceCacheEmptyMsg::DisServiceCacheEmptyMsg (const char* pszSenderNodeId)
 }
 
 DisServiceCacheEmptyMsg::~DisServiceCacheEmptyMsg()
-{   
+{
 }
 
 int DisServiceCacheEmptyMsg::read (Reader *pReader, uint32 ui32MaxSize)
@@ -2170,7 +2282,7 @@ int DisServiceCacheEmptyMsg::read (Reader *pReader, uint32 ui32MaxSize)
         return -2;
     }
 
-    return 0;    
+    return 0;
 }
 
 int DisServiceCacheEmptyMsg::write (Writer *pWriter, uint32 ui32MaxSize)
@@ -2721,7 +2833,7 @@ int ChunkRetrievalMsgQuery::read (Reader *pReader, uint32 ui32MaxSize)
         }
     }
 
-    _ui16Size = pReader->getTotalBytesRead();    
+    _ui16Size = pReader->getTotalBytesRead();
     return 0;
 }
 
@@ -2785,8 +2897,8 @@ ChunkRetrievalMsgQueryHits::ChunkRetrievalMsgQueryHits (bool bDeallocateChunks)
      _pCMHs = NULL;
 }
 
-ChunkRetrievalMsgQueryHits::ChunkRetrievalMsgQueryHits (const char *pszSenderNodeId, 
-                                                        const char *pszTargetNodeId, 
+ChunkRetrievalMsgQueryHits::ChunkRetrievalMsgQueryHits (const char *pszSenderNodeId,
+                                                        const char *pszTargetNodeId,
                                                         PtrLList<MessageHeader> *pCMHs,
                                                         const char *pszQueryId, bool bDeallocateChunks)
     : DisServiceCtrlMsg (CRMT_QueryHits, pszSenderNodeId, pszTargetNodeId),
@@ -2824,7 +2936,7 @@ int ChunkRetrievalMsgQueryHits::read (Reader *pReader, uint32 ui32MaxSize)
     }
 
     // Read the MessageHeaders
-    uint16 ui16;  
+    uint16 ui16;
 
     // Read pszQueryId
     char *pszTemp = NULL;
@@ -2910,7 +3022,7 @@ int ChunkRetrievalMsgQueryHits::read (Reader *pReader, uint32 ui32MaxSize)
     delete[] pszPublisherNodeId;
     pszPublisherNodeId = NULL;
 
-    _ui16Size = pReader->getTotalBytesRead();    
+    _ui16Size = pReader->getTotalBytesRead();
     return 0;
 }
 
@@ -2985,22 +3097,22 @@ int ChunkRetrievalMsgQueryHits::write (Writer *pWriter, uint32 ui32MaxSize)
     do {
         ui8 = pMH->getChunkId();
         iw.write8 (&ui8);
-    
+
         ui32 = pMH->getTotalMessageLength();
         iw.write32 (&ui32);
 
     } while ((pMH = _pCMHs->getNext()) != NULL);
 
     _ui16Size = iw.getBytesWritten();
-    return iw.getBytesWritten() <= ui32MaxSize ? 0 : -5;  
+    return iw.getBytesWritten() <= ui32MaxSize ? 0 : -5;
 }
 
-PtrLList<MessageHeader> * ChunkRetrievalMsgQueryHits::getMessageHeaders() 
+PtrLList<MessageHeader> * ChunkRetrievalMsgQueryHits::getMessageHeaders()
 {
     return _pCMHs;
 }
 
-const char *ChunkRetrievalMsgQueryHits::getQueryId() 
+const char *ChunkRetrievalMsgQueryHits::getQueryId()
 {
     return _queryId.c_str();
 }
@@ -3043,13 +3155,13 @@ int DisServiceSubscribtionAdvertisement::addSubscription (const char *pszSubscri
     if (pszSubscription == NULL) {
         return -1;
     }
-    
+
     String *pszSub = new String (pszSubscription);
     if (pszSub == NULL) {
         return -1;
     }
     _subscriptionList.append (pszSub);
-    
+
     return 0;
 }
 
@@ -3058,14 +3170,14 @@ int DisServiceSubscribtionAdvertisement::removeSubscription (const char *pszSubs
     if (pszSubscription == NULL) {
         return -1;
     }
-    
+
     String sSub (pszSubscription);
     String *pszRet = _subscriptionList.remove (&sSub);
     if (pszRet == NULL) {
         return -1;
     }
     delete pszRet;
-    
+
     return 0;
 }
 
@@ -3074,13 +3186,13 @@ int DisServiceSubscribtionAdvertisement::prependNode (const char *pszNodeId)
     if (pszNodeId == NULL) {
         return -1;
     }
-    
+
     String *pNewString = new String (pszNodeId);
     if (pNewString == NULL) {
         return -1;
     }
     _path.prepend (pNewString);
-    
+
     return 0;
 }
 
@@ -3108,7 +3220,7 @@ int DisServiceSubscribtionAdvertisement::read (NOMADSUtil::Reader *pReader, uint
     if (_type != DisServiceMsg::DSMT_SubAdvMessage) {
         return -2;
     }
-    
+
     // Read OriginatorNodeId
     uint16 ui16OriginatorLength;
     pReader->read16 (&ui16OriginatorLength);
@@ -3117,7 +3229,7 @@ int DisServiceSubscribtionAdvertisement::read (NOMADSUtil::Reader *pReader, uint
     pszOriginator[ui16OriginatorLength] = '\0';
     _originatorNodeId = pszOriginator;
     delete[] pszOriginator;
-    
+
     /* Read the Subscriptions */
     uint8 ui8SubNum;
     pReader->read8 (&ui8SubNum);
@@ -3135,11 +3247,11 @@ int DisServiceSubscribtionAdvertisement::read (NOMADSUtil::Reader *pReader, uint
         _subscriptionList.append (new String (pszSub));
         delete[] pszSub;
     }
-    
+
     /* Read Path */
     uint16 ui16Nodes;
     pReader->read16 (&ui16Nodes);
-    
+
     for (int j = 0; j < ui16Nodes; j++) {
         uint16 ui16Length;
         pReader->read16 (&ui16Length);
@@ -3149,12 +3261,12 @@ int DisServiceSubscribtionAdvertisement::read (NOMADSUtil::Reader *pReader, uint
         _path.append (new String (pszNode));
         delete[] pszNode;
     }
-    
+
     // If the originator is not included yet add to the path
     if (_path.search (&_originatorNodeId) == NULL) {
         _path.append (&_originatorNodeId);
     }
-    
+
     return 0;
 }
 
@@ -3165,12 +3277,12 @@ int DisServiceSubscribtionAdvertisement::write (NOMADSUtil::Writer *pWriter, uin
     if (DisServiceCtrlMsg::write (&iw, ui32MaxSize) != 0) {
         return -1;
     }
-    
+
     // Write Originator Node Id
     uint16 ui16OriginatorLength = _originatorNodeId.length();
     iw.write16 (&ui16OriginatorLength);
     iw.writeBytes (_originatorNodeId.c_str(), ui16OriginatorLength);
-    
+
     /* Write Subscriptions */
     uint8 ui8SubNum = _subscriptionList.getCount();
     if (ui8SubNum == 0) {
@@ -3179,23 +3291,23 @@ int DisServiceSubscribtionAdvertisement::write (NOMADSUtil::Writer *pWriter, uin
     iw.write8 (&ui8SubNum);
     for (String *pszSub = _subscriptionList.getFirst(); pszSub != NULL;
          pszSub = _subscriptionList.getNext()) {
-        
+
         uint16 ui16Length = pszSub->length();
         iw.write16 (&ui16Length);
         iw.writeBytes (pszSub->c_str(), ui16Length);
     }
-    
+
     /* Write Path if any */
     uint16 ui16Nodes = _path.getCount();
     iw.write16 (&ui16Nodes);
     for (String *pszNode = _path.getFirst(); pszNode != NULL;
          pszNode = _path.getNext()) {
-                
+
         uint16 ui16Length = pszNode->length();
         iw.write16 (&ui16Length);
         iw.writeBytes (pszNode->c_str(), ui16Length);
     }
-    
+
     return 0;
 }
 
@@ -3218,14 +3330,14 @@ void DisServiceSubscribtionAdvertisement::display()
     sDisplay += ":";
     for (String *pszSub = _subscriptionList.getFirst(); pszSub != NULL;
          pszSub = _subscriptionList.getNext()) {
-        
+
         sDisplay += pszSub->c_str();
         sDisplay += ":";
     }
-    
+
     for (String *pszNode = _path.getFirst(); pszNode != NULL;
          pszNode = _path.getNext()) {
-        
+
         sDisplay += pszNode->c_str();
         sDisplay += ":";
     }
@@ -3367,7 +3479,7 @@ int ControllerToControllerMsg::writeInternal (Writer *pWriter, uint32 ui32MaxSiz
     if (pWriter == NULL) {
         return -1;
     }
-    if ((_receiverNodeID == NULL)||(_senderNodeId == NULL)) {
+    if ((_receiverNodeID == NULL) || (_senderNodeId == NULL)) {
         return -1;
     }
     if (DisServiceMsg::write (pWriter, ui32MaxSize) != 0) {
@@ -3384,7 +3496,7 @@ int ControllerToControllerMsg::writeInternal (Writer *pWriter, uint32 ui32MaxSiz
     }
 
     uint32 ui32TotLength = 1;
-    rc = pWriter->writeBytes((const char *) _receiverNodeID, ui8Length);
+    rc = pWriter->writeBytes ((const char *) _receiverNodeID, ui8Length);
     if (rc < 0) {
         return rc;
     }
@@ -3392,7 +3504,7 @@ int ControllerToControllerMsg::writeInternal (Writer *pWriter, uint32 ui32MaxSiz
     if (bCheckSize && ui32MaxSize < (ui32TotLength + 1)) {
         return -2;
     }
-    rc = pWriter->write8(&_ui8CtrlType);
+    rc = pWriter->write8 (&_ui8CtrlType);
     if (rc < 0) return rc;
     ui32TotLength += 1;
     if (bCheckSize && ui32MaxSize < (ui32TotLength + 1)) {
@@ -3660,7 +3772,7 @@ int ReplicationStartReplyMsg::writeMessageList (NOMADSUtil::BufferWriter *pWrite
         }
         // To distinguish the end of a group, write a pubNodeId length of "-1"
         pWriter->write16 (&ui16GrpTerm);
-      
+
     }
     // Terminate the buffer with a groupName length of "0"
     pWriter->write16 (&ui16Term);
@@ -4286,7 +4398,7 @@ int BaseSearchReplyMsg::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
     else {
         return -13;
     }
-    
+
     return 0;
 }
 
@@ -4491,7 +4603,7 @@ int VolatileSearchReplyMsg::setReply (const void *pReply, uint16 ui16ReplyLen)
     if (_pReply == NULL) {
         return -2;
     }
-    _ui16ReplyLen = ui16ReplyLen;    
+    _ui16ReplyLen = ui16ReplyLen;
     memcpy (_pReply, pReply, ui16ReplyLen);
     return 0;
 }
@@ -4545,7 +4657,7 @@ int VolatileSearchReplyMsg::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSi
 
 
 //==============================================================================
-// DisServiceImprovedSubscriptionStateMsg 
+// DisServiceImprovedSubscriptionStateMsg
 //==============================================================================
 
 DisServiceImprovedSubscriptionStateMsg::DisServiceImprovedSubscriptionStateMsg (void)
@@ -4577,7 +4689,7 @@ int DisServiceImprovedSubscriptionStateMsg::read (Reader *pReader, uint32 ui32Ma
     // _pSubscriptionsTable: nodeId->subscriptionList; subscriptionList: groupName->subscription
     // _pNodesTable: nodeId->sequenceId
     _pSubscriptionsTable = new StringHashtable<SubscriptionList>();
-    _pNodesTable = new StringHashtable<uint32>(); 
+    _pNodesTable = new StringHashtable<uint32>();
     uint8 ui8Nodes;
     pReader->read8 (&ui8Nodes);
     for (int i = 0; i < ui8Nodes; i++) {
@@ -4587,7 +4699,7 @@ int DisServiceImprovedSubscriptionStateMsg::read (Reader *pReader, uint32 ui32Ma
         pReader->readBytes (pszNodeId, ui8NodeIdLength);
         pszNodeId[ui8NodeIdLength] = '\0';
         String nodeId = pszNodeId;
-        delete[] pszNodeId;    
+        delete[] pszNodeId;
         pszNodeId = NULL;
         uint8 ui8Subscriptions;
         pReader->read8 (&ui8Subscriptions);
@@ -4599,7 +4711,7 @@ int DisServiceImprovedSubscriptionStateMsg::read (Reader *pReader, uint32 ui32Ma
             pReader->readBytes (pszGroupName, ui8groupNameLength);
             pszGroupName[ui8groupNameLength] = '\0';
             String groupName = pszGroupName;
-            delete[] pszGroupName;    
+            delete[] pszGroupName;
             pszGroupName = NULL;
             uint8 ui8SubType;
             pReader->read8 (&ui8SubType);
@@ -4647,7 +4759,7 @@ int DisServiceImprovedSubscriptionStateMsg::write (Writer *pWriter, uint32 ui32M
     BufferWriter nodesBW (ui32MaxSize, ui32MaxSize);
     BufferWriter subscriptionsBW (ui32MaxSize, ui32MaxSize);
     BufferWriter subBW (ui32MaxSize, ui32MaxSize);
-    uint8 ui8Nodes = 0; 
+    uint8 ui8Nodes = 0;
     for (StringHashtable<SubscriptionList>::Iterator iterator = _pSubscriptionsTable->getAllElements(); !iterator.end(); iterator.nextElement()) {
         String nodeId = iterator.getKey();
         uint8 ui8NodeIdLength = nodeId.length();
@@ -4667,7 +4779,7 @@ int DisServiceImprovedSubscriptionStateMsg::write (Writer *pWriter, uint32 ui32M
                 }
                 case Subscription::GROUP_TAG_SUBSCRIPTION:
                 {
-                    GroupTagSubscription *pGTS = (GroupTagSubscription *) pS; 
+                    GroupTagSubscription *pGTS = (GroupTagSubscription *) pS;
                     pGTS->write (&subBW, ui32MaxSize);
                     break;
                 }
@@ -4716,13 +4828,13 @@ StringHashtable<uint32> * DisServiceImprovedSubscriptionStateMsg::getNodesTable 
 //==============================================================================
 // DisServiceProbabilitiesMsg
 //==============================================================================
-    
+
 DisServiceProbabilitiesMsg::DisServiceProbabilitiesMsg (void)
     : DisServiceCtrlMsg (DSMT_ProbabilitiesMsg)
 {
 }
 
-DisServiceProbabilitiesMsg::DisServiceProbabilitiesMsg (const char *pszSenderNodeId, 
+DisServiceProbabilitiesMsg::DisServiceProbabilitiesMsg (const char *pszSenderNodeId,
                                                         StringHashtable<StringFloatHashtable> *pProbabilitiesTable)
     : DisServiceCtrlMsg (DSMT_ProbabilitiesMsg, pszSenderNodeId)
 {
@@ -4752,7 +4864,7 @@ int DisServiceProbabilitiesMsg::read (Reader *pReader, uint32 ui32MaxSize)
         pReader->readBytes (pszNodeId, ui8NodeIdLength);
         pszNodeId[ui8NodeIdLength] = '\0';
         String nodeId = pszNodeId;
-        delete[] pszNodeId;    
+        delete[] pszNodeId;
         pszNodeId = NULL;
         uint8 ui8Gateways;
         pReader->read8 (&ui8Gateways);
@@ -4764,7 +4876,7 @@ int DisServiceProbabilitiesMsg::read (Reader *pReader, uint32 ui32MaxSize)
             pReader->readBytes (pszGatewayNodeId, ui8GatewayNodeIdLength);
             pszGatewayNodeId[ui8GatewayNodeIdLength] = '\0';
             String gatewayNodeId = pszGatewayNodeId;
-            delete[] pszGatewayNodeId;    
+            delete[] pszGatewayNodeId;
             pszGatewayNodeId = NULL;
             float fProb;
             pReader->read32 (&fProb);
@@ -4789,7 +4901,7 @@ int DisServiceProbabilitiesMsg::write (Writer *pWriter, uint32 ui32MaxSize)
     uint8 ui8Nodes = 0;
     for (StringHashtable<StringFloatHashtable>::Iterator iterator = _pProbabilitiesTable->getAllElements(); !iterator.end(); iterator.nextElement()) {
         String nodeId = iterator.getKey();
-        uint8 ui8NodeIdLength = nodeId.length(); 
+        uint8 ui8NodeIdLength = nodeId.length();
         uint8 ui8Gateways = 0;
         for (StringFloatHashtable::Iterator i = (iterator.getValue())->getAllElements(); !i.end(); i.nextElement()) {
             String gatewayNodeId = i.getKey();

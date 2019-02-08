@@ -20,7 +20,7 @@
  */
 
 #ifndef INCL_LOCAL_NETWORK_INTERFACE_H
-#define	INCL_LOCAL_NETWORK_INTERFACE_H
+#define INCL_LOCAL_NETWORK_INTERFACE_H
 
 #include "DatagramBasedAbstractNetworkInterface.h"
 

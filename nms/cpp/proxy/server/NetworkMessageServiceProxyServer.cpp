@@ -1,4 +1,4 @@
-/* 
+/*
  * NetworkMessageServiceProxyServer.cpp
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -55,7 +55,7 @@ bool NetworkMessageServiceProxyServer::registerCallback (uint16 ui16ApplicationI
     if (pReader->read8 (&ui8MsgType) < 0) {
         error = SimpleCommHelper2::CommError;
         return false;
-    }    
+    }
     NetworkMessageServiceCallbackManager *pCbackMarshaller = new NetworkMessageServiceCallbackManager (ui16ApplicationId, pCallbackCommHelper);
     if (pCbackMarshaller == NULL) {
         return false;
@@ -93,7 +93,7 @@ bool NetworkMessageServiceProxyServer::deregisterCallback (uint16 ui16Applicatio
     if (pReader->read8 (&ui8MsgType) < 0) {
         error = SimpleCommHelper2::CommError;
         return false;
-    }    
+    }
 
     ByMsgType *pByMsgType = _cbackHandlersByApplicationId.get (ui16ApplicationId);
     if (pByMsgType == NULL) {
@@ -111,10 +111,11 @@ bool NetworkMessageServiceProxyServer::deregisterCallback (uint16 ui16Applicatio
     return true;
 }
 
-bool NetworkMessageServiceProxyServer::deregisterAllCallbacks (void)
+bool NetworkMessageServiceProxyServer::deregisterAllCallbacks (uint16 ui16ApplicationId)
 {
     UInt32Hashtable<ByMsgType>::Iterator byAppId = _cbackHandlersByApplicationId.getAllElements();
     for (; !byAppId.end(); byAppId.nextElement()) {
+	if (byAppId.getKey() != ui16ApplicationId) continue;
         ByMsgType::Iterator byMsgType = byAppId.getValue()->getAllElements();
         for (; !byMsgType.end(); byMsgType.nextElement()) {
             if (_pSvc->deregisterHandlerCallback ((uint8) byMsgType.getKey(), byMsgType.getValue()) < 0) {

@@ -1,4 +1,4 @@
-/* 
+/*
  * NetworkMessageServiceCallbackHandler.cpp
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -42,9 +42,10 @@ NetworkMessageServiceCallbackManager::~NetworkMessageServiceCallbackManager (voi
 }
 
 int NetworkMessageServiceCallbackManager::messageArrived (const char *pszIncomingInterface, uint32 ui32SourceIPAddress,
-                                                          uint8 ui8MsgType, uint16 ui16MsgId, uint8 ui8HopCount,
-                                                          uint8 ui8TTL, const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                                          const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp)
+                                                          uint8 ui8MsgType, uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, bool bUnicast,
+                                                          const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
+                                                          const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp,
+                                                          uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount)
 {
     SimpleCommHelper2::Error error = SimpleCommHelper2::None;
     _pCallbackCommHelper->sendLine (error, NetworkMessageServiceUnmarshaller::MESSAGE_ARRIVED);
@@ -57,32 +58,30 @@ int NetworkMessageServiceCallbackManager::messageArrived (const char *pszIncomin
         error = SimpleCommHelper2::CommError;
         return -2;
     }
-
     if (pWriter->writeUI32 (&ui32SourceIPAddress) < 0) {
         error = SimpleCommHelper2::CommError;
         return -3;
     }
-
     if (pWriter->writeUI8 (&ui8MsgType) < 0) {
         error = SimpleCommHelper2::CommError;
         return -4;
     }
-
     if (pWriter->writeUI16 (&ui16MsgId) < 0) {
         error = SimpleCommHelper2::CommError;
         return -5;
     }
-
     if (pWriter->writeUI8 (&ui8HopCount) < 0) {
         error = SimpleCommHelper2::CommError;
         return -6;
     }
-
     if (pWriter->writeUI8 (&ui8TTL) < 0) {
         error = SimpleCommHelper2::CommError;
         return -7;
     }
-
+    if (pWriter->writeUI8 (&bUnicast) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return -7;
+    }
     if (pWriter->writeUI16 (&ui16MsgMetaDataLen) < 0) {
         error = SimpleCommHelper2::CommError;
         return -8;
@@ -91,7 +90,6 @@ int NetworkMessageServiceCallbackManager::messageArrived (const char *pszIncomin
         error = SimpleCommHelper2::CommError;
         return -9;
     }
-
     if (pWriter->writeUI16 (&ui16MsgLen) < 0) {
         error = SimpleCommHelper2::CommError;
         return -10;
@@ -100,9 +98,17 @@ int NetworkMessageServiceCallbackManager::messageArrived (const char *pszIncomin
         error = SimpleCommHelper2::CommError;
         return -11;
     }
-    if ((ui16MsgLen > 0) && (pWriter->write64 (&i64Timestamp) < 0)) {
+    if (pWriter->write64 (&i64Timestamp) < 0) {
         error = SimpleCommHelper2::CommError;
         return -12;
+    }
+    if (pWriter->write64 (&ui64GroupMsgCount) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return -13;
+    }
+    if (pWriter->write64 (&ui64UnicastMsgCount) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return -14;
     }
 
     return 0;

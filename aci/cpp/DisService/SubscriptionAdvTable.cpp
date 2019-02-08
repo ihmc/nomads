@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -43,7 +43,7 @@ SubscribingNode::~SubscribingNode()
         delete pDel;
     }
 
-    delete _pPathList;   
+    delete _pPathList;
 }
 
 NOMADSUtil::PtrLList<NOMADSUtil::String> * SubscribingNode::getPathList()
@@ -56,9 +56,9 @@ int SubscribingNode::addPath (NOMADSUtil::String *pszPath)
     if (pszPath == NULL) {
         return -1;
     }
-    
+
     _pPathList->prepend (pszPath);
-    
+
     return 0;
 }
 
@@ -67,12 +67,12 @@ int SubscribingNode::removePath (NOMADSUtil::String *pszPath)
     if (pszPath == NULL) {
         return -1;
     }
-    
+
     NOMADSUtil::String *pszRet = _pPathList->remove (pszPath);
     if (pszRet == NULL) {
         return -1;
     }
-    
+
     delete pszRet;
     return 0;
 }
@@ -85,11 +85,11 @@ int SubscribingNode::removePathWithNode (NOMADSUtil::String *pszNodeId)
 
     NOMADSUtil::DArray2<NOMADSUtil::String *> pathToDelete;
     int i = 0;
-    
+
     // Search the NodeId in the list of Path. If found it then delete the path
     for (NOMADSUtil::String *pszPath = _pPathList->getFirst();
          pszPath != NULL; pszPath = _pPathList->getNext()) {
-        
+
         if (pszPath->indexOf (pszNodeId->c_str()) >= 0) {
             pathToDelete[i++] = pszPath;
         }
@@ -150,7 +150,7 @@ int SubscriptionAdvTableEntry::addSubscribingNode (const char *pszNodeId)
     }
     pSubNode->refreshLifeTime();
     _subNodesTable.put (pszNodeId, pSubNode);
-    
+
     return 0;
 }
 
@@ -159,14 +159,14 @@ int SubscriptionAdvTableEntry::addPathToNode (const char *pszNodeId, NOMADSUtil:
     if (pszNodeId == NULL || pszPath == NULL) {
         return -1;
     }
-    
+
     SubscribingNode *pRet = _subNodesTable.get (pszNodeId);
     if (pRet == NULL) {
         return -1;
     }
     pRet->refreshLifeTime();
     pRet->addPath (pszPath);
-    
+
     return 0;
 }
 
@@ -175,11 +175,11 @@ bool SubscriptionAdvTableEntry::hasSubscribingNode (const char *pszNodeId)
     if (pszNodeId == NULL) {
         return false;
     }
-    
+
     if (_subNodesTable.get (pszNodeId) == NULL) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -188,7 +188,7 @@ SubscribingNode * SubscriptionAdvTableEntry::getSubscribingNode (const char *psz
     if (pszNodeId == NULL) {
         return NULL;
     }
-    
+
     return _subNodesTable.get (pszNodeId);
 }
 
@@ -197,10 +197,10 @@ int SubscriptionAdvTableEntry::getAllSubscribingNodes (NOMADSUtil::PtrLList<Subs
     if (pSubNodeList == NULL) {
         return -1;
     }
-    
+
     for (NOMADSUtil::StringHashtable<SubscribingNode>::Iterator i = _subNodesTable.getAllElements();
          !i.end(); i.nextElement()) {
-        
+
         pSubNodeList->prepend (i.getValue());
     }
 
@@ -212,13 +212,13 @@ int SubscriptionAdvTableEntry::getAllSubscribingNodesKeys (NOMADSUtil::PtrLList<
     if (pSubNodeKeyList == NULL) {
         return -1;
     }
-    
+
     for (NOMADSUtil::StringHashtable<SubscribingNode>::Iterator i = _subNodesTable.getAllElements();
          !i.end(); i.nextElement()) {
-        
+
         pSubNodeKeyList->prepend (i.getKey());
     }
-    
+
     return 0;
 }
 
@@ -227,12 +227,12 @@ int SubscriptionAdvTableEntry::removeSubscribingNode (const char *pszNodeId)
     if (pszNodeId == NULL) {
         return -1;
     }
-    
+
     SubscribingNode *pRet = _subNodesTable.remove (pszNodeId);
     if (pRet == NULL) {
         return -1;
     }
-    
+
     delete pRet;
     return 0;
 }
@@ -242,16 +242,16 @@ int SubscriptionAdvTableEntry::removePathFromNode (const char *pszNodeId, NOMADS
     if (pszNodeId == NULL || pszPath == NULL) {
         return -1;
     }
-    
+
     SubscribingNode *pRet = _subNodesTable.get (pszNodeId);
     if (pRet == NULL) {
         return -1;
     }
-    
+
     if (pRet->removePath (pszPath) < 0) {
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -268,14 +268,14 @@ int SubscriptionAdvTableEntry::refreshLifeTime (const char* pszSubNodeId)
     if (pszSubNodeId == NULL) {
         return -1;
     }
-    
+
     SubscribingNode *pRet = _subNodesTable.get (pszSubNodeId);
     if (pRet == NULL) {
         return -1;
     }
-    
+
     pRet->refreshLifeTime();
-    
+
     return 0;
 }
 //
@@ -289,7 +289,7 @@ SubscriptionAdvTable::SubscriptionAdvTable ()
 
 SubscriptionAdvTable::~SubscriptionAdvTable()
 {
-    
+
 }
 
 int SubscriptionAdvTable::addSubscription (const char *pszGroupName)
@@ -297,12 +297,12 @@ int SubscriptionAdvTable::addSubscription (const char *pszGroupName)
     if (pszGroupName == NULL) {
         return -1;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = new SubscriptionAdvTableEntry ();
     if (pEntry == NULL) {
         return -1;
     }
-    
+
     _subAdvTable.put (pszGroupName, pEntry);
     return 0;
 }
@@ -321,7 +321,7 @@ int SubscriptionAdvTable::addSubscribingNode (const char *pszGroupName, const ch
             return -1;
         }
         _subAdvTable.put (pszGroupName, pEntry);
-    }  
+    }
 
     if (pEntry->addSubscribingNode (pszNodeId) < 0) {
         return -1;
@@ -335,7 +335,7 @@ int SubscriptionAdvTable::addSubscribingNodePath (const char *pszGroupName, cons
     if (pszGroupName == NULL || pszNodeId == NULL || pszPath == NULL) {
         return -1;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = _subAdvTable.get (pszGroupName);
     // If it does not exist the entry create it.
     if (pEntry == NULL) {
@@ -345,16 +345,16 @@ int SubscriptionAdvTable::addSubscribingNodePath (const char *pszGroupName, cons
         }
         _subAdvTable.put (pszGroupName, pEntry);
     }
-     
+
     SubscribingNode *pSubNode = pEntry->getSubscribingNode (pszNodeId);
     if (pSubNode == NULL) {
         pEntry->addSubscribingNode (pszNodeId);
     }
-    
+
     pEntry->addPathToNode (pszNodeId, pszPath);
-    
+
     return 0;
-    
+
 }
 
 bool SubscriptionAdvTable::hasSubscription (const char *pszGroupName)
@@ -362,12 +362,12 @@ bool SubscriptionAdvTable::hasSubscription (const char *pszGroupName)
     if (pszGroupName == NULL) {
         return false;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = _subAdvTable.get (pszGroupName);
     if (pEntry == NULL) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -376,16 +376,16 @@ bool SubscriptionAdvTable::hasSubscribingNode (const char *pszGroupName, const c
     if (pszGroupName == NULL || pszNodeId == NULL) {
         return false;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = _subAdvTable.get (pszGroupName);
     if (pEntry == NULL) {
         return false;
     }
-    
+
     if (!pEntry->hasSubscribingNode (pszNodeId)) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -394,7 +394,7 @@ bool SubscriptionAdvTable::hasSubscribingNode (const char *pszNodeId)
     if (pszNodeId == NULL) {
         return false;
     }
-    
+
     NOMADSUtil::StringHashtable<SubscriptionAdvTableEntry>::Iterator i = _subAdvTable.getAllElements();
     for (; !i.end(); i.nextElement()) {
         SubscriptionAdvTableEntry *pEntry = i.getValue();
@@ -402,7 +402,7 @@ bool SubscriptionAdvTable::hasSubscribingNode (const char *pszNodeId)
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -411,26 +411,26 @@ bool SubscriptionAdvTable::hasSubscribingNodePath (const char *pszGroupName, con
     if (pszGroupName == NULL || pszNodeId == NULL || pszPath == NULL) {
         return false;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = _subAdvTable.get (pszGroupName);
     if (pEntry == NULL) {
         return false;
     }
-    
+
     SubscribingNode *pSubNode = pEntry->getSubscribingNode (pszNodeId);
     if (pSubNode == NULL) {
         return false;
     }
-    
+
     NOMADSUtil::PtrLList<NOMADSUtil::String> *pPathList = pSubNode->getPathList();
     for (NOMADSUtil::String *pszCurrPath = pPathList->getFirst(); pszCurrPath != NULL;
          pszCurrPath = pPathList->getNext()) {
-        
+
         if (strcmp (pszCurrPath->c_str(), pszPath->c_str()) == 0) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -439,7 +439,7 @@ SubscriptionAdvTableEntry * SubscriptionAdvTable::getTableEntry (const char *psz
     if (pszGroupName == NULL) {
         return NULL;
     }
-    
+
     return _subAdvTable.get (pszGroupName);
 }
 
@@ -448,12 +448,12 @@ int SubscriptionAdvTable::removeSubscribingNode (const char *pszGroupName, const
     if (pszGroupName == NULL || pszNodeId == NULL) {
         return -1;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = _subAdvTable.get (pszGroupName);
     if (pEntry == NULL) {
         return -1;
     }
-    
+
     return pEntry->removeSubscribingNode (pszNodeId);
 }
 
@@ -462,12 +462,12 @@ int SubscriptionAdvTable::removeSubscription (const char *pszGroupName)
     if (pszGroupName == NULL) {
         return -1;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = _subAdvTable.remove (pszGroupName);
     if (pEntry == NULL) {
         return -1;
     }
-    
+
     delete pEntry;
     return 0;
 }
@@ -477,39 +477,39 @@ int SubscriptionAdvTable::removeSubscribingNodePath (const char *pszGroupName, c
     if (pszGroupName == NULL || pszNodeId == NULL || pszPath == NULL) {
         return -1;
     }
-    
+
     SubscriptionAdvTableEntry *pEntry = _subAdvTable.get (pszGroupName);
     if (pEntry == NULL) {
         return -1;
     }
-    
+
     return pEntry->removePathFromNode (pszNodeId, pszPath);
 }
 
 void SubscriptionAdvTable::refreshTable()
 {
-    
+
     NOMADSUtil::DArray2<const char *> tableEntryToRemove;
     NOMADSUtil::DArray2<NOMADSUtil::String *> subNodesDeleted;
     int h = 0;
     int r = 0;
-    
+
     for (NOMADSUtil::StringHashtable<SubscriptionAdvTableEntry>::Iterator i = _subAdvTable.getAllElements();
          !i.end(); i.nextElement()) {
-            
+
         int j = 0;
         SubscriptionAdvTableEntry *pEntry = i.getValue();
         NOMADSUtil::PtrLList<SubscribingNode> subNodeList;
         NOMADSUtil::DArray2<const char *> subNodesToRemove;
         NOMADSUtil::PtrLList<const char> subNodeKeyList;
-        
+
         pEntry->getAllSubscribingNodes (&subNodeList);
         pEntry->getAllSubscribingNodesKeys (&subNodeKeyList);
         // Check for every Subscribing Node if they are expired.
         const char *pszKey = subNodeKeyList.getFirst();
         for (SubscribingNode *pNode = subNodeList.getFirst(); pNode != NULL;
              pNode = subNodeList.getNext(), pszKey = subNodeKeyList.getNext()) {
-            
+
             if (getTimeInMilliseconds() - pNode->getLifeTime() > _i64LifeTimeUpdateThreshold) {
                 subNodesToRemove[j++] = pszKey;
                 subNodesDeleted[h++] = new NOMADSUtil::String (pszKey);
@@ -524,7 +524,7 @@ void SubscriptionAdvTable::refreshTable()
             tableEntryToRemove[r++] = i.getKey();
         }
     }
-    
+
     // Delete empty entries
     for (unsigned int i = 0; i < tableEntryToRemove.size(); i++) {
         SubscriptionAdvTableEntry *pEntry = _subAdvTable.remove (tableEntryToRemove[i]);
@@ -532,7 +532,7 @@ void SubscriptionAdvTable::refreshTable()
             delete pEntry;
         }
     }
-    
+
     // Delete all the paths containing the deleted Nodes.
     if (subNodesDeleted.size() > 0) {
         for (NOMADSUtil::StringHashtable<SubscriptionAdvTableEntry>::Iterator i = _subAdvTable.getAllElements();
@@ -549,8 +549,8 @@ void SubscriptionAdvTable::refreshTable()
                 }
             }
         }
-        
-        // Destroy subNodesDeleted 
+
+        // Destroy subNodesDeleted
         for (unsigned int j = 0; j < subNodesDeleted.size(); j++) {
             if (subNodesDeleted.used (j)) {
                 delete subNodesDeleted[j];
@@ -582,7 +582,7 @@ void SubscriptionAdvTable::deadNode (const char *pszNodeId)
     if (pszNodeId == NULL) {
         return;
     }
-    
+
     // Remove all the paths that contain the dead node
     if (!hasSubscribingNode (pszNodeId)) {
         NOMADSUtil::StringHashtable<SubscriptionAdvTableEntry>::Iterator i = _subAdvTable.getAllElements();
@@ -592,7 +592,7 @@ void SubscriptionAdvTable::deadNode (const char *pszNodeId)
             pEntry->getAllSubscribingNodes (&subNodeList);
             for (SubscribingNode *pSubNode = subNodeList.getFirst(); pSubNode != NULL;
                  pSubNode = subNodeList.getNext()) {
-                
+
                 String sNodeToRemove (pszNodeId);
                 pSubNode->removePathWithNode (&sNodeToRemove);
             }
@@ -630,7 +630,7 @@ void SubscribingNode::display()
     int i = 0;
     for (NOMADSUtil::String *pPath = _pPathList->getFirst();
          pPath != NULL; pPath = _pPathList->getNext()) {
-        
+
         printf (" Path %d = %s\t", ++i, pPath->c_str());
     }
 }

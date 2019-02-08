@@ -32,6 +32,8 @@ const char * IHMC_ACI::getAdaptorTypeAsString (AdaptorType type)
             return "MOCKETS";
         case TCP:
             return "TCP";
+        case UDP:
+            return "UDP";
         default:
             return "UNKNOWN";
     }

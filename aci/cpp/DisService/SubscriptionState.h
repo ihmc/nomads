@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -19,7 +19,7 @@
  * SubscriptionState records the next expected sequence id for each couple
  * <groupName, senderNodeId>. Plus, generates a list of all the missing
  * comlete messages that need to be requested.
- * 
+ *
  * SubscriptionState caches out-of-order messages that need to be buffered as
  * long as the preceding ones are not received.
  * This is done by bufferMessage().
@@ -136,7 +136,7 @@ namespace IHMC_ACI
             /*
              * Returns the wanted message or NULL if the message is
              * not buffered AND delete the message (if any) from the buffer.
-             */            
+             */
             Message * unbufferMessage (const char *pszGroupName, const char *pszSenderNodeID, uint32 ui32SeqId);
 
             ////////////// UNSEQUENCED UNRELIABLE TRANSMISSION /////////////////

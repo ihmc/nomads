@@ -1,4 +1,4 @@
-/* 
+/*
  * FFMPEGReader.cpp
  *
  * This file is part of the IHMC Misc Media Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -82,7 +82,7 @@ namespace NOMADSUtil
         static int read (void *opaque, unsigned char *buf, int buf_size);
 
         // - offset: The new position within the stream. This is relative
-        //           to the loc parameter, and can be positive or negative. 
+        //           to the loc parameter, and can be positive or negative.
         // - whence: A value of type SeekOrigin, which acts as the seek
         //           reference point.
         // It returns the new position within the stream, calculated by
@@ -311,7 +311,7 @@ FFMPEGReaderImpl::FFMPEGReaderImpl (void)
       _pVideoFormat (NULL),
       _pVideoEncProfile (NULL),
       _pImgConvertCtx (NULL)
-{ 
+{
 }
 
 FFMPEGReaderImpl::~FFMPEGReaderImpl (void)

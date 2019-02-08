@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -125,7 +125,7 @@ BMPImage * PNGLibWrapper::convertPNGToBMP (const void *pInputBuf, uint32 ui32Inp
 
     int channels = png_get_channels (png_ptr, info_ptr);
     png_uint_32 width = png_get_image_width (png_ptr, info_ptr);
-    png_uint_32 height = png_get_image_height (png_ptr, info_ptr); 
+    png_uint_32 height = png_get_image_height (png_ptr, info_ptr);
 
     checkAndLogMsg ("PNGLibWrapper::convertPNGToBMP", Logger::L_Info,
                     "converting PNG of size %lux%lu with %d channels, bit depth %d, color type %d, and interlace type %d\n",
@@ -255,7 +255,7 @@ BufferReader * PNGLibWrapper::convertBMPtoPNG (const NOMADSUtil::BMPImage *pInpu
     // Get Buffer
     // png_voidp puchOutputBuf = png_get_io_ptr (png_ptr);
     // sleepForMilliseconds (10000);
-    png_set_rows (png_ptr, info_ptr, row_pointers);  
+    png_set_rows (png_ptr, info_ptr, row_pointers);
     png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
 
     // End Write

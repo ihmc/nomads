@@ -1,4 +1,4 @@
-/* 
+/*
  * RGBImage.cpp
  *
  * This file is part of the IHMC Misc Media Library
@@ -22,10 +22,16 @@
 
 #include "RGBImage.h"
 
+#include "Logger.h"
 #include "Writer.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+#define checkAndLogMsg if (pLogger) pLogger->logMsg
+#define uninitializedImage Logger::L_Warning, "uninitialized image.\n"
+#define invalidPixelAddr(a, b, c, d) Logger::L_Warning, "invalid pixel address: (%u, %u) while image is %u x %u.\n", ui32X, ui32Y, _ui32Width, _ui32Height
+#define indexOutOfBound(a, b) Logger::L_Warning, "index out of bound: requested bytes to %u, while the image size if only %u.\n", a, b
 
 namespace NOMADSUtil
 {
@@ -126,17 +132,18 @@ void * RGBImage::relinquishImage (void)
 
 int RGBImage::setPixel (uint32 ui32X, uint32 ui32Y, uint8 ui8Red, uint8 ui8Green, uint8 ui8Blue)
 {
+    const char *pszMethodName = "RGBImage::setPixel";
     if (_pui8Data == NULL) {
-        // Uninitialized image
+        checkAndLogMsg (pszMethodName, uninitializedImage);
         return -1;
     }
     if ((ui32X >= _ui32Width) || (ui32Y >= _ui32Height)) {
-        // Invalid pixel address
+        checkAndLogMsg (pszMethodName, invalidPixelAddr(ui32X, ui32Y, _ui32Width, _ui32Height));
         return -2;
     }
     uint32 ui32StartingIndex = ui32Y * (_ui32Width * (_ui16BitsPerPixel / 8) + _ui8RowPadding) + ui32X * (_ui16BitsPerPixel / 8);
     if ((ui32StartingIndex+2) >= _ui32ImageSize) {
-        // Should not have happened!
+        checkAndLogMsg (pszMethodName, indexOutOfBound(ui32StartingIndex + 2, _ui32ImageSize));
         return -3;
     }
     _pui8Data[ui32StartingIndex+0] = ui8Red;
@@ -177,20 +184,22 @@ const uint8 * RGBImage::getLinePtr (unsigned int line) const
 
 int RGBImage::getPixel (uint32 ui32X, uint32 ui32Y, uint8 *pui8Red, uint8 *pui8Green, uint8 *pui8Blue) const
 {
+    const char *pszMethodName = "RGBImage::getPixel";
     if (_pui8Data == NULL) {
-        // Uninitialized image
+        checkAndLogMsg (pszMethodName, uninitializedImage);
         return -1;
     }
     if ((ui32X >= _ui32Width) || (ui32Y >= _ui32Height)) {
-        // Invalid pixel address
+        checkAndLogMsg (pszMethodName, invalidPixelAddr (ui32X, ui32Y, _ui32Width, _ui32Height));
         return -2;
     }
     uint32 ui32StartingIndex = ui32Y * (_ui32Width * (_ui16BitsPerPixel / 8) + _ui8RowPadding) + ui32X * (_ui16BitsPerPixel / 8);
     if ((ui32StartingIndex+2) >= _ui32ImageSize) {
-        // Should not have happened!
+        checkAndLogMsg (pszMethodName, indexOutOfBound (ui32StartingIndex + 2, _ui32ImageSize));
         return -3;
     }
     if ((pui8Red == NULL) || (pui8Green == NULL) || (pui8Blue == NULL)) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "null pixel parameter(s).\n");
         return -4;
     }
     *pui8Red = _pui8Data[ui32StartingIndex+0];

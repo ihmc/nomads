@@ -38,7 +38,7 @@
 
 using namespace IHMC_MISC;
 using namespace NOMADSUtil;
-
+#ifdef USE_NORM
 namespace IHMC_MISC
 {
     void checkAndLogNormEventType (const char *pszMethodName, NormEventType evtType)
@@ -75,12 +75,19 @@ namespace IHMC_MISC
         }
     }
 }
+#endif
 
 Nocket::Nocket (bool bReceive, bool bSend)
     : _bReceive (bReceive),
       _bSend (bSend),
       _bSent (true),
-      _pInstanceHandle (NormCreateInstance()),
+      _pInstanceHandle (
+#ifdef USE_NORM
+        NormCreateInstance()
+#else
+        NULL
+#endif
+      ),
       _pSessionHandle (NULL),
       _cvRx (&_mRx),
       _cvTx (&_mTx)
@@ -94,6 +101,7 @@ Nocket::~Nocket (void)
 
 void Nocket::run (void)
 {
+    #ifdef USE_NORM
     const char *pszMethodName = "Nocket::run";
     started();
     for (NormEvent evt; !terminationRequested();) {
@@ -146,10 +154,12 @@ void Nocket::run (void)
         }
     }
     terminating();
+    #endif
 }
 
 int Nocket::close (void)
 {
+    #ifdef USE_NORM
     if (_bReceive) {
         NormStopReceiver (_pSessionHandle);
     }
@@ -158,6 +168,7 @@ int Nocket::close (void)
     }
     NormDestroySession (_pSessionHandle);
     NormDestroyInstance (_pInstanceHandle);
+    #endif
     return 0;
 }
 
@@ -205,7 +216,9 @@ int Nocket::setReceiveBufferSize (int iSize)
         if (iSize > USHRT_MAX) {
             iSize = USHRT_MAX;
         }
+#ifdef USE_NORM
         NormSetRxCacheLimit(_pSessionHandle, static_cast<unsigned short>(iSize));
+#endif
         return 0;
     }
     return -1;
@@ -232,11 +245,16 @@ int Nocket::setTimeout (uint32 ui32TimeoutInMS)
 
 int Nocket::setTTL(uint8 ui8TTL)
 {
+#ifdef USE_NORM
     return (NormSetTTL(_pSessionHandle, ui8TTL) ? 0 : -1);
+#else
+    return 0;
+#endif
 }
 
 int Nocket::init (uint16 ui16Port, const char *pszAddr)
 {
+#ifdef USE_NORM
     const char *pszMethodName = "Nocket::init";
     if (pszAddr == NULL) {
         return -1;
@@ -252,6 +270,7 @@ int Nocket::init (uint16 ui16Port, const char *pszAddr)
     if (!isRunning()) {
         start();
     }
+#endif
     return 0;
 }
 
@@ -291,6 +310,7 @@ int Nocket::receive (void *pBuf, int iBufSize, InetAddr *pRemoteAddr)
 
 int Nocket::sendTo (uint32 ui32IPv4Addr, uint16 ui16Port, const void *pBuf, int iBufSize, const char *pszHints)
 {
+#ifdef USE_NORM
     const char *pszMethodName = "Nocket::sendTo";
     if ((pBuf == NULL) || (iBufSize == 0) || (_pSessionHandle == NULL)) {
         return -1;
@@ -325,13 +345,18 @@ int Nocket::sendTo (uint32 ui32IPv4Addr, uint16 ui16Port, const void *pBuf, int 
         _cvRx.wait (10);
     }
     _mRx.unlock();
-
     return iBufSize;
+#else
+    return 0;
+#endif
+    
 }
 
 int Nocket::setTransmissionBufferSize (unsigned int uiBufSize)
 {
+#ifdef USE_NORM
     NormSetTxSocketBuffer(_pSessionHandle, uiBufSize);
+#endif
     return 0;
 }
 

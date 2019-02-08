@@ -1,4 +1,4 @@
-/* 
+/*
  * NetworkMessageServiceImpl.h
  * This file is part of the IHMC Network Message Service Library
  * Copyright (c) 1993-2016 IHMC.
@@ -9,7 +9,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -20,10 +20,9 @@
  */
 
 #ifndef INCL_NETWORK_MESSAGE_SERVICE_IMPLEMENTATION_H
-#define	INCL_NETWORK_MESSAGE_SERVICE_IMPLEMENTATION_H
+#define INCL_NETWORK_MESSAGE_SERVICE_IMPLEMENTATION_H
 
 #include "NetworkMessageService.h"
-
 #include "FIFOQueue.h"
 #include "ManageableThread.h"
 #include "OSThread.h"
@@ -33,61 +32,65 @@
 #include "StringHashtable.h"
 #include "StringHashset.h"
 #include "UInt32Hashtable.h"
-
 #include "MessageFactory.h"
 #include "NetworkInterfaceManager.h"
 #include "Reassembler.h"
+#include "CRC.h"
+
+#include <map>
 
 namespace IHMC_NMS
 {
     class Instrumentation;
 }
 
+namespace CryptoUtils
+{
+    class AES256Key;
+}
+
 namespace NOMADSUtil
 {
     class ConfigManager;
-
     class NetworkMessageServiceImpl : public NOMADSUtil::ManageableThread, public NetworkInterfaceManagerListener
     {
         public:
-            NetworkMessageServiceImpl (PROPAGATION_MODE mode, bool bAsyncDelivery,
-                                       uint8 ui8MessageVersion, NetworkInterfaceManager *pNetIntMgr);
+            /*
+             *
+             *If bSecure is true the traffic will be encrypted/decrypted
+             *the parameter pSessionId has to be set to initializer the key
+            */
+            NetworkMessageServiceImpl (PROPAGATION_MODE mode, bool bAsyncDelivery, uint8 ui8MessageVersion,
+                                       NetworkInterfaceManager *pNetIntMgr, const char *pszSessionKey = NULL,
+                                       const char *pszGroupKeyFilename = NULL);
             virtual ~NetworkMessageServiceImpl (void);
-
             int init (ConfigManager *pCfgMgr);
-            
             int transmit (TransmissionInfo &trInfo, MessageInfo &msgInfo);
-
             int broadcastMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo);
             int transmitMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo);
-            int transmitReliableMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo);
-
             // Set the retransmit timeout (in milliseconds) for reliable messages
             int setRetransmissionTimeout (uint32 ui32Timeout);
             int setPrimaryInterface (const char *pszInterfaceAddr);
-
             int registerHandlerCallback (uint8 ui8MsgType, NetworkMessageServiceListener *pListener);
             int deregisterHandlerCallback (uint8 ui8MsgType, NetworkMessageServiceListener *pListener);
-
             void run (void);
-
             PROPAGATION_MODE getPropagationMode (void);
             uint32 getDeliveryQueueSize (void);
             uint8 getNeighborQueueLength (const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr);
+            String getEncryptionKeyHash (void);
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
 
         private:
             friend class NetworkMessageReceiver;
- 
             int ackArrived (NetworkMessage *pNetMsg, const char *pchIncomingInterface);
-            int callListeners (NetworkMessage *pNetMsg, const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr, int64 i64Timestamp);
-            
-            //resets to 0 the queue size neighbors that have the flag
-            //_bUpdatedSincelastCheck set to false
-            void cleanOldNeighborQueueLengths (void);
+            int callListeners (NetworkMessage *pNetMsg, const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr, int64 i64Timestamp,
+                               bool bIsUnicast, uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount);
 
-            int fragmentAndTransmitMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo);
-            int initInternal (uint16 ui16Port, StringHashset &ifaces,
-                              const char *pszDestAddr, uint8 ui8McastTTL);
+            // resets to 0 the queue size neighbors that have the flag
+            // _bUpdatedSincelastCheck set to false
+            void cleanOldNeighborQueueLengths (void);
+            int fragmentAndTransmitMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo, bool bEncrypt, uint16 ui16MsgChecksum);
+            int initInternal (uint16 ui16Port, StringHashset &ifaces, const char *pszDestAddr, uint8 ui8McastTTL);
 
             /**
              * NOTE: the NetworkMessageService may need to keep the arrived
@@ -99,9 +102,7 @@ namespace NOMADSUtil
              */
             int messageArrived (NetworkMessage *pNetMsg, const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr);
             int messageSent (const NetworkMessage *pNetMsg, const char *pchOutgoingInterface);
-
-            int notifyListeners (NetworkMessage *pNetMsg, const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr);
-            
+            int notifyListeners (NetworkMessage *pNetMsg, const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr, bool bIsUnicast, uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount);
             int rebroadcastMessage (NetworkMessage *pNetMsg, const char *pchIncomingInterface);
             int resendUnacknowledgedMessages (void);
             int sendNetworkMessage (NetworkMessage *pNetMsg, TransmissionInfo &trInfo, bool bDeallocatedNetMsg=true);
@@ -121,7 +122,6 @@ namespace NOMADSUtil
             //------------------------------------------------------------------
             bool checkOldMessages (uint32 ui32SourceAddress, uint16 ui16SessionId, uint16 ui16MsgId);
             void updateOldMessagesList (uint32 ui32SourceAddress, uint16 ui16SessionId, uint16 ui16MsgId);
-
             static void deliveryThread (void *pArg);
 
         private:
@@ -130,14 +130,25 @@ namespace NOMADSUtil
                 uint16 ui16;
             };
 
+            struct MessageCount
+            {
+                MessageCount (uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount);
+                ~MessageCount (void);
+
+                uint64 _ui64Group;
+                uint64 _ui64Unicast;
+            };
+
             struct QueuedMessage
             {
-                QueuedMessage (void);
+                QueuedMessage (bool bIsUnicast, const char *pszIncomingInterface, unsigned long ulSenderRemoteAddress, uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount);
                 ~QueuedMessage (void);
+                const bool _bIsUnicast;
                 NetworkMessage *pMsg;
-                String incomingInterface;
-                unsigned long ulSenderRemoteAddress;
+                const String _incomingInterface;
+                const unsigned long _ulSenderRemoteAddress;
                 int64 i64Timestamp;
+                const MessageCount _ui64MsgCount;
             };
 
             /*
@@ -149,7 +160,6 @@ namespace NOMADSUtil
              * alive but with nothing to send. the result is the
              * same)
              */
-
             struct ByNeighbor
             {
                 uint8 _ui8QueueLength;
@@ -175,7 +185,6 @@ namespace NOMADSUtil
             {
                 UnackedMessageWrapper (NetworkMessage *pNetMsg, bool bDeleteNetMsg=true);
                 virtual ~UnackedMessageWrapper (void);
-
                 NetworkMessage *_pNetMsg;
                 int64 _i64SendingTime;
                 uint32 _ui32RetransmitCount;
@@ -183,7 +192,6 @@ namespace NOMADSUtil
                 const char ** _ppszOutgoingInterfaces;
                 uint16 _ui16DelayTolerance;
                 bool _bDeleteNetMsg;
-
                 bool operator == (UnackedMessageWrapper &rhsUnackedMessageWrapper);
                 bool operator > (UnackedMessageWrapper &rhsUnackedMessageWrapper);
                 bool operator < (UnackedMessageWrapper &rhsUnackedMessageWrapper);
@@ -192,9 +200,7 @@ namespace NOMADSUtil
             typedef PtrLList<UnackedMessageWrapper> UnackedSentMessagesByMsgId;
             typedef UInt32Hashtable<UnackedSentMessagesByMsgId> UnackedSentMessagesByDestination;
             typedef UInt32Hashtable<UI16Wrapper> CumulativeTSNByDestination;
- 
             typedef PtrLList<NetworkMessageServiceListener> NMSListerList;
-
             // Class Variables
             const PROPAGATION_MODE _mode;
             const bool _bAsyncDelivery;
@@ -202,34 +208,34 @@ namespace NOMADSUtil
             uint32 _ui32RetransmissionTimeout;
             uint16 _ui16BroadcastedMsgCounter;
             uint32 _ui32MaxMsecsInOutgoingQueue;
-
             MessageFactory _msgFactory;
             Reassembler _reassembler;
+            const char *_pszSessionKey;
+            CryptoUtils::AES256Key *_pKey;
             NetworkInterfaceManager *_pNetIntMgr;
             IHMC_NMS::Instrumentation *_pInstr;
-
             UInt32Hashtable<PeerState> _lastMsgs;
-
             // Reliable transmission: data structures to handle unacked messages
             UnackedSentMessagesByDestination _unackedSentMessagesByDestination;
             CumulativeTSNByDestination _cumulativeTSNByDestination;
-
             StringHashtable<ByInterface> _tQueueLengthByInterface;  // contains the queue
                                                                     // lengths of the neighbors
-
             // Application listeners
             UInt32Hashtable<NMSListerList > _listeners;
-
+            std::map<uint32, uint64> _manycastCountMap;
+            std::map<uint32, uint64> _unicastCountMap;
             Mutex _m;
+            Mutex _mKey;
             Mutex _mxMessageArrived;
             Mutex _mxUnackedSentMessagesByDestination;
             Mutex _mQueueLengthsTable;
-
             // Variables and methods for asynchronous delivery
             Mutex _mDeliveryQueue;
             ConditionVariable _cvDeliveryQueue;
             OSThread _ostDeliveryThread;
             FIFOQueue _deliveryQueue;
+            //CRC calculator
+            CRC* _pCrc;
     };
 
     inline void NetworkMessageServiceImpl::PeerState::setAsReceived (uint16 ui16MsgSeqId)
@@ -284,15 +290,28 @@ namespace NOMADSUtil
         return ((_i64SendingTime + _ui32TimeOut) < (rhsUnackedMessageWrapper._i64SendingTime + rhsUnackedMessageWrapper._ui32TimeOut));
     }
 
-    inline NetworkMessageServiceImpl::QueuedMessage::QueuedMessage (void)
+    inline NetworkMessageServiceImpl::QueuedMessage::QueuedMessage (bool bIsUnicast, const char *pszIncomingInterface,
+                                                                    unsigned long ulSenderRemoteAddress,
+                                                                    uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount)
+        : _bIsUnicast (bIsUnicast), pMsg (NULL), _incomingInterface (pszIncomingInterface), _ulSenderRemoteAddress (ulSenderRemoteAddress),
+          i64Timestamp (0), _ui64MsgCount (ui64GroupMsgCount, ui64UnicastMsgCount)
     {
-        pMsg = NULL;
     }
 
     inline NetworkMessageServiceImpl::QueuedMessage::~QueuedMessage (void)
     {
     }
+
+    inline NetworkMessageServiceImpl::MessageCount::MessageCount (uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount)
+        : _ui64Group (ui64GroupMsgCount), _ui64Unicast (ui64UnicastMsgCount)
+    {
+    }
+
+    inline NetworkMessageServiceImpl::MessageCount::~MessageCount (void)
+    {
+    }
 }
 
-#endif	/* INCL_NETWORK_MESSAGE_SERVICE_IMPLEMENTATION_H */
+#endif    /* INCL_NETWORK_MESSAGE_SERVICE_IMPLEMENTATION_H */
+
 

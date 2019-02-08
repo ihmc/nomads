@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -295,7 +295,7 @@ BlockifyDiff(block, curr, prev, y, x, my, mx)
 }
 
 
-int 
+int
 BBlockifyDiff(block, curr, prev, next, y, x, uvBlock, fv, bv)
     Block block;
     ByteImage *curr, *prev, *next;
@@ -341,7 +341,7 @@ BlockIQuantZigRLE(block, scBlock, qScale, qTable)
 
     scBlock->intracoded = 1;
 
-    /* the DC coefficient is handled specially 
+    /* the DC coefficient is handled specially
        it's not sensitive to qscale, but everything else is */
     if (block[0] < 0) {
         scBlock->dc = -((-block[0] + 4) >> 3);  // out = in / 8; add 4 to round up
@@ -362,8 +362,8 @@ BlockIQuantZigRLE(block, scBlock, qScale, qTable)
             temp = ((temp << 3) + (qentry >> 1)) / qentry;
         }
 
-        /* Record only the nonzero entries in the ScBlock.  The difference 
-           between the zig zag order indicies in the index[63] are the Run 
+        /* Record only the nonzero entries in the ScBlock.  The difference
+           between the zig zag order indicies in the index[63] are the Run
            Lengths (plus one) */
         if (temp != 0) {
             scBlock->index[j] = (char) i;
@@ -396,7 +396,7 @@ ScQuantize(scIn, qScale, qTable, scOut)
     for (y = 0; y < scIn->height; y++) {
         for (x = 0; x < scIn->width; x++) {
 
-            /* the DC coefficient is handled specially 
+            /* the DC coefficient is handled specially
                it's not sensitive to qscale, but everything else is */
             if (inBlock->dc < 0) {
                 outBlock->dc = -((-inBlock->dc + 4) >> 3);      // out = in / 8 (add 4 to round up)

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -71,6 +71,8 @@ namespace IHMC_ACI
             struct TransmissionResults
             {
                 public:
+                    TransmissionResults (const TransmissionResults & rTransmissionResults) = delete;
+                    TransmissionResults (TransmissionResults && rTransmissionResults);
                     ~TransmissionResults (void);
                     void reset (void);
 
@@ -104,15 +106,17 @@ namespace IHMC_ACI
 
             virtual ~TransmissionService (void);
 
-            static TransmissionService * getInstance (NOMADSUtil::ConfigManager *pCfgMgr, const char *pszNodeId, const char *pszSessionId);
+            static TransmissionService * getInstance (NOMADSUtil::ConfigManager *pCfgMgr, const char *pszNodeId);
 
             virtual int init (NOMADSUtil::ConfigManager *pCfgMgr,
-                              const char **ppszBindingInterfaces = NULL,
-                              const char **ppszIgnoredInterfaces = NULL,
-                              const char **ppszAddedInterfaces = NULL);
+                              const char **ppszBindingInterfaces = nullptr,
+                              const char **ppszIgnoredInterfaces = nullptr,
+                              const char **ppszAddedInterfaces = nullptr);
             bool isInitialized (void);
 
             int registerWithListeners (DisseminationService *pDisService);
+
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
 
             /**
              * Broadcast a message using the specified interfaces. If no outgoing
@@ -195,7 +199,7 @@ namespace IHMC_ACI
              * with receiving rate less than dPercRateThreshold (it's a percentage,
              * the methods accept threshold values between 0 and 1).
              *
-             * If ppNICs is NULL all the available interfaces will be considered
+             * If ppNICs is nullptr all the available interfaces will be considered
              *
              * NOTE: the returned array must be deallocated by the caller
              */
@@ -207,11 +211,11 @@ namespace IHMC_ACI
              * with queue length less than fPercLengthThreshold (it's a percentage,
              * the methods accept threshold values between 0 and 1).
              *
-             * If ppNICs is NULL all the available interfaces will be considered
+             * If ppNICs is nullptr all the available interfaces will be considered
              *
              * NOTE: the returned array must be deallocated by the caller.
              */
-            char ** getInterfacesByOutgoingQueueLength (float fPercLengthThreshold, char **ppszInterfaces=NULL);
+            char ** getInterfacesByOutgoingQueueLength (float fPercLengthThreshold, char **ppszInterfaces = nullptr);
 
             char ** getInterfacesByReceiveRateAndOutgoingQueueLenght (float fPercRateThreshold, float fPercLengthThreshold);
 
@@ -292,7 +296,7 @@ namespace IHMC_ACI
         protected:
             TransmissionService (TRANSMISSION_SVC_MODE mode, uint16 ui16NetworkMessageServicePort,
                                  const char* pszMcastGroup, uint8 ui8McastTTL,
-                                 const char *pszNodeId, const char *pszSessionId,
+                                 const char *pszNodeId,
                                  bool bAsyncDelivery = DEFAULT_ASYNCHRONOUS_DELIVERY,
                                  bool bAsyncTransmission = DEFAULT_ASYNCHRONOUS_TRANSMISSION,
                                  uint8 ui8MessageVersion = DEFAULT_MESSAGE_VERSION);
@@ -318,7 +322,6 @@ namespace IHMC_ACI
             const NOMADSUtil::String _dstAddr;
             NOMADSUtil::String _primaryIface;
             const NOMADSUtil::String _nodeId;
-            const NOMADSUtil::String _sessionId;
             TransmissionServiceLogger _logger;
             NMSHelper _nmsHelper;
             NOMADSUtil::StringHashtable<int64> _latestBcastTimeByIface;
@@ -333,9 +336,9 @@ namespace IHMC_ACI
                                            const char *pszPurpose, const char *pszTargetAddr, const char *pszHints);
 
             int init (NOMADSUtil::ConfigManager *pCfgMgr,
-                      const char **ppszBindingInterfaces = NULL,
-                      const char **ppszIgnoredInterfaces = NULL,
-                      const char **ppszAddedInterfaces = NULL);
+                      const char **ppszBindingInterfaces = nullptr,
+                      const char **ppszIgnoredInterfaces = nullptr,
+                      const char **ppszAddedInterfaces = nullptr);
 
             int registerWithListeners (DisseminationService *pDisService);
 
@@ -343,7 +346,7 @@ namespace IHMC_ACI
             friend class TransmissionService;
             RateEstimatingTransmissionService (TRANSMISSION_SVC_MODE mode, uint16 ui16NetworkMessageServicePort,
                                                const char* pszMcastGroup, uint8 ui8McastTTL,
-                                               const char *pszNodeId, const char *pszSessionId,
+                                               const char *pszNodeId,
                                                uint8 ui8RateEstimatorUpdateFactor, uint8 ui8RateEstimatorDecreaseFactor,
                                                uint32 ui32RateEstimatorStartingCapacity,
                                                bool bAsyncDelivery = DEFAULT_ASYNCHRONOUS_DELIVERY,
@@ -389,13 +392,13 @@ namespace IHMC_ACI
 
     inline bool TransmissionServiceLogger::enabled (void)
     {
-        return _filePacketXMitLog != NULL;
+        return _filePacketXMitLog != nullptr;
     }
 
     inline int64 TransmissionService::getLatestBroadcastTimeForInterface (const char *pszIface)
     {
         int64 *pI64Time = _latestBcastTimeByIface.get (pszIface);
-        return (pI64Time == NULL ? 0U : *pI64Time);
+        return (pI64Time == nullptr ? 0U : *pI64Time);
     }
 
     inline bool TransmissionService::loggingEnabled (void)

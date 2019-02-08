@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -186,15 +186,15 @@ DisServiceMsg * DisServiceMsgHelper::getInstance (uint8 ui8Type)
         case DisServiceMsg::DSMT_HistoryReqReply:
             pDSMsg = new DisServiceHistoryRequestReplyMsg();
             break;
-        
-        case DisServiceMsg::CRMT_QueryHits: 
+
+        case DisServiceMsg::CRMT_QueryHits:
             pDSMsg = new ChunkRetrievalMsgQueryHits();
             break;
-        
+
         case DisServiceMsg::CRMT_Query:
             pDSMsg = new ChunkRetrievalMsgQuery();
             break;
-            
+
         case DisServiceMsg::DSMT_SubAdvMessage:
             pDSMsg = new DisServiceSubscribtionAdvertisement();
             break;
@@ -215,8 +215,12 @@ DisServiceMsg * DisServiceMsgHelper::getInstance (uint8 ui8Type)
             pDSMsg = new DisServiceImprovedSubscriptionStateMsg();
             break;
 
-        case DisServiceMsg::DSMT_ProbabilitiesMsg: 
+        case DisServiceMsg::DSMT_ProbabilitiesMsg:
             pDSMsg = new DisServiceProbabilitiesMsg();
+            break;
+
+        case DisServiceMsg::DSMT_SessionSync:
+            pDSMsg = new DisServiceSessionSyncMsg();
             break;
 
         default:
@@ -289,19 +293,19 @@ const char * DisServiceMsgHelper::getMessageTypeAsString (uint8 ui8MsgType)
 
         case DisServiceMsg::DSMT_HistoryReqReply:
             return "DSMT_HistoryReqReply";
-        
+
         case DisServiceMsg::CRMT_Query:
             return "CRMT_Query";
-            
-        case DisServiceMsg::CRMT_QueryHits: 
+
+        case DisServiceMsg::CRMT_QueryHits:
             return "CRMT_QueryHits";
-            
+
         case DisServiceMsg::DSMT_SubAdvMessage:
             return "DSMT_SubAdvMessage";
 
         case DisServiceMsg::DSMT_SearchMsg:
             return "DSMT_SearchMsg";
-            
+
         case DisServiceMsg::DSMT_SearchMsgReply:
             return "DSMT_SearchMsgReply";
 
@@ -313,6 +317,9 @@ const char * DisServiceMsgHelper::getMessageTypeAsString (uint8 ui8MsgType)
 
         case DisServiceMsg::DSMT_ProbabilitiesMsg:
             return "DSMT_ProbabilitiesMsg";
+
+        case DisServiceMsg::DSMT_SessionSync:
+            return "DisServiceSessionSyncMsg";
 
         default:
             return "Unknown";
@@ -363,13 +370,14 @@ bool DisServiceMsgHelper::messageTypeExists (uint8 ui8MsgType)
         case DisServiceMsg::DSMT_HistoryReq:
         case DisServiceMsg::DSMT_HistoryReqReply:
         case DisServiceMsg::CRMT_Query:
-        case DisServiceMsg::CRMT_QueryHits: 
+        case DisServiceMsg::CRMT_QueryHits:
         case DisServiceMsg::DSMT_SubAdvMessage:
-        case DisServiceMsg::DSMT_SearchMsg:            
+        case DisServiceMsg::DSMT_SearchMsg:
         case DisServiceMsg::DSMT_SearchMsgReply:
         case DisServiceMsg::DSMT_VolatileSearchMsgReply:
         case DisServiceMsg::DSMT_ImprovedSubStateMessage:
         case DisServiceMsg::DSMT_ProbabilitiesMsg:
+        case DisServiceMsg::DSMT_SessionSync:
             return true;
 
         default:
@@ -386,7 +394,7 @@ bool DisServiceMsgHelper::isTarget (const char *pszNodeId, DisServiceMsg *pDSMsg
     const char *pszTarget = pDSMsg->getTargetNodeId();
     if (pszTarget == NULL || strlen (pszTarget) == 0) {
         // If the target is NULL, it means that the message is directed to any
-        // peer, therefore pszNodeId is target 
+        // peer, therefore pszNodeId is target
         return true;
     }
     bTargetSpecified = true;
@@ -419,6 +427,9 @@ bool DisServiceMsgHelper::isInSession (const char *pszSessionId1, const char *ps
     if ((pszSessionId2 == NULL) || (strlen (pszSessionId2) == 0)) {
         return false;
     }
+    if (wildcardStringCompare (pszSessionId1, pszSessionId2)) {
+        return true;
+    }
     return (strcmp (pszSessionId1, pszSessionId2) == 0);
 }
 
@@ -426,7 +437,7 @@ bool DisServiceMsgHelper::sentBy (const char *pszNodeId, DisServiceMsg *pDSMsg)
 {
     if (pDSMsg == NULL) {
         return false;
-    } 
+    }
     return strNotNullAndEqual (pszNodeId, pDSMsg->getSenderNodeId());
 }
 

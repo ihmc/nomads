@@ -142,7 +142,7 @@ float ProbSatisfied(Condition c, char * * list, CError * * errOcc)
 				}
 	   	 	}
 	    	return AddProb;
-    } 
+    }
     return 0.0;
 }
 

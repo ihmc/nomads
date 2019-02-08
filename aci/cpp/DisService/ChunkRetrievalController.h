@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -34,19 +34,20 @@
 #include "StringHashtable.h"
 
 namespace IHMC_ACI
-{   
+{
     class ChunkDiscoveryController;
     class ChunkRetrievalMsgQuery;
     class ChunkRetrievalMsgQueryHits;
     class DisseminationService;
     class DataCacheInterface;
-    class MessageReassembler;        
+    class MessageReassembler;
 
     class ChunkRetrievalController : public MessageListener,
                                      public MessagingService
     {
         public:
             ChunkRetrievalController (DisseminationService *pDisService,
+                                      MessageReassembler *pMessageReassembler,
                                       ChunkDiscoveryController *pDiscoveryCtrl,
                                       DataCacheInterface *pDataCacheInterface);
             virtual ~ChunkRetrievalController (void);
@@ -54,7 +55,7 @@ namespace IHMC_ACI
             /**
              * Handle retrieval message type received.
              * It checks which type of message is arrived and respond it.
-             */                        
+             */
             void newIncomingMessage (const void *, uint16, DisServiceMsg *pDisServiceMsg, uint32,
                                      const char *pszIncomingInterface);
 
@@ -69,7 +70,7 @@ namespace IHMC_ACI
              * Handle a Query Hit message received.
              */
             int replyToQueryHits (ChunkRetrievalMsgQueryHits *pChunkRetrievalMsgQueryHits);
-            
+
             /**
              * Store parameters to use in the Query Hit history.
              * @param pszSenderNodeId
@@ -79,11 +80,11 @@ namespace IHMC_ACI
             {
                 Hit (const char* pszSenderNodeId, MessageHeader *pMH);
                 virtual ~Hit (void);
-                
+
                 const char *_pszSenderNodeId;
                 MessageHeader *_pMH;
             };
-            
+
             /**
              * Store a list of Hit related to a pszQueryId.
              */
@@ -91,14 +92,14 @@ namespace IHMC_ACI
             {
                 ContainerHitsList (NOMADSUtil::PtrLList<IHMC_ACI::ChunkRetrievalController::Hit> *pListHits);
                 virtual ~ContainerHitsList (void);
-                
+
                 NOMADSUtil::PtrLList<IHMC_ACI::ChunkRetrievalController::Hit> *_pListHits;
-            };  
+            };
 
             ChunkDiscoveryController *_pDiscoveryCtrl;
-            DisseminationService *_pDisService;        
+            DisseminationService *_pDisService;
             DataCacheInterface *_pDataCacheInterface;
-            MessageReassembler *_pMessageReassembler;                          
+            MessageReassembler *_pMessageReassembler;
             Hit *_pHit;
             NOMADSUtil::PtrLList<IHMC_ACI::ChunkRetrievalController::Hit> *_pListHits;
             ContainerHitsList *_pContainerHitsList;
@@ -124,11 +125,27 @@ namespace IHMC_ACI
             void sendDiscoveryMessage (void);
 
         private:
+            struct Discovery
+            {
+                Discovery (const char *pszId, const char *pszGroup, const char *pszSender, uint32 ui32SeqId, uint8 ui8NChunks, uint8 ui8TotNChunks, int64 i64Timeout);
+                Discovery (const Discovery &rhsDisc);
+                ~Discovery (void);
+
+                const uint8 _ui8NChunks;
+                const uint8 _ui8TotNChunks;
+                int64 _i64Timeout;
+                const uint32 _ui32SeqId;
+                const NOMADSUtil::String _group;
+                const NOMADSUtil::String _sender;
+                const NOMADSUtil::String _id;
+            };
+
             void retrieveInternal (const char *pszId, int64 i64Timeout, bool bLock);
+            void retrieveInternal (Discovery *pDisc, bool bLock);
 
         private:
             NOMADSUtil::LoggingMutex _m;
-            NOMADSUtil::StringHashtable<int64> _discovering;
+            NOMADSUtil::StringHashtable<Discovery> _discovering;
             DataCacheInterface *_pDataCacheInterface;
             DisseminationService *_pDisService;
     };

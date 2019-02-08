@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -65,6 +65,14 @@ int DataCache::release (const char *pszId, MessageHeader *pMI)
     return 0;
 }
 
+void DataCache::clear (void)
+{
+    _m.lock (33);
+    _pDB->clear();
+    _dataCache.removeAll();
+    _m.unlock (33);
+}
+
 void DataCache::getData (const char *pszId, Result &result)
 {
     _m.lock (20);
@@ -97,15 +105,24 @@ void DataCache::getDataInternal (const char *pszId, Result &result)
         }
         if (pChunks->getFirst() == NULL) {
             release (pChunks);
+            pChunks = NULL;
+            return;
         }
 
         PtrLList<MessageHeader> *pTmp = _pDB->getAnnotationsOnMsgMessageInfos (pszId);
         PtrLList<Message> *pAnnotations = getMessages (pTmp);
         delete pTmp;
+
         if (pChunks->getFirst()->getMessageHeader()->isChunk()) {
             // Return the reassembled large object
             uint32 ui32LargeObjLen = 0;
-            Reader *pReader = ChunkingAdaptor::reassemble (pChunks, pAnnotations, ui32LargeObjLen);
+            const uint8 ui8Chunks = pChunks->getCount();
+            const MessageHeader *pMH = pChunks->getFirst()->getMessageHeader();
+            const uint8 ui8TotChunks = pMH->getTotalNumberOfChunks();
+            const String objectId (pMH->getObjectId());
+            const String instanceId (pMH->getInstanceId());
+
+            Reader *pReader = ChunkingAdaptor::reassemble (_pChunkingMgr, pChunks, pAnnotations, ui32LargeObjLen);
             release (pChunks);
             if (pReader == NULL) {
                 checkAndLogMsg ("DataCache::getDataInternal", Logger::L_SevereError,
@@ -123,6 +140,10 @@ void DataCache::getDataInternal (const char *pszId, Result &result)
             pReader->read (result.pData, ui32LargeObjLen);
             result.ui8StorageType = MEMORY;
             result.ui32Length = ui32LargeObjLen;
+            result.ui8NChunks = ui8Chunks;
+            result.ui8TotalNChunks = ui8TotChunks;
+            result.objectId = objectId;
+            result.instanceId = instanceId;
             delete pReader;
         }
         else {
@@ -158,8 +179,6 @@ void DataCache::getDataInternal (const char *pszId, Result &result)
     }
 
     result.ui32Length = pEntry->ui32Length;
-
-    return;
 }
 
 int DataCache::release (const char *pszId, Result &result)
@@ -226,7 +245,7 @@ const void * DataCache::getData (const char *pszId, uint32 &ui32Len)
     }
 
     _m.unlock (22);
-    return pData; 
+    return pData;
 }
 
 int DataCache::release (const char *pszId, void *pData)
@@ -273,7 +292,7 @@ PtrLList<Message> * DataCache::getCompleteMessages (const char *pszGroupName, co
     PtrLList<Message> *pRet = getCompleteMessagesInternals (pszGroupName, pszSenderNodeId, ui32SeqId);
     _m.unlock (26);
     return pRet;
-    
+
 }
 
 PtrLList<Message> * DataCache::getCompleteMessagesInternals (const char *pszGroupName, const char *pszSenderNodeId, uint32 ui32SeqId)

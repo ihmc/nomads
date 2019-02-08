@@ -1,4 +1,4 @@
-/* 
+/*
  * LocalNodeContext.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -20,12 +20,12 @@
 #ifndef INCL_LOCAL_NODE_CONTEXT_H
 #define INCL_LOCAL_NODE_CONTEXT_H
 
-#include "DArray2.h"
-#include "NodeContext.h"
+#include "NodeContextImpl.h"
 
 namespace NOMADSUtil
 {
     class ConfigManager;
+    class Writer;
 }
 
 namespace IHMC_C45
@@ -36,16 +36,15 @@ namespace IHMC_C45
 
 namespace IHMC_ACI
 {
-    class MetadataConfiguration;
+    class MetadataConfigurationImpl;
 
-    class LocalNodeContext : public NodeContext
+    class LocalNodeContext : public NodeContextImpl
     {
         public:
             static const char * TEAM_ID_PROPERTY;
             static const char * MISSION_ID_PROPERTY;
             static const char * ROLE_PROPERTY;
-            static const char * USEFUL_DISTANCE_PROPERTY;
-            static const char * USEFUL_DISTANCE_BY_TYPE_PROPERTY;
+            static const char * NODE_TYPE_PROPERTY;
             static const char * LIMIT_PRESTAGING_TO_LOCAL_DATA_PROPERTY;
             static const char * MATCHMAKING_QUALIFIERS;
 
@@ -53,55 +52,66 @@ namespace IHMC_ACI
 
             static LocalNodeContext * getInstance (const char *pszNodeId,
                                                    NOMADSUtil::ConfigManager *pCfgMgr,
-                                                   MetadataConfiguration *pMetadataConf);
+                                                   MetadataConfigurationImpl *pMetadataConf);
 
             int addCustomPolicies (const char **ppszCustomPoliciesXML);
+            int addCustomPolicy (CustomPolicyImpl *pPolicy);
 
             /**
              * This information may change during time.
              *
-             * NOTE: "NULL" is a valid value.  If NULL is passed to any of the
-             *       parameters, the parameter is set to NULL, even if it was set
-             *       to a non-NULL value.
+             * NOTE: "nullptr" is a valid value.  If nullptr is passed to any of the
+             *       parameters, the parameter is set to nullptr, even if it was set
+             *       to a non-nullptr value.
              */
             int configure (NOMADSUtil::ConfigManager *pCfgMgr);
-            int configureMetadataRanker (NOMADSUtil::ConfigManager *pCfgMgr);
             int configureMetadataRanker (float coordRankWeight, float timeRankWeight,
                                          float expirationRankWeight, float impRankWeight,
                                          float sourceReliabilityRankWeigth,
                                          float informationContentRankWeigth,
                                          float predRankWeight, float targetWeight,
                                          bool bStrictTarget, bool bConsiderFuturePathSegmentForMatchmacking);
-            void configureNodeContext (const char *pszTeamID, const char *pszMissionID, const char *pszRole);
+            void configureNodeContext (const char *pszTeamId, const char *pszMissionId, const char *pszRole);
             int parseAndSetUsefulDistanceByType (const char *pszUsefulDistanceValues);
 
             // get methods
 
             uint16 getClassifierVersion (void);
 
+            int64 getStartTime (void) const;
             int getCurrentLatitude (float &latitude);
             int getCurrentLongitude (float &longitude);
             int getCurrentTimestamp (uint64 &timestamp);
             int getCurrentPosition (float &latitude, float &longitude, float &altitude,
                                     const char *&pszLocation, const char *&pszNote,
                                     uint64 &timeStamp);
+            LocationInfo * getLocationInfo (void);
+
             bool setCurrentPosition (float latitude, float longitude, float altitude,
                                      const char *pszLocation, const char *pszNote,
                                      uint64 timeStamp);
 
+            bool setMatchmakingThreshold (float fMatchmakingThreshold);
+
             /**
-             * Returns the specified path if it exists. Returns NULL otherwise.
+             * Returns the specified path if it exists. Returns nullptr otherwise.
              * Returns the current path if exists.
              */
-            NodePath * getPath (const char *pszPathID);
-            NodePath * getPath (void);
+            IHMC_VOI::NodePath * getPath (const char *pszPathId);
+            IHMC_VOI::NodePath * getPath (void);
 
             bool isPeerActive (void);
 
             // modify the node context
- 
+            void setBatteryLevel (uint8 ui8BatteryLevel);
+            void setMemoryAvailable (uint8 ui8MemoryAvailable);
+            void setMissionId (const char *pszMissionId);
+            void setTeam (const char *pszTeam);
+            void setRole (const char *pszRole);
+            void setNodeType (const char *pszType);
             void setDefaultUsefulDistance (uint32 ui32UsefulDistanceInMeters);
             void setUsefulDistance (const char *pszDataMIMEType, uint32 ui32UsefulDistanceInMeters);
+            void setRangeOfInfluence (const char *pszNodeType, uint32 ui32RangeOfInfluenceInMeters);
 
             /**
              * "probability" is the probability that the user will that path.
@@ -113,19 +123,19 @@ namespace IHMC_ACI
              * Set as actual path one of the paths. Returns -1 in case of error,
              * 0 otherwise.
              */
-            int setCurrentPath (const char *pszPathID);
+            int setCurrentPath (const char *pszPathId);
 
             /**
              * Returns 0 if the path id added with success, returns -1 otherwise
              */
-            int addPath (NodePath *pNodePath);
+            int addPath (IHMC_VOI::NodePath *pNodePath);
 
             /**
              * Returns -1 if the specified path id doesn't exist or if you are
              * trying to delete the current path or the past path.
              * If there are no errors returns 0.
              */
-            int deletePath (const char *pszPathID);
+            int deletePath (const char *pszPathId);
 
             /**
              * Use the given dataset as input for the classifier. In case of
@@ -136,19 +146,6 @@ namespace IHMC_ACI
         protected:
             LocalNodeContext (const char *pszNodeID, IHMC_C45::Classifier *pClassifier,
                               double dTooFarCoeff, double dApproxCoeff);
-
-            // The position at which the path that has been
-            // actually covered by the node (may be
-            // different than the registered path(s)) is
-            // stored in _pPaths.
-            // It could be used to adjust the prediction
-            // parameters, and off line, as an important
-            // piece of information about the deployment.
-            static const unsigned short int ACTUAL_COVERED_PATH_INDEX;
-
-            NOMADSUtil::DArray2<NodePath *> *_pPaths; // Collect the paths of the node.
-            uint16 _ui16PathsNumber; // Number of paths present in the array.
-            int _iCurrPath;          // Index of the current path.
     };
 }
 

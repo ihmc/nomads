@@ -19,6 +19,7 @@ MAKEFILE_FOLDER=linux
 options=-Wall -Wextra -Wno-unused-parameter
 
 INCLUDES=-I..\
+	 -I..\proxy \
          -I$(NOMADS_HOME)/util/cpp \
          -I../../media \
          -I$(JPEG_HOME)/ \
@@ -44,6 +45,9 @@ sources = $(wildcard ../*.cpp)
 NOWANTS=../FFmpegHandler.cpp ../TestDriver.cpp
 sources = $(filter-out $(NOWANTS),$(wildcard ../*.cpp))
 objects = $(sources:../%.cpp=%.o)
+
+proxysources = $(wildcard ../proxy/*.cpp)
+proxyobjects = $(proxysources:../proxy/%.cpp=%.o)
 
 LIBS=libchunking.a \
      $(UTIL_HOME)/cpp/$(LIB_FOLDER)/libutil.a \

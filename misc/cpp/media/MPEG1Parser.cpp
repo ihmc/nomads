@@ -49,7 +49,7 @@ namespace IHMC_MISC
             int goToNextSequence (void);
             int goToNextSequenceGOP (void);
             int goToNextGOPFrame (void);
- 
+
             int readAll (void *pBuf, unsigned int uiBufLen);
             int readToNextSequence (void *pBuf, unsigned int uiBufLen);
             int readToNextSequenceGOP (void *pBuf, unsigned int uiBufLen);
@@ -246,7 +246,7 @@ int MPEG1ParserImpl::goToNextSequence (void)
     _state = IN_SEQUENCE;
     _i64Read += rc;
     checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "read %lld, while pos is %d.\n",
-                    _i64Read, BitParserTell (_bp)); 
+                    _i64Read, BitParserTell (_bp));
     return rc;
 }
 
@@ -268,7 +268,7 @@ int MPEG1ParserImpl::goToNextSequenceGOP (void)
     _state = IN_GOP;
     _i64Read += rc;
     checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "read %lld, while pos is %d.\n",
-                    _i64Read, BitParserTell (_bp)); 
+                    _i64Read, BitParserTell (_bp));
     return rc;
 }
 
@@ -303,7 +303,7 @@ int MPEG1ParserImpl::goToNextGOPFrame (void)
     if (tmp < 0) {
         return -4;
     }
-    i64tmp = BitParserTell (_bp) - i64tmp; 
+    i64tmp = BitParserTell (_bp) - i64tmp;
     rc += i64tmp;
     assert ((_i64Read + rc) == BitParserTell (_bp));
     int currCode = MpegGetCurrStartCode (_bp);
@@ -318,7 +318,7 @@ int MPEG1ParserImpl::goToNextGOPFrame (void)
     }
     _i64Read += rc;
     checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "read %lld, while pos is %d.\n",
-                    _i64Read, BitParserTell (_bp)); 
+                    _i64Read, BitParserTell (_bp));
     return rc;
 }
 

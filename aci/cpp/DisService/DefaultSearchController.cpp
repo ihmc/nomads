@@ -1,4 +1,4 @@
-/* 
+/*
  * DefaultSearchController.cpp
  *
  * This file is part of the IHMC DisService Library/Component
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -54,7 +54,7 @@ void DefaultSearchController::searchArrived (const char *pszQueryId, const char 
                                              const char *pszQuerier, const char *pszQueryType,
                                              const char *, const void *pszQuery, unsigned int uiQueryLen)
 {
-    if (pszQueryId == NULL || pszGroupName == NULL || pszQuerier == NULL || 
+    if (pszQueryId == NULL || pszGroupName == NULL || pszQuerier == NULL ||
         pszQueryType == NULL || pszQuery == NULL || uiQueryLen == 0) {
         return;
     }
@@ -76,7 +76,7 @@ void DefaultSearchController::searchReplyArrived (const char *pszQueryId,
 
     uint16 ui16ClientId = Searches::FORWARDED_SEARCH_CLIENT_ID;
     String queryType;
-    String querier; 
+    String querier;
     if (0 != Searches::getSearches()->getSearchInfo (pszQueryId, queryType, querier, ui16ClientId)) {
         // The search was never forwarded by this node - do not process its
         // corresponding search reply

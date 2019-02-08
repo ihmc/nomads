@@ -46,25 +46,25 @@ QueryQualifierBuilder::~QueryQualifierBuilder()
 
 QueryQualifierBuilder * QueryQualifierBuilder::parse (const char *pszQueryQualifiers)
 {
-    if (pszQueryQualifiers == NULL) {
-        return NULL;
+    if (pszQueryQualifiers == nullptr) {
+        return nullptr;
     }
 
     unsigned int uiLen = strlen (pszQueryQualifiers);
     if (uiLen == 0) {
-        return NULL;
+        return nullptr;
     }
 
     BufferReader br (pszQueryQualifiers, uiLen, false);
     LineOrientedReader lr (&br, false);
     char *pszLine = (char *) calloc (uiLen+1, sizeof (char));
-    if (pszLine == NULL) {
-        return NULL;
+    if (pszLine == nullptr) {
+        return nullptr;
     }
     QueryQualifierBuilder *pQualifierBuilder = new QueryQualifierBuilder();
-    if (pQualifierBuilder == NULL) {
+    if (pQualifierBuilder == nullptr) {
         free (pszLine);
-        return NULL;
+        return nullptr;
     }
 
     for (int rc; (rc = lr.readLine (pszLine, uiLen)) >= 0;) {
@@ -73,19 +73,19 @@ QueryQualifierBuilder * QueryQualifierBuilder::parse (const char *pszQueryQualif
         }
         static StringTokenizer tokenizer;
         tokenizer.init (pszQueryQualifiers, ';', ';');
-        for (const char *pszToken; (pszToken = tokenizer.getNextToken()) != NULL;) {
+        for (const char *pszToken; (pszToken = tokenizer.getNextToken()) != nullptr;) {
             if (pQualifierBuilder->setArgument (*pQualifierBuilder, pszToken) < 0) {
                 free (pszLine);
-                free (pQualifierBuilder);
-                return NULL;
+                delete pQualifierBuilder;
+                return nullptr;
             }
         }
     }
 
     free (pszLine);
-    
+
   /*  if (pszQueryQualifiers->_groupBy.) {
-        
+
     }
             NOMADSUtil::String _limit;
             NOMADSUtil::String _order;*/
@@ -110,14 +110,14 @@ const char * QueryQualifierBuilder::getOrder (void)
 
 int QueryQualifierBuilder::setArgument (QueryQualifierBuilder &qualifierBuilder, const char *pszPropertyAndValue)
 {
-    if (pszPropertyAndValue == NULL) {
+    if (pszPropertyAndValue == nullptr) {
         return -1;
     }
     static StringTokenizer tokenizer;
     tokenizer.init (pszPropertyAndValue, '=', '=');
-    
+
     const char *pszProperty = tokenizer.getNextToken();
-    if (pszProperty == NULL) {
+    if (pszProperty == nullptr) {
         return -2;
     }
 

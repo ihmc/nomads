@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -41,10 +41,10 @@ SubscriptionForwardingController::SubscriptionForwardingController (Disseminatio
 
 SubscriptionForwardingController::~SubscriptionForwardingController()
 {
-    
+
 }
 
-void SubscriptionForwardingController::newIncomingMessage (const void *pMsgMetaData, uint16 ui16MsgMetaDataLen, 
+void SubscriptionForwardingController::newIncomingMessage (const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
                                                            DisServiceMsg *pDisServiceMsg, uint32 ui32SourceIPAddress,
                                                            const char *pszIncomingInterface)
 
@@ -58,13 +58,13 @@ void SubscriptionForwardingController::newIncomingMessage (const void *pMsgMetaD
         if (pCtrlNo != NULL && pCtrlNo->_ui32SeqNo == pSubMsg->getCtrlMsgSeqNo()) {
             pCtrlNo = _lastSeenCtrlSeqNoHashtable.put (pSubMsg->getSenderNodeId(),
                                                        new CtrlSeqNo (pSubMsg->getCtrlMsgSeqNo(), getTimeInMilliseconds()));
-            
+
             checkAndLogMsg (pszMethodName, Logger::L_Info, "Control Message from %s with SeqId = %d  has been received already. Drop it.\n",
                             pSubMsg->getSenderNodeId(), pSubMsg->getCtrlMsgSeqNo());
             delete pCtrlNo;
             return;
         }
-        
+
         // Check if the current node is in the path. If so drop it because it is a loop.
         NOMADSUtil::String *pNodeInPath = pSubMsg->getPath()->getFirst();
         for (; pNodeInPath != NULL; pNodeInPath = pSubMsg->getPath()->getNext()) {
@@ -79,7 +79,7 @@ void SubscriptionForwardingController::newIncomingMessage (const void *pMsgMetaD
         if (pCtrlNo != NULL) {
             delete pCtrlNo;
         }
-        
+
         // Remove expired Control Sequence Number
         NOMADSUtil::DArray2<const char *> seqNumExpired;
         NOMADSUtil::StringHashtable<CtrlSeqNo>::Iterator i = _lastSeenCtrlSeqNoHashtable.getAllElements();
@@ -89,7 +89,7 @@ void SubscriptionForwardingController::newIncomingMessage (const void *pMsgMetaD
                 seqNumExpired[k] = i.getKey();
             }
         }
-        
+
         for (unsigned int k = 0; k < seqNumExpired.size(); k++) {
             if (seqNumExpired.used (k)) {
                 CtrlSeqNo *pSeqNum = _lastSeenCtrlSeqNoHashtable.remove (seqNumExpired[k]);
@@ -115,7 +115,7 @@ void SubscriptionForwardingController::newIncomingMessage (const void *pMsgMetaD
              checkAndLogMsg (pszMethodName, Logger::L_Info, "Path update failure... Returning.\n");
              return;
         }
-        
+
         pSubMsg->setSenderNodeId (pszSenderNodeId);
         const char *pszPurpose = "Sending Subscription Advertisement Message";
         _pDisService->broadcastDisServiceCntrlMsg (pSubMsg, NULL, pszPurpose, NULL);
@@ -144,7 +144,7 @@ void SubscriptionForwardingController::newLinkToNeighbor (const char *pszNodeUID
 void SubscriptionForwardingController::droppedLinkToNeighbor (const char *pszNodeUID, const char *pszPeerRemoteAddr)
 {
 }
-           
+
 void SubscriptionForwardingController::stateUpdateForPeer (const char *pszNodeUID, PeerStateUpdateInterface *pUpdate)
 {
 }
@@ -161,13 +161,13 @@ void SubscriptionForwardingController::setAdvertisementPeriod (int64 i64AdvPerio
 
 int SubscriptionForwardingController::updateTable (const char *pszSenderNodeId, NOMADSUtil::PtrLList<NOMADSUtil::String> *pSubList,
                                                    NOMADSUtil::PtrLList<NOMADSUtil::String> *pNodeList)
- 
+
 {
     // Refresh the table to delete expired entries
     if (!_subAdvTable.isEmpty()) {
         _subAdvTable.refreshTable();
     }
-    
+
     for (NOMADSUtil::String *pszSub = pSubList->getFirst(); pszSub != NULL;
             pszSub = pSubList->getNext()) {
 
@@ -187,18 +187,18 @@ int SubscriptionForwardingController::updateTable (const char *pszSenderNodeId, 
                 if (_subAdvTable.addSubscribingNodePath (pszSub->c_str(), pszSenderNodeId, pszPath) < 0) {
                     return -1;
                 }
-            } 
+            }
             else {
                 if (_subAdvTable.addSubscribingNode (pszSub->c_str(), pszSenderNodeId) < 0) {
                     return -1;
                 }
             }
-        } 
+        }
         else {
             // Get the Subscription and update the Entry.
             SubscriptionAdvTableEntry *pEntry = _subAdvTable.getTableEntry (pszSub->c_str());
             // If the node is not bound to the current subscription, add it along its path (if any)
-            if (!pEntry->hasSubscribingNode (pszSenderNodeId)) { 
+            if (!pEntry->hasSubscribingNode (pszSenderNodeId)) {
                 if (pNodeList->getCount() > 0) {
                     NOMADSUtil::String *pszPath = new NOMADSUtil::String();
                     for (NOMADSUtil::String *pszNode = pNodeList->getFirst(); pszNode != NULL;
@@ -212,13 +212,13 @@ int SubscriptionForwardingController::updateTable (const char *pszSenderNodeId, 
 
                         return -1;
                     }
-                } 
+                }
                 else {
                     if (_subAdvTable.addSubscribingNode (pszSub->c_str(), pszSenderNodeId) < 0) {
-                        return -1;                            
+                        return -1;
                     }
                 }
-            } 
+            }
             else {
                 // Check if the message contains a Path. If so check whether this path is
                 // included in the table already. If not, add it to the table.
@@ -239,7 +239,7 @@ int SubscriptionForwardingController::updateTable (const char *pszSenderNodeId, 
                     }
                     pEntry->refreshLifeTime (pszSenderNodeId);
                 }
-            }            
+            }
         }
     }
     return 0;
@@ -247,9 +247,9 @@ int SubscriptionForwardingController::updateTable (const char *pszSenderNodeId, 
 
 void SubscriptionForwardingController::advertiseSubscriptions()
 {
-    if ((getTimeInMilliseconds() - _i64LastAdvTime > _i64AdvPeriod) && 
+    if ((getTimeInMilliseconds() - _i64LastAdvTime > _i64AdvPeriod) &&
          _ui16LiveNeighbors >= _ui16AdvThreshold) {
-        
+
         _i64LastAdvTime = getTimeInMilliseconds();
         // Get all the Subscriptions
         NOMADSUtil::PtrLList<NOMADSUtil::String> *pSubList = _pDisService->_pLocalNodeInfo->getAllSubscriptions();
@@ -267,9 +267,9 @@ void SubscriptionForwardingController::advertiseSubscriptions()
                 pDel = pSubList->remove (pCurr);
                 delete pDel;
             }
-            
+
             delete pSubList;
-        }        
+        }
     }
 }
 

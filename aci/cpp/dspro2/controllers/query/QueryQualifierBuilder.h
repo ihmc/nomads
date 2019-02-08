@@ -21,14 +21,14 @@
  */
 
 #ifndef INCL_QUERY_QUALIFIER_BUILDER_H
-#define	INCL_QUERY_QUALIFIER_BUILDER_H
+#define INCL_QUERY_QUALIFIER_BUILDER_H
 
 #include "StrClass.h"
 
 namespace IHMC_ACI
 {
     class QueryQualifier
-    {  
+    {
     };
 
     class QueryQualifierBuilder : public QueryQualifier
@@ -57,5 +57,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_QUERY_QUALIFIER_BUILDER_H */
-
+#endif    /* INCL_QUERY_QUALIFIER_BUILDER_H */

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -86,7 +86,7 @@ namespace IHMC_ACI
             NOMADSUtil::DArray2<NOMADSUtil::String> * getSenderNodeIds (const char *pszGroupName);
 
             /**
-             * Return the ui16HistoryLength most recent cached message's publishers ordered by 
+             * Return the ui16HistoryLength most recent cached message's publishers ordered by
              * DESCENDING order.
              * pszGroupName, ui16Tag can be set to limit the history to a certain groupName/Tag
              *
@@ -97,6 +97,8 @@ namespace IHMC_ACI
                                                                            uint16 ui16Tag);
 
             int release (const char *pszId, MessageHeader *pMI);
+
+            void clear (void);
 
         protected:
             /**
@@ -121,7 +123,7 @@ namespace IHMC_ACI
              * NOTE: The returned data should be deallocated by the caller.
              */
             void getDataInternal (const char *pszId, Result &result);
-            
+
             enum EntryType
             {
                 DC_Entry = 0x00,
@@ -136,7 +138,7 @@ namespace IHMC_ACI
 
                 EntryType ui8Type;
                 uint32 ui32Length;
-                
+
                 protected:
                     EntryHeader (EntryType ui8Type);
             };
@@ -172,11 +174,11 @@ namespace IHMC_ACI
              */
             int deleteDataAndMessageInfo (const char *pszKey, bool bIsLatestMessagePushedByNode);
 
-            /* 
+            /*
              * For both the hashtable the KEY value is the message ID.
              * defaultCache (where the general data is kept) and the
              * _chunkCache (where chunks are kept).
-             */            
+             */
             NOMADSUtil::StringHashtable<Entry> _dataCache;
         };
 }

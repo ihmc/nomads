@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -91,7 +91,7 @@ namespace IHMC_ACI
             /**
              * Notifies that a new message pDisServiceMsg has been received by
              * the transmission service listener (and it has not yet been
-             * handled by DisService). 
+             * handled by DisService).
              * The message was received from the interface in pszIncomingInterface
              * from the node at the address in ui32SourceIPAddress.
              */
@@ -119,7 +119,7 @@ namespace IHMC_ACI
              */
             virtual void newSubscriptionForPeer (const char *pszPeerNodeId,
                                                  Subscription *pSubscription) = 0;
-            
+
             /**
              * Notifies that the peer identified by pszPeerNodeId canceled the
              * subscription to a formerly subscribed group.
@@ -162,6 +162,9 @@ namespace IHMC_ACI
              *       has returned.
              */
             virtual void networkQuiescent (const char **pszInterfaces) = 0;
+            virtual void messageCountUpdate (const char *pszPeerNodeId, const char *pszIncomingInterface,
+                                             const char *pszPeerIp,
+                                             uint64 ui64GroumMsgCount, uint64 ui64UnicastMsgCount) = 0;
 
         protected:
             NetworkStateListener (void);
@@ -211,13 +214,13 @@ namespace IHMC_ACI
 
             /**
              * A new neighbor is reachable. pszNodeUID is the identifier that
-             * uniquely identifies the node. 
+             * uniquely identifies the node.
              */
             virtual void newNeighbor (const char *pszNodeUID, const char *pszPeerRemoteAddr,
                                       const char *pszIncomingInterface) = 0;
 
             /**
-             * The neighbor uniquely identified by pszNodeUID is no longer reachable. 
+             * The neighbor uniquely identified by pszNodeUID is no longer reachable.
              */
             virtual void deadNeighbor (const char *pszNodeUID) = 0;
 

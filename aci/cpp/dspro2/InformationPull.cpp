@@ -23,8 +23,8 @@
 #include "InformationStore.h"
 #include "LocalNodeContext.h"
 #include "NodeContextManager.h"
+#include "MetadataConfigurationImpl.h"
 #include "MetaDataRanker.h"
-#include "MetadataRankerConfiguration.h"
 #include "MetaData.h"
 
 #include "BufferReader.h"
@@ -32,11 +32,12 @@
 #include "Logger.h"
 #include "SequentialArithmetic.h"
 #include "Writer.h"
-#include "MetadataConfiguration.h"
 
 #include <string.h>
+#include "MetadataHelper.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 const float InformationPull::INFO_PULL_RANK_THRESHOLD = 0;
@@ -52,7 +53,7 @@ InformationPull::InformationPull (const char *pszNodeId,
                                   float infoPullRankThreashold)
     : _nodeId (pszNodeId), _latestSearchIdRcvdByPeer (true, true, true, true)
 {
-    if (pNodeContextManager == NULL || pInformationStore == NULL) {
+    if (pNodeContextManager == nullptr || pInformationStore == nullptr) {
         checkAndLogMsg ("InformationPush::InformationPull (2)", coreComponentInitFailed);
         exit (-1);
     }
@@ -66,14 +67,14 @@ InformationPull::InformationPull (const char *pszNodeId,
 
 InformationPull::~InformationPull()
 {
-    _pNodeContextManager = NULL;
-    _pInformationStore = NULL;
-    _pMetaDataRankerLocalConf = NULL;
+    _pNodeContextManager = nullptr;
+    _pInformationStore = nullptr;
+    _pMetaDataRankerLocalConf = nullptr;
 }
 
 int InformationPull::configure (ConfigManager *pCfgMgr)
 {
-    if (pCfgMgr == NULL) {
+    if (pCfgMgr == nullptr) {
         return 0;
     }
     if (pCfgMgr->hasValue (RANK_THRESHOLD_PROPERTY)) {
@@ -87,13 +88,13 @@ int InformationPull::configure (ConfigManager *pCfgMgr)
 
 MatchmakingIntrumentation * InformationPull::dataArrived (MetaData *pMetaData)
 {
-    if (pMetaData == NULL) {
-        return NULL;
+    if (pMetaData == nullptr) {
+        return nullptr;
     }
 
-    if (MetadataUtils::refersToDataFromSource (pMetaData, _nodeId.c_str())) {
-        char *pszMsgId = NULL;
-        if (pMetaData->getFieldValue (MetaData::MESSAGE_ID, &pszMsgId) == 0 && pszMsgId != NULL) {
+    if (refersToDataFromSource (pMetaData, _nodeId.c_str())) {
+        char *pszMsgId = nullptr;
+        if (pMetaData->getFieldValue (MetaData::MESSAGE_ID, &pszMsgId) == 0 && pszMsgId != nullptr) {
             NodeIdSet matchingNode (_nodeId);
             RankByTargetMap rhdRankByTarget;
             Rank *pRank = new Rank (pszMsgId, matchingNode, rhdRankByTarget, true);
@@ -105,33 +106,33 @@ MatchmakingIntrumentation * InformationPull::dataArrived (MetaData *pMetaData)
             return pInstrumentation;
         }
         checkAndLogMsg ("InformationPull::dataArrived", memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     LocalNodeContext *pLocalContext = _pNodeContextManager->getLocalNodeContext();
     Rank *pRank = MetaDataRanker::rank (pMetaData, pLocalContext,
-                                        MetadataConfiguration::getExistingConfiguration(),
+                                        MetadataConfigurationImpl::getExistingConfiguration(),
                                         _pMetaDataRankerLocalConf);
     _pNodeContextManager->releaseLocalNodeContext();
 
     if (pRank->_fTotalRank < _infoPullRankThreashold) {
         pRank->_fTotalRank = 0.0f;
     }
-    return NULL; // pRank; //(pRank < _infoPullRankThreashold ? 0 : DSLib::toPriority (rank));
+    return nullptr; // pRank; //(pRank < _infoPullRankThreashold ? 0 : DSLib::toPriority (rank));
 }
 
-const char ** InformationPull::remoteSearchForMetadata (Writer *pWriter, const char *pszGroupName,
+DArray2<String> * InformationPull::remoteSearchForMetadata (Writer *pWriter, const char *pszGroupName,
                                                         const char **ppszReferencedDataIDs)
 {
-    if (ppszReferencedDataIDs == NULL || ppszReferencedDataIDs[0] == NULL) {
-        return NULL;
+    if (ppszReferencedDataIDs == nullptr || ppszReferencedDataIDs[0] == nullptr) {
+        return nullptr;
     }
 
     String query (MetaData::REFERS_TO);
     query += " = '";
     query += ppszReferencedDataIDs[0];
     query += "'";
-    for (int i = 1; ppszReferencedDataIDs[i] != NULL; i++) {
+    for (int i = 1; ppszReferencedDataIDs[i] != nullptr; i++) {
         query += " OR";
         query += MetaData::REFERS_TO;
         query += " = '";
@@ -142,7 +143,7 @@ const char ** InformationPull::remoteSearchForMetadata (Writer *pWriter, const c
     return remoteSearch (pWriter, pszGroupName, query);
 }
 
-const char ** InformationPull::remoteSearchForMetadata (Writer *pWriter, const char *pszGroupName,
+DArray2<String> * InformationPull::remoteSearchForMetadata (Writer *pWriter, const char *pszGroupName,
                                                         const char *pszReferencedDataID)
 {
     // Build query
@@ -154,15 +155,15 @@ const char ** InformationPull::remoteSearchForMetadata (Writer *pWriter, const c
     return remoteSearch (pWriter, pszGroupName, query);
 }
 
-const char ** InformationPull::remoteSearch (Writer *pWriter, const char *pszGroupName, const char *pszQuery)
+DArray2<String> * InformationPull::remoteSearch (Writer *pWriter, const char *pszGroupName, const char *pszQuery)
 {
-    if (pWriter == NULL || pszQuery == NULL) {
-        return NULL;
+    if (pWriter == nullptr || pszQuery == nullptr) {
+        return nullptr;
     }
-    char **ppszReceiverNodeIDs = _pNodeContextManager->getActivePeerList();
-    if (ppszReceiverNodeIDs != NULL) {
+    DArray2<String> *pReceiverNodeIds = _pNodeContextManager->getActivePeerList();
+    if (pReceiverNodeIds != nullptr) {
         pWriter->write32 (&_ui32RemoteSeachQuery);
-        uint16 ui16Len = (pszGroupName != NULL ? strlen (pszGroupName) : 0);
+        uint16 ui16Len = (pszGroupName != nullptr ? strlen (pszGroupName) : 0);
         pWriter->write16 (&ui16Len);
         if (ui16Len > 0) {
             pWriter->writeBytes (pszGroupName, ui16Len);
@@ -172,7 +173,7 @@ const char ** InformationPull::remoteSearch (Writer *pWriter, const char *pszGro
         pWriter->writeBytes (pszQuery, ui16Len);
     }
     _ui32RemoteSeachQuery++;
-    return (const char **) ppszReceiverNodeIDs;
+    return pReceiverNodeIds;
 }
 
 PtrLList<const char> *  InformationPull::remoteSearchArrived (const void *pData, uint32 ui32DataLength,
@@ -194,7 +195,7 @@ PtrLList<const char> *  InformationPull::remoteSearchArrived (const void *pData,
 
     // Check the search seq id
     uint32 *pUI32PrevRcvdRemoteSeachQuery = _latestSearchIdRcvdByPeer.get (pszSenderNodeId);
-    if (pUI32PrevRcvdRemoteSeachQuery == NULL) {
+    if (pUI32PrevRcvdRemoteSeachQuery == nullptr) {
         pUI32PrevRcvdRemoteSeachQuery = new uint32;
         (*pUI32PrevRcvdRemoteSeachQuery) = ui32RcvdRemoteSeachQuery;
         _latestSearchIdRcvdByPeer.put (pszSenderNodeId, pUI32PrevRcvdRemoteSeachQuery);
@@ -204,22 +205,15 @@ PtrLList<const char> *  InformationPull::remoteSearchArrived (const void *pData,
             // This is either a duplicate search or an old search.  Either way
             // it must not be served! (Actually the "equal" case should never
             // happen).
-            return NULL;
+            return nullptr;
         }
-        else {
-            (*pUI32PrevRcvdRemoteSeachQuery) = ui32RcvdRemoteSeachQuery;
-        }
+        (*pUI32PrevRcvdRemoteSeachQuery) = ui32RcvdRemoteSeachQuery;
     }
 
     // Get the IDs of the messages matching the query except the ones specified
     // in ppszFilters (because they have already been sent)
-    char **ppszFilters = (char **) malloc (sizeof(char*) * 2);
-    ppszFilters[0] = (char *) pszSenderNodeId;
-    ppszFilters[1] = NULL;
+    // char *ppszFilters[2] = { (char *)pszSenderNodeId , nullptr };
     PtrLList<const char> *pRet = _pInformationStore->getMessageIDs (pszGroupName, pszQuery);
-    ppszFilters[0] = NULL;
-    delete ppszFilters;
-    ppszFilters = NULL;
     return pRet;
 }
 

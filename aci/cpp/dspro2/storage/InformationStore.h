@@ -22,6 +22,8 @@
 
 #include "MetadataInterface.h"
 
+#include "BoundingBox.h"
+
 #include "LoggingMutex.h"
 
 class TiXmlElement;
@@ -40,15 +42,19 @@ namespace NOMADSUtil
     class String;
 }
 
+namespace  IHMC_VOI
+{
+    class MetadataInterface;
+}
+
 namespace IHMC_ACI
 {
     class ComplexMatchmakingQualifier;
     class DataStore;
-    class SQLAVList;
     class MatchmakingQualifier;
     class MatchmakingQualifiers;
-    class MetadataInterface;
-    class MetadataConfiguration;
+    class MetadataConfigurationImpl;
+    class SessionIdListener;
 
     class InformationStore
     {
@@ -61,29 +67,28 @@ namespace IHMC_ACI
              * "Location", "Data_Type", "Classification", "Relevance",
              * "Pedigree", "Description".
              */
-            InformationStore (DataStore *pDataCache,
-                              const char *pszDSProGroupName);
+            InformationStore (DataStore *pDataCache, const char *pszDSProGroupName);
             virtual ~InformationStore (void);
 
-            int init (MetadataConfiguration *pMetadataConf,
-                      const char *pszMetadataTableName = NULL,
-                      const char *pszMetadataDBName = NULL);
+            int init (MetadataConfigurationImpl *pMetadataConf,
+                      const char *pszMetadataTableName = nullptr,
+                      const char *pszMetadataDBName = nullptr);
 
             // database methods
 
-            int insertIntoDB (MetadataInterface *pMetadata);
+            int insert (IHMC_VOI::MetadataInterface *pMetadata);
 
             char ** getDSProIds (const char *pszObjectId, const char *pszInstanceId);
             char ** getDSProIds (const char *pszQuery);
 
             /**
-             * Stores the result in "metadata". If metadata = NULL, a new
+             * Stores the result in "metadata". If metadata = nullptr, a new
              * metadata is created, else the function will insert the values
              * in the already existing metadata. The return value is the error
              * code.
              */
-            MetadataInterface * getMetadata (const char *pszKey);
-            MetadataList * getMetadataForData (const char *pszReferring);
+            IHMC_VOI::MetadataInterface * getMetadata (const char *pszKey);
+            IHMC_VOI::MetadataList * getMetadataForData (const char *pszReferring);
 
             /**
              * For each metadata, the fields used in the prediction, and _only_
@@ -95,12 +100,12 @@ namespace IHMC_ACI
              * NOTE: The function overwrites the value *pFileds and must be
              *       deallocated by the caller.
              */
-            MetadataList * getAllMetadata (const char **ppszMessageIdFilters, bool bExclusiveFilter = true);
-            MetadataList * getAllMetadata (NOMADSUtil::AVList *pAVQueryList, int64 i64BeginArrivalTimestamp,
-                                           int64 i64EndArrivalTimestamp);
-            MetadataList * getAllMetadataInArea (MatchmakingQualifiers *pMatchmakingQualifiers,
-                                                 const char **ppszMessageIdFilters,
-                                                 float fMaxLat, float fMinLat, float fMaxLong, float fMinLong);
+            IHMC_VOI::MetadataList * getAllMetadata (const char **ppszMessageIdFilters, bool bExclusiveFilter = true);
+            IHMC_VOI::MetadataList * getAllMetadata (NOMADSUtil::AVList *pAVQueryList, int64 i64BeginArrivalTimestamp,
+                                                     int64 i64EndArrivalTimestamp);
+            IHMC_VOI::MetadataList * getAllMetadataInArea (MatchmakingQualifiers *pMatchmakingQualifiers,
+                                                           const char **ppszMessageIdFilters,
+                                                           const NOMADSUtil::BoundingBox &area, bool bEmptyPedigree);
 
             /**
              * Extract the ids of the messages that match the given query.
@@ -110,7 +115,7 @@ namespace IHMC_ACI
              * "WHERE" keyword).
              */
             NOMADSUtil::PtrLList<const char> * getMessageIDs (const char *pszGroupName, const char *pszSqlConstraints,
-                                                              char **ppszFilters=NULL);
+                                                              char **ppszFilters=nullptr);
 
             /**
              * Usage possible values: -1 = unknown, 0 = not used, 1 = used
@@ -128,15 +133,18 @@ namespace IHMC_ACI
             int groupAndCount (const char *pszFieldName, float *perc);
 
             int deleteMetadataFromDB (const char *pszKey);
+            int deleteMetadata (const char *pszObjectId, const char *pszInstanceId = nullptr);
 
             char * toSqlConstraint (MatchmakingQualifier *pMatchmakingQualifier);
             char * toSqlConstraints (ComplexMatchmakingQualifier *pCMatchmakingQualifier);
             char * toSqlStatement (MatchmakingQualifiers *pMatchmakingQualifiers);
 
+            void clear (void);
+
         private:
             friend class StorageController;
 
-            MetadataList * getMetadataInternal (sqlite3_stmt *pStmt, bool bAllowMultipleMatches=false);
+            IHMC_VOI::MetadataList * getMetadataInternal (sqlite3_stmt *pStmt, bool bAllowMultipleMatches=false) const;
 
             /*
              * Extract all the fields of every metadata that match the given query.
@@ -146,30 +154,32 @@ namespace IHMC_ACI
              * - differently from the public functions, sqlQuery is a
              *   "complete" SQL query statement.
              */
-            MetadataList * getAllMetadata (const char *pszSQL, unsigned int uiExpectedNumberOfColumns);
+            IHMC_VOI::MetadataList * getAllMetadata (const char *pszSQL, unsigned int uiExpectedNumberOfColumns) const;
 
             /*
              * Extract the ID of every metadata that match the given query.
-             * 
+             *
              * NOTE:
              * - it is not thread safe! The caller must ensure it!
              * - differently from the public functions, sqlQuery is a
              *   "complete" sql query statement.
              */
-            NOMADSUtil::PtrLList<const char> * extractMessageIDsFromDBBase (const char *pszGroupName,
-                                                                            const char *pszSQL);
+            NOMADSUtil::PtrLList<const char> * extractMessageIDsFromDBBase (const char *pszGroupName, const char *pszSQL);
 
             void createSpatialIndexes (void);
-            int openDataBase (MetadataConfiguration *pMetadataConf);
+            int openDataBase (MetadataConfigurationImpl *pMetadataConf);
 
         private:
-            char *_pszMetadataDBName;
-            char *_pszMetadataTableName;
-            char *_pszMetadataPrimaryKey;
-            char *_pszMetadataAll;                // all the fields in the table
-            unsigned int _uiMetadataAll;
+            NOMADSUtil::String _dbName;
+            NOMADSUtil::String _tableName;
+            const NOMADSUtil::String _primaryKey;
+            NOMADSUtil::String _allColumns;                // all the fields in the table
+            unsigned int _uiAllColumnsCount;
             sqlite3 *_pSQL3DB;
             sqlite3_stmt *_psqlInserted;
+            sqlite3_stmt *_psqlDeleteObsolete;
+            sqlite3_stmt *_psqlDeleteByObjectId;
+            sqlite3_stmt *_psqlDeleteByObjectInstanceId;
             sqlite3_stmt *_psqlGetMetadata;
             sqlite3_stmt *_psqlGetReferringMetadata;
 
@@ -182,7 +192,7 @@ namespace IHMC_ACI
              * 5 = insert failed
              * 6 = extract failed with a DB error
              * 7 = extract failed because the key doesn't exist
-             * 8 = one of the given parameter is NULL
+             * 8 = one of the given parameter is nullptr
              * 9 = update "usage" failed
              * 10 = delete MetaData failed
              * 11 = convert xml to metadata failed
@@ -199,7 +209,7 @@ namespace IHMC_ACI
             const char *_pszDSProGroupName;
             const char *_pszStartsWithDSProGroupNameTemplate;
 
-            MetadataConfiguration *_pMetadataConf;
+            MetadataConfigurationImpl *_pMetadataConf;
 
             /*
              * NOTE: to prevent simultaneous access by different threads.
@@ -207,6 +217,7 @@ namespace IHMC_ACI
              * DisServicePro and the application.
              */
             NOMADSUtil::LoggingMutex _m;
+            SessionIdListener *_pSessionIdListener;
     };
 }
 

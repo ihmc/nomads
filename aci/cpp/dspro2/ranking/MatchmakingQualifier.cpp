@@ -21,7 +21,7 @@
 #include "MetaData.h"
 
 #include "StringTokenizer.h"
-#include "MetadataConfiguration.h"
+#include "MetadataConfigurationImpl.h"
 #include "Writer.h"
 
 using namespace IHMC_ACI;
@@ -34,7 +34,7 @@ const String MatchmakingQualifier::MATCH = "~";
 const String MatchmakingQualifier::TOP = "]";
 
 MatchmakingQualifier::MatchmakingQualifier (void)
-{    
+{
 }
 
 MatchmakingQualifier::MatchmakingQualifier (const char *pszAttribute, const char *pszValue,
@@ -59,8 +59,8 @@ char * MatchmakingQualifier::getAsString (void)
 
 int MatchmakingQualifier::parseQualifier (const char *pszQualifier, MatchmakingQualifier * &pMatchmakingQualifier)
 {
-    pMatchmakingQualifier = NULL;
-    if (pszQualifier == NULL) {
+    pMatchmakingQualifier = nullptr;
+    if (pszQualifier == nullptr) {
         return -1;
     }
     String qualifier (pszQualifier);
@@ -74,7 +74,7 @@ int MatchmakingQualifier::parseQualifier (const char *pszQualifier, MatchmakingQ
         return -2;
     }
     // attribute.convertToUpperCase();
-    if (!MetadataConfiguration::getConfiguration()->hasField (attribute.c_str())) {
+    if (!MetadataConfigurationImpl::getConfiguration()->hasField (attribute.c_str())) {
         return -3;
     }
 
@@ -83,7 +83,7 @@ int MatchmakingQualifier::parseQualifier (const char *pszQualifier, MatchmakingQ
     if (operation.length() <= 0) {
         return -4;
     }
-    String fieldType (MetadataConfiguration::getConfiguration()->getFieldType (attribute.c_str()));
+    String fieldType (MetadataConfigurationImpl::getConfiguration()->getFieldType (attribute.c_str()));
     if (fieldType.length() <= 0) {
         return -5;
     }
@@ -91,19 +91,19 @@ int MatchmakingQualifier::parseQualifier (const char *pszQualifier, MatchmakingQ
 
     }
     else if (fieldType == "INTEGER16") {
-        
+
     }
     else if (fieldType == "INTEGER32") {
-        
+
     }
     else if (fieldType == "INTEGER64") {
-        
+
     }
     else if (fieldType == "FLOAT") {
-        
+
     }
     else if (fieldType == "DOUBLE") {
-        
+
     }
 
     if ((operation != "=") && (operation != ">") && (operation != "<") &&
@@ -123,7 +123,7 @@ int MatchmakingQualifier::parseQualifier (const char *pszQualifier, MatchmakingQ
 
 int MatchmakingQualifier::read (Reader *pReader, uint32 ui32MaxSize)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
 
@@ -133,7 +133,7 @@ int MatchmakingQualifier::read (Reader *pReader, uint32 ui32MaxSize)
         return -2;
     }
     char *pszTmp = (char *) calloc (ui16Len+1, sizeof (char));
-    if (pszTmp == NULL) {
+    if (pszTmp == nullptr) {
         return -4;
     }
     if (pReader->readBytes (pszTmp, ui16Len) < 0) {
@@ -147,7 +147,7 @@ int MatchmakingQualifier::read (Reader *pReader, uint32 ui32MaxSize)
         return -6;
     }
     pszTmp = (char *) calloc (ui16Len+1, sizeof (char));
-    if (pszTmp == NULL) {
+    if (pszTmp == nullptr) {
         return -7;
     }
     if (pReader->readBytes (pszTmp, ui16Len) < 0) {
@@ -161,7 +161,7 @@ int MatchmakingQualifier::read (Reader *pReader, uint32 ui32MaxSize)
         return -9;
     }
     pszTmp = (char *) calloc (ui16Len+1, sizeof (char));
-    if (pszTmp == NULL) {
+    if (pszTmp == nullptr) {
         return -10;
     }
     if (pReader->readBytes (pszTmp, ui16Len) < 0) {
@@ -174,7 +174,7 @@ int MatchmakingQualifier::read (Reader *pReader, uint32 ui32MaxSize)
 
 int MatchmakingQualifier::write (Writer *pWriter, uint32 ui32MaxSize)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
 
@@ -222,13 +222,13 @@ ComplexMatchmakingQualifier::~ComplexMatchmakingQualifier (void)
 const char * ComplexMatchmakingQualifier::getDataFormat (void)
 {
     MatchmakingQualifier *pMatchmakingQualifier = _qualifiers.getFirst();
-    while (pMatchmakingQualifier != NULL) {
+    while (pMatchmakingQualifier != nullptr) {
         if (strcmp (pMatchmakingQualifier->getAttribute(), MetaData::DATA_FORMAT) == 0) {
             return pMatchmakingQualifier->getValue();
         }
         pMatchmakingQualifier = _qualifiers.getNext();
     }
-    return NULL;
+    return nullptr;
 }
 
 char * ComplexMatchmakingQualifier::getAsString (void)
@@ -236,9 +236,9 @@ char * ComplexMatchmakingQualifier::getAsString (void)
     bool bIsFirst = true;
     String quals;
     for (MatchmakingQualifier *pQual = _qualifiers.getFirst();
-         pQual != NULL; pQual = _qualifiers.getNext()) {
+         pQual != nullptr; pQual = _qualifiers.getNext()) {
         char *pszQual = pQual->getAsString();
-        if (pszQual != NULL) {
+        if (pszQual != nullptr) {
             if (!bIsFirst) {
                 quals += " & ";
             }
@@ -255,8 +255,8 @@ char * ComplexMatchmakingQualifier::getAsString (void)
 
 int ComplexMatchmakingQualifier::parseQualifier (const char *pszLine, ComplexMatchmakingQualifier * &pComplexMatchmakingQualifier)
 {
-    pComplexMatchmakingQualifier = NULL;
-    if (pszLine == NULL) {
+    pComplexMatchmakingQualifier = nullptr;
+    if (pszLine == nullptr) {
         return -1;
     }
     String line (pszLine);
@@ -264,11 +264,11 @@ int ComplexMatchmakingQualifier::parseQualifier (const char *pszLine, ComplexMat
 
     StringTokenizer st (line.c_str(), '&', '&');
     PtrLList<MatchmakingQualifier> qualifiers;
-    for (const char *pszToken; (pszToken = st.getNextToken()) != NULL;) {
-        MatchmakingQualifier *pMatchmakingQualifier = NULL;
+    for (const char *pszToken; (pszToken = st.getNextToken()) != nullptr;) {
+        MatchmakingQualifier *pMatchmakingQualifier = nullptr;
         if (MatchmakingQualifier::parseQualifier (pszToken, pMatchmakingQualifier) == 0 &&
-            pMatchmakingQualifier != NULL) {
-            if (qualifiers.search (pMatchmakingQualifier) == NULL) {
+            pMatchmakingQualifier != nullptr) {
+            if (qualifiers.search (pMatchmakingQualifier) == nullptr) {
                 qualifiers.prepend (pMatchmakingQualifier);
             }
         }
@@ -283,7 +283,7 @@ int ComplexMatchmakingQualifier::parseQualifier (const char *pszLine, ComplexMat
 
 int ComplexMatchmakingQualifier::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
 
@@ -300,7 +300,7 @@ int ComplexMatchmakingQualifier::read (NOMADSUtil::Reader *pReader, uint32 ui32M
 
 int ComplexMatchmakingQualifier::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
 
@@ -310,7 +310,7 @@ int ComplexMatchmakingQualifier::write (NOMADSUtil::Writer *pWriter, uint32 ui32
     }
     pWriter->write32 (&iCount);
     for (MatchmakingQualifier *pMatchmakingQualifier = _qualifiers.getFirst();
-         pMatchmakingQualifier != NULL; pMatchmakingQualifier = _qualifiers.getNext()) {
+         pMatchmakingQualifier != nullptr; pMatchmakingQualifier = _qualifiers.getNext()) {
         pMatchmakingQualifier->write (pWriter, ui32MaxSize);
     }
 
@@ -321,14 +321,14 @@ int ComplexMatchmakingQualifier::addQualifier (const char *pszAttribute, const c
                                                 const char *pszOperation)
 {
     MatchmakingQualifier *pMatchmakingQualifier = new MatchmakingQualifier (pszAttribute, pszValue, pszOperation);
-    if (pMatchmakingQualifier != NULL) {
+    if (pMatchmakingQualifier != nullptr) {
         _qualifiers.prepend (pMatchmakingQualifier);
     }
     return 0;
 }
 
 MatchmakingQualifiers::MatchmakingQualifiers (void)
-{   
+{
 }
 
 MatchmakingQualifiers::~MatchmakingQualifiers (void)
@@ -340,9 +340,9 @@ char * MatchmakingQualifiers::getAsString (void)
     bool bIsFirst = true;
     String quals;
     for (ComplexMatchmakingQualifier *pQual = _qualifiers.getFirst();
-         pQual != NULL; pQual = _qualifiers.getNext()) {
+         pQual != nullptr; pQual = _qualifiers.getNext()) {
         char *pszCQual = pQual->getAsString();
-        if (pszCQual != NULL) {
+        if (pszCQual != nullptr) {
             if (!bIsFirst) {
                 quals += ";";
             }
@@ -357,19 +357,19 @@ char * MatchmakingQualifiers::getAsString (void)
     return quals.r_str();
 }
 
-int MatchmakingQualifiers::parseAndAddQualifiers(const char *pszLine)
+int MatchmakingQualifiers::parseAndAddQualifiers (const char *pszLine)
 {
-    if (pszLine == NULL) {
+    if (pszLine == nullptr) {
         return -1;
     }
     String line (pszLine);
     line.trim();
 
     StringTokenizer st (line.c_str(), ';', ';');
-    for (const char *pszToken; (pszToken = st.getNextToken()) != NULL;) {
-        ComplexMatchmakingQualifier *pCMatchmakingQualifier = NULL;
+    for (const char *pszToken; (pszToken = st.getNextToken()) != nullptr;) {
+        ComplexMatchmakingQualifier *pCMatchmakingQualifier = nullptr;
         if (ComplexMatchmakingQualifier::parseQualifier (pszToken, pCMatchmakingQualifier) == 0 &&
-            pCMatchmakingQualifier != NULL) {
+            pCMatchmakingQualifier != nullptr) {
             _qualifiers.prepend (pCMatchmakingQualifier);
         }
         else {
@@ -382,7 +382,7 @@ int MatchmakingQualifiers::parseAndAddQualifiers(const char *pszLine)
 
 int MatchmakingQualifiers::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
 
@@ -399,7 +399,7 @@ int MatchmakingQualifiers::read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize
 
 int MatchmakingQualifiers::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
 
@@ -409,7 +409,7 @@ int MatchmakingQualifiers::write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSiz
     }
     pWriter->write32 (&iCount);
     for (ComplexMatchmakingQualifier *pCMatchmakingQualifier = _qualifiers.getFirst();
-         pCMatchmakingQualifier != NULL; pCMatchmakingQualifier = _qualifiers.getNext()) {
+         pCMatchmakingQualifier != nullptr; pCMatchmakingQualifier = _qualifiers.getNext()) {
         pCMatchmakingQualifier->write (pWriter, ui32MaxSize);
     }
 

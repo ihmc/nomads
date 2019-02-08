@@ -52,6 +52,12 @@ public class LegacyPeerStatusListener implements DSProProxyListener
         return true;
     }
 
+    public boolean dataAvailable (String id, String groupName, String objectId, String instanceId, String referredDataId,
+                                  String mimeType, byte[] metadata, String queryId)
+    {
+        return true;
+    }
+
     public boolean searchArrived (String queryId, String groupName, String queryType, String queryQualifiers, byte[] query)
     {
         return true;

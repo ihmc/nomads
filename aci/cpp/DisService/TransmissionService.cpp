@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,6 +27,7 @@
 #include "NetworkMessageService.h"
 #include "NetworkMessageServiceProxy.h"
 
+#include "SessionId.h"
 #include "TransmissionServiceListener.h"
 
 #include "BufferWriter.h"
@@ -55,7 +56,7 @@ const uint8 TransmissionService::DEFAULT_MESSAGE_VERSION = 1;
 void deallocateStringsArray (char **ppszStrings)
 {
     if (ppszStrings) {
-        for (int i = 0; ppszStrings[i] != NULL; i++) {
+        for (int i = 0; ppszStrings[i] != nullptr; i++) {
             free (ppszStrings[i]);
         }
         free (ppszStrings);
@@ -64,8 +65,8 @@ void deallocateStringsArray (char **ppszStrings)
 
 TransmissionService::TransmissionService (TRANSMISSION_SVC_MODE mode, uint16 ui16NetworkMessageServicePort,
                                           const char *pszMcastGroup, uint8 ui8McastTTL,
-                                          const char *pszNodeId, const char *pszSessionId,
-                                          bool bAsyncDelivery, bool bAsyncTransmission, uint8 ui8MessageVersion)
+                                          const char *pszNodeId, bool bAsyncDelivery, bool bAsyncTransmission,
+                                          uint8 ui8MessageVersion)
     : _mode (mode),
       _bAsyncDelivery (bAsyncDelivery),
       _bAsyncTransmission (bAsyncTransmission),
@@ -74,10 +75,9 @@ TransmissionService::TransmissionService (TRANSMISSION_SVC_MODE mode, uint16 ui1
       _ui16Port (ui16NetworkMessageServicePort),
       _ui16MaxFragmentSize (1400), // in bytes
       _ui32RateLimitCap (0),
-      _pMPS (NULL),
+      _pMPS (nullptr),
       _dstAddr (pszMcastGroup),
-      _nodeId (pszNodeId),
-      _sessionId (pszSessionId)
+      _nodeId (pszNodeId)
 {
 }
 
@@ -85,10 +85,10 @@ TransmissionService::~TransmissionService (void)
 {
     _nmsHelper.requestTerminationAndWait();
     delete _pMPS;
-    _pMPS = NULL;
+    _pMPS = nullptr;
 }
 
-TransmissionService * TransmissionService::getInstance (ConfigManager *pCfgMgr, const char *pszNodeId, const char *pszSessionId)
+TransmissionService * TransmissionService::getInstance (ConfigManager *pCfgMgr, const char *pszNodeId)
 {
     const char *pszMethodName = "TransmissionService::getInstance";
 
@@ -101,7 +101,7 @@ TransmissionService * TransmissionService::getInstance (ConfigManager *pCfgMgr, 
     const bool bAsyncTransmission = cfgReader.getAsyncTransmission();
     const uint8 ui8MessageVersion = cfgReader.getNetworkMessageVersion();
 
-    const char *pszAddr = NULL;    
+    const char *pszAddr = nullptr;
     switch (mode) {
         case TransmissionService::MULTICAST: {
             pszAddr = cfgReader.getMcastGroup();
@@ -125,7 +125,7 @@ TransmissionService * TransmissionService::getInstance (ConfigManager *pCfgMgr, 
         }
     }
 
-    TransmissionService *pTrSvc = NULL;
+    TransmissionService *pTrSvc = nullptr;
     const bool bUseRateEstimator = pCfgMgr->getValueAsBool ("aci.disService.nodeConfiguration.estimateCapacity", false);
     if (bUseRateEstimator) {
         //values used to speed up testing
@@ -133,14 +133,13 @@ TransmissionService * TransmissionService::getInstance (ConfigManager *pCfgMgr, 
         const uint8 ui8RateEstimatorDecreaseFactor = pCfgMgr->getValueAsInt ("aci.disService.nodeConfiguration.estimateCapacity.decreaseFactor", 0);
         const uint32 ui32StartingCapacity = pCfgMgr->getValueAsInt ("aci.disService.nodeConfiguration.estimatedLinkCapacity", 200);
         pTrSvc = new RateEstimatingTransmissionService (mode, ui16Port, pszAddr, ui8McastTTL,
-                                                        pszNodeId, pszSessionId, ui8RateEstimatorUpdateFactor,
+                                                        pszNodeId, ui8RateEstimatorUpdateFactor,
                                                         ui8RateEstimatorDecreaseFactor, ui32StartingCapacity,
                                                         bAsyncDelivery, bAsyncTransmission, ui8MessageVersion);
     }
     else {
-        pTrSvc = new TransmissionService (mode, ui16Port, pszAddr, ui8McastTTL,
-                                          pszNodeId, pszSessionId, bAsyncDelivery,
-                                          bAsyncTransmission, ui8MessageVersion);
+        pTrSvc = new TransmissionService (mode, ui16Port, pszAddr, ui8McastTTL, pszNodeId,
+                                          bAsyncDelivery, bAsyncTransmission, ui8MessageVersion);
     }
 
     checkAndLogMsg (pszMethodName, Logger::L_Info, "Disservice Running in %s mode. "
@@ -154,6 +153,11 @@ TransmissionService * TransmissionService::getInstance (ConfigManager *pCfgMgr, 
 int TransmissionService::registerWithListeners (DisseminationService *pDisService)
 {
     return 0;
+}
+
+int TransmissionService::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    return _pMPS->changeEncryptionKey (pchKey, ui32Len);
 }
 
 int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingInterfaces,
@@ -171,9 +175,10 @@ int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingI
                     _ui8MessageVersion);
 
     const bool bReplyViaUnicast = pCfgMgr->getValueAsBool ("aci.disService.networkMessageService.replyViaUnicast", false);
-
+	const char *pszGroupKeyFileName = pCfgMgr->getValue ("aci.disService.networkMessageService.groupKeyFile", nullptr);
+    const bool bPassphraseEncryption = pCfgMgr->getValueAsBool ("aci.disService.networkMessageService.passphrase.encryption", false);
     // Instantiate NetworkMessageService in the proper mode
-    const bool bRestart = (_pMPS != NULL);
+    const bool bRestart = (_pMPS != nullptr);
     if (bRestart) {
         _nmsHelper.start();
     }
@@ -192,20 +197,21 @@ int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingI
             default:
                 nmsMode = NOMADSUtil::MULTICAST;
         }
+        const String sessionId (SessionId::getInstance ()->getSessionId());
         _pMPS = _nmsHelper.getNetworkMessageService (nmsMode, _ui16Port, _bAsyncDelivery, _bAsyncTransmission, _ui8MessageVersion, bReplyViaUnicast,
                                                      ppszBindingInterfaces, ppszIgnoredInterfaces, ppszAddedInterfaces, _dstAddr, _ui8McastTTL,
-                                                     pCfgMgr);
-        if (_pMPS == NULL) {
+                                                     sessionId, bPassphraseEncryption, pszGroupKeyFileName, pCfgMgr);
+        if (_pMPS == nullptr) {
             _m.lock();
             return -1;
         }
     }
 
     // Initialize NetworkMessageService
-    if ((ppszBindingInterfaces != NULL) && (ppszBindingInterfaces[0] != NULL)) {
+    if ((ppszBindingInterfaces != nullptr) && (ppszBindingInterfaces[0] != nullptr)) {
         _primaryIface = ppszBindingInterfaces[0];
     }
-    
+
     // Set the retransmission timeout if specified
     if (pCfgMgr->hasValue ("aci.disService.networkMessageService.retransmissionTimeout")) {
         uint32 ui32Timeout = pCfgMgr->getValueAsUInt32 ("aci.disService.networkMessageService.retransmissionTimeout");
@@ -218,14 +224,14 @@ int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingI
         uint32 ui32LinkCapacity = pCfgMgr->getValueAsUInt32 ("aci.disService.nodeConfiguration.estimatedLinkCapacity");
         ui32LinkCapacity = ui32LinkCapacity * (1024/8);
         char **ppszInterfaces = getActiveInterfacesAddress();
-        if (ppszInterfaces != NULL) {
+        if (ppszInterfaces != nullptr) {
             for (int i = 0; ppszInterfaces[i]; i++) {
                 setLinkCapacity (ppszInterfaces[i], ui32LinkCapacity);
                 free (ppszInterfaces[i]);
-                ppszInterfaces[i] = NULL;
+                ppszInterfaces[i] = nullptr;
             }
             free (ppszInterfaces);
-            ppszInterfaces = NULL;
+            ppszInterfaces = nullptr;
         }
     }
 
@@ -235,13 +241,13 @@ int TransmissionService::init (ConfigManager *pCfgMgr, const char **ppszBindingI
 
     // Count the active interfaces and store the count
     char **ppszNICs = _pMPS->getActiveNICsInfoAsString();
-    if (ppszNICs != NULL) {
-        for (uint8 ui8NInterfaces = 0; ppszNICs[ui8NInterfaces] != NULL; ui8NInterfaces++) {
+    if (ppszNICs != nullptr) {
+        for (uint8 ui8NInterfaces = 0; ppszNICs[ui8NInterfaces] != nullptr; ui8NInterfaces++) {
             int64 *pI64Time = new int64;
             *pI64Time = 0;
             _latestBcastTimeByIface.put (ppszNICs[ui8NInterfaces], pI64Time);
             free (ppszNICs[ui8NInterfaces]);
-            ppszNICs[ui8NInterfaces] = NULL;
+            ppszNICs[ui8NInterfaces] = nullptr;
         }
         free (ppszNICs);
     }
@@ -281,7 +287,7 @@ void TransmissionService::requestTermination (void)
 
 uint32 TransmissionService::getIncomingQueueSize()
 {
-    if (_pMPS == NULL) {
+    if (_pMPS == nullptr) {
         return 0U;
     }
     return _pMPS->getDeliveryQueueSize();
@@ -289,8 +295,8 @@ uint32 TransmissionService::getIncomingQueueSize()
 
 char ** TransmissionService::getActiveInterfacesAddress()
 {
-    if (_pMPS == NULL) {
-        return NULL;
+    if (_pMPS == nullptr) {
+        return nullptr;
     }
     return _pMPS->getActiveNICsInfoAsString();
 }
@@ -317,8 +323,8 @@ uint16 TransmissionService::getMTU()
 
 char ** TransmissionService::getInterfacesByDestinationAddress (const char *pszDestinationAddresses)
 {
-    if (pszDestinationAddresses == NULL) {
-        return NULL;
+    if (pszDestinationAddresses == nullptr) {
+        return nullptr;
     }
     const InetAddr addr (pszDestinationAddresses);
     return getInterfacesByDestinationAddress (addr.getIPAddress());
@@ -327,7 +333,7 @@ char ** TransmissionService::getInterfacesByDestinationAddress (const char *pszD
 char ** TransmissionService::getInterfacesByDestinationAddress (uint32 ui32DestinationAddress)
 {
     if (ui32DestinationAddress == INADDR_NONE || ui32DestinationAddress == INADDR_ANY) {
-        return NULL;
+        return nullptr;
     }
 
     return _pMPS->getActiveNICsInfoAsStringForDestinationAddr (ui32DestinationAddress);
@@ -339,7 +345,7 @@ char ** TransmissionService::getInterfacesByReceiveRate (float fPercRateThreshol
         checkAndLogMsg ("TransmissionService::getInterfacesByReceiveRate", Logger::L_Warning,
                         "fPercRateThreshold must be a value between 0 and 1; %f\n",
                         fPercRateThreshold);
-        return NULL;
+        return nullptr;
     }
 
     // The value returned by _pMPS->getActiveNICsInfoAsString() will be deallocated by
@@ -351,42 +357,54 @@ char ** TransmissionService::getSilentInterfaces (uint32 ui32TimeThreshold)
 {
     const int64 i64CurrTime = getTimeInMilliseconds();
     if (i64CurrTime <= 0) {
-        return NULL;
+        return nullptr;
     }
+
     _m.lock();
     char **ppszAllInterfaces = _pMPS->getActiveNICsInfoAsString();
-    if (ppszAllInterfaces == NULL) {
+    if (ppszAllInterfaces == nullptr) {
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
     unsigned int uiCount = 0;
-    for (; ppszAllInterfaces[uiCount] != NULL; uiCount++);
+    for (; ppszAllInterfaces[uiCount] != nullptr; uiCount++);
     if (uiCount == 0) {
+        free (ppszAllInterfaces);
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
 
     char **ppszInterfaces = (char **) calloc (uiCount + 1, sizeof (char *));
-    if (ppszInterfaces == NULL) {
+    if (ppszInterfaces == nullptr) {
+        deallocateNullTerminatedPtrArray (ppszAllInterfaces);
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
     uiCount = 0;
-    for (unsigned int i = 0; ppszAllInterfaces[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszAllInterfaces[i] != nullptr; i++) {
         int64 *pUI64Time = _latestBcastTimeByIface.get (ppszAllInterfaces[i]);
-        if ((pUI64Time == NULL) || ((i64CurrTime - (*pUI64Time)) >= ui32TimeThreshold)) {
+        if ((pUI64Time == nullptr) || ((i64CurrTime - (*pUI64Time)) >= ui32TimeThreshold)) {
             ppszInterfaces[i] = strDup (ppszAllInterfaces[i]);
-            if (ppszInterfaces[uiCount] != NULL) {
+            if (ppszInterfaces[i] != nullptr) {
                 uiCount++;
+            }
+            else {
+                deallocateNullTerminatedPtrArray (ppszAllInterfaces);
+                deallocateNullTerminatedPtrArray (ppszInterfaces);
+                _m.unlock();
+                return nullptr;
             }
         }
     }
-    ppszInterfaces[uiCount] = NULL;
+    ppszInterfaces[uiCount] = nullptr;
     _m.unlock();
-    if (ppszInterfaces[0] == NULL) {
-        free (ppszInterfaces);
-        ppszInterfaces = NULL;
+
+    deallocateNullTerminatedPtrArray (ppszAllInterfaces);
+    if (ppszInterfaces[0] == nullptr) {
+        deallocateNullTerminatedPtrArray (ppszInterfaces);
+        ppszInterfaces = nullptr;
     }
+
     return ppszInterfaces;
 }
 
@@ -396,11 +414,11 @@ char ** TransmissionService::getInterfacesByOutgoingQueueLength (float fPercLeng
         checkAndLogMsg ("TransmissionService::getInterfacesByOutgoingQueueLength", Logger::L_Warning,
                         "fPercRateThreshold must be a value between 0 and 1; %f\n",
                         fPercLengthThreshold);
-        return NULL;
+        return nullptr;
     }
 
     bool bReleaseInterfaces = false;
-    if (ppszInterfaces == NULL) {
+    if (ppszInterfaces == nullptr) {
         ppszInterfaces = _pMPS->getActiveNICsInfoAsString();
         bReleaseInterfaces = true;
     }
@@ -418,19 +436,19 @@ char ** TransmissionService::getInterfacesByReceiveRateAndOutgoingQueueLenght (f
         checkAndLogMsg ("TransmissionService::getInterfacesByReceiveRateAndOutgoingQueueLenght", Logger::L_Warning,
                         "fPercRateThreshold must be a value between 0 and 1; %f\n",
                         fPercRateThreshold);
-        return NULL;
+        return nullptr;
     }
     if (fPercLengthThreshold > 1 || fPercLengthThreshold < 0) {
         checkAndLogMsg ("TransmissionService::getInterfacesByReceiveRateAndOutgoingQueueLenght", Logger::L_Warning,
                         "fPercLengthThreshold must be a value between 0 and 1; %f\n",
                         fPercRateThreshold);
-        return NULL;
+        return nullptr;
     }
 
     // _pMPS->getActiveNICsInfoAsString() will be deallocated by getInterfacesByReceiveRate()
     char **ppszInterfacesByRate = getInterfacesByReceiveRate (fPercRateThreshold, _pMPS->getActiveNICsInfoAsString());
-    if (ppszInterfacesByRate == NULL) {
-        return NULL;
+    if (ppszInterfacesByRate == nullptr) {
+        return nullptr;
     }
 
     char **ppNICsByOutQueue = getInterfacesByOutgoingQueueLength (fPercLengthThreshold, ppszInterfacesByRate);
@@ -445,20 +463,20 @@ char ** TransmissionService::getInterfacesByReceiveRate (float fPercRateThreshol
 {
     const char *pszMethodName = "TransmissionService::getInterfacesByReceiveRate";
 
-    if (ppszInputInterfaces == NULL) {
-        return NULL;
+    if (ppszInputInterfaces == nullptr) {
+        return nullptr;
     }
 
     uint8 ui8InputInterfaces = 0;
-    for (; ppszInputInterfaces[ui8InputInterfaces] != NULL; ui8InputInterfaces++);
+    for (; ppszInputInterfaces[ui8InputInterfaces] != nullptr; ui8InputInterfaces++);
 
     char **ppszInterfaces = (char **) calloc (sizeof (char *), ui8InputInterfaces+1);
-    if (ppszInterfaces == NULL) {
+    if (ppszInterfaces == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
-        return NULL;
-    }    
+        return nullptr;
+    }
     uint8 ui8AddedInterfaces = 0;
-    for (unsigned int uiIndex = 0; (ppszInputInterfaces[uiIndex] != NULL) && (ui8AddedInterfaces < ui8InputInterfaces); ++uiIndex) {
+    for (unsigned int uiIndex = 0; (ppszInputInterfaces[uiIndex] != nullptr) && (ui8AddedInterfaces < ui8InputInterfaces); ++uiIndex) {
         char *pszIPAddr = ppszInputInterfaces[uiIndex];
         int64 i64EstimatedRate = _pMPS->getReceiveRate (pszIPAddr);
         if (i64EstimatedRate < 0) {
@@ -501,7 +519,7 @@ char ** TransmissionService::getInterfacesByReceiveRate (float fPercRateThreshol
 
     if (ui8AddedInterfaces == 0) {
         free (ppszInterfaces);
-        ppszInterfaces = NULL;
+        ppszInterfaces = nullptr;
     }
     free (ppszInputInterfaces);
 
@@ -511,24 +529,24 @@ char ** TransmissionService::getInterfacesByReceiveRate (float fPercRateThreshol
 char ** TransmissionService::getInterfacesByOutgoingQueueLengthInternal (float fPercLengthThreshold,
                                                                          const char **ppszInputInterfaces)
 {
-    if (ppszInputInterfaces == NULL) {
-        return NULL;
+    if (ppszInputInterfaces == nullptr) {
+        return nullptr;
     }
 
     const char *pszMethodName = "TransmissionService::getInterfacesByOutgoingQueueLengthInternal";
 
     // Count the input interfaces
     uint8 ui8NInterfaces = 0;
-    for ( ; ppszInputInterfaces[ui8NInterfaces] != NULL; ui8NInterfaces++);
+    for ( ; ppszInputInterfaces[ui8NInterfaces] != nullptr; ui8NInterfaces++);
 
     char **ppszInterfaces = (char **) calloc (sizeof (char *), ui8NInterfaces+1);
-    if (ppszInterfaces == NULL) {
+    if (ppszInterfaces == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     uint8 ui8AddedInterfaces = 0;
-    for (unsigned int i = 0; ppszInputInterfaces[i] != NULL && ui8AddedInterfaces < ui8NInterfaces; i++) {
+    for (unsigned int i = 0; (ppszInputInterfaces[i] != nullptr) && (ui8AddedInterfaces < ui8NInterfaces); i++) {
         uint8 ui8RescaledQueueLength = getRescaledTransmissionQueueSize (ppszInputInterfaces[i]);
         uint8 ui8Limit = (uint8) (255 * fPercLengthThreshold);
 
@@ -536,7 +554,7 @@ char ** TransmissionService::getInterfacesByOutgoingQueueLengthInternal (float f
 
         if (ui8RescaledQueueLength <= ui8Limit) {
             ppszInterfaces[ui8AddedInterfaces] = strDup (ppszInputInterfaces[i]);
-            if (ppszInterfaces[ui8AddedInterfaces] != NULL) {
+            if (ppszInterfaces[ui8AddedInterfaces] != nullptr) {
                 ui8AddedInterfaces++;
             }
             else {
@@ -547,7 +565,7 @@ char ** TransmissionService::getInterfacesByOutgoingQueueLengthInternal (float f
 
     if (ui8AddedInterfaces == 0) {
         free (ppszInterfaces);
-        ppszInterfaces = NULL;
+        ppszInterfaces = nullptr;
     }
 
     return ppszInterfaces;
@@ -556,26 +574,41 @@ char ** TransmissionService::getInterfacesByOutgoingQueueLengthInternal (float f
 bool TransmissionService::checkAndPackMsg (DisServiceMsg *pDSMsg, BufferWriter *pWriter, uint32 ui32MaxMsgSize)
 {
     const char *pszMethodName = "TransmissionService::checkAndPackMsg";
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return false;
     }
-    if (pDSMsg == NULL) {
+    if (pDSMsg == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "null message\n");
         return false;
     }
 
     // Sanity checks
-    if (pDSMsg->getSenderNodeId() == NULL) {
+    const String sessionId (SessionId::getInstance()->getSessionId());
+    if (pDSMsg->getSenderNodeId() == nullptr) {
         pDSMsg->setSenderNodeId (_nodeId);
     }
-    if ((pDSMsg->getSessionId() == NULL && _sessionId.length() > 0) || (_sessionId != pDSMsg->getSessionId())) {
+    if (((pDSMsg->getSessionId() == nullptr) && (sessionId.length() > 0)) || (sessionId != pDSMsg->getSessionId())) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "sending message of type %s (%d) with wrong "
                         "session id: <%s> while it should have been set to <%s>.\n",
                         DisServiceMsgHelper::getMessageTypeAsString (pDSMsg->getType()), (int) pDSMsg->getType(),
-                        pDSMsg->getSessionId(), _sessionId.c_str());
+                        pDSMsg->getSessionId(), sessionId.c_str());
     }
-    if (pDSMsg->getSessionId() == NULL || (strlen (pDSMsg->getSessionId()) == 0)) {
-        pDSMsg->setSessionId (_sessionId);
+    bool bUseWildcardSessionId = false;
+    if (pDSMsg->getType() == DisServiceMsg::DSMT_Data) {
+        DisServiceDataMsg *pDataMsg = (DisServiceDataMsg *)pDSMsg;
+        String group (pDataMsg->getMessageHeader()->getGroupName());
+        group.convertToLowerCase();
+        if (wildcardStringCompare (group, "*reset")) {
+            bUseWildcardSessionId = true;
+            checkAndLogMsg (pszMethodName, Logger::L_Info, "setting wildcard sessionId for message of group %s.\n", group.c_str());
+        }
+    }
+
+    if (bUseWildcardSessionId) {
+        pDSMsg->setSessionId ("*");
+    }
+    else if (pDSMsg->getSessionId() == nullptr || (strlen (pDSMsg->getSessionId()) == 0)) {
+        pDSMsg->setSessionId (sessionId);
     }
 
     // Serialize
@@ -700,7 +733,7 @@ int TransmissionService::setTransmitRateLimit (uint32 ui32RateLimit)
 
 bool TransmissionService::clearToSend (const char *pszInterface)
 {
-    if (_pMPS != NULL) {
+    if (_pMPS != nullptr) {
         return _pMPS->clearToSend (pszInterface);
     }
     return false;
@@ -708,7 +741,7 @@ bool TransmissionService::clearToSend (const char *pszInterface)
 
 bool TransmissionService::clearToSendOnAllInterfaces (void)
 {
-    if (_pMPS != NULL) {
+    if (_pMPS != nullptr) {
         return _pMPS->clearToSendOnAllInterfaces();
     }
     return false;
@@ -716,7 +749,7 @@ bool TransmissionService::clearToSendOnAllInterfaces (void)
 
 int TransmissionService::registerHandlerCallback (uint8 ui8MsgType, TransmissionServiceListener *pListener)
 {
-    if (_pMPS != NULL) {
+    if (_pMPS != nullptr) {
         if (_pMPS->registerHandlerCallback (ui8MsgType, pListener) < 0) {
             return -2;
         }
@@ -733,7 +766,7 @@ TransmissionService::TransmissionResults TransmissionService::broadcast (DisServ
 
     BufferWriter bw;
     TransmissionResults bcastRes;
-    if (pDSMsg == NULL) {
+    if (pDSMsg == nullptr) {
         bcastRes.rc = -1;
         return bcastRes;
     }
@@ -746,10 +779,10 @@ TransmissionService::TransmissionResults TransmissionService::broadcast (DisServ
     }
 
     bcastRes.bDeallocateOutgoingInterfaces = false;
-    if (ppszOutgoingInterfaces == NULL) {
+    if (ppszOutgoingInterfaces == nullptr) {
         // Send on all the active interfaces
         bcastRes.ppszOutgoingInterfaces = getActiveInterfacesAddress();
-        if (bcastRes.ppszOutgoingInterfaces == NULL) {
+        if (bcastRes.ppszOutgoingInterfaces == nullptr) {
             bcastRes.rc = -3;
             return bcastRes;
         }
@@ -758,13 +791,13 @@ TransmissionService::TransmissionResults TransmissionService::broadcast (DisServ
     else {
         // Copy interfaces
         unsigned int i = 0;
-        for (; ppszOutgoingInterfaces[i] != NULL; i++);
+        for (; ppszOutgoingInterfaces[i] != nullptr; i++);
         if (i > 0) {
             bcastRes.ppszOutgoingInterfaces = (char **) calloc (i+1, sizeof (char*));
-            if (bcastRes.ppszOutgoingInterfaces != NULL) {
-                for (unsigned j = 0; ppszOutgoingInterfaces[j] != NULL; j++) {
+            if (bcastRes.ppszOutgoingInterfaces != nullptr) {
+                for (unsigned j = 0; ppszOutgoingInterfaces[j] != nullptr; j++) {
                     bcastRes.ppszOutgoingInterfaces[j] = strDup (ppszOutgoingInterfaces[j]);
-                    if (bcastRes.ppszOutgoingInterfaces[j] == NULL) {
+                    if (bcastRes.ppszOutgoingInterfaces[j] == nullptr) {
                         break;
                     }
                 }
@@ -772,16 +805,16 @@ TransmissionService::TransmissionResults TransmissionService::broadcast (DisServ
             bcastRes.bDeallocateOutgoingInterfaces = true;
         }
         else {
-            bcastRes.ppszOutgoingInterfaces = NULL;
+            bcastRes.ppszOutgoingInterfaces = nullptr;
             bcastRes.bDeallocateOutgoingInterfaces = false;
         }
     }
-    if (bcastRes.ppszOutgoingInterfaces == NULL) {
+    if (bcastRes.ppszOutgoingInterfaces == nullptr) {
         bcastRes.rc = -3;
         return bcastRes;
     }
 
-    const uint32 ui32TargetAddr = (pszTargetAddr == NULL ?
+    const uint32 ui32TargetAddr = (pszTargetAddr == nullptr ?
                                    0 :  // NMS will use the default broadcast/multicast address
                                    inet_addr (pszTargetAddr));
     bool bExpedited = ((pDSMsg->getType() == DisServiceMsg::DSMT_DataReq) ? true : false);
@@ -799,10 +832,10 @@ TransmissionService::TransmissionResults TransmissionService::broadcast (DisServ
     bcastRes.rc = 0;
 
     _m.lock();
-    for (unsigned int i = 0; bcastRes.ppszOutgoingInterfaces[i] != NULL; i++) {
+    for (unsigned int i = 0; bcastRes.ppszOutgoingInterfaces[i] != nullptr; i++) {
         const char *interfaces[2];
         interfaces[0] = bcastRes.ppszOutgoingInterfaces[i];
-        interfaces[1] = NULL;
+        interfaces[1] = nullptr;
         int rc = _pMPS->broadcastMessage (DisseminationService::MPSMT_DisService,
                                           interfaces, ui32TargetAddr,
                                           static_cast<uint16>(0), // ui16MsgId
@@ -823,7 +856,7 @@ TransmissionService::TransmissionResults TransmissionService::broadcast (DisServ
     if (bcastRes.rc == 0) {
         _logger.log (pDSMsg->getType(), bw.getBufferLength(), pszPurpose);
     }
-    else {      
+    else {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not broadcast "
                         "message. MPS failed with rc = %d\n", bcastRes.rc);
     }
@@ -841,7 +874,7 @@ TransmissionService::TransmissionResults TransmissionService::unicast (DisServic
     BufferWriter bw;
 
     TransmissionResults ucastRes;
-    if (pDSMsg == NULL) {
+    if (pDSMsg == nullptr) {
         ucastRes.rc = -1;
         return ucastRes;
     }
@@ -853,20 +886,20 @@ TransmissionService::TransmissionResults TransmissionService::unicast (DisServic
         return ucastRes;
     }
 
-    const uint32 ui32TargetAddr = (pszTargetAddr == NULL ?
+    const uint32 ui32TargetAddr = (pszTargetAddr == nullptr ?
                                    0 :  // NMS will use the default broadcast/multicast address
                                    inet_addr (pszTargetAddr));
 
     ucastRes.bDeallocateOutgoingInterfaces = false;
-    if (ppszOutgoingInterfaces == NULL) {
+    if (ppszOutgoingInterfaces == nullptr) {
         // Send on all the active interfaces
         ucastRes.ppszOutgoingInterfaces = (ui32TargetAddr > 0 ? getInterfacesByDestinationAddress (ui32TargetAddr) : getActiveInterfacesAddress());
-        if ((ucastRes.ppszOutgoingInterfaces == NULL) && (_primaryIface.length() > 0)) {
+        if ((ucastRes.ppszOutgoingInterfaces == nullptr) && (_primaryIface.length() > 0)) {
             ucastRes.ppszOutgoingInterfaces = (char **) calloc (2, sizeof (char*));
             ucastRes.ppszOutgoingInterfaces[0] = strDup (_primaryIface);
-            ucastRes.ppszOutgoingInterfaces[1] = NULL;
+            ucastRes.ppszOutgoingInterfaces[1] = nullptr;
         }
-        if (ucastRes.ppszOutgoingInterfaces == NULL) {
+        if (ucastRes.ppszOutgoingInterfaces == nullptr) {
             ucastRes.rc = -3;
             return ucastRes;
         }
@@ -875,13 +908,13 @@ TransmissionService::TransmissionResults TransmissionService::unicast (DisServic
     else {
         // Copy interfaces
         unsigned int i = 0;
-        for (; ppszOutgoingInterfaces[i] != NULL; i++);
+        for (; ppszOutgoingInterfaces[i] != nullptr; i++);
         if (i > 0) {
             ucastRes.ppszOutgoingInterfaces = (char **) calloc (i+1, sizeof (char*));
-            if (ucastRes.ppszOutgoingInterfaces != NULL) {
-                for (unsigned j = 0; ppszOutgoingInterfaces[j] != NULL; j++) {
+            if (ucastRes.ppszOutgoingInterfaces != nullptr) {
+                for (unsigned j = 0; ppszOutgoingInterfaces[j] != nullptr; j++) {
                     ucastRes.ppszOutgoingInterfaces[j] = strDup (ppszOutgoingInterfaces[j]);
-                    if (ucastRes.ppszOutgoingInterfaces[j] == NULL) {
+                    if (ucastRes.ppszOutgoingInterfaces[j] == nullptr) {
                         break;
                     }
                 }
@@ -889,11 +922,11 @@ TransmissionService::TransmissionResults TransmissionService::unicast (DisServic
             ucastRes.bDeallocateOutgoingInterfaces = true;
         }
         else {
-            ucastRes.ppszOutgoingInterfaces = NULL;
+            ucastRes.ppszOutgoingInterfaces = nullptr;
             ucastRes.bDeallocateOutgoingInterfaces = false;
         }
     }
-    if (ucastRes.ppszOutgoingInterfaces == NULL) {
+    if (ucastRes.ppszOutgoingInterfaces == nullptr) {
         ucastRes.rc = -4;
         return ucastRes;
     }
@@ -945,11 +978,11 @@ TransmissionService::TransmissionResults TransmissionService::unicast (DisServic
 
 void logTransmission (DisServiceMsg *p, const char *pszOutgoingInterface, uint64 ui64LatestTransmission)
 {
-    if (p->getType () == DisServiceMsg::DSMT_Data) {
+    if (p->getType() == DisServiceMsg::DSMT_Data) {
         DisServiceDataMsg *pDataMsg = static_cast<DisServiceDataMsg *>(p);
-        static StringHashtable<uint32> _count;
+        static StringHashtable<uint32> _count{true, true, true, true};
         uint32 *pCount = _count.get (pDataMsg->getMessageHeader()->getMsgId());
-        if (pCount == NULL) {
+        if (pCount == nullptr) {
             pCount = new uint32;
             *pCount = 1;
             _count.put (pDataMsg->getMessageHeader()->getMsgId(), pCount);
@@ -964,7 +997,7 @@ void logTransmission (DisServiceMsg *p, const char *pszOutgoingInterface, uint64
             repair += "]";
         }
 
-        if (pDataMsg->isRepair ()) {
+        if (pDataMsg->isRepair()) {
             printf ("Sent Message DSMT_Data at time %lld on interface %s. Id: %s. Served: %u times. [Repair for %s].\n",
                     ui64LatestTransmission, pszOutgoingInterface, pDataMsg->getMessageHeader()->getMsgId(),
                     *pCount, pDataMsg->getTargetNodeId());
@@ -985,13 +1018,13 @@ void logTransmission (DisServiceMsg *p, const char *pszOutgoingInterface, uint64
 
 void TransmissionService::updateLatestBcastTimeByIface (DisServiceMsg *p, const char *pszOutgoingInterface)
 {
-    if (pszOutgoingInterface == NULL) {
+    if (pszOutgoingInterface == nullptr) {
         return;
     }
     int64 i64CurrTime = getTimeInMilliseconds();
     if (i64CurrTime > 0) {
         int64 *pUI64LatestTransmission = _latestBcastTimeByIface.get (pszOutgoingInterface);
-        if (pUI64LatestTransmission == NULL) {
+        if (pUI64LatestTransmission == nullptr) {
             pUI64LatestTransmission = new int64;
             _latestBcastTimeByIface.put (pszOutgoingInterface, pUI64LatestTransmission);
         }
@@ -1004,25 +1037,36 @@ void TransmissionService::updateLatestBcastTimeByIface (DisServiceMsg *p, const 
 TransmissionService::TransmissionResults::TransmissionResults (void)
 {
     rc = -1;
-    ppszOutgoingInterfaces = NULL;
+    ppszOutgoingInterfaces = nullptr;
     bDeallocateOutgoingInterfaces = false;
+}
+
+TransmissionService::TransmissionResults::TransmissionResults (TransmissionResults && rTransmissionResults) :
+    rc{std::move (rTransmissionResults.rc)}, ppszOutgoingInterfaces{std::move (rTransmissionResults.ppszOutgoingInterfaces)},
+    bDeallocateOutgoingInterfaces{std::move (rTransmissionResults.bDeallocateOutgoingInterfaces)}
+{
+    rTransmissionResults.ppszOutgoingInterfaces = nullptr;
+    rTransmissionResults.bDeallocateOutgoingInterfaces = false;
 }
 
 TransmissionService::TransmissionResults::~TransmissionResults (void)
 {
+    if (bDeallocateOutgoingInterfaces) {
+        reset();
+    }
 }
 
 void TransmissionService::TransmissionResults::reset (void)
 {
     rc = -1;
-    if (bDeallocateOutgoingInterfaces && (ppszOutgoingInterfaces != NULL)) {
-        for (unsigned int i = 0; ppszOutgoingInterfaces[i] != NULL; i++) {
+    if (bDeallocateOutgoingInterfaces && (ppszOutgoingInterfaces != nullptr)) {
+        for (unsigned int i = 0; ppszOutgoingInterfaces[i] != nullptr; i++) {
             free (ppszOutgoingInterfaces[i]);
-            ppszOutgoingInterfaces[i] = NULL;
         }
         free (ppszOutgoingInterfaces);
     }
-    ppszOutgoingInterfaces = NULL;
+
+    ppszOutgoingInterfaces = nullptr;
     bDeallocateOutgoingInterfaces = false;
 }
 
@@ -1032,11 +1076,11 @@ void TransmissionService::TransmissionResults::reset (void)
 
 RateEstimatingTransmissionService::RateEstimatingTransmissionService (TRANSMISSION_SVC_MODE mode, uint16 ui16NetworkMessageServicePort,
                                                                       const char* pszMcastGroup, uint8 ui8McastTTL, const char *pszNodeId,
-                                                                      const char *pszSessionId, uint8 ui8RateEstimatorUpdateFactor, uint8 ui8RateEstimatorDecreaseFactor,
+                                                                      uint8 ui8RateEstimatorUpdateFactor, uint8 ui8RateEstimatorDecreaseFactor,
                                                                       uint32 ui32RateEstimatorStartingCapacity, bool bAsyncDelivery, bool bAsyncTransmission,
                                                                       uint8 ui8MessageVersion)
     : TransmissionService (mode, ui16NetworkMessageServicePort, pszMcastGroup, ui8McastTTL,
-                           pszNodeId, pszSessionId, bAsyncDelivery, bAsyncTransmission,
+                           pszNodeId, bAsyncDelivery, bAsyncTransmission,
                            ui8MessageVersion),
       _rateEstimator (this, ui8RateEstimatorUpdateFactor, ui8RateEstimatorDecreaseFactor,
                       ui32RateEstimatorStartingCapacity)
@@ -1068,7 +1112,7 @@ TransmissionService::TransmissionResults RateEstimatingTransmissionService::broa
 {
     TransmissionResults bcastRes;
 
-    if (pDSMsg == NULL) {
+    if (pDSMsg == nullptr) {
         return bcastRes;
     }
     if (pDSMsg->getType() != DisServiceMsg::DSMT_Data) {
@@ -1077,10 +1121,10 @@ TransmissionService::TransmissionResults RateEstimatingTransmissionService::broa
 
     // It's data Message: set the sending rate
     bcastRes.bDeallocateOutgoingInterfaces = false;
-    if (ppszOutgoingInterfaces == NULL) {
+    if (ppszOutgoingInterfaces == nullptr) {
         // Send on all the active interfaces
         bcastRes.ppszOutgoingInterfaces = getActiveInterfacesAddress();
-        if (bcastRes.ppszOutgoingInterfaces == NULL) {
+        if (bcastRes.ppszOutgoingInterfaces == nullptr) {
             bcastRes.rc = -3;
             return bcastRes;
         }
@@ -1089,13 +1133,13 @@ TransmissionService::TransmissionResults RateEstimatingTransmissionService::broa
     else {
         // Copy interfaces
         unsigned int i = 0;
-        for (; ppszOutgoingInterfaces[i] != NULL; i++);
+        for (; ppszOutgoingInterfaces[i] != nullptr; i++);
         if (i > 0) {
             bcastRes.ppszOutgoingInterfaces = (char **) calloc (i+1, sizeof (char*));
-            if (bcastRes.ppszOutgoingInterfaces != NULL) {
-                for (unsigned j = 0; ppszOutgoingInterfaces[j] != NULL; j++) {
+            if (bcastRes.ppszOutgoingInterfaces != nullptr) {
+                for (unsigned j = 0; ppszOutgoingInterfaces[j] != nullptr; j++) {
                     bcastRes.ppszOutgoingInterfaces[j] = strDup (ppszOutgoingInterfaces[j]);
-                    if (bcastRes.ppszOutgoingInterfaces[j] == NULL) {
+                    if (bcastRes.ppszOutgoingInterfaces[j] == nullptr) {
                         break;
                     }
                 }
@@ -1103,16 +1147,16 @@ TransmissionService::TransmissionResults RateEstimatingTransmissionService::broa
             bcastRes.bDeallocateOutgoingInterfaces = true;
         }
         else {
-            bcastRes.ppszOutgoingInterfaces = NULL;
+            bcastRes.ppszOutgoingInterfaces = nullptr;
             bcastRes.bDeallocateOutgoingInterfaces = false;
         }
     }
 
     bcastRes.rc = 0;
     DisServiceDataMsg *pDataMsg = ((DisServiceDataMsg *) pDSMsg);
-    for (unsigned int i = 0; bcastRes.ppszOutgoingInterfaces[i] != NULL; i++) {
-        const char *interfaces[2] = {bcastRes.ppszOutgoingInterfaces[i], NULL};
-        
+    for (unsigned int i = 0; bcastRes.ppszOutgoingInterfaces[i] != nullptr; i++) {
+        const char *interfaces[2] = {bcastRes.ppszOutgoingInterfaces[i], nullptr};
+
         if (pDataMsg->getMessageHeader()->getMsgSeqId() % 2 == 0) {
             pDataMsg->setSendRate (getTransmitRateLimit (bcastRes.ppszOutgoingInterfaces[i]));
         }
@@ -1158,12 +1202,12 @@ TransmissionServiceHelper::~TransmissionServiceHelper (void)
 uint32 TransmissionServiceHelper::computeMessageHeaderSize (const char *pszNodeId, const char *pszTargetNodeId,
                                                             const char *pszSessionId, MessageHeader *pMH)
 {
-    if (pMH == NULL) {
+    if (pMH == nullptr) {
         return 0U;
     }
 
     // Create a dummy message to see how long its length is going to be
-    Message msg (pMH, NULL);
+    Message msg (pMH, nullptr);
     DisServiceDataMsg dataMsg (pszNodeId, &msg, pszTargetNodeId);
     dataMsg.setSessionId (pszSessionId);
     if (_bUseRateEstimator) {
@@ -1183,26 +1227,26 @@ uint32 TransmissionServiceHelper::computeMessageHeaderSize (const char *pszNodeI
 
 TransmissionServiceLogger::TransmissionServiceLogger (void)
 {
-    _filePacketXMitLog = NULL;
+    _filePacketXMitLog = nullptr;
 }
 
 TransmissionServiceLogger::~TransmissionServiceLogger (void)
 {
-    if (_filePacketXMitLog != NULL) {
+    if (_filePacketXMitLog != nullptr) {
         fclose (_filePacketXMitLog);
-        _filePacketXMitLog = NULL;
+        _filePacketXMitLog = nullptr;
     }
 }
 
 void TransmissionServiceLogger::init (const char *pszFileName)
 {
-    if (_filePacketXMitLog != NULL) {
+    if (_filePacketXMitLog != nullptr) {
         fclose (_filePacketXMitLog);
-        _filePacketXMitLog = NULL;
+        _filePacketXMitLog = nullptr;
     }
-    if (pszFileName != NULL) {
+    if (pszFileName != nullptr) {
         _filePacketXMitLog = fopen (pszFileName , "w");
-        if (_filePacketXMitLog == NULL) {
+        if (_filePacketXMitLog == nullptr) {
             checkAndLogMsg ("TransmissionServiceLogger::TransmissionServiceLogger",
                             Logger::L_MildError, "error opening transmission log file\n");
         }
@@ -1211,10 +1255,10 @@ void TransmissionServiceLogger::init (const char *pszFileName)
 
 void TransmissionServiceLogger::log (DisServiceMsg::Type msgType, uint32 ui32MsgLen, const char *pszPurpose)
 {
-    if (_filePacketXMitLog == NULL) {
+    if (_filePacketXMitLog == nullptr) {
         return;
     }
-    time_t now = time (NULL);
+    time_t now = time (nullptr);
     struct tm *ptm = localtime (&now);
     fprintf (_filePacketXMitLog, "%02d:%02d:%02d - %d - %u - %s\n",
              ptm->tm_hour, ptm->tm_min, ptm->tm_sec,
@@ -1234,7 +1278,7 @@ TransmissionServiceConfReader::TransmissionServiceConfReader (NOMADSUtil::Config
 TransmissionServiceConfReader::~TransmissionServiceConfReader (void)
 {
 }
-            
+
 TransmissionService::TRANSMISSION_SVC_MODE TransmissionServiceConfReader::getMode (void)
 {
     const char *pszPropertyName = "aci.disService.propagationMode";

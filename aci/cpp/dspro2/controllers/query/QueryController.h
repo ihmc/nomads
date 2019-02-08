@@ -1,4 +1,4 @@
-/* 
+/*
  * QueryController.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_QUERY_CONTROLLER_H
-#define	INCL_QUERY_CONTROLLER_H
+#define INCL_QUERY_CONTROLLER_H
 
 #include "BaseController.h"
 #include "DSProServices.h"
@@ -32,11 +32,12 @@
 #include "DArray2.h"
 #include "StrClass.h"
 #include "StringHashset.h"
+#include "StringHashtable.h"
 
 namespace IHMC_ACI
 {
     class CommAdaptorManager;
-    class MetadataConfiguration;
+    class MetadataConfigurationImpl;
 
     class QueryController : public BaseController,
                             public SearchListener,
@@ -50,7 +51,7 @@ namespace IHMC_ACI
             QueryController (const char *pszDescription, const char **ppszSupportedQueryTypes, DSProImpl *pDSPro, DataStore *pDataStore, InformationStore *pInfoStore);
             virtual ~QueryController (void);
 
-            int init (MetadataConfiguration *pMetadataConf, CommAdaptorManager *pCommAdaptorMgr);
+            int init (MetadataConfigurationImpl *pMetadataConf, CommAdaptorManager *pCommAdaptorMgr);
 
             // SearchListener
             virtual void searchArrived (const char *pszQueryId, const char *pszGroupName,
@@ -61,7 +62,7 @@ namespace IHMC_ACI
             virtual void volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId);
 
         protected:
-            MetadataList * getAllMetadata (const char *pszQueryQualifiers);
+            IHMC_VOI::MetadataList * getAllMetadata (const char *pszQueryQualifiers);
             int notifySearchReply (const char *pszQueryId, const char *pszQuerier,
                                    const char **ppszMatchingMsgIds, const char *pszMatchingNodeId);
             bool supportsQueryType (const char *pszQueryType);
@@ -94,11 +95,11 @@ namespace IHMC_ACI
         protected:
             uint16 _ui16CommAdaptorClientId;
             uint16 _ui16SearchClientId;
-            MetadataConfiguration *_pMetadataConf;
+            MetadataConfigurationImpl *_pMetadataConf;
             CommAdaptorManager *_pCommAdaptMgr;
 
         private:
-            
+
 
             struct MatchingIdReply : public Reply
             {
@@ -124,5 +125,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_QUERY_CONTROLLER_H */
-
+#endif    /* INCL_QUERY_CONTROLLER_H */

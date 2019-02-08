@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -51,4 +51,8 @@ const String NMSProperties::NMS_MTU = "nms.transmission.mtu";
 const String NMSProperties::NMS_MSG_VERSION = "nms.transmission.messageVersion";
 
 const String NMSProperties::NMS_DELIVERY_ASYNC = "nms.asyncDelivery";
+
+//properties encryption related
+const String NMSProperties::NMS_GROUP_KEY_FILE = "nms.groupKeyFile";
+const String NMSProperties::NMS_PASSPHRASE_ENCRYPTION = "nms.passphrase.encryption";
 

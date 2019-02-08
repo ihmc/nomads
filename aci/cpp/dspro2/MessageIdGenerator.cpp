@@ -46,32 +46,37 @@ MessageIdGenerator::MessageIdGenerator (const char *pszNodeId,
 }
 
 MessageIdGenerator::~MessageIdGenerator()
-{  
+{
 }
 
-char * MessageIdGenerator::getMsgId (const char *pszGroupName)
+char * MessageIdGenerator::getMsgId (const char *pszGroupName, bool bDisseminate)
 {
-    if (pszGroupName == NULL) {
-        return NULL;
+    if (pszGroupName == nullptr) {
+        return nullptr;
     }
-    String grp (_groupName);
-    grp += ".";
-    grp += pszGroupName;
+    String grp (bDisseminate ? pszGroupName : _groupName.c_str());
+    if (!bDisseminate) {
+        grp += ".";
+        grp += pszGroupName;
+    }
 
     return getIdInternal (grp);
 }
 
-char * MessageIdGenerator::chunkId (const char *pszGroupName)
+char * MessageIdGenerator::chunkId (const char *pszGroupName, bool bDisseminate)
 {
-    if (pszGroupName == NULL) {
-        return NULL;
+    if (pszGroupName == nullptr) {
+        return nullptr;
     }
-    String grp (_groupName);
-    grp += ".";
-    grp += pszGroupName;
-    char *pszChunkGrp = getOnDemandDataGroupName (grp.c_str());
-    if (pszChunkGrp == NULL) {
-        return NULL;
+    String grp (bDisseminate ? pszGroupName : _groupName.c_str());
+    if (!bDisseminate) {
+        grp += ".";
+        grp += pszGroupName;
+    }
+
+    char *pszChunkGrp = getOnDemandDataGroupName (grp);
+    if (pszChunkGrp == nullptr) {
+        return nullptr;
     }
 
     String chunGrp (pszChunkGrp);
@@ -87,14 +92,14 @@ char * MessageIdGenerator::getIdInternal (NOMADSUtil::String &group)
 
     // get seq id for the group
     uint32 *pui32SeqId = _seqIdsByGrp.get (group.c_str());
-    if (pui32SeqId == NULL) {
+    if (pui32SeqId == nullptr) {
         // Look whether there's a message sequence id value in the property store
         String sSeqId = _pPropertyStore->get (_nodeId, property);
 
         pui32SeqId = (uint32*) malloc (sizeof (uint32));
-        if (pui32SeqId == NULL) {
-            checkAndLogMsg("MessageIdGenerator::getMsgId", memoryExhausted);
-            return NULL;
+        if (pui32SeqId == nullptr) {
+            checkAndLogMsg ("MessageIdGenerator::getMsgId", memoryExhausted);
+            return nullptr;
         }
         if (sSeqId.length() <= 0) {
             *pui32SeqId = 0;
@@ -119,7 +124,7 @@ char * MessageIdGenerator::getIdInternal (NOMADSUtil::String &group)
     }
 
     char *pszId = convertFieldToKey (group.c_str(), _nodeId, *pui32SeqId);
-    if (pszId != NULL) {
+    if (pszId != nullptr) {
         (*pui32SeqId)++;
     }
     return pszId;
@@ -127,7 +132,7 @@ char * MessageIdGenerator::getIdInternal (NOMADSUtil::String &group)
 
 String MessageIdGenerator::extractSubgroupFromMsgId (const char *pszMsgId)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return String();
     }
     DArray2<String> fields (1U);
@@ -140,13 +145,13 @@ String MessageIdGenerator::extractSubgroupFromMsgId (const char *pszMsgId)
 
 String MessageIdGenerator::extractSubgroupFromMsgGroup (const char *pszGroupName)
 {
-    if (pszGroupName == NULL) {
+    if (pszGroupName == nullptr) {
         return String();
     }
     String sMsgId (pszGroupName);
     int iRootGrpDelimiterPos = sMsgId.indexOf (".");
     if (iRootGrpDelimiterPos < 0) {
-        return String();
+        return String (pszGroupName);
     }
     int iGrpLen = sMsgId.length();
     if (iGrpLen <= 1) {

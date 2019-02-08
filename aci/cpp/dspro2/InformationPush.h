@@ -20,11 +20,9 @@
 #ifndef INCL_INFORMATION_PUSH_H
 #define INCL_INFORMATION_PUSH_H
 
-#include "MetadataInterface.h"
 #include "MatchmakingIntrumentation.h"
+#include "MetadataInterface.h"
 #include "PeerNodeContext.h"
-
-#include "FTypes.h"
 
 namespace NOMADSUtil
 {
@@ -32,25 +30,34 @@ namespace NOMADSUtil
     class Writer;
 }
 
+namespace IHMC_VOI
+{
+    struct MetadataRankerLocalConfiguration;
+}
+
+namespace IHMC_VOI
+{
+    class Voi;
+}
+
 namespace IHMC_ACI
 {
     class InformationPushPolicy;
     class MetaData;
-    struct MetadataRankerLocalConfiguration;
     class NodeContextManager;
     class Scheduler;
-    class SQLAVList;
 
     class InformationPush
     {
         public:
-            InformationPush (const char *pszNodeId, MetadataRankerLocalConfiguration *pMetaDataRankerLocalConf,
+            InformationPush (const char *pszNodeId, IHMC_VOI::Voi *pVoi,
+                             IHMC_VOI::MetadataRankerLocalConfiguration *pMetaDataRankerLocalConf,
                              NodeContextManager *pNodeContextManager, InformationPushPolicy *pPolicy,
                              Scheduler *pScheduler);
             virtual ~InformationPush (void);
 
             /**
-             * The second function let the caller set a list (NULL terminated)
+             * The second function let the caller set a list (nullptr terminated)
              * of node IDs which peer node context should not be returned.
              * Since dataArrived functions rank each peer node context, using the
              * latter function saves computational resources.
@@ -70,21 +77,22 @@ namespace IHMC_ACI
              * NOTE: ppInstrumentations is being allocated in this function and
              *       MUST be deallocated by the caller
              */
-            Instrumentations * nodeContextChanged (MetadataList *pMetadataList, PeerNodeContext *pPeerContext);
+            Instrumentations * nodeContextChanged (IHMC_VOI::MetadataList *pMetadataList, PeerNodeContext *pPeerContext);
 
         private:
             void addToScheduler (const char *pszTargetPeerNodeId, char *pszMsgId,
                                  float fPrimaryIndex, float fSecondaryIndex);
-            void addToScheduler (const char *pszTargetPeerNodeID, NOMADSUtil::PtrLList<Rank> *pRanks);
+            void addToScheduler (const char *pszTargetPeerNodeID, NOMADSUtil::PtrLList<IHMC_VOI::Rank> *pRanks);
 
-            MatchmakingIntrumentation * createInstrumentation (Rank *pRank, bool bSkipped, float fMatchThreashold);
+            MatchmakingIntrumentation * createInstrumentation (IHMC_VOI::Rank *pRank, bool bSkipped, float fMatchThreashold);
 
         private:
             const NOMADSUtil::String _nodeId;
             NodeContextManager *_pNodeContextManager;
             InformationPushPolicy *_pPolicy;
             Scheduler *_pScheduler;
-            MetadataRankerLocalConfiguration *_pMetaDataRankerLocalConf;
+            IHMC_VOI::MetadataRankerLocalConfiguration *_pMetaDataRankerLocalConf;
+            IHMC_VOI::Voi *_pVoi;
     };
 }
 

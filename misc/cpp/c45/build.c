@@ -75,7 +75,7 @@ void FreeVariables(void)
 
 void InitialiseTreeData(void)
 /*  ------------------  */
-{ 
+{
     DiscrValue v;
     Attribute a;
     Tested = (char *) calloc(MaxAtt+1, sizeof(char));
@@ -177,9 +177,9 @@ Tree FormTree(ItemNo Fp, ItemNo Lp)
     ForEach(c, 0, MaxClass) {
         ClassFreq[c] = 0;
     }
-    ForEach(i, Fp, Lp) { 
+    ForEach(i, Fp, Lp) {
         ClassFreq[Class(Item[i])] += Weight[i];
-    } 
+    }
     //  Find the most frequent class
     BestClass = 0;
     ForEach(c, 0, MaxClass) {
@@ -190,9 +190,9 @@ Tree FormTree(ItemNo Fp, ItemNo Lp)
     NoBestClass = ClassFreq[BestClass];
     Node = Leaf(ClassFreq, BestClass, Cases, Cases - NoBestClass);
     //  If all cases are of the same class or there are not enough cases to divide, the tree is a leaf
-    if(NoBestClass == Cases  || Cases < 2 * MINOBJS) { 
+    if(NoBestClass == Cases  || Cases < 2 * MINOBJS) {
 		return Node;
-    } 
+    }
     Verbosity(1) printf("\n%d items, total weight %.1f\n", Lp - Fp + 1, Cases);
     //  For each available attribute, find the information and gain
     ForEach(Att, 0, MaxAtt) {
@@ -208,13 +208,13 @@ Tree FormTree(ItemNo Fp, ItemNo Lp)
         }
         else { 	//  continuous attribute
             EvalContinuousAtt(Att, Fp, Lp);
-        } 
+        }
         //  Update average gain, excluding attributes with very many values
         if(Gain[Att] > -Epsilon && ( MultiVal || MaxAttVal[Att] < 0.3 * (MaxItem + 1))) {
             Possible++;
             AvGain += Gain[Att];
         }
-    } 
+    }
     //  Find the best attribute according to the given criterion
     BestVal = (float)(-Epsilon);
     BestAtt = None;
@@ -223,23 +223,23 @@ Tree FormTree(ItemNo Fp, ItemNo Lp)
         if(AvGain < 1E6) printf("\taverage gain %.3f\n", AvGain);
     }
     ForEach(Att, 0, MaxAtt) {
-        if(Gain[Att] > -Epsilon) { 
+        if(Gain[Att] > -Epsilon) {
             Val = Worth(Info[Att], Gain[Att], AvGain);
-            if(Val > BestVal) { 
-                BestAtt  = Att; 
+            if(Val > BestVal) {
+                BestAtt  = Att;
                 BestVal = Val;
             }
         }
-    } 
+    }
     //  Decide whether to branch or not
-    if(BestAtt != None) { 
+    if(BestAtt != None) {
         Verbosity(1) {
             printf("\tbest attribute %s", AttName[BestAtt]);
             if(! MaxAttVal[BestAtt]) {
                             printf(" cut %.3f", Bar[BestAtt]);
             }
             printf(" inf %.3f gain %.3f val %.3f\n", Info[BestAtt], Gain[BestAtt], BestVal);
-        }	
+        }
         //  Build a node of the selected test
         if(MaxAttVal[BestAtt]) {	//  Discrete valued attribute
             if(SUBSET && MaxAttVal[BestAtt] > 2) {
@@ -304,10 +304,10 @@ Tree FormTree(ItemNo Fp, ItemNo Lp)
             Node->NodeType = 0;
         }
     }
-    else { 
+    else {
         Verbosity(1) printf("\tno sensible splits  %.1f/%.1f\n", Cases, Cases - NoBestClass);
-    } 
-    return Node; 
+    }
+    return Node;
 }
 
 /*************************************************************************/

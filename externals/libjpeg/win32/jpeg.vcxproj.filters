@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="../jconfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="../jdct.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -42,9 +39,12 @@
     <ClInclude Include="../jversion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\jconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-	  <ClCompile Include="../jaricom.c">
+    <ClCompile Include="../jaricom.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="../jcapimin.c">

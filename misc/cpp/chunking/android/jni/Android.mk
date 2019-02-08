@@ -25,14 +25,19 @@ include $(PREBUILT_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := BMPHandler.cpp \
     Chunker.cpp \
+    ChunkingManager.cpp \
     ChunkingUtils.cpp \
     ChunkReassembler.cpp \
     ImageCodec.cpp \
     JPEGLibWrapper.cpp \
     MimeUtils.cpp \
     MPEG1Handler.cpp \
-    VideoCodec.cpp
-    
+    VideoCodec.cpp \
+    proxy/ChunkerArguments.cpp \
+    proxy/Chunks.cpp \
+    proxy/Marshaling.cpp \
+    proxy/ReassemblerArguments.cpp   
+
 LOCAL_MODULE    := chunking
 LOCAL_CPPFLAGS	:= -fexceptions -DUNIX -DLINUX -DANDROID -DLITTLE_ENDIAN_SYSTEM
 LOCAL_CFLAGS := -fsigned-char
@@ -49,4 +54,5 @@ LOCAL_SHARED_LIBRARIES := util \
 
 include $(BUILD_SHARED_LIBRARY)
 #include $(BUILD_STATIC_LIBRARY)
+
 

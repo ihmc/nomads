@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -79,6 +79,8 @@ int BMPImage::readHeader (Reader *pReader)
                         "readBMPInformationHeader() failed with rc = %d\n", rc);
         return -3;
     }
+    checkAndLogMsg ("BMPImage::readHeader", Logger::L_MediumDetailDebug,
+                    "read header for image of size %u x %u\n", _bih.ui32Width, _bih.ui32Height);
     return 0;
 }
 
@@ -101,6 +103,8 @@ int BMPImage::readHeaderAndImage (Reader *pReader)
                         "readBMPImageData() failed with rc = %d\n", rc);
         return -3;
     }
+    checkAndLogMsg ("BMPImage::readHeaderAndImage", Logger::L_MediumDetailDebug,
+                    "read image of size %u x %u\n", _bih.ui32Width, _bih.ui32Height);
     return 0;
 }
 
@@ -111,7 +115,7 @@ int BMPImage::initNewImage (uint32 ui32Width, uint32 ui32Height, uint8 ui8BitsPe
     }
     if (_img.initNewImage (ui32Width, ui32Height, ui8BitsPerPixel) < 0) {
         return -2;
-    } 
+    }
 
     _bih.ui32HeaderSize = _bih.size(); // Should be 40
     _bih.ui32Width = ui32Width;
@@ -388,7 +392,7 @@ uint32 BMPImage::BMPInformationHeader::size (void) const
             sizeof (ui16Planes)        +
             sizeof (ui16BitsPerPixel)  +
             sizeof (ui32Compression)   +
-            sizeof (ui32ImageSize)     + 
+            sizeof (ui32ImageSize)     +
             sizeof (ui32XPelsPerMeter) +
             sizeof (ui32YPelsPerMeter) +
             sizeof (ui32ClrUsed)       +

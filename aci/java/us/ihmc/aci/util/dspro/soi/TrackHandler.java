@@ -6,20 +6,21 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
 import us.ihmc.aci.disServiceProProxy.DisServiceProProxyInterface;
-import us.ihmc.aci.dspro2.util.LoggerInterface;
-import us.ihmc.aci.dspro2.util.LoggerWrapper;
+import us.ihmc.aci.util.dspro.LogUtils;
 import us.ihmc.aci.util.dspro.MetadataElement;
 import us.ihmc.comm.CommException;
 import us.ihmc.util.Base64Encoder;
+import us.ihmc.util.StringUtil;
 
 /**
  * @author Giacomo Benincasa    (gbenincasa@ihmc.us)
  */
 public class TrackHandler implements Runnable
 {
-    private final static LoggerInterface LOG = LoggerWrapper.getLogger(TrackHandler.class);
-    private final BlockingQueue<Properties> _dataToPuh = new LinkedBlockingQueue<Properties>();
+    private final static Logger LOG = LogUtils.getLogger(TrackHandler.class);
+    private final BlockingQueue<Properties> _dataToPuh = new LinkedBlockingQueue<>();
 
     protected final DisServiceProProxyInterface _dspro;
 
@@ -28,6 +29,7 @@ public class TrackHandler implements Runnable
         _dspro = dspro;
     }
 
+    @Override
     public void run ()
     {
         while (true) {
@@ -44,7 +46,7 @@ public class TrackHandler implements Runnable
             }
             catch (InterruptedException ex) {}
             catch (Exception ex) {
-                LOG.error(ex);
+                LOG.error(StringUtil.getStackTraceAsString(ex));
             }
         }
     }
@@ -71,15 +73,16 @@ public class TrackHandler implements Runnable
 
         Properties metaDataProp = TrackUtils.getTrackMetadataProperties(dataProp, ExchangeFormat.Action.Insert
                 .toString());
-        String[] metaDataAttributes = {MetadataElement.Data_Content.toString(),
-                MetadataElement.Description.toString(),
-                MetadataElement.Data_Format.toString(),
-                MetadataElement.Left_Upper_Latitude.toString(),
-                MetadataElement.Right_Lower_Latitude.toString(),
-                MetadataElement.Left_Upper_Longitude.toString(),
-                MetadataElement.Right_Lower_Longitude.toString(),
-                MetadataElement.Application_Metadata_Format.toString(),
-                MetadataElement.Application_Metadata.toString()};
+        String[] metaDataAttributes = {
+                MetadataElement.dataName.toString(),
+                MetadataElement.description.toString(),
+                MetadataElement.dataFormat.toString(),
+                MetadataElement.leftUpperLatitude.toString(),
+                MetadataElement.rightLowerLatitude.toString(),
+                MetadataElement.leftUpperLongitude.toString(),
+                MetadataElement.rightLowerLongitude.toString(),
+                MetadataElement.applicationMetadataFormat.toString(),
+                MetadataElement.applicationMetadata.toString()};
 
         Track track = new Track (dataProp.getProperty(TrackExchangeFormat.RESOURCE_OBJECT_ID),
                                  Double.parseDouble(dataProp.getProperty(TrackExchangeFormat.EVENT_LATITUDE)),
@@ -87,14 +90,15 @@ public class TrackHandler implements Runnable
                                  dataProp.getProperty(TrackExchangeFormat.TRACK_MIL_STD_2525_SYMBOL_ID));
 
         String[] metaDataValues = {
-                metaDataProp.get(MetadataElement.Data_Content.toString()).toString(),
-                metaDataProp.get(MetadataElement.Description.toString()).toString(),
-                metaDataProp.get(MetadataElement.Data_Format.toString()).toString(),
-                metaDataProp.get(MetadataElement.Left_Upper_Latitude.toString()).toString(),
-                metaDataProp.get(MetadataElement.Right_Lower_Latitude.toString()).toString(),
-                metaDataProp.get(MetadataElement.Left_Upper_Longitude.toString()).toString(),
-                metaDataProp.get(MetadataElement.Right_Lower_Longitude.toString()).toString(),
-                ApplicationMetadataFormat.Soigen2_Json_Base64.toString(), new Base64Encoder(track.toJson()).processString()
+                metaDataProp.get(MetadataElement.dataName.toString()).toString(),
+                metaDataProp.get(MetadataElement.description.toString()).toString(),
+                metaDataProp.get(MetadataElement.dataFormat.toString()).toString(),
+                metaDataProp.get(MetadataElement.leftUpperLatitude.toString()).toString(),
+                metaDataProp.get(MetadataElement.rightLowerLatitude.toString()).toString(),
+                metaDataProp.get(MetadataElement.leftUpperLongitude.toString()).toString(),
+                metaDataProp.get(MetadataElement.rightLowerLongitude.toString()).toString(),
+                ApplicationMetadataFormat.Soigen2_Json_Base64.toString(),
+                new Base64Encoder(track.toJson()).processString()
         };
 
         String messageId = null;

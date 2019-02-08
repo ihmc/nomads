@@ -20,7 +20,7 @@
  */
 
 #ifndef INCL_CALLBACK_HANDLER_H
-#define	INCL_CALLBACK_HANDLER_H
+#define INCL_CALLBACK_HANDLER_H
 
 #include "DArray2.h"
 #include "LoggingMutex.h"
@@ -30,13 +30,17 @@ namespace NOMADSUtil
     class ConfigManager;
 }
 
+namespace IHMC_VOI
+{
+    class NodeContext;
+    class NodePath;
+}
+
 namespace IHMC_ACI
 {
     class ControlMessageListener;
-    class DSProImpl;
     class DSProListener;
     class MatchmakingLogListener;
-    class NodePath;
     class SearchListener;
     struct SearchProperties;
 
@@ -46,20 +50,43 @@ namespace IHMC_ACI
             CallbackHandler (void);
             ~CallbackHandler (void);
 
+            enum KnowClientId
+            {
+                DSProShell = 0x00,
+                DSProGUI = 0x01,
+
+                Atak = 0x02,
+                SoiBridge = 0x03,
+                InfoManager = 0x04,
+                Mist = 0x05,
+                VirtualSensor = 0x06,
+                Manatim = 0x07,
+                NetCacher = 0x08,
+                Reset = 0x09,
+
+                CtrlSoiBridge = 0x10,
+
+                KilSwitch = 0x19
+            };
+
             int init (NOMADSUtil::ConfigManager *pCfgMgr);
 
             int dataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
                              const char *pszInstanceId, const char *pszAnnotatedObjMsgId, const char *pszMimeType,
-                             const void *pBuf, uint32 ui32Len, uint8 ui8NChunks, uint8 ui8TotNChunks,
+                             const void *pBuf, uint32 ui32Len, uint8 ui8ChunkIndex, uint8 ui8TotNChunks,
                              const char *pszQueryId);
             int metadataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
                                  const char *pszInstanceId, const char *pszXMLMetadata, const char *pszReferredDataId,
                                  const char *pszQueryId, bool bIsTarget);
+            int dataAvailable (const char *pszId, const char *pszGroupName, const char *pszObjectId, const char *pszInstanceId,
+                               const char *pszRefObjId, const char *pszMimeType, const void *pMetadata, uint32 ui32MetadataLength,
+                               const char *pszQueryId);
 
             int newPeer (const char *pszNewPeerId);
             int deadPeer (const char *pszDeadPeerId);
 
-            void pathRegistered (NodePath *pPath, const char *pszNodeId, const char *pszTeam, const char *pszMission);
+            void pathRegistered (IHMC_VOI::NodeContext *pNodeContext);
+            void pathRegistered (IHMC_VOI::NodePath *pPath, const char *pszNodeId, const char *pszTeam, const char *pszMission);
             void positionUpdated (float latitude, float longitude, float altitude, const char *pszNodeId);
 
             void searchArrived (SearchProperties *pSearchProperties);
@@ -107,4 +134,3 @@ namespace IHMC_ACI
 }
 
 #endif    /* INCL_CALLBACK_HANDLER_H */
-

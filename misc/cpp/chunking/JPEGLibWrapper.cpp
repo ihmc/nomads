@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -82,50 +82,47 @@ BMPImage * JPEGLibWrapper::convertJPEGToBMP (const char *pszFile)
 
 BufferReader * JPEGLibWrapper::convertBMPToJPEG (const BMPImage *pInputImage, uint8 ui8CompressionQuality)
 {
+    const char *pszMethodName = "JPEGLibWrapper::convertBMPToJPEG";
     if (pInputImage == NULL) {
-        checkAndLogMsg ("JPEGLibWrapper::convertBMPToJPEG", Logger::L_MildError,
-                        "input image is NULL\n");
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "input image is NULL\n");
         return NULL;
     }
     else if ((pInputImage->getWidth() <= 0) || (pInputImage->getHeight() <= 0)) {
-        checkAndLogMsg ("JPEGLibWrapper::convertBMPToJPEG", Logger::L_MildError,
-                        "input image is empty\n");
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "input image is empty\n");
         return NULL;
     }
     else if (pInputImage->getBitsPerPixel() != 24) {
-        checkAndLogMsg ("JPEGLibWrapper::convertBMPToJPEG", Logger::L_MildError,
-                        "cannot handle BMP with %d bits per pixel\n",
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "cannot handle BMP with %d bits per pixel\n",
                         (int) pInputImage->getBitsPerPixel());
         return NULL;
     }
     else if (ui8CompressionQuality > 100) {
-        checkAndLogMsg ("JPEGLibWrapper::convertBMPToJPEG", Logger::L_MildError,
-                        "invalid compression quality (%d) - must be between 0 and 100\n",
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "invalid compression quality (%d) - must be between 0 and 100\n",
                         (int) ui8CompressionQuality);
         return NULL;
     }
 
-    struct jpeg_compress_struct cinfo;
-    struct JPEGLibWrapperNS::JPEGLibErrorMgr errMgr;
     unsigned char *puchOutputBuf = NULL;
     unsigned long ulOutputLen = 0;
     JSAMPROW sampleRow[1];
     sampleRow[0] = (JSAMPROW) malloc (pInputImage->getWidth() * 3);
     if (sampleRow[0] == NULL) {
-        checkAndLogMsg ("JPEGLibWrapper::convertBMPToJPEG", Logger::L_MildError,
+        checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "could not allocate memory to hold one row of sample data given image width of %lu\n",
                         pInputImage->getWidth());
         return NULL;
     }
 
     // Setup a custom error handler for the JPEG Library
+    struct jpeg_compress_struct cinfo;
+    struct JPEGLibWrapperNS::JPEGLibErrorMgr errMgr;
     cinfo.err = jpeg_std_error (&errMgr.pub);
     errMgr.pub.error_exit = JPEGLibWrapperNS::jpegLibErrorExitHandler;
     if (setjmp (errMgr.setjmp_buffer)) {
         char szErrorBuf[JMSG_LENGTH_MAX];
         (*cinfo.err->format_message) ((j_common_ptr) &cinfo, szErrorBuf);
-        checkAndLogMsg ("JPEGLibWrapper::convertJPEGToBMP", Logger::L_MildError,
-                        "jpeglib operation failed with message <%s>\n", szErrorBuf);
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "jpeglib operation failed with message <%s>\n",
+                        szErrorBuf);
         jpeg_destroy_compress (&cinfo);
         if (puchOutputBuf != NULL) {
             free (puchOutputBuf);
@@ -170,6 +167,9 @@ BufferReader * JPEGLibWrapper::convertBMPToJPEG (const BMPImage *pInputImage, ui
     // Cleanup
     jpeg_finish_compress (&cinfo);
     free (sampleRow[0]);
+    jpeg_destroy_compress (&cinfo);
+
+    checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "compressed bmp image of size: %u.\n", ulOutputLen);
 
     return new BufferReader (puchOutputBuf, ulOutputLen, true);
 }
@@ -186,7 +186,7 @@ BMPImage * JPEGLibWrapper::convertJPEGToBMP (const void *pInputBuf, uint32 ui32I
     struct JPEGLibWrapperNS::JPEGLibErrorMgr errMgr;
     JSAMPARRAY pSampleArray = NULL;
     BMPImage *pBMPImage = NULL;
-    
+
     // Setup a custom error handler for the JPEG Library
     cinfo.err = jpeg_std_error (&errMgr.pub);
     errMgr.pub.error_exit = JPEGLibWrapperNS::jpegLibErrorExitHandler;

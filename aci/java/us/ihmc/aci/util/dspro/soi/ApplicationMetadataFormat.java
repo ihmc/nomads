@@ -11,5 +11,6 @@ public enum ApplicationMetadataFormat
     Soigen1_Xml,
     Soigen2_Json,
     Soigen2_Json_Base64,
-    Phoenix_Base64
+    Phoenix_Base64, 
+    Linguafranca_Base64
 }

@@ -20,18 +20,19 @@
 #include "InformationStore.h"
 
 #include "Defs.h"
-#include "SQLAVList.h"
 #include "MatchmakingQualifier.h"
 #include "MetaData.h"
-#include "MetadataConfiguration.h"
+#include "MetadataConfigurationImpl.h"
 
 #include "DataStore.h"
 #include "SQLiteFactory.h"
 #include "DSLib.h"
 
+#include "AVList.h"
 #include "Logger.h"
 #include "MD5.h"
 #include "NLFLib.h"
+#include "SessionId.h"
 #include "StrClass.h"
 
 #include "sqlite3.h"
@@ -39,31 +40,234 @@
 #include "tinyxml.h"
 
 #include <string.h>
+#include "BufferWriter.h"
+#include "Json.h"
 
 using namespace NOMADSUtil;
 using namespace IHMC_C45;
 using namespace IHMC_MISC;
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 
 const char * InformationStore::DEFAULT_DATABASE_NAME = ":memory:";
 const char * InformationStore::DEFAULT_METADATA_TABLE_NAME = "MetaData_Table";
 
+namespace INFORMATION_STORE
+{
+    String JSON_BLOB = "json_blob";
+
+    int insertInternal (MetadataInterface *pMetadata, MetadataConfigurationImpl *pMetadataConf,
+                        sqlite3 *pSQL3DB, sqlite3_stmt *psqlInserted)
+    {
+        const char *pszMethodName = "InformationStore::insertInternal";
+
+        JsonObject *pJson = pMetadata->toJson();
+        if (pJson == nullptr) {
+            return -3;
+        }
+        String json (pJson->toString (true));
+        delete pJson;
+
+        BufferWriter bw (1024, 1024);
+        if (pMetadata->write (&bw, 0) < 0) {
+            return -3;
+        }
+
+        uint16 metadataFieldsNumber;
+        const MetadataFieldInfo **ppMetadataFieldInfos = pMetadataConf->getMetadataFieldInfos (metadataFieldsNumber);
+        const BoundingBox bbox = pMetadata->getLocation();
+
+        int iIndex = 0;
+        for (; iIndex < metadataFieldsNumber; iIndex++) {
+            if ( (1 == (ppMetadataFieldInfos[iIndex]->_sFieldType == MetadataType::FLOAT)) ||
+                 (1 == (ppMetadataFieldInfos[iIndex]->_sFieldType == MetadataType::DOUBLE))) {
+                int rc;
+                double value = -1;
+                if (1 == (ppMetadataFieldInfos[iIndex]->_sFieldName == MetadataInterface::LEFT_UPPER_LATITUDE)) {
+                    value = bbox._leftUpperLatitude;
+                    rc = bbox.isValid() ? 0 : -1;
+                }
+                else if (1 == (ppMetadataFieldInfos[iIndex]->_sFieldName == MetadataInterface::LEFT_UPPER_LONGITUDE)) {
+                    value = bbox._leftUpperLongitude;
+                    rc = bbox.isValid() ? 0 : -1;
+                }
+                else if (1 == (ppMetadataFieldInfos[iIndex]->_sFieldName == MetadataInterface::RIGHT_LOWER_LATITUDE)) {
+                    value = bbox._rightLowerLatitude;
+                    rc = bbox.isValid() ? 0 : -1;
+                }
+                else if (1 == (ppMetadataFieldInfos[iIndex]->_sFieldName == MetadataInterface::RIGHT_LOWER_LONGITUDE)) {
+                    value = bbox._rightLowerLongitude;
+                    rc = bbox.isValid() ? 0 : -1;
+                }
+                else {
+                    rc = pMetadata->getFieldValue (ppMetadataFieldInfos[iIndex]->_sFieldName, &value);
+                }
+
+                if (rc == 0) {
+                    if (sqlite3_bind_double (psqlInserted, iIndex + 1, value) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                            "Could not bind field %s\n", ppMetadataFieldInfos[iIndex]->_sFieldName.c_str());
+                        sqlite3_reset (psqlInserted);
+                        return -4;
+                    }
+                }
+                else {
+                    if (sqlite3_bind_null (psqlInserted, iIndex + 1) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                            "Could not bind field %s\n", ppMetadataFieldInfos[iIndex]->_sFieldName.c_str());
+                        sqlite3_reset (psqlInserted);
+                        return -4;
+                    }
+                }
+            }
+            if (1 == (ppMetadataFieldInfos[iIndex]->_sFieldType == MetadataType::TEXT)) {
+                char *pValue = nullptr;
+                int rc = pMetadata->getFieldValue (ppMetadataFieldInfos[iIndex]->_sFieldName, &pValue);
+                if (rc == 0) {
+                    if ((iIndex == pMetadataConf->getMessageIdIndex()) || (iIndex == pMetadataConf->getRefersToIndex())) {
+                        if (pValue == nullptr || strcmp (pValue, MetadataValue::UNKNOWN) == 0) {
+                            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "trying to add message with "
+                                            "unknown message ID or refersTo field\n");
+                            return -4;
+                        }
+                    }
+                    if (sqlite3_bind_text (psqlInserted, iIndex + 1, pValue, sizeof(char) * strlen (pValue), SQLITE_TRANSIENT) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s with value = <%s>\n",
+                                        ppMetadataFieldInfos[iIndex]->_sFieldName.c_str(), pValue);
+                        sqlite3_reset (psqlInserted);
+                        return -4;
+                    }
+                }
+                else {
+                    assert ((ppMetadataFieldInfos[iIndex]->_sFieldName == MetadataInterface::MESSAGE_ID) == 1 ? false : true);
+                    assert ((ppMetadataFieldInfos[iIndex]->_sFieldName == MetadataInterface::REFERS_TO) == 1 ? false : true);
+                    if (sqlite3_bind_null (psqlInserted, iIndex + 1) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s\n",
+                                        ppMetadataFieldInfos[iIndex]->_sFieldName.c_str());
+                        sqlite3_reset (psqlInserted);
+
+                        return -4;
+                    }
+                }
+                free (pValue);
+                pValue = nullptr;
+            }
+            else if ((1 == (ppMetadataFieldInfos[iIndex]->_sFieldType == MetadataType::INTEGER8)) ||
+                     (1 == (ppMetadataFieldInfos[iIndex]->_sFieldType == MetadataType::INTEGER16)) ||
+                     (1 == (ppMetadataFieldInfos[iIndex]->_sFieldType == MetadataType::INTEGER32))) {
+                int value = -1;
+                int rc = pMetadata->getFieldValue (ppMetadataFieldInfos[iIndex]->_sFieldName, &value);
+                if (rc == 0) {
+                    if(sqlite3_bind_int (psqlInserted, iIndex + 1, value) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s\n",
+                                        ppMetadataFieldInfos[iIndex]->_sFieldName.c_str());
+                        sqlite3_reset (psqlInserted);
+                        return -4;
+                    }
+                }
+                else {
+                    if (sqlite3_bind_null (psqlInserted, iIndex + 1) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                                        "Could not bind field %s\n", ppMetadataFieldInfos[iIndex]->_sFieldName.c_str());
+                        sqlite3_reset (psqlInserted);
+                        return -4;
+                    }
+                }
+            }
+            else if (1 == (ppMetadataFieldInfos[iIndex]->_sFieldType == MetadataType::INTEGER64)) {
+                int64 value = -1;
+                int rc = pMetadata->getFieldValue (ppMetadataFieldInfos[iIndex]->_sFieldName, &value);
+                if (rc == 0) {
+                    if (sqlite3_bind_int64 (psqlInserted, iIndex + 1, value) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s\n",
+                                        ppMetadataFieldInfos[iIndex]->_sFieldName.c_str());
+                        sqlite3_reset (psqlInserted);
+                        return -4;
+                    }
+                }
+                else {
+                    if(sqlite3_bind_null (psqlInserted, iIndex + 1) != SQLITE_OK) {
+                        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                                        "Could not bind field %s\n", ppMetadataFieldInfos[iIndex]->_sFieldName.c_str());
+                        sqlite3_reset (psqlInserted);
+                        return -4;
+                    }
+                }
+            }
+        }
+
+        if (sqlite3_bind_text (psqlInserted, iIndex + 1, json, json.length(), SQLITE_TRANSIENT) != SQLITE_OK) {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s\n", JSON_BLOB.c_str());
+            sqlite3_reset (psqlInserted);
+            return -5;
+        }
+
+        int rc = sqlite3_step (psqlInserted);
+        switch (rc) {
+            case SQLITE_OK:
+                checkAndLogMsg (pszMethodName, Logger::L_Info, "Insert successful\n");
+                rc = 0;
+                break;
+
+            case SQLITE_DONE:
+                checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                                "Insert successful. the last row inserted is: %d\n",
+                                sqlite3_last_insert_rowid (pSQL3DB));
+                rc = 0;
+                break;
+
+            default:
+                String err (sqlite3_errmsg (pSQL3DB));
+                checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Insert failed: %s: %s.\n",
+                                SQLiteFactory::getErrorAsString (rc), err.length() > 0 ? err.c_str() : "") ;
+                rc = -5;
+        }
+
+        sqlite3_reset (psqlInserted);
+        return rc;
+    }
+
+    class ClearTable : public SessionIdListener
+    {
+        public:
+            ClearTable (InformationStore *pInfoStore)
+                : _pInfoStore (pInfoStore)
+            {
+            }
+
+            ~ClearTable (void)
+            {
+            }
+
+            void sessionIdChanged (void)
+            {
+                _pInfoStore->clear();
+            }
+
+        private:
+            InformationStore *_pInfoStore;
+    };
+}
+
 InformationStore::InformationStore (DataStore *pDataCache, const char *pszDSProGroupName)
-    : _pszMetadataDBName (NULL),
-      _pszMetadataTableName (NULL),
-      _pszMetadataPrimaryKey (NULL),
-      _pszMetadataAll (NULL),
-      _uiMetadataAll (0),
-      _pSQL3DB (NULL),
-      _psqlInserted (NULL),
-      _psqlGetMetadata (NULL),
-      _psqlGetReferringMetadata (NULL),
+    : _dbName (DEFAULT_DATABASE_NAME),
+      _tableName (DEFAULT_METADATA_TABLE_NAME),
+      _primaryKey (MetadataInterface::MESSAGE_ID),
+      _uiAllColumnsCount (0),
+      _pSQL3DB (nullptr),
+      _psqlInserted (nullptr),
+      _psqlDeleteObsolete (nullptr),
+      _psqlDeleteByObjectId ( nullptr),
+      _psqlDeleteByObjectInstanceId (nullptr),
+      _psqlGetMetadata (nullptr),
+      _psqlGetReferringMetadata (nullptr),
       _errorCode (0),
       _pDataStore (pDataCache),
       _pszDSProGroupName (pszDSProGroupName),
-      _pszStartsWithDSProGroupNameTemplate (NULL),
-      _pMetadataConf (NULL),
-      _m (MutexId::InformationStore_m, LOG_MUTEX)
+      _pszStartsWithDSProGroupNameTemplate (nullptr),
+      _pMetadataConf (nullptr),
+      _m (MutexId::InformationStore_m, LOG_MUTEX),
+      _pSessionIdListener (nullptr)
 {
     String tmp (_pszDSProGroupName);
     tmp += "*";
@@ -74,180 +278,85 @@ InformationStore::~InformationStore (void)
 {
     // TODO : it doesn't compile on visual studio 2008. Debug it
     //while((_psqlInserted = sqlite3_next_stmt(_pSQL3DB, 0)) != 0) sqlite3_finalize(_psqlInserted);
-    sqlite3_close(_pSQL3DB); _pSQL3DB = NULL;
-    free (_pszMetadataDBName);
-    _pszMetadataDBName = NULL;
-    free (_pszMetadataTableName);
-    _pszMetadataTableName = NULL;
-    free (_pszMetadataAll);
-    _pszMetadataAll = NULL;
-
+    sqlite3_close(_pSQL3DB); _pSQL3DB = nullptr;
     sqlite3_finalize (_psqlGetMetadata);
-    _psqlGetMetadata = NULL;
-
+    _psqlGetMetadata = nullptr;
     sqlite3_finalize (_psqlGetReferringMetadata);
-    _psqlGetReferringMetadata = NULL;
+    _psqlGetReferringMetadata = nullptr;
 }
 
-int InformationStore::insertIntoDB (MetadataInterface *pMetadata)
+int InformationStore::insert (MetadataInterface *pMetadata)
 {
-    const char *pszMethodName = "InformationStore::insertIntoDB";
-    if (_psqlInserted == NULL) {
-        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "ByteCode NULL\n");
+    const char *pszMethodName = "InformationStore::insert";
+
+    if ((_psqlInserted == nullptr) || (_psqlDeleteObsolete == nullptr)) {
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "_psqlInserted or _psqlDeleteObsolete are nullptr\n");
         return -1;
     }
+    if (pMetadata == nullptr) {
+        return -2;
+    }
+    int64 i64SourceTimestamp = 0U;
+    String objectId, instanceId;
+    pMetadata->getFieldValue (MetadataInterface::REFERRED_DATA_OBJECT_ID, objectId);
+    pMetadata->getFieldValue (MetadataInterface::REFERRED_DATA_INSTANCE_ID, instanceId);
+    pMetadata->getFieldValue (MetadataInterface::SOURCE_TIME_STAMP, &i64SourceTimestamp);
 
     _m.lock (1018);
-    uint16 metadataFieldsNumber;
-    const MetadataFieldInfo **ppMetadataFieldInfos = _pMetadataConf->getMetadataFieldInfos (metadataFieldsNumber);
 
-    for (int i = 0; i < metadataFieldsNumber; i++) {
-        if (1 == (ppMetadataFieldInfos[i]->_sFieldType == MetadataType::TEXT)) {
-            char *pValue = NULL;
-            int rc = pMetadata->getFieldValue (ppMetadataFieldInfos[i]->_sFieldName, &pValue);
-            if (rc == 0) {
-                if ((i == _pMetadataConf->getMessageIdIndex()) || (i == _pMetadataConf->getRefersToIndex())) {
-                    if (pValue == NULL || strcmp (pValue, MetadataValue::UNKNOWN) == 0) {
-                        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                                        "trying to add message with unknown message "
-                                        "ID or refersTo field\n");
-                        return -4;
-                    }
-                }
-                if (sqlite3_bind_text (_psqlInserted, i + 1, pValue, sizeof(char) * strlen (pValue), SQLITE_TRANSIENT) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s with value = <%s>\n",
-                                    ppMetadataFieldInfos[i]->_sFieldName.c_str(), pValue);
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
-            else {
-                assert ((ppMetadataFieldInfos[i]->_sFieldName == MetadataInterface::MESSAGE_ID) == 1 ? false : true);
-                assert ((ppMetadataFieldInfos[i]->_sFieldName == MetadataInterface::REFERS_TO) == 1 ? false : true);
-                if (sqlite3_bind_null (_psqlInserted, i + 1) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s\n",
-                                    ppMetadataFieldInfos[i]->_sFieldName.c_str());
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
-            free (pValue);
-            pValue = NULL;
+    int rc = 0;
+    sqlite3_reset (_psqlDeleteObsolete);
+    if ((objectId.length() >= 0) && (instanceId.length() >= 0) && (i64SourceTimestamp > 0)) {
+        // Delete obsolete instances
+        if (sqlite3_bind_text (_psqlDeleteObsolete, 1, objectId, objectId.length(), SQLITE_TRANSIENT) != SQLITE_OK) {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind referredObjectId field\n");
+            _m.unlock (1018);
+            return -4;
         }
-        else if ((1 == (ppMetadataFieldInfos[i]->_sFieldType == MetadataType::INTEGER8)) ||
-                 (1 == (ppMetadataFieldInfos[i]->_sFieldType == MetadataType::INTEGER16)) ||
-                 (1 == (ppMetadataFieldInfos[i]->_sFieldType == MetadataType::INTEGER32))) {
-            int value = -1;
-            int rc = pMetadata->getFieldValue (ppMetadataFieldInfos[i]->_sFieldName, &value);
-            if (rc == 0) {
-                if(sqlite3_bind_int (_psqlInserted, i + 1, value) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s\n",
-                                    ppMetadataFieldInfos[i]->_sFieldName.c_str());
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
-            else {
-                if (sqlite3_bind_null (_psqlInserted, i + 1) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                                    "Could not bind field %s\n", ppMetadataFieldInfos[i]->_sFieldName.c_str());
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
+        if (sqlite3_bind_int64 (_psqlDeleteObsolete, 2, i64SourceTimestamp) != SQLITE_OK) {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind source time stamp field\n");
+            _m.unlock (1018);
+            return -5;
         }
-        else if (1 == (ppMetadataFieldInfos[i]->_sFieldType == MetadataType::INTEGER64)) {
-            int64 value = -1;
-            int rc = pMetadata->getFieldValue (ppMetadataFieldInfos[i]->_sFieldName, &value);
-            if (rc == 0) {
-                if (sqlite3_bind_int64 (_psqlInserted, i + 1, value) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind field %s\n",
-                                    ppMetadataFieldInfos[i]->_sFieldName.c_str());
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
-            else {
-                if(sqlite3_bind_null (_psqlInserted, i + 1) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                                    "Could not bind field %s\n", ppMetadataFieldInfos[i]->_sFieldName.c_str());
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
-        }
-        else if ((1 == (ppMetadataFieldInfos[i]->_sFieldType == MetadataType::FLOAT)) ||
-                 (1 == (ppMetadataFieldInfos[i]->_sFieldType == MetadataType::DOUBLE))) {
-            double value = -1;
-            int rc = pMetadata->getFieldValue (ppMetadataFieldInfos[i]->_sFieldName, &value);
-            if (rc == 0) {
-                if (sqlite3_bind_double (_psqlInserted, i + 1, value) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                                    "Could not bind field %s\n", ppMetadataFieldInfos[i]->_sFieldName.c_str());
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
-            else {
-                if (sqlite3_bind_null (_psqlInserted, i + 1) != SQLITE_OK) {
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                                    "Could not bind field %s\n", ppMetadataFieldInfos[i]->_sFieldName.c_str());
-                    sqlite3_reset (_psqlInserted);
-                    _m.unlock (1018);
-                    return -4;
-                }
-            }
+        rc = sqlite3_step (_psqlDeleteObsolete);
+        switch (rc) {
+            case SQLITE_OK:
+            case SQLITE_DONE:
+                checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Delete successful.");
+                break;
+            default:
+                checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Delete failed: %s\n",
+                                SQLiteFactory::getErrorAsString (rc));
+                rc = -6;
         }
     }
 
-    int rc = sqlite3_step (_psqlInserted);
-    switch (rc) {
-        case SQLITE_OK:
-            checkAndLogMsg (pszMethodName, Logger::L_Info, "Insert successful\n");
-            rc = 0;
-            break;
-
-        case SQLITE_DONE:
-            checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                            "Insert successful. the last row inserted is: %d\n",
-                            sqlite3_last_insert_rowid (_pSQL3DB));
-            rc = 0;
-            break;
-
-        default:
-            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Insert failed: %s\n",
-                            SQLiteFactory::getErrorAsString (rc));
-            rc = -5;
+    // Add most recent instance
+    if (INFORMATION_STORE::insertInternal (pMetadata, _pMetadataConf, _pSQL3DB, _psqlInserted) < 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "Could not insert message\n");
+        rc = -7;
     }
 
-    sqlite3_reset (_psqlInserted);
     _m.unlock (1018);
     return rc;
 }
 
 char ** InformationStore::getDSProIds (const char *pszObjectId, const char *pszInstanceId)
 {
-    if (pszObjectId == NULL) {
-        return NULL;
+    if (pszObjectId == nullptr) {
+        return nullptr;
     }
 
     String sql = "SELECT ";
     sql += MetaData::MESSAGE_ID;
     sql += " FROM ";
-    sql += _pszMetadataTableName;
+    sql += _tableName;
     sql += " WHERE ";
     sql += MetaData::REFERRED_DATA_OBJECT_ID;
     sql += " = '";
     sql += pszObjectId;
     sql += "'";
-    if (pszInstanceId != NULL) {
+    if (pszInstanceId != nullptr) {
         sql += " AND ";
         sql += MetaData::REFERRED_DATA_INSTANCE_ID;
         sql += " = '";
@@ -256,26 +365,26 @@ char ** InformationStore::getDSProIds (const char *pszObjectId, const char *pszI
     }
     sql += ";";
 
-    return getDSProIds (sql.c_str());
+    return getDSProIds (sql);
 }
 
 char ** InformationStore::getDSProIds (const char *pszQuery)
 {
-    if (pszQuery == NULL) {
-        return NULL;
+    if (pszQuery == nullptr) {
+        return nullptr;
     }
     unsigned int uiQueryLen = strlen (pszQuery);
     if (uiQueryLen == 0) {
-        return NULL;
+        return nullptr;
     }
 
     _m.lock (1019);
 
-    sqlite3_stmt *psqlGetIDs = NULL;
-    int rc = sqlite3_prepare_v2 (_pSQL3DB, pszQuery, uiQueryLen, &psqlGetIDs, NULL);
-    if (rc != 0 || psqlGetIDs == NULL) {
+    sqlite3_stmt *psqlGetIDs = nullptr;
+    int rc = sqlite3_prepare_v2 (_pSQL3DB, pszQuery, uiQueryLen, &psqlGetIDs, nullptr);
+    if (rc != 0 || psqlGetIDs == nullptr) {
         _m.unlock (1019);
-        return NULL;
+        return nullptr;
     }
 
     unsigned int uiRow = 0;
@@ -283,7 +392,7 @@ char ** InformationStore::getDSProIds (const char *pszQuery)
     while (((sqlite3_step (psqlGetIDs)) == SQLITE_ROW)) {
         if (sqlite3_column_type (psqlGetIDs, 0) == SQLITE_TEXT) {
             const char *pszValue = (const char *) sqlite3_column_text (psqlGetIDs, 0);
-            if (pszValue != NULL) {
+            if (pszValue != nullptr) {
                 ids[uiRow] = pszValue;
                 uiRow++;
             }
@@ -293,10 +402,10 @@ char ** InformationStore::getDSProIds (const char *pszQuery)
     checkAndLogMsg ("InformationStore::getDSProIds", Logger::L_Info,
                     "%u dspro ids were found for query <%s>\n", ids.size(), pszQuery);
 
-    char **ppszIds = NULL;
+    char **ppszIds = nullptr;
     if (ids.size() > 0) {
         ppszIds = (char **) calloc (ids.size() + 1, sizeof (char*));
-        if (ppszIds == NULL) {
+        if (ppszIds == nullptr) {
             checkAndLogMsg ("InformationStore::getDSProIds", memoryExhausted);
         }
         else {
@@ -307,7 +416,7 @@ char ** InformationStore::getDSProIds (const char *pszQuery)
     }
 
     sqlite3_finalize (psqlGetIDs);
-  //  if (psqlGetIDs != NULL) {
+  //  if (psqlGetIDs != nullptr) {
 //        free (psqlGetIDs);
     //}
 
@@ -317,24 +426,24 @@ char ** InformationStore::getDSProIds (const char *pszQuery)
 
 MetadataInterface * InformationStore::getMetadata (const char *pszKey)
 {
-    if (pszKey == NULL) {
-        return NULL;
+    if (pszKey == nullptr) {
+        return nullptr;
     }
 
     _m.lock (1019);
-    if (_psqlGetMetadata == NULL) {
+    if (_psqlGetMetadata == nullptr) {
         // Create the prepared statement if it does not already exist
         String sql = "SELECT ";
-        sql += _pszMetadataAll;
+        sql += INFORMATION_STORE::JSON_BLOB;
         sql += " FROM ";
-        sql += _pszMetadataTableName;
+        sql += _tableName;
         sql += " WHERE ";
-        sql += _pszMetadataPrimaryKey;
+        sql += _primaryKey;
         sql += " = ?;";
         int rc = sqlite3_prepare_v2 (_pSQL3DB, sql.c_str(), sql.length(),
-                                     &_psqlGetMetadata, NULL);
+                                     &_psqlGetMetadata, nullptr);
 
-        if ((rc == SQLITE_OK) && (_psqlGetMetadata != NULL)) {
+        if ((rc == SQLITE_OK) && (_psqlGetMetadata != nullptr)) {
             checkAndLogMsg ("InformationStore::getMetadata", Logger::L_Info,
                             "Statement prepared successfully. Sql statement': %s.\n",
                             sql.c_str());
@@ -345,7 +454,7 @@ MetadataInterface * InformationStore::getMetadata (const char *pszKey)
                             sql.c_str(), SQLiteFactory::getErrorAsString (rc));
             sqlite3_reset (_psqlGetMetadata);
             _m.lock (1019);
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -354,52 +463,52 @@ MetadataInterface * InformationStore::getMetadata (const char *pszKey)
         checkAndLogMsg ("InformationStore::getMetadata", Logger::L_SevereError, "Error when binding values.\n");
         sqlite3_reset (_psqlGetReferringMetadata);
         _m.unlock (1019);
-        return NULL;
+        return nullptr;
     }
 
     MetadataList *pMetadataList = getMetadataInternal (_psqlGetMetadata);
-    if (pMetadataList == NULL) {
+    if (pMetadataList == nullptr) {
         _m.unlock (1019);
-        return NULL;
+        return nullptr;
     }
     MetadataInterface *pMetadata = pMetadataList->getFirst();
-    assert (pMetadataList->getNext() == NULL);
-    delete pMetadataList;    
+    assert (pMetadataList->getNext() == nullptr);
+    delete pMetadataList;
     _m.unlock (1019);
     return pMetadata;
 }
 
 MetadataList * InformationStore::getMetadataForData (const char *pszReferring)
 {
-    if (pszReferring == NULL) {
-        return NULL;
+    if (pszReferring == nullptr) {
+        return nullptr;
     }
 
     _m.lock (1020);
-    if (_psqlGetReferringMetadata == NULL) {
+    if (_psqlGetReferringMetadata == nullptr) {
         // Create the prepared statement if it does not already exist
         String extract = "SELECT ";
-        extract += _pszMetadataAll;
+        extract += INFORMATION_STORE::JSON_BLOB;
         extract += " FROM ";
-        extract += _pszMetadataTableName;
+        extract += _tableName;
         extract += " WHERE ";
         extract += MetaData::REFERS_TO;
         extract += " = ? ";
         extract += "LIMIT 1;";
         int rc = sqlite3_prepare_v2 (_pSQL3DB, extract.c_str(), extract.length(),
-                                     &_psqlGetReferringMetadata, NULL);
+                                     &_psqlGetReferringMetadata, nullptr);
 
-        if ((rc == SQLITE_OK) && (_psqlGetReferringMetadata != NULL)) {
+        if ((rc == SQLITE_OK) && (_psqlGetReferringMetadata != nullptr)) {
             checkAndLogMsg ("InformationStore::getMetadataForData", Logger::L_Info,
                             "Statement %s prepared successfully.\n", (const char *)extract);
         }
         else {
             checkAndLogMsg ("InformationStore::getMetadataForData", Logger::L_SevereError,
                             "Could not prepare statement: %s. Error code: %s\n",
-                            (const char *)extract, SQLiteFactory::getErrorAsString (rc));
+                            extract.c_str(), SQLiteFactory::getErrorAsString (rc));
             sqlite3_reset (_psqlGetReferringMetadata);
             _m.unlock (1020);
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -409,62 +518,62 @@ MetadataList * InformationStore::getMetadataForData (const char *pszReferring)
                         "Error when binding values.\n");
         sqlite3_reset (_psqlGetReferringMetadata);
         _m.unlock (1020);
-        return NULL;
+        return nullptr;
     }
 
-    MetadataList *pMetadataList = getMetadataInternal (_psqlGetReferringMetadata);    
+    MetadataList *pMetadataList = getMetadataInternal (_psqlGetReferringMetadata);
     _m.unlock (1020);
     return pMetadataList;
 }
 
-MetadataList * InformationStore::getMetadataInternal (sqlite3_stmt *pStmt, bool bAllowMultipleMatches)
-{   
+MetadataList * InformationStore::getMetadataInternal (sqlite3_stmt *pStmt, bool bAllowMultipleMatches) const
+{
+    const char *pszMethodName = "InformationStore::getMetadataInternal";
     unsigned short metadataFieldsNumber = 0;
     const MetadataFieldInfo **pMetadataFieldInfos = _pMetadataConf->getMetadataFieldInfos (metadataFieldsNumber);
-    if (pMetadataFieldInfos == NULL || metadataFieldsNumber == 0) {
-        return NULL;
+    if (pMetadataFieldInfos == nullptr || metadataFieldsNumber == 0) {
+        return nullptr;
     }
 
     // Execute the statement
     int rc;
     int rows = 0;
-    MetadataList *pMetadataList = NULL;
+    MetadataList *pMetadataList = nullptr;
     for (; ((rc = sqlite3_step (pStmt)) == SQLITE_ROW) && (bAllowMultipleMatches || (rows < 1)); rows++) {
-        SQLAVList *pValues = new SQLAVList (metadataFieldsNumber);
-        if (pValues != NULL) {
-            for (int i = 0; i < metadataFieldsNumber; i ++) {
-                if (sqlite3_column_type (pStmt, i) == SQLITE_NULL) {
-                    pValues->addPair (pMetadataFieldInfos[i]->_sFieldName, SQLAVList::UNKNOWN);
-                }
-                else {
-                    const char *pszValue = (const char *) sqlite3_column_text (pStmt, i);
-                    if (pszValue != NULL) {
-                        pValues->addPair (pMetadataFieldInfos[i]->_sFieldName, pszValue);
+        MetaData *pMetadata = new MetaData();
+        if (pMetadata != nullptr) {
+            for (int i = 0; i < 1; i ++) {
+                if (sqlite3_column_type (pStmt, i) != SQLITE_NULL) {
+                    int iLen = sqlite3_column_bytes (pStmt, 0);
+                    if (iLen >= 0) {
+                        String json ((const char *) sqlite3_column_text (pStmt, 0));
+                        JsonObject obj (json);
+                        pMetadata->fromJson (&obj);
                     }
                     else {
-                        pValues->addPair (pMetadataFieldInfos[i]->_sFieldName, SQLAVList::UNKNOWN);
+                        delete pMetadata;
                     }
                 }
             }
-            if (pMetadataList == NULL) {
+            if (pMetadataList == nullptr) {
                 pMetadataList = new MetadataList();
             }
-            if (pMetadataList != NULL) {
-                pMetadataList->prepend (pValues);
+            if (pMetadataList != nullptr) {
+                pMetadataList->prepend (pMetadata);
             }
         }
     }
 
     if ((rc != SQLITE_ROW) && (rc != SQLITE_DONE)) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::getMetadataInternal", Logger::L_SevereError,
-                        "sqlite3_step returned %s.\n", SQLiteFactory::getErrorAsString(rc));
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                        "sqlite3_step returned %s.\n", SQLiteFactory::getErrorAsString (rc));
     }
     else if (rows == 0) {
-        checkAndLogMsg ("InformationStore::getMetadataInternal", Logger::L_LowDetailDebug,
+        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
                         "sqlite3_get_table() did not find any matches for query\n");
     }
     else if (rows > 1 && !bAllowMultipleMatches) {
-        checkAndLogMsg ("InformationStore::getMetadataInternal", Logger::L_MildError,
+        checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "sqlite3_get_table() found more that 1 match for query but there "
                         "should have only been one match\n");
     }
@@ -479,15 +588,15 @@ MetadataList * InformationStore::getAllMetadata (AVList *pAVQueryList, int64 i64
     unsigned int uiReceiverTimeStampIndex = _pMetadataConf->getReceiverTimeStampIndex();
     unsigned short metadataFieldsNumber = 0;
     const MetadataFieldInfo **pMetadataFieldInfos = _pMetadataConf->getMetadataFieldInfos (metadataFieldsNumber);
-    if (pMetadataFieldInfos == NULL || pMetadataFieldInfos[uiReceiverTimeStampIndex] == NULL) {
-        return NULL;
+    if (pMetadataFieldInfos == nullptr || pMetadataFieldInfos[uiReceiverTimeStampIndex] == nullptr) {
+        return nullptr;
     }
     const char *pszReceiverTimeStampFieldName = pMetadataFieldInfos[uiReceiverTimeStampIndex]->_sFieldName;
 
     String sql = "SELECT ";
-    sql += _pszMetadataAll;
+    sql += INFORMATION_STORE::JSON_BLOB;
     sql += " FROM ";
-    sql += _pszMetadataTableName;
+    sql += _tableName;
 
     bool bIsFirstConstraint = true;
     if (i64BeginArrivalTimestamp > 0) {
@@ -509,13 +618,13 @@ MetadataList * InformationStore::getAllMetadata (AVList *pAVQueryList, int64 i64
         sql += timestamp;
     }
 
-    if (pAVQueryList != NULL && !pAVQueryList->isEmpty()) {
+    if (pAVQueryList != nullptr && !pAVQueryList->isEmpty()) {
         unsigned int uiLen = (unsigned int) pAVQueryList->getLength();
         for (unsigned int i = 0; i < uiLen; i++) {
             const char *pszAttribute = pAVQueryList->getAttribute (i);
             const char *pszValue = pAVQueryList->getValueByIndex (i);
             const char *pszFieldType = _pMetadataConf->getFieldType (pszAttribute);
-            if (pszAttribute != NULL && pszValue != NULL && pszFieldType != NULL) {
+            if (pszAttribute != nullptr && pszValue != nullptr && pszFieldType != nullptr) {
 
                 if (bIsFirstConstraint) {
                     sql += " WHERE ";
@@ -543,7 +652,7 @@ MetadataList * InformationStore::getAllMetadata (AVList *pAVQueryList, int64 i64
 
     // TODO: FIX LOCK ID!
     _m.lock (1021);
-    MetadataList *pMetadataList = getAllMetadata ((const char *) sql, _uiMetadataAll);
+    MetadataList *pMetadataList = getAllMetadata (sql, 1);
     _m.unlock (1021);
 
     return pMetadataList;
@@ -551,44 +660,38 @@ MetadataList * InformationStore::getAllMetadata (AVList *pAVQueryList, int64 i64
 
 MetadataList * InformationStore::getAllMetadataInArea (MatchmakingQualifiers *pMatchmakingQualifiers,
                                                        const char **ppszMessageIdFilters,
-                                                       float fMaxLat, float fMinLat, float fMaxLong, float fMinLong)
+                                                       const BoundingBox &area, bool bEmptyPedigree)
 {
-    if (fMinLat > fMaxLat) {
-        float tmp = fMaxLat;
-        fMaxLat = fMinLat;
-        fMinLat = tmp;
-    }
-    if (fMinLong > fMaxLong) {
-        float tmp = fMaxLong;
-        fMaxLong = fMinLong;
-        fMinLong = tmp;
-    }
+    const float fMaxLat = area._leftUpperLatitude;
+    const float fMinLat = area._rightLowerLatitude;
+    const float fMaxLong = area._rightLowerLongitude;
+    const float fMinLong = area._leftUpperLongitude;
 
-    String extract = "SELECT ";
-    extract += _pszMetadataAll;
-    extract += " FROM ";
+    String sql = "SELECT ";
+    sql += INFORMATION_STORE::JSON_BLOB;
+    sql += " FROM ";
 
-    if (pMatchmakingQualifiers != NULL &&
-        pMatchmakingQualifiers->_qualifiers.getFirst() != NULL) {
-        extract += "(";
-        extract += toSqlStatement (pMatchmakingQualifiers);
-        extract +=  ")";
+    if (pMatchmakingQualifiers != nullptr &&
+        pMatchmakingQualifiers->_qualifiers.getFirst() != nullptr) {
+        sql += "(";
+        sql += toSqlStatement (pMatchmakingQualifiers);
+        sql +=  ")";
     }
     else {
-        extract += _pszMetadataTableName;
+        sql += _tableName;
     }
 
-    if ((ppszMessageIdFilters != NULL) && (ppszMessageIdFilters[0] != NULL)) {
-        extract += (String) " WHERE " + MetadataInterface::MESSAGE_ID + " NOT IN (";
-        for (int i = 0; ppszMessageIdFilters[i] != NULL; i++) {
+    if ((ppszMessageIdFilters != nullptr) && (ppszMessageIdFilters[0] != nullptr)) {
+        sql += (String) " WHERE " + MetadataInterface::MESSAGE_ID + " NOT IN (";
+        for (int i = 0; ppszMessageIdFilters[i] != nullptr; i++) {
             if (i > 0) {
-                extract += ", ";
+                sql += ", ";
             }
-            extract += (String) "'" + ppszMessageIdFilters[i] + "'";
+            sql += (String) "'" + ppszMessageIdFilters[i] + "'";
         }
-        extract += ")";
+        sql += ")";
     }
-    extract += (((ppszMessageIdFilters != NULL) && (ppszMessageIdFilters[0] != NULL)) ? " AND " : " WHERE ");
+    sql += (((ppszMessageIdFilters != nullptr) && (ppszMessageIdFilters[0] != nullptr)) ? " AND " : " WHERE ");
 
     // Metadata's bounding-box
     const char *pszMetaMaxLat = MetadataInterface::LEFT_UPPER_LATITUDE;
@@ -597,67 +700,70 @@ MetadataList * InformationStore::getAllMetadataInArea (MatchmakingQualifiers *pM
     const char *pszMetaMinLong = MetadataInterface::LEFT_UPPER_LONGITUDE;
 
     // Area's bounding-box
-    uint8 ui8BufLen = 20;
-    char *pszMaxLat = (char *) calloc (ui8BufLen, sizeof (char));
+    static const uint8 ui8BufLen = 20;
+    char pszMaxLat[ui8BufLen];
     DSLib::floatToString (pszMaxLat, ui8BufLen, fMaxLat);
-    char *pszMinLat = (char *) calloc (ui8BufLen, sizeof (char));
+    char pszMinLat[ui8BufLen];
     DSLib::floatToString (pszMinLat, ui8BufLen, fMinLat);
-    char *pszMaxLong = (char *) calloc (ui8BufLen, sizeof (char));
+    char pszMaxLong[ui8BufLen];
     DSLib::floatToString (pszMaxLong, ui8BufLen, fMaxLong);
-    char *pszMinLong = (char *) calloc (ui8BufLen, sizeof (char));
+    char pszMinLong[ui8BufLen];
     DSLib::floatToString (pszMinLong, ui8BufLen, fMinLong);
 
-    extract += (String) " ("
-                            // At least one corner of the metadata's bounding-box
-                            // is included in the path's bounding-box
-            +              "(((" + pszMetaMinLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + ") OR "
-            +               "(" + pszMetaMaxLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + "))"
+    sql += (String) " ("
+                // At least one corner of the metadata's bounding-box
+                // is included in the path's bounding-box
+            +   "(((" + pszMetaMinLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + ") OR "
+            +       "(" + pszMetaMaxLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + "))"
             +                                                         " AND "
-            +             "((" + pszMetaMinLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ") OR "
-            +              "(" + pszMetaMaxLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ")))"
+            +       "((" + pszMetaMinLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ") OR "
+            +       "(" + pszMetaMaxLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ")))"
             +                                                            " OR "
-                            // The metadata's bounding-box includes, or partially
-                            // includes, the path's bounding-box (1)
-            +              "((" + pszMetaMinLat + " <= " + pszMinLat + " AND " +  pszMetaMaxLat + " >= " + pszMaxLat + ") AND "
-            +              "    ("
-            +                     // Partial overlapping
-            +                     "("
-            +                         "(" + pszMetaMinLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ") OR "
-            +                         "(" + pszMetaMaxLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ")"
-            +                     ")" +                            " OR "
-            +                     // Total overlapping
-            +                     "(" + pszMetaMinLong + " <= " + pszMinLong + " AND " +  pszMetaMaxLong + " >= " + pszMaxLong + ")"
-            +                  ") "
-            +               ")"
+                    // The metadata's bounding-box includes, or partially
+                    // includes, the path's bounding-box (1)
+            +       "((" + pszMetaMinLat + " <= " + pszMinLat + " AND " +  pszMetaMaxLat + " >= " + pszMaxLat + ") AND "
+            +       "    ("
+            +                 // Partial overlapping
+            +                 "("
+            +                     "(" + pszMetaMinLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ") OR "
+            +                     "(" + pszMetaMaxLong + " BETWEEN " + pszMinLong + " AND " + pszMaxLong + ")"
+            +                 ")" +                            " OR "
+            +                 // Total overlapping
+            +                 "(" + pszMetaMinLong + " <= " + pszMinLong + " AND " +  pszMetaMaxLong + " >= " + pszMaxLong + ")"
+            +              ") "
+            +           ")"
+            +                                                        " OR "
+                       // The metadata's bounding-box includes, or partially
+                       // includes, the path's bounding-box (2)
+            +          "((" + pszMetaMinLong + " <= " + pszMinLong + " AND " +  pszMetaMaxLong + " >= " + pszMaxLong + ") AND "
+            +          "    ("
+            +                 // Partial overlapping
+            +                 "("
+            +                     "(" + pszMetaMinLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + ") OR "
+            +                     "(" + pszMetaMaxLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + ")"
+            +                 ")" +                            " OR "
+            +                 // Total overlapping
+            +                 "(" + pszMetaMinLat + " <= " + pszMinLat + " AND " +  pszMetaMaxLat + " >= " + pszMaxLat + ")"
+            +              ") "
+            +          ")"
             +                                                            " OR "
-                           // The metadata's bounding-box includes, or partially
-                           // includes, the path's bounding-box (2)
-            +              "((" + pszMetaMinLong + " <= " + pszMinLong + " AND " +  pszMetaMaxLong + " >= " + pszMaxLong + ") AND "
-            +              "    ("
-            +                     // Partial overlapping
-            +                     "("
-            +                         "(" + pszMetaMinLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + ") OR "
-            +                         "(" + pszMetaMaxLat + " BETWEEN " + pszMinLat + " AND " + pszMaxLat + ")"
-            +                     ")" +                            " OR "
-            +                     // Total overlapping
-            +                     "(" + pszMetaMinLat + " <= " + pszMinLat + " AND " +  pszMetaMaxLat + " >= " + pszMaxLat + ")"
-            +                  ") "
-            +               ")"
-            +                                                            " OR "
-                         "(" + MetadataInterface::LEFT_UPPER_LATITUDE + " IS NULL AND " + MetadataInterface::RIGHT_LOWER_LATITUDE + " IS NULL AND "
-            +                  MetadataInterface::RIGHT_LOWER_LONGITUDE + " IS NULL AND " + MetadataInterface::LEFT_UPPER_LONGITUDE + " IS NULL)" +
+                     "(" + MetadataInterface::LEFT_UPPER_LATITUDE + " IS NULL AND " + MetadataInterface::RIGHT_LOWER_LATITUDE + " IS NULL AND "
+            +              MetadataInterface::RIGHT_LOWER_LONGITUDE + " IS NULL AND " + MetadataInterface::LEFT_UPPER_LONGITUDE + " IS NULL)" +
 
-            +            ")";
+            +        ")";
 
-    extract += ";";
+    if (bEmptyPedigree) {
+        sql += " AND (";
+        sql += MetadataInterface::PEDIGREE;
+        sql += " + IS NULL OR ";
+        sql += MetadataInterface::PEDIGREE;
+        sql += " = '')";
+    }
+
+    sql += ";";
 
     _m.lock (1021);
-    MetadataList *pMetadataList = getAllMetadata ((const char *) extract, _uiMetadataAll);
-
-    free (pszMaxLat);       free (pszMinLat);
-    free (pszMaxLong);      free (pszMinLong);
-    pszMaxLat = pszMinLat = pszMaxLong = pszMinLong = NULL;
-
+    MetadataList *pMetadataList = getAllMetadata (sql, 1);
     _m.unlock (1021);
     return pMetadataList;
 }
@@ -665,13 +771,13 @@ MetadataList * InformationStore::getAllMetadataInArea (MatchmakingQualifiers *pM
 MetadataList * InformationStore::getAllMetadata (const char **ppszMessageIdFilters, bool bExclusiveFilter)
 {
     String extract = "SELECT ";
-    extract += _pszMetadataAll;
+    extract += INFORMATION_STORE::JSON_BLOB;
     extract += " FROM ";
-    extract += _pszMetadataTableName;
-    if ((ppszMessageIdFilters != NULL) && (ppszMessageIdFilters[0] != NULL)) {
+    extract += _tableName;
+    if ((ppszMessageIdFilters != nullptr) && (ppszMessageIdFilters[0] != nullptr)) {
         extract += (String) " WHERE " + MetaData::MESSAGE_ID;
         extract += (bExclusiveFilter ? " NOT IN (" : " IN (");
-        for (int i = 0; ppszMessageIdFilters[i] != NULL; i++) {
+        for (int i = 0; ppszMessageIdFilters[i] != nullptr; i++) {
             if (i > 0) {
                 extract += ", ";
             }
@@ -682,64 +788,53 @@ MetadataList * InformationStore::getAllMetadata (const char **ppszMessageIdFilte
     extract += ";";
 
     _m.lock (1022);
-    MetadataList *pMetadataList = getAllMetadata ((const char *) extract, _uiMetadataAll);
+    MetadataList *pMetadataList = getAllMetadata (extract, 1);
     _m.unlock (1022);
 
     return pMetadataList;
 }
 
-MetadataList * InformationStore::getAllMetadata (const char *pszSQL, unsigned int uiExpectedNumberOfColumns)
+MetadataList * InformationStore::getAllMetadata (const char *pszSQL, unsigned int uiExpectedNumberOfColumns) const
 {
-    char *pErrMessage = NULL;
+    const char *pszMethodName = "InformationStore::getAllMetadata";
+    char *pErrMessage = nullptr;
     char **ppQueryResults;
     int rc, noRows, noColumns;
     rc = sqlite3_get_table (_pSQL3DB, pszSQL, &ppQueryResults, &noRows, &noColumns, &pErrMessage);
     if (rc != SQLITE_OK) {
-        checkAndLogMsg ("InformationStore::getAllMetadata", Logger::L_SevereError,
-                        "sqlite3_get_table() failed with return value = %d; query = %s; error msg = <%s>\n",
-                        rc, pszSQL, pErrMessage);
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "sqlite3_get_table() failed with return "
+                        "value = %d; query = %s; error msg = <%s>\n", rc, pszSQL, pErrMessage);
         sqlite3_free (pErrMessage);
         sqlite3_free_table (ppQueryResults);
-        return NULL;
+        return nullptr;
     }
     if (noRows == 0) {
-        checkAndLogMsg ("InformationStore::getAllMetadata", Logger::L_LowDetailDebug,
-                        "sqlite3_get_table() did not find any matches for query %s\n", pszSQL);
-        sqlite3_free_table(ppQueryResults);
-        return NULL;
+        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "sqlite3_get_table() "
+                        "did not find any matches for query %s\n", pszSQL);
+        sqlite3_free_table (ppQueryResults);
+        return nullptr;
     }
     if ((noColumns < 0) || (((unsigned int)noColumns) != uiExpectedNumberOfColumns)) {
-        checkAndLogMsg ("InformationStore::getAllMetadata", Logger::L_MildError,
-                        "sqlite3_get_table() returned %d columns for query %s\n but there should have been %d\n",
-                        noColumns, (const char *) pszSQL, uiExpectedNumberOfColumns);
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "sqlite3_get_table() returned %d columns for query %s\n"
+                        "but there should have been %d\n", noColumns, pszSQL, uiExpectedNumberOfColumns);
         sqlite3_free_table (ppQueryResults);
-        return NULL;
+        return nullptr;
     }
 
-    unsigned short metadataFieldsNumber = 0;
-    const MetadataFieldInfo **pMetadataFieldInfos = _pMetadataConf->getMetadataFieldInfos (metadataFieldsNumber);
     MetadataList *pMetadataList = new MetadataList();
     for (int i = 1; i <= noRows; i ++) {
-        SQLAVList *pSQLAVList = new SQLAVList (noColumns);
-        if (pSQLAVList != NULL) {
+        MetaData *pMetadata = new MetaData();
+        if (pMetadata != nullptr) {
             unsigned int uiColIdx = 0;
-            for (int j = 0; j < noColumns && uiColIdx < _uiMetadataAll; j++) {
-                if (ppQueryResults[noColumns * i + j] == NULL) {
-                    pSQLAVList->addPair (pMetadataFieldInfos[uiColIdx]->_sFieldName, SQLAVList::UNKNOWN);
-                }
-                else {
-                    if (strcmp (pMetadataFieldInfos[uiColIdx]->_sFieldName, MetaData::IMPORTANCE) == 0) {
-                        checkAndLogMsg ("IMPORTANCE", Logger::L_Info, "the value of importance is %s\n",
-                                        ppQueryResults[noColumns*i + j] == NULL ? "NULL" : ppQueryResults[noColumns*i + j]);
-                        pSQLAVList->addPair (pMetadataFieldInfos[uiColIdx]->_sFieldName, SQLAVList::UNKNOWN);
-                    }
-                    else {
-                        pSQLAVList->addPair (pMetadataFieldInfos[uiColIdx]->_sFieldName, ppQueryResults[noColumns*i + j]);
-                    }
+            for (int j = 0; j < noColumns && uiColIdx < _uiAllColumnsCount; j++) {
+                const char *pszJson = ppQueryResults[noColumns * i + j];
+                if (pszJson != nullptr) {
+                    JsonObject obj (pszJson);
+                    pMetadata->fromJson (&obj);
                 }
                 uiColIdx++;
             }
-            pMetadataList->prepend (pSQLAVList);
+            pMetadataList->prepend (pMetadata);
         }
     }
 
@@ -749,20 +844,20 @@ MetadataList * InformationStore::getAllMetadata (const char *pszSQL, unsigned in
 
 PtrLList<const char> * InformationStore::getMessageIDs (const char *pszGroupName, const char *pszSqlConstraints, char **ppszFilters)
 {
-    if (pszSqlConstraints == NULL) {
-        return NULL;
+    if (pszSqlConstraints == nullptr) {
+        return nullptr;
     }
 
     String sql = "SELECT ";
     sql = sql + MetaData::MESSAGE_ID;
     sql = sql + " FROM ";
-    sql = sql + _pszMetadataTableName;
+    sql = sql + _tableName;
     sql = sql + " WHERE ";
     sql = sql + pszSqlConstraints;
 
-    if ((ppszFilters != NULL) && (ppszFilters[0] != NULL)) {
+    if ((ppszFilters != nullptr) && (ppszFilters[0] != nullptr)) {
         sql += (String) " AND " + MetaData::MESSAGE_ID + " NOT IN (";
-        for (int i = 0; ppszFilters[i] != NULL; i++) {
+        for (int i = 0; ppszFilters[i] != nullptr; i++) {
             if (i > 0) {
                 sql += ", ";
             }
@@ -793,14 +888,14 @@ PtrLList<const char> * InformationStore::extractMessageIDsFromDBBase (const char
         sqlite3_free (pszErrMsg);
         sqlite3_free_table (ppzsQueryResults);
         _errorCode = 6;
-        return NULL;
+        return nullptr;
     }
     if (noRows == 0) {
         checkAndLogMsg ("InformationStore::extractMessageIDsFromDBBase", Logger::L_LowDetailDebug,
                         "sqlite3_get_table() did not find any matches for query <%s>\n", (const char *) pszSQL);
         sqlite3_free_table(ppzsQueryResults);
         _errorCode = 7;
-        return NULL;
+        return nullptr;
     }
     if (noColumns != 1) {
         checkAndLogMsg ("InformationStore::extractMessageIDsFromDBBase", Logger::L_MildError,
@@ -808,18 +903,18 @@ PtrLList<const char> * InformationStore::extractMessageIDsFromDBBase (const char
                         noColumns, (const char *) pszSQL);
         sqlite3_free_table(ppzsQueryResults);
         _errorCode = 6;
-        return NULL;
+        return nullptr;
     }
 
     // Verify that the selected messages exist and that it belongs to the
     // specified group
     _pDataStore->lock();
-    PtrLList<const char> *pResultsList = NULL;
+    PtrLList<const char> *pResultsList = nullptr;
     for (int i = 0; i < noRows; i++) {
         if (wildcardStringCompare (ppzsQueryResults[i + 1],
                                    _pszStartsWithDSProGroupNameTemplate)) {
             if (_pDataStore->isMetadataMessageStored (ppzsQueryResults[i + 1])) {
-                if (pResultsList == NULL) {
+                if (pResultsList == nullptr) {
                     pResultsList = new PtrLList<const char>();
                 }
                 pResultsList->prepend (strDup (ppzsQueryResults[i + 1]));
@@ -835,7 +930,7 @@ PtrLList<const char> * InformationStore::extractMessageIDsFromDBBase (const char
 
 int InformationStore::updateUsage (const char *pszKey, int usage)
 {
-    if (pszKey == NULL) {
+    if (pszKey == nullptr) {
         _errorCode = 8;
         return _errorCode;
     }
@@ -857,14 +952,14 @@ int InformationStore::updateUsage (const char *pszKey, int usage)
     String update = "SELECT ";
     update += MetaData::USAGE;
     update += " FROM ";
-    update += _pszMetadataTableName;
+    update += _tableName;
     update += " WHERE ";
-    update += _pszMetadataPrimaryKey;
+    update += _primaryKey;
     update += " = '";
     update += pszKey;
     update += "';";
-    char *pszErrMsg = NULL;
-    char **ppszQueryResults = NULL;
+    char *pszErrMsg = nullptr;
+    char **ppszQueryResults = nullptr;
     int noRows, noColumns;
     rc = sqlite3_get_table (_pSQL3DB, update.c_str(), &ppszQueryResults, &noRows, &noColumns, &pszErrMsg);
     if (rc != SQLITE_OK) {
@@ -894,23 +989,23 @@ int InformationStore::updateUsage (const char *pszKey, int usage)
         _m.unlock (1024);
         return _errorCode;
     }
-    if (ppszQueryResults[noColumns] != NULL) {
+    if (ppszQueryResults[noColumns] != nullptr) {
         sqlite3_free_table (ppszQueryResults);
         _m.unlock (1024);
         return 0;
     }
-	if (ppszQueryResults != NULL) {
+    if (ppszQueryResults != nullptr) {
         sqlite3_free_table (ppszQueryResults);
     }
 
     update = "UPDATE ";
-    update += _pszMetadataTableName;
+    update += _tableName;
     update += " SET ";
     update += MetaData::USAGE;
     update += " = ";
     update += buffer;
     update += " WHERE ";
-    update += _pszMetadataPrimaryKey;
+    update += _primaryKey;
     update += " = '";
     update += pszKey;
     update += "';";
@@ -933,12 +1028,12 @@ int InformationStore::updateUsage (const char *pszKey, int usage)
 
 int InformationStore::groupAndCount (const char *pszFieldName, float *perc)
 {
-    if (pszFieldName == NULL) {
+    if (pszFieldName == nullptr) {
         _errorCode = 8;
         return _errorCode;
     }
     String count = "SELECT COUNT(*) FROM ";
-    count += _pszMetadataTableName;
+    count += _tableName;
     count += " GROUP BY ";
     count += pszFieldName;
     count += ";";
@@ -973,22 +1068,22 @@ int InformationStore::groupAndCount (const char *pszFieldName, float *perc)
 int InformationStore::deleteMetadataFromDB (const char *pszKey)
 {
     _m.lock (1026);
-    if (pszKey == NULL) {
+    if (pszKey == nullptr) {
         _errorCode = 8;
         _m.unlock (1026);
         return _errorCode;
     }
     String deletesql = "DELETE FROM ";
-    deletesql += _pszMetadataTableName;
+    deletesql += _tableName;
     deletesql += " WHERE ";
-    deletesql += _pszMetadataPrimaryKey;
+    deletesql += _primaryKey;
     deletesql += " = '";
     deletesql += pszKey;
     deletesql += "';";
     checkAndLogMsg ("InformationStore::deleteMetaDataFromDB", Logger::L_Info,
-                    "The query is %s\n", (const char *) deletesql);
+                    "The query is %s\n", deletesql.c_str());
     char *pszErrMsg;
-    if (sqlite3_exec (_pSQL3DB, deletesql, NULL, NULL, &pszErrMsg) != SQLITE_OK) {
+    if (sqlite3_exec (_pSQL3DB, deletesql, nullptr, nullptr, &pszErrMsg) != SQLITE_OK) {
         checkAndLogMsg ("InformationStore::deleteMetaDataFromDB", Logger::L_SevereError,
                         "%s\n", pszErrMsg);
         sqlite3_free (pszErrMsg);
@@ -1002,65 +1097,108 @@ int InformationStore::deleteMetadataFromDB (const char *pszKey)
     return _errorCode;
 }
 
-int InformationStore::init (MetadataConfiguration *pMetadataConf,
+int InformationStore::deleteMetadata (const char *pszObjectId, const char *pszInstanceId)
+{
+    const char *pszMethodName = "InformationStore::deleteMetadata";
+    if (pszObjectId == nullptr) {
+        return -1;
+    }
+    const int objectIdLen = strlen (pszObjectId);
+    if (objectIdLen <= 0) {
+        return -2;
+    }
+    const int instanceIdLen = (pszInstanceId == nullptr ? 0 : strlen (pszInstanceId));
+    sqlite3_stmt *pStmt = nullptr;
+    _m.lock (1026);
+    if (instanceIdLen > 0) {
+        sqlite3_reset (_psqlDeleteByObjectInstanceId);
+        if (sqlite3_bind_text (_psqlDeleteByObjectInstanceId, 1, pszObjectId, objectIdLen, SQLITE_TRANSIENT) != SQLITE_OK) {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind object id field\n");
+            _m.unlock (1026);
+            return -3;
+        }
+        if (sqlite3_bind_text (_psqlDeleteByObjectInstanceId, 2, pszInstanceId, instanceIdLen, SQLITE_TRANSIENT) != SQLITE_OK) {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind instance id field\n");
+            _m.unlock (1026);
+            return -3;
+        }
+        pStmt = _psqlDeleteByObjectInstanceId;
+    }
+    else {
+        sqlite3_reset (_psqlDeleteByObjectId);
+        if (sqlite3_bind_text (_psqlDeleteByObjectId, 1, pszObjectId, objectIdLen, SQLITE_TRANSIENT) != SQLITE_OK) {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Could not bind object id field\n");
+            _m.unlock (1026);
+            return -3;
+        }
+        pStmt = _psqlDeleteByObjectId;
+    }
+
+    int rc = sqlite3_step (pStmt);
+    switch (rc) {
+        case SQLITE_OK:
+        case SQLITE_DONE:
+            checkAndLogMsg (pszMethodName, Logger::L_Info, "Delete of %s %s successful\n",
+                            pszObjectId, (pszInstanceId == nullptr ? "" : pszInstanceId));
+            break;
+
+        default:
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Delete of %s: %s failed: %s.\n",
+                            pszObjectId, (pszInstanceId == nullptr ? "" : pszInstanceId),
+                            SQLiteFactory::getErrorAsString (rc));
+        rc = -4;
+    }
+
+    _m.unlock (1026);
+    return 0;
+}
+
+int InformationStore::init (MetadataConfigurationImpl *pMetadataConf,
                             const char *pszMetadataTableName,
                             const char *pszMetadataDBName)
 {
-    if (pMetadataConf == NULL) {
+    if (pMetadataConf == nullptr) {
         return -1;
     }
 
+    MutexUnlocker synchronized (&_m);
+
     _pMetadataConf = pMetadataConf;
 
-    _psqlGetMetadata = NULL;
-    _psqlGetReferringMetadata = NULL;
+    _psqlGetMetadata = nullptr;
+    _psqlGetReferringMetadata = nullptr;
 
     // initialize DB and metadata table
-    if (pszMetadataDBName == NULL) {
-        _pszMetadataDBName = strDup (DEFAULT_DATABASE_NAME);
+    if (pszMetadataDBName != nullptr) {
+        _dbName = pszMetadataDBName;
     }
-    else {
-        _pszMetadataDBName = strDup (pszMetadataDBName);
+    if (pszMetadataTableName != nullptr) {
+        _tableName = pszMetadataTableName;
     }
-    if (pszMetadataTableName == NULL) {
-        _pszMetadataTableName = strDup (DEFAULT_METADATA_TABLE_NAME);
-    }
-    else {
-        _pszMetadataTableName = strDup (pszMetadataTableName);
-    }
-    
+
     // Set ALL
     uint16 metadataFieldsNumber = 0;
     const MetadataFieldInfo **ppMetadataFieldInfos = pMetadataConf->getMetadataFieldInfos (metadataFieldsNumber);
-    if (ppMetadataFieldInfos == NULL) {
+    if (ppMetadataFieldInfos == nullptr) {
         return -2;
     }
-    String metadataAll;
-    _uiMetadataAll = 0;
+    _uiAllColumnsCount = 0;
     for (int i = 0; i < metadataFieldsNumber; i++) {
         if (i != 0) {
-            metadataAll += ",";
+            _allColumns += ",";
         }
-        metadataAll += ppMetadataFieldInfos[i]->_sFieldName;
-        _uiMetadataAll++;
+        _allColumns += ppMetadataFieldInfos[i]->_sFieldName;
+        _uiAllColumnsCount++;
     }
-    _pszMetadataAll = metadataAll.r_str();
-    if (_pszMetadataAll == NULL) {
+    if (_allColumns.length() <= 0) {
         checkAndLogMsg ("InformationStore::init", memoryExhausted);
         return -3;
-    }
-
-    // Set PRIMARY KEY
-    _pszMetadataPrimaryKey = strDup (MetaData::MESSAGE_ID);
-    if (_pszMetadataAll == NULL) {
-        checkAndLogMsg ("InformationStore::init", memoryExhausted);
-        return -4;
     }
 
     return openDataBase (pMetadataConf);
 }
 
-int InformationStore::openDataBase (MetadataConfiguration *pMetadataConf)
+int InformationStore::openDataBase (MetadataConfigurationImpl *pMetadataConf)
 {
     const char *pszMethodName = "InformationStore::openDataBase";
 
@@ -1069,16 +1207,18 @@ int InformationStore::openDataBase (MetadataConfiguration *pMetadataConf)
     _pSQL3DB = SQLiteFactory::getInstance(); // It assumes that the database
                                              // has been already opened/created
                                              // by DisService.
-    if (_pSQL3DB == NULL) {
+    if (_pSQL3DB == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Can't open database.\n");
         sqlite3_close (_pSQL3DB);
-        _pSQL3DB = NULL;
+        _pSQL3DB = nullptr;
         _errorCode = 1;
         return _errorCode;
     }
 
+    sqlite3_busy_timeout (_pSQL3DB, 60 * 1000);  // 1 minute
+
     checkAndLogMsg (pszMethodName, Logger::L_Info, "Database %s successfully open\n",
-                    _pszMetadataDBName);
+                    _dbName.c_str());
 
     uint16 ui16MetadataFieldsNumber = 0;
     const MetadataFieldInfo **pMetadataFieldInfos = pMetadataConf->getMetadataFieldInfos (ui16MetadataFieldsNumber);
@@ -1086,9 +1226,9 @@ int InformationStore::openDataBase (MetadataConfiguration *pMetadataConf)
 
     // create metadata table
     String table ("CREATE TABLE IF NOT EXISTS ");
-    table += _pszMetadataTableName;
+    table += _tableName;
     table += " (";
-    table += _pszMetadataPrimaryKey;
+    table += _primaryKey;
     table += " ";
     table += pMetadataFieldInfos[usMessageIDIndex]->_sFieldType;
     table += " PRIMARY KEY,";
@@ -1116,15 +1256,22 @@ int InformationStore::openDataBase (MetadataConfiguration *pMetadataConf)
             table += ",";
         }
     }
+
+    table += ", " + INFORMATION_STORE::JSON_BLOB + " TEXT,";
+    table += "UNIQUE (";
+    table += MetadataInterface::REFERRED_DATA_OBJECT_ID;
+    table += ", ";
+    table += MetadataInterface::REFERRED_DATA_INSTANCE_ID;
+    table += ")";
     table += ");";
     char *errMsg;
-    int rc = sqlite3_exec (_pSQL3DB, table, NULL, NULL, &errMsg);
+    int rc = sqlite3_exec (_pSQL3DB, table, nullptr, nullptr, &errMsg);
     switch (rc) {
         case SQLITE_OK:
         {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "Creating table by query:\n<%s>\nrun successfully\n", table.c_str());
             char *pszChecksum = MD5Utils::getMD5Checksum (table.c_str(), table.length());
-            if (pszChecksum != NULL) {
+            if (pszChecksum != nullptr) {
                 checkAndLogMsg (pszMethodName, Logger::L_Info, "Creating table SQL statement checksum: <%s>\n", pszChecksum);
                 free (pszChecksum);
             }
@@ -1146,34 +1293,103 @@ int InformationStore::openDataBase (MetadataConfiguration *pMetadataConf)
     }
 
     String tryInsert = "INSERT INTO ";
-    tryInsert += _pszMetadataTableName;
+    tryInsert += _tableName;
     tryInsert += " ( ";
-    tryInsert += _pszMetadataAll;
+    tryInsert += _allColumns;
+    tryInsert += "," + INFORMATION_STORE::JSON_BLOB;
     tryInsert += " ) VALUES ( ";
-    for (uint16 i = 0; i < ui16MetadataFieldsNumber - 1; i++) {
+    for (uint16 i = 0; i < ui16MetadataFieldsNumber; i++) {
         tryInsert += " ?,";
     }
-    tryInsert += " ?);";
-    rc = sqlite3_prepare_v2 (_pSQL3DB, tryInsert, strlen (tryInsert), &_psqlInserted, NULL);
-    if (rc == SQLITE_OK && _psqlInserted != NULL) {
+    tryInsert += "?);";
+    rc = sqlite3_prepare_v2 (_pSQL3DB, tryInsert, tryInsert.length(), &_psqlInserted, nullptr);
+    if (rc == SQLITE_OK && _psqlInserted != nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "Preparing statement for insert query:"
-                        "\n<%s>\nrun successfully\n", (const char *) tryInsert);
+                        "\n<%s>\nrun successfully\n", tryInsert.c_str());
     }
     else {
-        checkAndLogMsg ("InformationStore::openDataBase", Logger::L_SevereError,
+        const String msg (sqlite3_errmsg (_pSQL3DB));
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                         "Preparing statement for insert query\n<%s>\n"
-                        "failed with error code %d\n", tryInsert.c_str(), rc);
+                        "failed with error code %d: %s.\n",
+                        tryInsert.c_str(), rc, msg.c_str());
         sqlite3_reset (_psqlInserted);
-        _psqlInserted = NULL;
+        _psqlInserted = nullptr;
         _errorCode = 3;
     }
+
+    String deleteOldInstances = "DELETE FROM " + _tableName;
+    deleteOldInstances += " WHERE ";
+    deleteOldInstances += MetadataInterface::REFERRED_DATA_OBJECT_ID;
+    deleteOldInstances += " = $1";
+    deleteOldInstances += " AND ((";
+    deleteOldInstances += MetadataInterface::SOURCE_TIME_STAMP;
+    deleteOldInstances += " > 0) AND (";
+    deleteOldInstances += MetadataInterface::SOURCE_TIME_STAMP;
+    deleteOldInstances += " < ?2))";
+    rc = sqlite3_prepare_v2 (_pSQL3DB, deleteOldInstances, deleteOldInstances.length(), &_psqlDeleteObsolete, nullptr);
+    if (rc == SQLITE_OK && _psqlDeleteObsolete != nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "Preparing statement for delete query:"
+                        "\n<%s>\nrun successfully\n", deleteOldInstances.c_str());
+    }
+    else {
+        const String msg (sqlite3_errmsg (_pSQL3DB));
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                        "Preparing statement for deleteOldInstances query\n<%s>\n"
+                        "failed with error code %d: %s.\n", deleteOldInstances.c_str(), rc, msg.c_str());
+        sqlite3_reset (_psqlDeleteObsolete);
+        _psqlDeleteObsolete = nullptr;
+        _errorCode = 4;
+    }
+
+    deleteOldInstances = "DELETE FROM " + _tableName;
+    deleteOldInstances += " WHERE ";
+    deleteOldInstances += MetadataInterface::REFERRED_DATA_OBJECT_ID;
+    deleteOldInstances += " = $1";
+    rc = sqlite3_prepare_v2 (_pSQL3DB, deleteOldInstances, deleteOldInstances.length(), &_psqlDeleteByObjectId, nullptr);
+    if (rc == SQLITE_OK && _psqlDeleteByObjectId != nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "Preparing statement for delete query:"
+                        "\n<%s>\nrun successfully\n", deleteOldInstances.c_str());
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                        "Preparing statement for deleteOldInstances query\n<%s>\n"
+                        "failed with error code %d\n", deleteOldInstances.c_str(), rc);
+        sqlite3_reset (_psqlDeleteByObjectId);
+        _psqlDeleteByObjectId = nullptr;
+        _errorCode = 5;
+    }
+
+    deleteOldInstances = "DELETE FROM " + _tableName;
+    deleteOldInstances += " WHERE ";
+    deleteOldInstances += MetadataInterface::REFERRED_DATA_OBJECT_ID;
+    deleteOldInstances += " = $1 AND ";
+    deleteOldInstances += MetadataInterface::REFERRED_DATA_INSTANCE_ID;
+    deleteOldInstances += " = $2";
+    rc = sqlite3_prepare_v2 (_pSQL3DB, deleteOldInstances, deleteOldInstances.length(), &_psqlDeleteByObjectInstanceId, nullptr);
+    if (rc == SQLITE_OK && _psqlDeleteByObjectInstanceId != nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "Preparing statement for delete query:"
+                        "\n<%s>\nrun successfully\n", deleteOldInstances.c_str());
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                        "Preparing statement for deleteOldInstances query\n<%s>\n"
+                        "failed with error code %d\n", deleteOldInstances.c_str(), rc);
+        sqlite3_reset (_psqlDeleteByObjectInstanceId);
+        _psqlDeleteByObjectInstanceId = nullptr;
+        _errorCode = 6;
+    }
+
+    _pSessionIdListener = new INFORMATION_STORE::ClearTable (this);
+    SessionId::getInstance()->registerSessionIdListener (_pSessionIdListener);
+
     return _errorCode;
 }
 
 char * InformationStore::toSqlConstraint (MatchmakingQualifier *pMatchmakingQualifier)
 {
-    if (pMatchmakingQualifier == NULL) {
-        return NULL;
+    if (pMatchmakingQualifier == nullptr) {
+        return nullptr;
     }
 
     String stmt;
@@ -1209,7 +1425,7 @@ char * InformationStore::toSqlConstraint (MatchmakingQualifier *pMatchmakingQual
     }
     else if (pMatchmakingQualifier->_operation == MatchmakingQualifier::TOP) {
         String innerSql = "SELECT COUNT (*) FROM ";
-        innerSql       += _pszMetadataTableName;
+        innerSql       += _tableName;
         innerSql       += " AS m WHERE m.";
         innerSql       += pMatchmakingQualifier->_attribute;
         innerSql       += " = t.";
@@ -1224,7 +1440,7 @@ char * InformationStore::toSqlConstraint (MatchmakingQualifier *pMatchmakingQual
         stmt +=   "SELECT ";
         stmt +=   MetaData::MESSAGE_ID;
         stmt +=   " FROM ";
-        stmt +=   _pszMetadataTableName;
+        stmt +=   _tableName;
         stmt +=   " AS t WHERE (";
         stmt +=     innerSql;
         stmt +=   ")  <= ";
@@ -1237,15 +1453,15 @@ char * InformationStore::toSqlConstraint (MatchmakingQualifier *pMatchmakingQual
 char * InformationStore::toSqlConstraints (ComplexMatchmakingQualifier *pCMatchmakingQualifier)
 {
     String stmt ("SELECT ");
-    stmt += _pszMetadataAll;
+    stmt += _allColumns;
     stmt += " FROM ";
-    stmt += _pszMetadataTableName;
+    stmt += _tableName;
 
     MatchmakingQualifier *pMatchmakingQualifier = pCMatchmakingQualifier->_qualifiers.getFirst();
-    for (unsigned short i = 0; pMatchmakingQualifier != NULL; i++) {
+    for (unsigned short i = 0; pMatchmakingQualifier != nullptr; i++) {
         stmt += (i == 0) ? " WHERE " : " AND ";
         char *pszCondition = toSqlConstraint (pMatchmakingQualifier);
-        if (pszCondition != NULL) {
+        if (pszCondition != nullptr) {
             stmt += pszCondition;
             free (pszCondition);
         }
@@ -1261,7 +1477,7 @@ char * InformationStore::toSqlStatement (MatchmakingQualifiers *pMatchmakingQual
     ComplexMatchmakingQualifier *pCMatchmakingQualifier = pMatchmakingQualifiers->_qualifiers.getFirst();
     bool bAnyDataFormat = false;
     DArray2<String> dataFormats;
-    for (unsigned short i = 0; pCMatchmakingQualifier != NULL; i++) {
+    for (unsigned short i = 0; pCMatchmakingQualifier != nullptr; i++) {
         if (i > 0) {
             stmt += " UNION (";
         }
@@ -1270,7 +1486,7 @@ char * InformationStore::toSqlStatement (MatchmakingQualifiers *pMatchmakingQual
             stmt += ")";
         }
         const char *pszDataFormat = pCMatchmakingQualifier->getDataFormat();
-        if (pszDataFormat == NULL) {
+        if (pszDataFormat == nullptr) {
             bAnyDataFormat = true;
         }
         else if (!bAnyDataFormat) {
@@ -1291,6 +1507,28 @@ char * InformationStore::toSqlStatement (MatchmakingQualifiers *pMatchmakingQual
     return stmt.r_str();
 }
 
+void InformationStore::clear (void)
+{
+    const char *pszMethodName = "InformationStore::clear";
+    const String query ("DELETE FROM MetaData_Table WHERE Data_Format != '" + SessionId::MIME_TYPE + "';");
+    char *pszErrMsg;
+
+    _m.lock (1027);
+    int rc = sqlite3_exec (_pSQL3DB, query, nullptr, nullptr, &pszErrMsg);
+    if (rc == SQLITE_OK) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "MetaData_Table cleared\n");
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning,
+                        "could not clear table: %s\n",
+                        pszErrMsg == nullptr ? "" : pszErrMsg);
+        if (pszErrMsg) {
+            sqlite3_free (pszErrMsg);
+        }
+    }
+    _m.unlock (1027);
+}
+
 void InformationStore::createSpatialIndexes()
 {
     const char *pszMethodName = "InformationStore::createSpatialIndexes";
@@ -1298,37 +1536,36 @@ void InformationStore::createSpatialIndexes()
     char *pszErrMsg;
     int rc;
 
-    sql = (String) "CREATE INDEX IF NOT EXISTS LeftUpperLat_Idx ON " + _pszMetadataTableName
+    sql = (String) "CREATE INDEX IF NOT EXISTS LeftUpperLat_Idx ON " + _tableName
         +          "(" + MetaData::LEFT_UPPER_LATITUDE + ");";
-    if ((rc = sqlite3_exec (_pSQL3DB, sql, NULL, NULL, &pszErrMsg)) != SQLITE_OK) {
+    if ((rc = sqlite3_exec (_pSQL3DB, sql, nullptr, nullptr, &pszErrMsg)) != SQLITE_OK) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning,
                         "Could not create index = <%s>\n", (const char *) sql);
         return;
     }
 
     sql = (String) "CREATE INDEX IF NOT EXISTS LeftUpperLong_Idx ON "
-        +          _pszMetadataTableName + "(" + MetaData::LEFT_UPPER_LONGITUDE + ");";
-    if ((rc = sqlite3_exec (_pSQL3DB, sql, NULL, NULL, &pszErrMsg)) != SQLITE_OK) {
+        +          _tableName + "(" + MetaData::LEFT_UPPER_LONGITUDE + ");";
+    if ((rc = sqlite3_exec (_pSQL3DB, sql, nullptr, nullptr, &pszErrMsg)) != SQLITE_OK) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning,
                         "Could not create index = <%s>\n", (const char *) sql);
         return;
     }
 
     sql = (String) "CREATE INDEX IF NOT EXISTS RightLowerLat_Idx ON "
-        +          _pszMetadataTableName + "(" + MetaData::RIGHT_LOWER_LATITUDE + ");";
-    if ((rc = sqlite3_exec (_pSQL3DB, sql, NULL, NULL, &pszErrMsg)) != SQLITE_OK) {
+        +          _tableName + "(" + MetaData::RIGHT_LOWER_LATITUDE + ");";
+    if ((rc = sqlite3_exec (_pSQL3DB, sql, nullptr, nullptr, &pszErrMsg)) != SQLITE_OK) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning,
                         "Could not create index = <%s>\n", (const char *) sql);
         return;
     }
 
     sql = (String) "CREATE INDEX IF NOT EXISTS RightLowerLong_Idx ON "
-        +          _pszMetadataTableName + "(" + MetaData::RIGHT_LOWER_LONGITUDE + ");";
+        +          _tableName + "(" + MetaData::RIGHT_LOWER_LONGITUDE + ");";
 
-    if ((rc = sqlite3_exec (_pSQL3DB, sql, NULL, NULL, &pszErrMsg)) != SQLITE_OK) {
+    if ((rc = sqlite3_exec (_pSQL3DB, sql, nullptr, nullptr, &pszErrMsg)) != SQLITE_OK) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning,
                         "Could not create index = <%s>\n", (const char *) sql);
         return;
     }
 }
-

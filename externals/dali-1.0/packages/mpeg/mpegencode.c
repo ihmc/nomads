@@ -1,6 +1,6 @@
 /*
  *--------------------------------------------------------------------
- * Functions for encoding ScImages into bitstream 
+ * Functions for encoding ScImages into bitstream
  *
  * Jiesang Song     Aug 98
  *---------------------------------------------------------------------

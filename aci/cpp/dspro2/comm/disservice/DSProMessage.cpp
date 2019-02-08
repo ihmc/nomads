@@ -1,4 +1,4 @@
-/* 
+/*
  * DSProMessage.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -53,11 +53,11 @@ DSProMessage::~DSProMessage()
 DSProMessage * DSProMessage::getDSProMessage (const char *pszSenderNodeID, const char *pszReceiverNodeID,
                                               MessageHeaders::MsgType type, void *pData, uint32 ui32DataLength)
 {
-    if (pszSenderNodeID == NULL || pszReceiverNodeID == NULL || pData == NULL || ui32DataLength == 0) {
-        return NULL;
+    if (pszSenderNodeID == nullptr || pszReceiverNodeID == nullptr || pData == nullptr || ui32DataLength == 0) {
+        return nullptr;
     }
 
-    uint8 *pui8Type = NULL;
+    uint8 *pui8Type = nullptr;
     switch (type) {
         case MessageHeaders::TopoReply:
         case MessageHeaders::Search:
@@ -71,16 +71,16 @@ DSProMessage * DSProMessage::getDSProMessage (const char *pszSenderNodeID, const
         default:
             checkAndLogMsg ("DSProMessage::getDSProMessage", Logger::L_Warning,
                             "cant instantiate message of type %u", type);
-            return NULL;
+            return nullptr;
     }
 
-    if (pui8Type == NULL) {
+    if (pui8Type == nullptr) {
         checkAndLogMsg ("DSProMessage::getDSProMessage", memoryExhausted);
     }
 
     *pui8Type = type;
 
-    DSProMessage *pDSProMessage = NULL; 
+    DSProMessage *pDSProMessage = nullptr;
     switch (type) {
         case MessageHeaders::TopoReply:
             pDSProMessage = new TopologyReply (pszSenderNodeID, pszReceiverNodeID,
@@ -115,10 +115,10 @@ DSProMessage * DSProMessage::getDSProMessage (const char *pszSenderNodeID, const
         default:
             checkAndLogMsg ("DSProMessage::getDSProMessage", Logger::L_Warning,
                             "cant instantiate message of type %u", type);
-            return NULL;
+            return nullptr;
     }
 
-    if (pDSProMessage == NULL) {
+    if (pDSProMessage == nullptr) {
         checkAndLogMsg ("DSProMessage::getDSProMessage", memoryExhausted);
     }
 
@@ -128,8 +128,8 @@ DSProMessage * DSProMessage::getDSProMessage (const char *pszSenderNodeID, const
 char * DSProMessage::readMessagePublisher (const void *pBuf, uint32 ui32Len, uint32 &ui32BytesRead)
 {
     ui32BytesRead = 0;
-    if (pBuf == NULL || ui32Len == 0) {
-        return NULL;
+    if (pBuf == nullptr || ui32Len == 0) {
+        return nullptr;
     }
 
     BufferReader bufr (pBuf, ui32Len);
@@ -137,17 +137,17 @@ char * DSProMessage::readMessagePublisher (const void *pBuf, uint32 ui32Len, uin
     uint32 ui32PublisherIdLen = 0;
     if (br.read32 (&ui32PublisherIdLen) < 0) {
         ui32BytesRead = br.getBytesRead();
-        return NULL;
+        return nullptr;
     }
     if (ui32PublisherIdLen == 0) {
         ui32BytesRead = br.getBytesRead();
-        return NULL;
+        return nullptr;
     }
 
     char *pszPublisherId = (char *) calloc (ui32PublisherIdLen+1, sizeof (char));
     if (br.readBytes (pszPublisherId, ui32PublisherIdLen) < 0) {
         ui32BytesRead = br.getBytesRead();
-        return NULL;
+        return nullptr;
     }
 
     ui32BytesRead = br.getBytesRead();

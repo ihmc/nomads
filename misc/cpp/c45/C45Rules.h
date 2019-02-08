@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -54,7 +54,7 @@ namespace IHMC_C45
             // Construct and use the rules
             C45RuleSetInfo * createRuleSet (C45DecisionTree * tree);
                                                     // Create a new rule set for the passed decision
-                                                    // tree. The rule set is constructed using the 
+                                                    // tree. The rule set is constructed using the
                                                     // unpruned tree contained in C45DecisionTree. If
                                                     // the unpruned tree don't exist, the function
                                                     // returns an error.
@@ -108,10 +108,10 @@ namespace IHMC_C45
                                                     // set, returns NULL if that rule set doesn't exist.
 
             C45RulesTest * getTestResultsForRules(void);
-            
+
             uint16 getVersion(void);                // Returns a version number that identifies the current
                                                     // rule set.
-                                                        
+
             const char * getErrorMessage(void);     // Returns a string message that explains the
                                                     // error occurred.
 

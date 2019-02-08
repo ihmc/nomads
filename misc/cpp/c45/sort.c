@@ -29,15 +29,15 @@ void Quicksort(ItemNo Fp, ItemNo Lp, Attribute Att, void (*Exchange)())
         // Isolate all items with values <= threshold
         Middle = Fp;
         for(i = Fp ; i < Lp ; i++) {
-            if(CVal(Item[i], Att) <= Thresh) { 
+            if(CVal(Item[i], Att) <= Thresh) {
                 if(i != Middle) (*Exchange)(Middle, i);
-                Middle++; 
+                Middle++;
             }
         }
         // Extract all values equal to the threshold
         Lower = Middle - 1;
         for(i = Lower ; i >= Fp ; i--) {
-            if(CVal(Item[i], Att) == Thresh) { 
+            if(CVal(Item[i], Att) == Thresh) {
                 if(i != Lower) (*Exchange)(Lower, i);
                 Lower--;
             }

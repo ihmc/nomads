@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -51,7 +51,7 @@ namespace NOMADSUtil
             uint16 getMsgLen (void) const;
 
         public:
-            static const uint16 FIXED_HEADER_LENGTH = 24;
+            static const uint16 FIXED_HEADER_LENGTH = 26;
 
         private:
             void create (uint8 ui8MsgType, uint32 ui32SourceAddress, uint32 ui32TargetAddress,
@@ -63,12 +63,12 @@ namespace NOMADSUtil
         private:
             static const uint8 VERSION_AND_TYPE = 0x10 | 0x0C;       // Version 1, type C
 
-            static const uint16 MSG_META_DATA_LENGTH_FIELD_OFFSET = 20;
-            static const uint16 MSG_DATA_LENGTH_FIELD_OFFSET = 22;
-            static const uint16 MSG_META_DATA_FIELD_OFFSET = 24;
+            static const uint16 MSG_META_DATA_LENGTH_FIELD_OFFSET = 22;
+            static const uint16 MSG_DATA_LENGTH_FIELD_OFFSET = 24;
+            static const uint16 MSG_META_DATA_FIELD_OFFSET = 26;
     };
 
-    inline bool NetworkMessageV1::isMalformed () const
+    inline bool NetworkMessageV1::isMalformed (void) const
     {
         // NOTE: _ui16NetMsgLen >= FIXED_HEADER_LENGTH is necessary because this
         // ensures getMetaDataLen() getMsgLen() are set.

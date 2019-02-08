@@ -24,7 +24,7 @@ package us.ihmc.aci.disServiceProxy;
  * Time: 5:26:58 PM
  *
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.23 $
+ * @version $Revision$
  */
 public interface DisseminationServiceProxyListener
 {

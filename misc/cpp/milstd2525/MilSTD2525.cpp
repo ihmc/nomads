@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -24,7 +24,7 @@
 using namespace IHMC_MISC_MIL_STD_2525;
 
 const char * IHMC_MISC_MIL_STD_2525::getAsString (BattleDimension bd)
-{        
+{
     switch (bd) {
         case BD_Space:
             return "Space";
@@ -57,7 +57,7 @@ const char * IHMC_MISC_MIL_STD_2525::getAsString (BattleDimension bd)
 }
 
 const char * IHMC_MISC_MIL_STD_2525::getAsString (OrderOfBattle ob)
-{        
+{
     switch (ob) {
         case OB_Air:
             return "Air";

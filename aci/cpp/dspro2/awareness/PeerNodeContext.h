@@ -20,7 +20,7 @@
 #ifndef INCL_PEER_NODE_CONTEXT_H
 #define INCL_PEER_NODE_CONTEXT_H
 
-#include "NodeContext.h"
+#include "NodeContextImpl.h"
 
 #include "CommAdaptor.h"
 #include "FTypes.h"
@@ -38,11 +38,14 @@ namespace IHMC_C45
     class C45AVList;
 }
 
-namespace IHMC_ACI
+namespace IHMC_VOI
 {
     class NodePath;
+}
 
-    class PeerNodeContext : public NodeContext
+namespace IHMC_ACI
+{
+    class PeerNodeContext : public NodeContextImpl
     {
         public:
             PeerNodeContext (const char *pszNodeID,
@@ -54,29 +57,7 @@ namespace IHMC_ACI
             int removeAdaptor (AdaptorId adaptorId);
             bool isReacheableThrough (AdaptorId adaptorId);
 
-            // read / write methods
-
-            /**
-             * Reads updates from a remote LocalNodeContext with the given
-             * Reader.
-             * - Returns a number > 0 if there are no errors. The return value
-             *   specifies the number of bytes written.
-             * - Returns -1 if there was a reading error.
-             */
-            int64 readUpdates (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize,
-                               bool &bContextUnsynchronized);
-
-            /**
-             * Reads a whole context from a remote LocalNodeContext
-             * with the given Reader.
-             * - Returns a number > 0 if there  are no errors. The return value
-             *   specifies the number of bytes written.
-             * - Returns -1 if the Reader made an error.
-             */
-            int64 readAll (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
-
             // set methods
-
             void setPeerPresence (bool active);
 
             // get methods
@@ -89,29 +70,24 @@ namespace IHMC_ACI
             int getCurrentPosition (float &latitude, float &longitude, float &altitude,
                                     const char *&pszLocation, const char *&pszNote,
                                     uint64 &timeStamp);
-            bool setCurrentPosition (float latitude, float longitude, float altitude,
-                                     const char *pszLocation, const char *pszNote,
-                                     uint64 timeStamp);
 
             /**
-             * Returns the current path. If it does not exist it returns NULL.
+             * Returns the current path. If it does not exist it returns nullptr.
              */
-            NodePath * getPath (void); 
+            IHMC_VOI::NodePath * getPath (void);
 
             bool isPeerActive (void);
 
             bool operator == (PeerNodeContext &rhsPeerNodeContext);
 
-        private:
-            int64 readUpdatesInternal (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize,
-                                       bool bForceReadAll, bool &bContextUnsynchronized);
+            int fromJson (const NOMADSUtil::JsonObject *pJson);
 
         private:
             struct CurrentActualPosition {
                 CurrentActualPosition (void);
                 virtual ~CurrentActualPosition (void);
 
-                float latitude; 
+                float latitude;
                 float longitude;
                 float altitude;
                 const char *pszLocation;
@@ -121,11 +97,7 @@ namespace IHMC_ACI
 
             bool _bIsPeerActive;
             uint16 _ui16ClassifierVersion;
-
             NOMADSUtil::DArray<bool> _reacheableThrough;
-            CurrentActualPosition *_pCurrActualPosition;
-            NodePath *_pCurrPath; // Current path followed by the node.
-            NodePath *_pPastPath; // Current path followed by the node.
     };
 
     typedef NOMADSUtil::PtrLList<PeerNodeContext> PeerNodeContextList;

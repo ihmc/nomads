@@ -9,7 +9,7 @@ prebuild:
 	make -C ../../../../misc/cpp/lcppdc/android
 	make -C ../../../../misc/cpp/media/android
 	make -C ../../../../misc/cpp/chunking/android
-	#make -C ../../../../misc/cpp/nockets/android
+	make -C ../../../../misc/cpp/nockets/android
 	make -C ../../../../nms/cpp/android
 	if [ ! -d $(OUT_DIR) ]; then mkdir -p $(OUT_DIR); fi;
 	cp -Rv ../../../../externals/SQLite/android/libs/armeabi/*.so $(OUT_DIR)
@@ -18,7 +18,7 @@ prebuild:
 	cp -Rv ../../../../misc/cpp/lcppdc/android/libs/armeabi/*.so $(OUT_DIR)
 	cp -Rv ../../../../misc/cpp/media/android/libs/armeabi/*.so $(OUT_DIR)
 	cp -Rv ../../../../misc/cpp/chunking/android/libs/armeabi/*.so $(OUT_DIR)
-	#cp -Rv ../../../../misc/cpp/nockets/android/libs/armeabi/*.so $(OUT_DIR)
+	cp -Rv ../../../../misc/cpp/nockets/android/libs/armeabi/*.so $(OUT_DIR)
 	cp -Rv ../../../../nms/cpp/android/libs/armeabi/*.so $(OUT_DIR)
 	
 build: prebuild
@@ -34,5 +34,5 @@ cleanall: clean
 	make -C ../../../../misc/cpp/lcppdc/android clean
 	make -C ../../../../misc/cpp/media/android clean
 	make -C ../../../../misc/cpp/chunking/android cleanall
-	#make -C ../../../../misc/cpp/nockets/android cleanall
+	make -C ../../../../misc/cpp/nockets/android cleanall
 	make -C ../../../../nms/cpp/android cleanall

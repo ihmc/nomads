@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_MOCKETS_END_POINT_H
-#define	INCL_MOCKETS_END_POINT_H
+#define INCL_MOCKETS_END_POINT_H
 
 #include "ConnEndPoint.h"
 
@@ -49,5 +49,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_MOCKETS_END_POINT_H */
-
+#endif    /* INCL_MOCKETS_END_POINT_H */

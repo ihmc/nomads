@@ -20,35 +20,47 @@
  */
 
 #ifndef INCL_DSPRO_IMPLEMENTATION_H
-#define	INCL_DSPRO_IMPLEMENTATION_H
+#define INCL_DSPRO_IMPLEMENTATION_H
 
 #include "FTypes.h"
 #include "LoggingMutex.h"
 #include "PtrLList.h"
 
+#include "BoundingBox.h"
 #include "CallbackHandler.h"
 #include "BaseController.h"
 #include "CommAdaptorManager.h"
 #include "Publisher.h"
-#include "SearchProperties.h"
 #include "UserRequests.h"
+#include "Voi.h"
+
+namespace IHMC_MISC
+{
+    class ChunkReassemblerInterface;
+}
 
 namespace NOMADSUtil
 {
     class AVList;
 }
 
+namespace IHMC_VOI
+{
+    class MetadataInterface;
+    class NodePath;
+}
+
 namespace IHMC_ACI
 {
+    class AMTDictator;
     class Controller;
+    class CustomPolicyImpl;
     class DataStore;
     class InformationStore;
     class LocalNodeContext;
-    class MetadataConfiguration;
+    class MetadataConfigurationImpl;
     class MetaData;
-    class MetadataInterface;
     class NodeContextManager;
-    class NodePath;
     class PositionUpdater;
     class Publisher;
     class Scheduler;
@@ -61,9 +73,11 @@ namespace IHMC_ACI
             ~DSProImpl (void);
 
             int init (NOMADSUtil::ConfigManager *pCfgMgr,
-                      MetadataConfiguration *pMetadataConf);
+                      MetadataConfigurationImpl *pMetadataConf);
 
-            /* 
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
+
+            /*
              * Get DSPro Components
              * NB: the returned components could be accessed concurrently,
              *     therefore they must be thread-safe
@@ -72,7 +86,7 @@ namespace IHMC_ACI
             CommAdaptorManager * getCommAdaptorManager (void);
             DataStore * getDataStore (void);
             InformationStore * getInformationStore (void);
-            MetadataConfiguration * getMetadataConf (void);
+            MetadataConfigurationImpl * getMetadataConf (void);
             NodeContextManager * getNodeContextManager (void);
             ThreadSafePublisher * getPublisher (void);
             Topology * getTopology (void);
@@ -86,18 +100,41 @@ namespace IHMC_ACI
                             const char *pszInstanceId, MetaData *pMetadata,
                             const void *pData, uint32 ui32DataLen,
                             int64 i64ExpirationTime, char **ppszId);
+
+            int addChunkedMessage (const char *pszGroupName, const char *pszObjectId, const char *pszInstanceId,
+                                   MetaData *pMetadata, NOMADSUtil::PtrLList<IHMC_MISC::Chunker::Fragment> *pChunks,
+                                   const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId);
+            int addAdditionalChunk (const char *pszMetadataId, const char *pszReferredObjectId,
+                                    const char *pszObjectId, const char *pszInstanceId,
+                                    IHMC_MISC::Chunker::Fragment *pChunk, int64 i64ExpirationTime);
             int chunkAndAddMessage (const char *pszGroupName, const char *pszObjectId,
                                     const char *pszInstanceId, MetaData *pMetadata,
                                     const void *pData, uint32 ui32DataLen,
-                                    const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId);
+                                    const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId,
+                                    bool bPush=true);
+            int chunkAndAddMessageInternal (const char *pszGroupName, const char *pszObjectId,
+                                            const char *pszInstanceId, MetaData *pMetadata,
+                                            const void *pData, uint32 ui32DataLen,
+                                            const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId,
+                                            bool bPush=true);
 
-            /* 
+            int disseminateMessage (const char *pszGroupName, const char *pszObjectId,
+                                    const char *pszInstanceId, const void *pData, uint32 ui32DataLen,
+                                    int64 i64ExpirationTime, char **ppszId);
+            int disseminateMessageMetadata (const char *pszGroupName, const char *pszObjectId, const char *pszInstanceId,
+                                            const void *pMetadata, uint32 ui32MetadataLen,
+                                            const void *pData, uint32 ui32DataLen, const char *pszMimeType,
+                                            int64 i64ExpirationTime, char **ppszId);
+
+            int subscribe (CommAdaptor::Subscription &sub);
+
+            /*
              * Add metadata annotation to the object identified by pszReferredObject.
              * This metadata annotation is inserted "as-it-is", and it is not
              * matched.
              */
             int addAnnotationNoPrestage (const char *pszGroupName, const char *pszObjectId,
-                                         const char *pszInstanceId, MetadataInterface *pMetadata,
+                                         const char *pszInstanceId, IHMC_VOI::MetadataInterface *pMetadata,
                                          const char *pszReferredObject, int64 i64ExpirationTime,
                                          char **ppszId);
 
@@ -113,7 +150,7 @@ namespace IHMC_ACI
             *
             * NOTE: it modifies pMetadata!
             */
-            int setAndAddMetadata (Publisher::PublicationInfo &pubInfo, MetadataInterface *pMetadata,
+            int setAndAddMetadata (Publisher::PublicationInfo &pubInfo, IHMC_VOI::MetadataInterface *pMetadata,
                                    NOMADSUtil::String &msgId, bool bStoreInInfoStore);
 
             // Misc
@@ -121,26 +158,39 @@ namespace IHMC_ACI
                          const char *pszRemoteAddress, uint16 ui16Port);
             int addRequestedMessageToUserRequests (const char *pszId, const char *pszQueryId);
             int addUserId (const char *pszUserName);
+            int addAreaOfInterest (const char *pszAreaName, NOMADSUtil::BoundingBox &bb, int64 i64StatTime, int64 i64EndTime);
+            int addCustomPolicy (CustomPolicyImpl *pPolicy);
             void asynchronouslyNotifyMatchingMetadata (const char *pszQueryId, const char **ppszMsgIds);
             void asynchronouslyNotifyMatchingSearch (const char *pszQueryId, const void *pReply, uint16 ui16ReplyLen);
             int getData (const char *pszId, const char *pszCallbackParameter, void **ppData, uint32 &ui32DataLen,
                          bool &bHasMoreChunks);
-            char ** getMatchingMetadataAsXML (NOMADSUtil::AVList *pAVQueryList, int64 i64BeginArrivalTimestamp,
-                                              int64 i64EndArrivalTimestamp = 0);
+            char ** getMatchingMetadataAsJson (NOMADSUtil::AVList *pAVQueryList, int64 i64BeginArrivalTimestamp,
+                                               int64 i64EndArrivalTimestamp = 0);
             const char * getNodeId (void) const;
-            char ** getPeerList (void);
+            NOMADSUtil::DArray2<NOMADSUtil::String> * getPeerList (void);
             const char * getVersion (void) const;
             bool isTopologyExchangedEnabled (void);
-            NOMADSUtil::String getSessionId (void) const;
             int notUseful (const char *pszMessageID);
             void sendWaypointMessage (const void *pBuf, uint32 ui32BufLen);
+            int updateUsage (const char *pszMessageId);
             int updateLearning (const char *pszMessageId, uint8 ui8Usage);
             int search (SearchProperties &searchProp, char **ppszQueryId);
             int sendAsynchronousRequestMessage (const char *pszId);
+
+            // Configure node Context
+            int setMissionId (const char *pszMissionName);
+            int setRole (const char *pszRole);
+            int setTeamId (const char *pszTeamId);
+            int setNodeType (const char *pszType);
             int setCurrentPath (const char *pszPathID);
             int setCurrentPosition (float fLatitude, float fLongitude, float Altitude,
                                     const char *pszLocation, const char *pszNote);
-            int registerPath (NodePath *pPath);
+            int setRangeOfInfluence (const char *pszNodeType, uint32 ui32RangeOfInfluenceInMeters);
+            int setDefaultUsefulDistance (uint32 ui32UsefulDistanceInMeters);
+            int setUsefulDistance (const char *pszMIMEType, uint32 ui32UsefulDistanceInMeters);
+            int setMatchingThreshold (float fMatchmakingThreshold);
+            int registerPath (IHMC_VOI::NodePath *pPath);
+
             int removeAsynchronousRequestMessage (const char *pszId);
             int requestMoreChunks (const char *pszChunkedMsgId, const char *pszCallbackParameter);
 
@@ -148,18 +198,31 @@ namespace IHMC_ACI
             int registerCommAdaptorListener (uint16 ui16ClientId, CommAdaptorListener *pListener, uint16 &ui16AssignedClientId);
             int deregisterCommAdaptorListener (uint16 ui16ClientId, CommAdaptorListener *pListener);
 
+            // Chunking Plugin Registration
+            int registerChunkFragmenter (const char *pszMimeType, IHMC_MISC::ChunkerInterface *pChunker);
+            int registerChunkReassembler (const char *pszMimeType, IHMC_MISC::ChunkReassemblerInterface *pReassembler);
+
+            int deregisterChunkFragmenter (const char *pszMimeType);
+            int deregisterChunkReassembler (const char *pszMimeType);
+
             // Callbacks
             int dataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
                              const char *pszInstanceId, const char *pszAnnotatedObjMsgId, const char *pszMimeType,
-                             const void *pBuf, uint32 ui32Len, uint8 ui8NChunks, uint8 ui8TotNChunks,
+                             const void *pBuf, uint32 ui32Len, uint8 ui8ChunkIndex, uint8 ui8TotNChunks,
                              const char *pszQueryId);
             int metadataArrived (const char *pszId, const char *pszGroupName,
                                  const char *pszObjectId, const char *pszInstanceId,
                                  const void *pBuf, uint32 ui32Len, const char *pszReferredDataId,
                                  const char *pszQueryId);
             int metadataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
-                                 const char *pszInstanceId, MetaData *pMetadata, const char *pszReferredDataId,
+                                 const char *pszInstanceId, const MetaData *pMetadata, const char *pszReferredDataId,
                                  const char *pszQueryId);
+            int dataAvailable (const char *pszId, const char *pszGroupName,
+                               const char *pszObjectId, const char *pszInstanceId,
+                               const char *pszRefObjId, const char *pszMimeType,
+                               const void *pMetadata, uint32 ui32MetadataLength,
+                               const char *pszQueryId);
+
             int newPeer (const char *pszNewPeerId);
             int deadPeer (const char *pszDeadPeerId);
 
@@ -171,7 +234,7 @@ namespace IHMC_ACI
             bool _bEnableLoopbackNotifications;
             bool _bEnableTopologyExchange;
 
-            MetadataConfiguration *_pMetadataConf;
+            MetadataConfigurationImpl *_pMetadataConf;
             LocalNodeContext *_pLocalNodeContext;
             DataStore *_pDataStore;
             InformationStore *_pInfoStore;
@@ -182,11 +245,14 @@ namespace IHMC_ACI
             Topology *_pTopology;
             Scheduler *_pScheduler;
             PositionUpdater *_pPositionUpdater;
+            IHMC_VOI::Voi *_pVoi;
+            AMTDictator *_pAMTDict;
 
             const NOMADSUtil::String _nodeId;
             const NOMADSUtil::String _version;
             mutable NOMADSUtil::LoggingMutex _m;
 
+            ChunkingConfiguration _chunkingConf;
             CommAdaptorManager _adaptMgr;
             CallbackHandler _cbackHandler;
             UserRequests _userReqs;
@@ -196,4 +262,3 @@ namespace IHMC_ACI
 }
 
 #endif  /* INCL_DSPRO_IMPLEMENTATION_H */
-

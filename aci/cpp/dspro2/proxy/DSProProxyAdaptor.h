@@ -23,14 +23,14 @@
 #define INCL_DISSERVICE_PRO_PROXY_ADOPTOR_H
 
 #include "ControlMessageListener.h"
-#include "Defs.h"
 #include "DSProListener.h"
 #include "MatchmakingLogListener.h"
 #include "Listener.h"
 
 #include "DisseminationServiceProxyAdaptor.h"
+#include "Marshaling.h"
 
-#include "SQLAVList.h"
+#include "StringHashset.h"
 
 namespace NOMADSUtil
 {
@@ -38,20 +38,26 @@ namespace NOMADSUtil
     class Reader;
 }
 
-namespace IHMC_ACI 
+namespace IHMC_VOI
+{
+    class NodePath;
+}
+
+namespace IHMC_ACI
 {
     class DSPro;
     class DSProProxyServer;
-    class NodePath;
 
     class DSProProxyAdaptor : public NOMADSUtil::ManageableThread,
                               public DSProListener,
                               public ControlMessageListener,
                               public MatchmakingLogListener,
-                              public SearchListener
+                              public SearchListener,
+                              public IHMC_MISC::ChunkerInterface,
+                              public IHMC_MISC::ChunkReassemblerInterface
     {
         public:
-            DSProProxyAdaptor (DSProProxyServer *pDSPProxyServer);
+            explicit DSProProxyAdaptor (DSProProxyServer *pDSPProxyServer);
             virtual ~DSProProxyAdaptor (void);
 
             int init (NOMADSUtil::SimpleCommHelper2 *pCommHelper, uint16 ui16Id);
@@ -74,12 +80,17 @@ namespace IHMC_ACI
                                  const char *pszObjectId, const char *pszInstanceId,
                                  const char *pszXMLMetadada, const char *pszReferredDataId,
                                  const char *pszQueryId);
+            int dataAvailable (const char *pszId, const char *pszGroupName,
+                               const char *pszObjectId, const char *pszInstanceId,
+                               const char *pszReferredDataId, const char *pszMimeType,
+                               const void *pMetadata, uint32 ui32MetadataLength,
+                               const char *pszQueryId);
 
             // Topology Callbacks
             void newPeer (const char *pszPeerNodeId);
             void deadPeer (const char *pszPeerNodeId);
 
-            bool pathRegistered (NodePath *pNodePath, const char *pszNodeId,
+            bool pathRegistered (IHMC_VOI::NodePath *pNodePath, const char *pszNodeId,
                                  const char *pszTeam, const char *pszMission);
             bool positionUpdated (float latitude, float longitude, float altitude,
                                   const char *pszNodeId);
@@ -113,53 +124,95 @@ namespace IHMC_ACI
             void searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds, const char *pszMatchingNodeId);
             void volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId);
 
+            // Chunking Plugin Callbacks
+            NOMADSUtil::PtrLList<IHMC_MISC::Chunker::Fragment> * fragmentBuffer (const void *pBuf, uint32 ui32Len, const char *pszInputChunkMimeType,
+                                                                                 uint8 ui8NoOfChunks, const char *pszOutputChunkMimeType,
+                                                                                 uint8 ui8ChunkCompressionQuality);
+            NOMADSUtil::PtrLList<IHMC_MISC::Chunker::Fragment> * fragmentFile (const char *pszFileName, const char *pszInputChunkMimeType,
+                                                                               uint8 ui8NoOfChunks, const char *pszOutputChunkMimeType,
+                                                                               uint8 ui8ChunkCompressionQuality);
+            IHMC_MISC::Chunker::Fragment * extractFromBuffer (const void *pBuf, uint32 ui32Len, const char *pszInputChunkMimeType,
+                                                              const char *pszOutputChunkMimeType, uint8 ui8ChunkCompressionQuality,
+                                                              IHMC_MISC::Chunker::Interval **ppPortionIntervals);
+            IHMC_MISC::Chunker::Fragment * extractFromFile (const char *pszFileName, const char *pszInputChunkMimeType,
+                                                            const char *pszOutputChunkMimeType, uint8 ui8ChunkCompressionQuality,
+                                                            IHMC_MISC::Chunker::Interval **ppPortionIntervals);
+
+            NOMADSUtil::BufferReader * reassemble (NOMADSUtil::DArray2<NOMADSUtil::BufferReader> *pFragments,
+                                                   IHMC_MISC::Annotations *pAnnotations, const char *pszChunkMimeType,
+                                                   uint8 ui8NoOfChunks, uint8 ui8CompressionQuality);
+
         protected:
             bool ctrlMsgArrived (const char *pszType, const char *pszSenderNodeId, const char *pszPublisherNodeId);
 
-            virtual bool doGetDisService (CommHelperError &error);
+            virtual bool doGetDisService (CommHelperError & error);
 
-            bool doAddUserId (CommHelperError &error);
-            bool doSetMissionId (CommHelperError &error);
-            bool doAddCustumPoliciesAsXML (CommHelperError &error);
-            bool doCancel (CommHelperError &error);
-            bool doConfigureProperties (CommHelperError &error);
-            bool doRegisterPath (CommHelperError &error);
-            bool doSetCurrentPath (CommHelperError &error);
-            bool doGetCurrentPath (CommHelperError &error);
-            bool doSetCurrentPosition (CommHelperError &error);
-            bool doSetBatteryLevel (CommHelperError &error);
-            bool doSetMemoryAvailable (CommHelperError &error);
-            bool doAddPeer (CommHelperError &error);
-            bool doGetPeerNodeContext (CommHelperError &error);
-            bool doGetAdaptorType (CommHelperError &error);
-            bool doGetData (CommHelperError &error);
-            bool doGetMatchingMetaDataAsXML (CommHelperError &error);
-            bool doGetNodeId (CommHelperError &error);
-            bool doGetPathForPeer (CommHelperError &error);
-            bool doGetPeerList (CommHelperError &error);
-            bool doSessionId (CommHelperError &error);
-            bool doNotUseful (CommHelperError &error);
-            bool doSearch (CommHelperError &error);
-            bool doReplyToQuery (CommHelperError &error);
-            bool doReplyToVolatileQuery (CommHelperError &error);
-            bool doAddMessage (CommHelperError &error);
-            bool doAddMessage_AVList (CommHelperError &error);
-            bool doChunkAndAddMessage (CommHelperError &error);
-            bool doChunkAndAddMessage_AVList (CommHelperError &error);
-            bool doAddAnnotation (CommHelperError &error);
-            bool doAddAnnotationRef (CommHelperError &error);
-            bool doRequestCustomAreaChunk (CommHelperError &error);
-            bool doRequestCustomTimeChunk (CommHelperError &error);
-            bool doRequestMoreChunks (CommHelperError &error);
+            bool doAddUserId (CommHelperError & error);
+            bool doSetSelectivity (CommHelperError & error);
+            bool doSetRangeOfInluence (CommHelperError & error);
+            bool doSetDefUsefulDistance (CommHelperError & error);
+            bool doSetUsefulDistance (CommHelperError & error);
+            bool doSetRankingWeights (CommHelperError & error);
+
+            bool doSetMissionId (CommHelperError & error);
+            bool doSetRole (CommHelperError & error);
+            bool doSetTeam (CommHelperError & error);
+            bool doSetNodeType (CommHelperError & error);
+            bool doAddCustumPoliciesAsXML (CommHelperError & error);
+            bool doCancel (CommHelperError & error);
+            bool doCancelByObjectAndInstanceId (CommHelperError & error);
+            bool doChangeEncryptionKey (CommHelperError & error);
+            bool doDisseminate (CommHelperError & error);
+            bool doDisseminateMetadata (CommHelperError & error, bool bReadMimeTypeAndMetadata = true);
+            bool doConfigureProperties (CommHelperError & error);
+            bool doRegisterPath (CommHelperError & error);
+            bool doSetCurrentPath (CommHelperError & error);
+            bool doGetCurrentPath (CommHelperError & error);
+            bool doSetCurrentPosition (CommHelperError & error);
+            bool doSetBatteryLevel (CommHelperError & error);
+            bool doSetMemoryAvailable (CommHelperError & error);
+            bool doAddPeer (CommHelperError & error);
+            bool doGetPeerNodeContext (CommHelperError & error);
+            bool doGetAdaptorType (CommHelperError & error);
+            bool doGetData (CommHelperError & error);
+            bool doGetMatchingMetaDataAsJson (CommHelperError & error);
+            bool doGetNodeContext (CommHelperError & error);
+            bool doGetNodeId (CommHelperError & error);
+            bool doGetPeerMsgCounts(CommHelperError & error);
+            bool doGetPathForPeer (CommHelperError & error);
+            bool doGetPeerList (CommHelperError & error);
+            bool doGetSessionId (CommHelperError & error);
+            bool doNotUseful (CommHelperError & error);
+            bool doSearch (CommHelperError & error);
+            bool doReplyToQuery (CommHelperError & error);
+            bool doReplyToVolatileQuery (CommHelperError & error);
+            bool doAddMessage (CommHelperError & error);
+            bool doAddMessage_AVList (CommHelperError & error);
+            bool doAddChunk (CommHelperError & error);
+            bool doAddChunk_AVList (CommHelperError & error);
+            bool doAddAdditionalChunk (CommHelperError & error);
+            bool doAddChunkedMessage (CommHelperError & error, bool bSingleChunk = false);
+            bool doAddChunkedMessage_AVList (CommHelperError & error, bool bSingleChunk = false);
+            bool doChunkAndAddMessage (CommHelperError & error);
+            bool doChunkAndAddMessage_AVList (CommHelperError & error);
+            bool doAddAnnotation (CommHelperError & error);
+            bool doAddAnnotationRef (CommHelperError & error);
+            bool doRequestCustomAreaChunk (CommHelperError & error);
+            bool doRequestCustomTimeChunk (CommHelperError & error);
+            bool doRequestMoreChunks (CommHelperError & error);
+            bool doSubscribe (CommHelperError & error);
+
+            bool doRegisterChunkFragmenter (CommHelperError & error);
+            bool doRegisterChunkReassembler (CommHelperError & error);
 
             bool doRegisterPathRegisteredCallback (void);
             bool doRegisterCtrlMsgCallback (void);
             bool doRegisterMatchmakingLogCallback (void);
             bool doRegisterSearchCallback (void);
             bool doDeregisterSearchCallback (void);
-            bool doResetTransmissionCounters (CommHelperError &error);
+            bool doResetTransmissionCounters (CommHelperError & error);
 
-            bool doGetDSProIds (CommHelperError &error);
+            bool doGetDSProIds (CommHelperError & error);
 
             bool matchmakingLogListenerCallback (const char *pszLocalNodeID, const char *pszPeerNodeID, const char *pszSkippedObjectID,
                                                  const char *pszSkippedObjectName, const char **ppszRankDescriptors,
@@ -168,8 +221,7 @@ namespace IHMC_ACI
 
             CommHelperError readGroupObjectIdInstanceId (NOMADSUtil::String &group, NOMADSUtil::String &objectId, NOMADSUtil::String &instanceId);
             CommHelperError readObjectIdInstanceId (NOMADSUtil::String &objectId, NOMADSUtil::String &instanceId);
-            CommHelperError readMetadataAsAvList (NOMADSUtil::Reader *pReader, SQLAVList &aVList, uint32 ui32Attributes);
-            CommHelperError readMetadataAsXMLString (NOMADSUtil::Reader *pReader, NOMADSUtil::String &sMetadata);
+            CommHelperError readMetadataAsString (NOMADSUtil::Reader *pReader, NOMADSUtil::String &sMetadata);
 
         private:
             DSPro *_pDSPro;
@@ -185,6 +237,11 @@ namespace IHMC_ACI
             bool _bCtrlMsgListenerRegistered;
             bool _bMatchmakingLogListenerRegistered;
             bool _bSearchListenerRegistered;
+
+            NOMADSUtil::Mutex _mChunkers;
+            NOMADSUtil::Mutex _mReassemblers;
+            NOMADSUtil::StringHashset _registeredChunkers;
+            NOMADSUtil::StringHashset _registeredReassemblers;
 
             static const unsigned int BUF_LEN = 1024;
             char _buf[BUF_LEN];

@@ -1,5 +1,5 @@
-/* 
- * InformationStoreHelper.h
+/*
+ * MatchmakingHelper.h
  *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
@@ -21,16 +21,15 @@
  */
 
 #ifndef INCL_INFORMATION_STORE_HELPER_H
-#define	INCL_INFORMATION_STORE_HELPER_H
+#define INCL_INFORMATION_STORE_HELPER_H
 
-#include "Defs.h"
 #include "MetadataInterface.h"
 
 namespace IHMC_ACI
 {
     class DSPro;
     class InformationStore;
-    class NodeContext;
+    class NodeContextImpl;
     class TransmissionHistoryInterface;
     class Topology;
 
@@ -41,9 +40,9 @@ namespace IHMC_ACI
                                TransmissionHistoryInterface *pTrHistory);
             virtual ~MatchmakingHelper (void);
 
-            MetadataList * getMetadataToMatchmake (NodeContext *pNodeContext, const char *pszSenderNodeId,
-                                                   bool bEnableTopologyExchange);
-            static void deallocateMetadataToMatchmake (MetadataList *pMetadataList);
+            IHMC_VOI::MetadataList * getMetadataToMatchmake (NodeContextImpl *pNodeContext, const char *pszSenderNodeId,
+                                                             bool bEnableTopologyExchange, bool bLocalMatchmakingOnly) const;
+            static void deallocateMetadataToMatchmake (IHMC_VOI::MetadataList *pMetadataList);
 
         private:
             InformationStore *_pInfoStore;
@@ -52,5 +51,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INFORMATIONSTOREHELPER_H */
-
+#endif    /* INFORMATIONSTOREHELPER_H */

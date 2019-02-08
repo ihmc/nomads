@@ -28,6 +28,7 @@
 #include "Logger.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 MetadataGenerator::MetadataGenerator (DSProImpl *pDSPro, InformationStore *pInfoStore)
@@ -36,25 +37,26 @@ MetadataGenerator::MetadataGenerator (DSProImpl *pDSPro, InformationStore *pInfo
     _pInfoStore = pInfoStore;
 }
 
-MetadataGenerator::~MetadataGenerator()
+MetadataGenerator::~MetadataGenerator (void)
 {
 }
 
-char * MetadataGenerator::addPreviousMessageValue (const char *pszBaseMetadataMsgId,
-                                                   PreviousMessageIds &prevMsgIds, RankByTargetMap &ranksByTarget)
+GenMetadataWrapper * MetadataGenerator::addPreviousMessageValue (const char *pszBaseMetadataMsgId,
+                                                                 PreviousMessageIds &prevMsgIds,
+                                                                 RankByTargetMap &ranksByTarget)
 {
     const char *pszMethodName = "MetadataGenerator::addPreviousMessageValue";
-    if ((pszBaseMetadataMsgId == NULL)) {
-        return NULL;
+    if (pszBaseMetadataMsgId == nullptr) {
+        return nullptr;
     }
 
     checkAndLogMsg (pszMethodName, Logger::L_Info, "previous message pushed is %s\n",
-                    prevMsgIds.isEmpty() ? "null" : (const char *) prevMsgIds);
+                    prevMsgIds.isEmpty() ? "NULL" : (const char *) prevMsgIds);
 
     MetadataInterface *pMetadata = _pInfoStore->getMetadata (pszBaseMetadataMsgId);
-    if (pMetadata == NULL) {
+    if (pMetadata == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "metadata %s not found\n" , pszBaseMetadataMsgId);
-        return NULL;
+        return nullptr;
     }
 
     bool bAddPreviosMsgId = true;
@@ -67,7 +69,7 @@ char * MetadataGenerator::addPreviousMessageValue (const char *pszBaseMetadataMs
 
     bool bAddTargetsByRank = true;
     String sRanksByTarget;
-    if ((pMetadata->getFieldValue (MetadataInterface::RANKS_BY_TARGET_NODE_ID, sRanksByTarget) < 0) || (sRanksByTarget.length() <= 0)) {
+    if ((pMetadata->getFieldValue (MetadataInterface::VOI_LIST, sRanksByTarget) < 0) || (sRanksByTarget.length() <= 0)) {
         if (ranksByTarget.isEmpty()) {
             bAddTargetsByRank = false;
         }
@@ -78,28 +80,28 @@ char * MetadataGenerator::addPreviousMessageValue (const char *pszBaseMetadataMs
                         "No need to generate new metadata\n", MetadataInterface::PREV_MSG_ID,
                         pszBaseMetadataMsgId);
         // no need to generate a new previous message id
-        delete pMetadata;
+        GenMetadataWrapper *pGenMdWr = new GenMetadataWrapper();
+        pGenMdWr->pMetadata = pMetadata;
+        pGenMdWr->msgId = nullptr;
+        return pGenMdWr;
     }
 
     // addPreviousMessageValueInternal modifies pMetadata - no problem here, since
     // pMetadata is not used anymore, in fact, it is even deallocated
-    char *pszNewMetadataID = addPreviousMessageValueInternal (pMetadata, pszBaseMetadataMsgId,
-                                                              prevMsgIds, ranksByTarget);
-    delete pMetadata;
-
-    return pszNewMetadataID;
+    return addPreviousMessageValueInternal (pMetadata, pszBaseMetadataMsgId,
+                                            prevMsgIds, ranksByTarget);
 }
 
-char * MetadataGenerator::addPreviousMessageValueInternal (MetadataInterface *pBaseMetadata,
-                                                           const char *pszBaseMetadataMsgId,
-                                                           PreviousMessageIds &prevMsgIds,
-                                                           RankByTargetMap &ranksByTarget)
+GenMetadataWrapper * MetadataGenerator::addPreviousMessageValueInternal (MetadataInterface *pBaseMetadata,
+                                                                         const char *pszBaseMetadataMsgId,
+                                                                         PreviousMessageIds &prevMsgIds,
+                                                                         RankByTargetMap &ranksByTarget)
 {
-    if (pBaseMetadata == NULL) {
+    if (pBaseMetadata == nullptr) {
         checkAndLogMsg ("MetadataGenerator::addPreviousMessageValueInternal",
-                        Logger::L_Warning, "original metadata %s is NULL.\n" ,
+                        Logger::L_Warning, "original metadata %s is nullptr.\n" ,
                         pszBaseMetadataMsgId);
-        return NULL;
+        return nullptr;
     }
 
     if (prevMsgIds.isEmpty()) {
@@ -110,29 +112,43 @@ char * MetadataGenerator::addPreviousMessageValueInternal (MetadataInterface *pB
         pBaseMetadata->setFieldValue (MetadataInterface::PREV_MSG_ID, prevMsgIds);
     }
 
-    pBaseMetadata->resetFieldValue (MetadataInterface::RANKS_BY_TARGET_NODE_ID);
+    pBaseMetadata->resetFieldValue (MetadataInterface::VOI_LIST);
     String sRanksByTarget (ranksByTarget.toString());
-    pBaseMetadata->setFieldValue (MetadataInterface::RANKS_BY_TARGET_NODE_ID, sRanksByTarget);
+    pBaseMetadata->setFieldValue (MetadataInterface::VOI_LIST, sRanksByTarget);
 
     pBaseMetadata->resetFieldValue (MetadataInterface::MESSAGE_ID);
 
     const String sSubGrpName (MessageIdGenerator::extractSubgroupFromMsgId (pszBaseMetadataMsgId));
     if (sSubGrpName.length() <= 0) {
-        return NULL;
+        return nullptr;
     }
 
-    char *ppszId = NULL;
+    char *pszId = nullptr;
     // addAnnotation modifies pBaseMetadata - no problem here, pBaseMetadata is
-    // a disposable copy 
+    // a disposable copy
     if (_pDSPro->addAnnotationNoPrestage (sSubGrpName,
-                                          NULL,  // no object id for DSPro-generated metadata
-                                          NULL,  // no instance id for DSPro-generated metadata
+                                          nullptr,  // no object id for DSPro-generated metadata
+                                          nullptr,  // no instance id for DSPro-generated metadata
                                           pBaseMetadata,
-                                          NULL,  // no need to set the referred object id, it
+                                          nullptr,  // no need to set the referred object id, it
                                                  // it was set by the cloaning function
-                                          0, &ppszId) < 0) {
-        return NULL;
+                                          0, &pszId) < 0) {
+        return nullptr;
     }
-    return ppszId;
+    GenMetadataWrapper *pGenMdWr = new GenMetadataWrapper();
+    pGenMdWr->pMetadata = pBaseMetadata;
+    pGenMdWr->msgId = pszId;
+    free (pszId);
+    return pGenMdWr;
+}
+
+GenMetadataWrapper::GenMetadataWrapper (void)
+    : pMetadata (nullptr)
+{
+}
+
+GenMetadataWrapper::~GenMetadataWrapper (void)
+{
+    delete pMetadata;
 }
 

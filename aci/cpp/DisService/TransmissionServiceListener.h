@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -48,6 +48,7 @@ namespace IHMC_ACI
             TransmissionServiceListener (DisseminationService *pDisService, DataRequestHandler *pDataReqHandler,
                                          LocalNodeInfo *pLocalNodeInfo, MessageReassembler *pMsgReassembler,
                                          SubscriptionState *pSubState, NetworkTrafficMemory *pTrafficMemory,
+                                         NetworkStateListenerNotifier *pNetworkStateNotifier,
                                          bool bOppListeningEnabled, bool bTargetFilteringEnabled);
 
             virtual ~TransmissionServiceListener (void);
@@ -57,20 +58,22 @@ namespace IHMC_ACI
             int registerMessageListener (MessageListener *pListener);
 
             virtual int messageArrived (const char *pszIncomingInterface, uint32 ui32SourceIPAddress, uint8 ui8MsgType,
-                                        uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL,
+                                        uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, bool bUnicast,
                                         const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                        const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp);
+                                        const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp,
+                                        uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount);
 
         private:
-            void deliverCompleteMessage (Message *pMessage, bool bIsNotTarget);
+            void deliverCompleteMessage (Message *pMessage, bool bIsNotTarget) const;
 
-            void evaluateAcknowledgment (MessageHeader *pMH);
+            void evaluateAcknowledgment (MessageHeader *pMH) const;
 
-            int messageArrivedInternal (const char *pszIncomingInterface, uint32 ui32SourceIPAddress,
-                                        uint8 ui8MsgType, uint16 ui16MsgId, uint8 ui8HopCount,
-                                        uint8 ui8TTL, const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                        const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp);
-            
+            int messageArrivedInternal (const NOMADSUtil::String sessionId, DisServiceMsg *pDSMsg,
+                                        const char *pszIncomingInterface, uint32 ui32SourceIPAddress,
+                                        uint8 ui8MsgType, uint16 ui16MsgId, uint8 ui8DSMsgType,
+                                        const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
+                                        uint16 ui16MsgLen, int64 i64Timestamp);
+
         private:
             const bool _bOppListeningEnabled;
             const bool _bTargetFilteringEnabled;
@@ -83,6 +86,7 @@ namespace IHMC_ACI
             MessageListenerNotifier _notifier;
             MessageReassembler *_pMsgReassembler;
             NetworkTrafficMemory *_pNetTrafficMemory;
+            NetworkStateListenerNotifier *_pNetworkStateNotifier;
             SubscriptionState *_pSubState;
             NOMADSUtil::LoggingMutex _m;
     };

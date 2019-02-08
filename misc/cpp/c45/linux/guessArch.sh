@@ -6,10 +6,11 @@ case "$kernel" in
 		arch=`uname -m`
 		ver=`ls /lib/libc-*.so`
 		case "$ver" in
-			*2.2*) arch=linux-glibc22;;
+#			*2.2*) arch=linux-glibc22;;
 			*)
 			case "$arch" in
 				*86_64)	arch=linux64;;
+				*aarch64) arch=arm-linux64;;
 				*) arch=linux;;
 			esac;;
 		esac;;

@@ -197,7 +197,7 @@ ItemNo Interpret(ItemNo Fp, ItemNo Lp, Boolean DeleteRules, RuleSet * set)
 		    Rule[p].better = Better[ri];
 		    Rule[p].worse = Worse[ri];
 	    	//  See whether this rule should be dropped.  Note: can only drop
-			//	one rule at a time, because Better and Worse are affected 
+			//	one rule at a time, because Better and Worse are affected
 	    	if(DeleteRules && ! riDrop && Worse[ri] > Better[ri]) riDrop = ri;
 		}
     }

@@ -84,9 +84,9 @@ float EstimateErrors(Tree T, ItemNo Fp, ItemNo Lp, short Sh, Boolean UpdateTree)
     // Generate the class frequency distribution
     Cases = CountItems(Fp, Lp);
     LocalClassDist = (ItemCount *) calloc(MaxClass+1, sizeof(ItemCount));
-    ForEach(i, Fp, Lp) { 
+    ForEach(i, Fp, Lp) {
         LocalClassDist[ Class(Item[i]) ] += Weight[i];
-    } 
+    }
     // Find the most frequent class and update the tree
     BestClass = T->Leaf;
     ForEach(c, 0, MaxClass) {

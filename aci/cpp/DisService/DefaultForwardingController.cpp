@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,6 +22,7 @@
 #include "DisseminationService.h"
 #include "DisServiceMsg.h"
 #include "MessageInfo.h"
+#include "TransmissionService.h"
 
 #include "ConfigManager.h"
 #include "StringTokenizer.h"
@@ -30,18 +31,6 @@ using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
-
-DefaultForwardingController::DefaultForwardingController (DisseminationService *pDisService)
-    : ForwardingController (FC_Default, pDisService), _msgHistory (DEFAULT_MESSAGE_HISTORY_DURATION),
-      _unicastOverrides (false, true, true, true),
-      _groupsToForward (true, true, true)
-{
-    _bPurelyProbForwarding = false;
-    _fForwardProbability = 0.0f;
-    _ui16NumberOfActiveNeighbors = 0;
-    _bForwardOnlySpecifiedGroups = false;
-    init();
-}
 
 DefaultForwardingController::DefaultForwardingController (DisseminationService *pDisService, float fForwardProbability)
     : ForwardingController (FC_Default, pDisService), _msgHistory (DEFAULT_MESSAGE_HISTORY_DURATION),
@@ -61,6 +50,9 @@ DefaultForwardingController::~DefaultForwardingController()
 
 void DefaultForwardingController::init (void)
 {
+    _bRelayDataMsgs = _pConfigManager->getValueAsBool ("aci.disService.relaying.dataMsgs", false);
+    checkAndLogMsg ("DefaultForwardingController::init", Logger::L_Info,
+                    "relaying for data messages %s\n", _bRelayDataMsgs ? "enabled" : "disabled");
     _bForwardDataMsgs = _pConfigManager->getValueAsBool ("aci.disService.forwarding.enable.dataMsgs", true);
     checkAndLogMsg ("DefaultForwardingController::init", Logger::L_Info,
                     "forwarding for data messages %s\n", _bForwardDataMsgs ? "enabled" : "disabled");
@@ -146,21 +138,25 @@ void DefaultForwardingController::stateUpdateForPeer (const char *pszNodeUID, Pe
 }
 
 void DefaultForwardingController::newIncomingMessage (const void *, uint16, DisServiceMsg *pDSMsg,
-                                                      uint32 ui32SourceIPAddress, const char *)
+                                                      uint32 ui32SourceIPAddress, const char *pszIncomingInterface)
 {
+    bool bRelay = false;
     if (pDSMsg->getType() == DisServiceMsg::DSMT_Data) {
         DisServiceDataMsg *pDSDataMsg = (DisServiceDataMsg*) pDSMsg;
         if (!_bForwardDataMsgs) {
             return;
         }
-        else if (pDSDataMsg->doNotForward()) {
+        if (pDSDataMsg->doNotForward()) {
             return;
         }
-        else if ((_bForwardOnlySpecifiedGroups) && (!_groupsToForward.containsKey (pDSDataMsg->getMessageHeader()->getGroupName()))) {
+        if ((_bForwardOnlySpecifiedGroups) && (!_groupsToForward.containsKey (pDSDataMsg->getMessageHeader()->getGroupName()))) {
             checkAndLogMsg ("DefaultForwardingController::newIncomingMessage", Logger::L_LowDetailDebug,
                             "not forwarding data message in group <%s> because it is not in the list of groups to be forwarded\n",
                             pDSDataMsg->getMessageHeader()->getGroupName());
             return;
+        }
+        if (_bRelayDataMsgs) {
+            bRelay = true;
         }
     }
     else if (pDSMsg->getType() == DisServiceMsg::DSMT_DataReq) {
@@ -202,26 +198,57 @@ void DefaultForwardingController::newIncomingMessage (const void *, uint16, DisS
         }
     }
 
+    char **pszOutgoingInterfaces = NULL;
+    if (!bRelay) {
+        // If message relaying is _not_ allowed, I need to filter out the incoming interface from the outoing ones
+        char **pszOutgoingInterfaces = getTrasmissionService()->getActiveInterfacesAddress();
+        if ((pszOutgoingInterfaces != NULL) && (pszIncomingInterface != NULL)) {
+            bool bFound = false;
+            for (int i = 0; pszOutgoingInterfaces[i] != NULL; i++) {
+                if (strcmp (pszOutgoingInterfaces[i], pszIncomingInterface) == 0) {
+                    free (pszOutgoingInterfaces[i]);
+                    pszOutgoingInterfaces[i] = NULL;
+                    bFound = true;
+                }
+                else if (bFound) {
+                    pszOutgoingInterfaces[i-1] = pszOutgoingInterfaces[i];
+                    pszOutgoingInterfaces[i] = NULL;
+                }
+            }
+            if (pszOutgoingInterfaces[0] == NULL) {
+                free (pszOutgoingInterfaces);
+                return;
+            }
+        }
+    }
+
     if (_bPurelyProbForwarding) {
-        doProbabilisticForwarding (pDSMsg, ui32SourceIPAddress);
+        doProbabilisticForwarding (pDSMsg, ui32SourceIPAddress, (const char **) pszOutgoingInterfaces);
     }
     else {
-    	doStatefulForwarding (pDSMsg);
+        doStatefulForwarding (pDSMsg, (const char **) pszOutgoingInterfaces);
+    }
+
+    if (pszOutgoingInterfaces != NULL) {
+        for (int i = 0; pszOutgoingInterfaces[i] != NULL; i++) {
+            free (pszOutgoingInterfaces[i]);
+        }
+        free (pszOutgoingInterfaces);
     }
 }
 
-void DefaultForwardingController::doProbabilisticForwarding (DisServiceMsg *pDSMsg, uint32 ui32SourceIPAddress)
+void DefaultForwardingController::doProbabilisticForwarding (DisServiceMsg *pDSMsg, uint32 ui32SourceIPAddress, const char **pszOutgoingInterfaces)
 {
     if (pDSMsg->getType() == DisServiceMsg::DSMT_Data) {
-        doProbabilisticForwardingDataMsg ((DisServiceDataMsg*) pDSMsg, ui32SourceIPAddress);
+        doProbabilisticForwardingDataMsg ((DisServiceDataMsg*) pDSMsg, ui32SourceIPAddress, pszOutgoingInterfaces);
     }
     else {
         // This is a control message
-        doProbabilisticForwardingCtrlMsg ((DisServiceCtrlMsg*) pDSMsg, ui32SourceIPAddress);
+        doProbabilisticForwardingCtrlMsg ((DisServiceCtrlMsg*) pDSMsg, ui32SourceIPAddress, pszOutgoingInterfaces);
     }
 }
 
-void DefaultForwardingController::doProbabilisticForwardingCtrlMsg (DisServiceCtrlMsg *pDSCtrlMsg, uint32 ui32SourceIPAddress)
+void DefaultForwardingController::doProbabilisticForwardingCtrlMsg (DisServiceCtrlMsg *pDSCtrlMsg, uint32 ui32SourceIPAddress, const char **pszOutgoingInterfaces)
 {
     const char *pszOriginatorNodeId = pDSCtrlMsg->getSenderNodeId();
     if (pszOriginatorNodeId == NULL) {
@@ -247,7 +274,7 @@ void DefaultForwardingController::doProbabilisticForwardingCtrlMsg (DisServiceCt
     }
 }
 
-void DefaultForwardingController::doProbabilisticForwardingDataMsg (DisServiceDataMsg *pDSDMsg, uint32 ui32SourceIPAddress)
+void DefaultForwardingController::doProbabilisticForwardingDataMsg (DisServiceDataMsg *pDSDMsg, uint32 ui32SourceIPAddress, const char **pszOutgoingInterfaces)
 {
     MessageHeader *pMH = pDSDMsg->getMessageHeader();
     // const char *pszActualSenderNodeId = pDSDMsg->getSenderNodeId();
@@ -277,48 +304,46 @@ void DefaultForwardingController::doProbabilisticForwardingDataMsg (DisServiceDa
                         "getGroupName() returned NULL - cannot handle\n");
         return;
     }
-    if (0 != stricmp (pszOriginatorNodeId, _pDisService->getNodeId())) {
-        // This message did not originated here
-        if (_msgHistory.put (pszMsgId)) {
-            // This message does not exist in the message history hashtable - forward it based on the probability
-            if ((rand() % 100) < (int)_fForwardProbability) {
-                // Check if the group name is in the Unicast Overrides hashtable - this is a hack for TS14 to force
-                // certain groups to be unicast to a single destination instead of neighborcast as usual
-                const char *pszUnicastAddr = _unicastOverrides.get (pszGroupName);
-                if (pszUnicastAddr != NULL) {
-                    // Add a hint to unicast this message to the specified address (currently only realized by the ProxyDatagramSocket and the ARL CSR Radio)
-                    String hints = "unicast=";
-                    hints += pszUnicastAddr;
-                    broadcastDataMessage (pDSDMsg, "forwarding data via unicast", NULL, NULL, hints);
-                }
-                else {
-                    // Forward it - with a hint to exclude the source of the message (currently only realized by the ARL CSR Radio)
-                    String hints = "exclude=";
-                    hints += InetAddr (ui32SourceIPAddress).getIPAsString();
-                    broadcastDataMessage (pDSDMsg, "forwarding data", NULL, NULL, hints);
-                    checkAndLogMsg ("DefaultForwardingController::doProbabilisticForrwardingDataMsg", Logger::L_LowDetailDebug,
-                                    "forwarding data message <%s>\n", pszMsgId);
-                }
+    if (0 == stricmp (pszOriginatorNodeId, _pDisService->getNodeId ())) {
+        checkAndLogMsg ("DefaultForwardingController::doProbabilisticForrwardingDataMsg", Logger::L_LowDetailDebug,
+            "not forwarding data message <%s> because it originated at this node\n", pszMsgId);
+    }
+    // This message did not originated here
+    if (_msgHistory.put (pszMsgId)) {
+        // This message does not exist in the message history hashtable - forward it based on the probability
+        if ((rand() % 100) < (int)_fForwardProbability) {
+            // Check if the group name is in the Unicast Overrides hashtable - this is a hack for TS14 to force
+            // certain groups to be unicast to a single destination instead of neighborcast as usual
+            const char *pszUnicastAddr = _unicastOverrides.get (pszGroupName);
+            if (pszUnicastAddr != NULL) {
+                // Add a hint to unicast this message to the specified address (currently only realized by the ProxyDatagramSocket and the ARL CSR Radio)
+                String hints = "unicast=";
+                hints += pszUnicastAddr;
+                broadcastDataMessage (pDSDMsg, "forwarding data via unicast", pszOutgoingInterfaces, NULL, hints);
             }
             else {
-                checkAndLogMsg ("DefaultForwardingController::doProbabilisticForrwardingDataMsg", Logger::L_LowDetailDebug,
-                                "not forwarding data message <%s> because of probability\n", pszMsgId);
+                // Forward it - with a hint to exclude the source of the message (currently only realized by the ARL CSR Radio)
+                String hints = "exclude=";
+                hints += InetAddr (ui32SourceIPAddress).getIPAsString();
+                broadcastDataMessage (pDSDMsg, "forwarding data", pszOutgoingInterfaces, NULL, hints);
+                checkAndLogMsg ("DefaultForwardingController::doProbabilisticForwardingDataMsg", Logger::L_LowDetailDebug,
+                                "forwarding data message <%s>\n", pszMsgId);
             }
         }
         else {
-            checkAndLogMsg ("DefaultForwardingController::doProbabilisticForrwardingDataMsg", Logger::L_LowDetailDebug,
-                            "not forwarding data message <%s> because it was already forwarded\n", pszMsgId);
+            checkAndLogMsg ("DefaultForwardingController::doProbabilisticForwardingDataMsg", Logger::L_LowDetailDebug,
+                "not forwarding data message <%s> because of probability\n", pszMsgId);
         }
     }
     else {
         checkAndLogMsg ("DefaultForwardingController::doProbabilisticForrwardingDataMsg", Logger::L_LowDetailDebug,
-                        "not forwarding data message <%s> because it originated at this node\n", pszMsgId);
+                        "not forwarding data message <%s> because it was already forwarded\n", pszMsgId);
     }
 }
 
-void DefaultForwardingController::doStatefulForwarding (DisServiceMsg *pDSMsg)
+void DefaultForwardingController::doStatefulForwarding (DisServiceMsg *pDSMsg, const char **pszOutgoingInterfaces)
 {
-    if (_ui16NumberOfActiveNeighbors > 1) {                
+    if (_ui16NumberOfActiveNeighbors > 1) {
         if (pDSMsg->getType() == DisServiceMsg::DSMT_Data) {
             DisServiceDataMsg *pDSDMsg = (DisServiceDataMsg*) pDSMsg;
             float fProbability = 100.0f / _ui16NumberOfActiveNeighbors;
@@ -327,7 +352,7 @@ void DefaultForwardingController::doStatefulForwarding (DisServiceMsg *pDSMsg)
             }
             if ((rand() % 100) < fProbability) {
                 // Forward it
-                broadcastDataMessage (pDSDMsg, "forwarding");
+                broadcastDataMessage (pDSDMsg, "forwarding", pszOutgoingInterfaces);
             }
         }
     }

@@ -24,6 +24,7 @@
 #include "Defs.h"
 #include "DSPro.h"
 #include "DSProImpl.h"
+#include "DSProProxyUnmarshaller.h"
 #include "DSProProxyServer.h"
 
 #include "Instrumentator.h"
@@ -31,16 +32,109 @@
 #include "NodeContextManager.h"
 #include "PeerNodeContext.h"
 
+#include "AVList.h"
 #include "BufferReader.h"
+#include "Json.h"
 #include "Logger.h"
 #include "Writer.h"
 #include "ConfigManager.h"
 #include "ControlMessageNotifier.h"
 
 #include <string.h>
+#include "MimeUtils.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
+using namespace IHMC_MISC;
 using namespace NOMADSUtil;
+
+namespace DSPRO_PROXY_ADAPTOR
+{
+    void deallocateChunks (DSPro::Chunk **ppChunks, uint8 ui8NChunks)
+    {
+        if (ppChunks == nullptr) {
+            return;
+        }
+        for (uint8 i = 0; i < ui8NChunks; i++) {
+            if (ppChunks[i] != nullptr) {
+                if (ppChunks[i]->pChunkData != nullptr) {
+                    free (ppChunks[i]->pChunkData);
+                }
+                free (ppChunks[i]);
+            }
+        }
+        free (ppChunks);
+    }
+
+    void read (String &id, uint32 &ui32, SimpleCommHelper2 *pCommHelper, CommHelperError & error)
+    {
+        Reader *pReader = pCommHelper->getReaderRef();
+        char *psztmp = nullptr;
+        if (pReader->readString (&psztmp) < 0) {
+            error = SimpleCommHelper2::CommError;
+            return;
+        }
+        if (psztmp == nullptr) {
+            error = SimpleCommHelper2::ProtocolError;
+            return;
+        }
+        id = psztmp;  // String makes a copy
+        free (psztmp);
+
+        if (pReader->read32 (&ui32) < 0) {
+            error = SimpleCommHelper2::CommError;
+            return;
+        }
+    }
+
+    CommHelperError readMetadataAsAvList (Reader *pReader, AVList &aVList, uint32 ui32Attributes)
+    {
+        uint32 ui32;
+        for (unsigned int i = 0; i < ui32Attributes; i++) {
+            if (pReader->read32 (&ui32) != 0) {
+                return SimpleCommHelper2::CommError;
+            }
+            char *pszAttribute = (char *)calloc (ui32 + 1, sizeof (char));
+            if (pszAttribute == nullptr) {
+                return SimpleCommHelper2::None;
+            }
+            if (pReader->readBytes (pszAttribute, ui32) != 0) {
+                free (pszAttribute);
+                return SimpleCommHelper2::CommError;
+            }
+            pszAttribute[ui32] = '\0';
+
+            if (pReader->read32 (&ui32) != 0) {
+                free (pszAttribute);
+                return SimpleCommHelper2::CommError;
+            }
+            char *pszValue = (char *)calloc (ui32 + 1, sizeof (char));
+            if (pszValue == nullptr) {
+                free (pszAttribute);
+                return SimpleCommHelper2::None;
+            }
+            if ((ui32 > 0) && (pReader->readBytes (pszValue, ui32) != 0)) {
+                free (pszAttribute);
+                if (pszValue != nullptr) {
+                    free (pszValue);
+                }
+                return SimpleCommHelper2::CommError;
+            }
+            pszValue[ui32] = '\0';
+
+            if (aVList.addPair (pszAttribute, pszValue) != 0) {
+                free (pszAttribute);
+                free (pszValue);
+                return SimpleCommHelper2::None;
+            }
+
+            free (pszAttribute);  // AVList makes a copy of both
+            free (pszValue);      // attribute and value
+        }
+
+        return SimpleCommHelper2::None;
+    }
+}
 
 #define MostGeneralException std::exception
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
@@ -51,8 +145,8 @@ DSProProxyAdaptor::DSProProxyAdaptor (DSProProxyServer *pDSPProxyServer)
     // _pDisSvcPro and _pCallbackCommHelper are initialized in the parent's constructor
     _pDSPro = pDSPProxyServer->getDisServiceProRef();
     _pDisSvcProProxyServer = pDSPProxyServer;
-    _pCommHelper = NULL;
-    _pCallbackCommHelper = NULL;
+    _pCommHelper = nullptr;
+    _pCallbackCommHelper = nullptr;
     _ui16ClientID = 0;
     _bListenerProRegistered = false;
     _bMatchmakingLogListenerRegistered = false;
@@ -60,40 +154,57 @@ DSProProxyAdaptor::DSProProxyAdaptor (DSProProxyServer *pDSPProxyServer)
     _bSearchListenerRegistered = false;
 }
 
-DSProProxyAdaptor::~DSProProxyAdaptor()
+DSProProxyAdaptor::~DSProProxyAdaptor (void)
 {
     if (_bListenerProRegistered) {
         _pDSPro->deregisterDSProListener (_ui16PathRegisteredCbackClientId, this);
     }
-    if (_bMatchmakingLogListenerRegistered && pInstrumentator != NULL) {
+    if (_bMatchmakingLogListenerRegistered && pInstrumentator != nullptr) {
         pInstrumentator->deregisterAndDisableMatchmakingLogListener (_ui16MatchmakingCbackClientId);
     }
-    if (_bCtrlMsgListenerRegistered && pCtrlMsgNotifier != NULL) {
+    if (_bCtrlMsgListenerRegistered && pCtrlMsgNotifier != nullptr) {
         pCtrlMsgNotifier->deregisterAndDisableControllerMessageListener (_ui16CtrlMsgCbackClientId);
     }
     if (_bSearchListenerRegistered) {
         _pDSPro->deregisterSearchListener (_ui16SearchListenerClientID, this);
     }
+    if (_bSearchListenerRegistered) {
+        _pDSPro->deregisterSearchListener (_ui16SearchListenerClientID, this);
+    }
+
+    _mChunkers.lock();
+    for (StringHashset::Iterator iter = _registeredChunkers.getAllElements();
+        !iter.end(); iter.nextElement()) {
+        _pDSPro->deregisterChunkFragmenter (iter.getKey());
+    }
+    _mChunkers.unlock();
+
+    _mReassemblers.lock();
+    for (StringHashset::Iterator iter = _registeredReassemblers.getAllElements();
+        !iter.end(); iter.nextElement()) {
+        _pDSPro->deregisterChunkReassembler (iter.getKey());
+    }
+    _mReassemblers.unlock();
 
     char szId[10];
     snprintf (szId, sizeof (szId)-1, "%d", _ui16ClientID);
     _pDisSvcProProxyServer->_proxies.remove (szId);
 
     // Close connections
-    if (_pCommHelper != NULL) {
+    if (_pCommHelper != nullptr) {
         CommHelperError error;
         _pCommHelper->closeConnection (error);
         if (error != SimpleCommHelper2::None) {
             delete _pCommHelper;
-            _pCommHelper = NULL;
-        }        
+            _pCommHelper = nullptr;
+        }
     }
-    if (_pCallbackCommHelper != NULL) {
+    if (_pCallbackCommHelper != nullptr) {
         CommHelperError error;
         _pCallbackCommHelper->closeConnection (error);
         if (error != SimpleCommHelper2::None) {
             delete _pCallbackCommHelper;
-            _pCallbackCommHelper = NULL;
+            _pCallbackCommHelper = nullptr;
         }
     }
 
@@ -123,15 +234,16 @@ void DSProProxyAdaptor::setCallbackCommHelper (SimpleCommHelper2 *pCommHelper)
     _pCallbackCommHelper = pCommHelper;
 }
 
-void DSProProxyAdaptor::run()
+void DSProProxyAdaptor::run (void)
 {
+    started();
+
     const char *pszMethodName = "DSProProxyAdaptor::run";
     setName (pszMethodName);
 
-    CommHelperError error = SimpleCommHelper2::None;
-    char buf[128];
     int size;
-
+    char buf[128];
+    CommHelperError error = SimpleCommHelper2::None;
     while (!terminationRequested()) {
 
         size = _pCommHelper->receiveLine (buf, sizeof (buf), error);
@@ -145,32 +257,67 @@ void DSProProxyAdaptor::run()
         }
 
         bool bSuccess;
-
-        if (strcmp (buf, "addUserId") == 0) {
+        if (strcmp (buf, DSProProxyUnmarshaller::ADD_USER_ID) == 0) {
             bSuccess = doAddUserId (error);
         }
-        else if (strcmp (buf, "setMissionId") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_MISSION_ID) == 0) {
             bSuccess = doSetMissionId (error);
         }
-        else if (strcmp (buf, "addCustumPoliciesAsXM") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_ROLE) == 0) {
+            bSuccess = doSetRole (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_TEAM_ID) == 0) {
+            bSuccess = doSetTeam (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_NODE_TYPE) == 0) {
+            bSuccess = doSetNodeType (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_SELECTIVITY) == 0) {
+            bSuccess = doSetSelectivity (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_RANGE_OF_INFLUENCE) == 0) {
+            bSuccess = doSetRangeOfInluence (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_DEFAULT_USEFUL_DISTANCE) == 0) {
+            bSuccess = doSetDefUsefulDistance (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_USEFUL_DISTANCE) == 0) {
+            bSuccess = doSetUsefulDistance (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_RANKING_WEIGHTS) == 0) {
+            bSuccess = doSetRankingWeights (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::CHANGE_ENCRYPTION_KEY) == 0) {
+            bSuccess = doChangeEncryptionKey (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_CUSTUMS_POLICIES_AS_XML) == 0) {
             bSuccess = doAddCustumPoliciesAsXML (error);
         }
-        else if (strcmp (buf, "cancel_str") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::CANCEL) == 0) {
             bSuccess = doCancel (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::CANCEL_BY_OBJECT_INSTANCE_ID) == 0) {
+            bSuccess = doCancelByObjectAndInstanceId (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::DISSEMINATE) == 0) {
+            bSuccess = doDisseminate (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::DISSEMINATE_METADATA) == 0) {
+            bSuccess = doDisseminateMetadata (error);
         }
         else if (strcmp (buf, "configureProperties") == 0) {
             bSuccess = doConfigureProperties (error);
         }
-        else if (strcmp (buf, "registerPath") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::REGISTER_PATH) == 0) {
             bSuccess = doRegisterPath (error);
         }
-        else if (strcmp (buf, "setCurrentPath") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_CURRENT_PATH) == 0) {
             bSuccess = doSetCurrentPath (error);
         }
         else if (strcmp (buf, "getCurrentPath") == 0) {
             bSuccess = doGetCurrentPath (error);
         }
-        else if (strcmp (buf, "setCurrentPosition") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::SET_CURRENT_POSITION) == 0) {
             bSuccess = doSetCurrentPosition (error);
         }
         else if (strcmp (buf, "setBatteryLevel") == 0) {
@@ -194,16 +341,31 @@ void DSProProxyAdaptor::run()
         else if (strcmp (buf, "notUseful") == 0) {
             bSuccess = doNotUseful (error);
         }
-        else if (strcmp (buf, "addMessage") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_MESSAGE) == 0) {
             bSuccess = doAddMessage (error);
         }
-        else if (strcmp (buf, "addMessage_AVList") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_MESSAGE_AV_LIST) == 0) {
             bSuccess = doAddMessage_AVList (error);
         }
-        else if (strcmp (buf, "chunkAndAddMessage") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_CHUNK) == 0) {
+            bSuccess = doAddChunk (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_CHUNK_AV_LIST) == 0) {
+            bSuccess = doAddChunk_AVList (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_ADDITIONAL_CHUNK) == 0) {
+            bSuccess = doAddAdditionalChunk (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_CHUNKED_MESSAGE) == 0) {
+            bSuccess = doAddChunkedMessage (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::ADD_CHUNKED_MESSAGE_AV_LIST) == 0) {
+            bSuccess = doAddChunkedMessage_AVList (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::CHUNK_AND_ADD_MESSAGE) == 0) {
             bSuccess = doChunkAndAddMessage (error);
         }
-        else if (strcmp (buf, "chunkAndAddMessage_AVList") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::CHUNK_AND_ADD_MESSAGE_AV_LIST) == 0) {
             bSuccess = doChunkAndAddMessage_AVList (error);
         }
         else if (strcmp (buf, "addAnnotation") == 0) {
@@ -212,34 +374,40 @@ void DSProProxyAdaptor::run()
         else if (strcmp (buf, "addAnnotationRef") == 0) {
             bSuccess = doAddAnnotationRef (error);
         }
-        else if (strcmp (buf, "getData") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::GET_DATA) == 0) {
             bSuccess = doGetData (error);
         }
-        else if (strcmp (buf, "getMatchingMetaDataAsXML") == 0) {
-            bSuccess = doGetMatchingMetaDataAsXML (error);
+        else if (strcmp (buf, "getMatchingMetadata") == 0) {
+            bSuccess = doGetMatchingMetaDataAsJson (error);
         }
         else if (strcmp (buf, "getDisService") == 0) {
             bSuccess = doGetDisService (error);
         }
-        else if (strcmp (buf, "getNodeId") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::GET_NODE_CONTEXT) == 0) {
+            bSuccess = doGetNodeContext (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::GET_NODE_ID) == 0) {
             bSuccess = doGetNodeId (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::GET_PEER_MSG_COUNTS) == 0) {
+            bSuccess = doGetPeerMsgCounts (error);
         }
         else if (strcmp (buf, "getPathForPeer") == 0) {
             bSuccess = doGetPathForPeer (error);
         }
-        else if (strcmp (buf, "getSessionId") == 0) {
-            bSuccess = doSessionId (error);
+        else if (strcmp (buf, DSProProxyUnmarshaller::GET_SESSION_ID) == 0) {
+            bSuccess = doGetSessionId (error);
         }
-        else if (strcmp (buf, "registerPathRegisteredCallback") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::REGISTER_DSPRO_LISTENER_METHOD) == 0) {
             bSuccess = doRegisterPathRegisteredCallback();
         }
         else if (strcmp (buf, "registerCtrlMsgCallback") == 0) {
             bSuccess = doRegisterCtrlMsgCallback();
         }
-        else if (strcmp (buf, "registerMatchmakingLogCallback") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::REGISTER_MATCHMAKING_LISTENER_METHOD) == 0) {
             bSuccess = doRegisterMatchmakingLogCallback();
         }
-        else if (strcmp (buf, "registerSearchCallback") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::REGISTER_SEARCH_LISTENER_METHOD) == 0) {
             bSuccess = doRegisterSearchCallback();
         }
         else if (strcmp (buf, "deregisterSearchCallback") == 0) {
@@ -254,7 +422,7 @@ void DSProProxyAdaptor::run()
         else if (strcmp (buf, "requestMoreChunks") == 0) {
             bSuccess = doRequestMoreChunks (error);
         }
-        else if (strcmp (buf, "resetTransmissionCounters") == 0) {
+        else if (strcmp (buf, DSProProxyUnmarshaller::RESET_TRANSMISSION_COUNTERS) == 0) {
             bSuccess = doResetTransmissionCounters (error);
         }
         else if (strcmp (buf, "getDSProId") == 0) {
@@ -269,6 +437,15 @@ void DSProProxyAdaptor::run()
         else if (strcmp (buf, "volatileReplyToQuery") == 0) {
             bSuccess = doReplyToVolatileQuery (error);
         }
+        else if (strcmp (buf, DSProProxyUnmarshaller::SUBSCRIBE) == 0) {
+            bSuccess = doSubscribe (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::REGISTER_CHUNK_FRAGMENTER) == 0) {
+            bSuccess = doRegisterChunkFragmenter (error);
+        }
+        else if (strcmp (buf, DSProProxyUnmarshaller::REGISTER_CHUNK_REASSEMBLER) == 0) {
+            bSuccess = doRegisterChunkReassembler (error);
+        }
         else {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                             "!!!! UNKNOWN OPERATION!!!! [%s]\n", buf);
@@ -280,8 +457,8 @@ void DSProProxyAdaptor::run()
                             "Command <%s> failed.  Communication error.\n", buf);
             break;
         }
-        else if (bSuccess) {
-            checkAndLogMsg (pszMethodName, Logger::L_Info, "Command <%s> worked.\n", buf);
+        if (bSuccess) {
+            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "Command <%s> worked.\n", buf);
         }
         else {
             _pCommHelper->sendLine (error, "ERROR");
@@ -302,74 +479,251 @@ void DSProProxyAdaptor::run()
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "exception in handling client request %s.\n", buf);
     }
 
+    terminating();
+
     // the destructor will take care of closing all the connections
     // and de-registering this Adaptor from the DisseminationServiceProxyServer.
     delete this;
 }
 
-bool DSProProxyAdaptor::doAddUserId (CommHelperError &error)
+bool DSProProxyAdaptor::doAddUserId (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
-    uint32 ui32Len = 0;
-    if (_pCommHelper->getReaderRef()->read32 (&ui32Len) < 0) {
+
+    char *pszUserId = nullptr;
+    if (_pCommHelper->getReaderRef()->readString (&pszUserId) < 0) {
         error = SimpleCommHelper2::CommError;
         return false;
     }
-    if (ui32Len == 0) {
-        error = SimpleCommHelper2::ProtocolError;
-        return false;
-    }
-    if (ui32Len > 511U) {
+    if (pszUserId == nullptr) {
         error = SimpleCommHelper2::ProtocolError;
         return false;
     }
 
-    char buf[512];
-    _pCommHelper->receiveBlob (buf, ui32Len, error);
-    if (error != SimpleCommHelper2::None) {
-        return false;
-    }
-    buf[ui32Len] = '\0';
-
-    int rc = _pDSPro->addUserId (buf);
+    int rc = _pDSPro->addUserId (pszUserId);
     if (rc == 0) {
         _pCommHelper->sendLine (error, "OK");
     }
     return (rc == 0);
 }
 
-bool DSProProxyAdaptor::doSetMissionId (CommHelperError &error)
+bool DSProProxyAdaptor::doSetSelectivity (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
-    uint32 ui32Len = 0;
-    if (_pCommHelper->getReaderRef()->read32 (&ui32Len) < 0) {
+    float fSelectivity = 0.0f;
+    if (_pCommHelper->getReaderRef()->read32 (&fSelectivity) < 0) {
         error = SimpleCommHelper2::CommError;
         return false;
     }
-    if (ui32Len == 0) {
-        error = SimpleCommHelper2::ProtocolError;
-        return false;
-    }
-    if (ui32Len > 511U) {
+    if ((fSelectivity < 0.0f) || (fSelectivity > 10.0f)) {
         error = SimpleCommHelper2::ProtocolError;
         return false;
     }
 
-    char buf[512];
-    _pCommHelper->receiveBlob (buf, ui32Len, error);
-    if (error != SimpleCommHelper2::None) {
-        return false;
-    }
-    buf[ui32Len] = '\0';
-
-    int rc = _pDSPro->setMissionId (buf);
+    int rc = _pDSPro->setSelectivity (fSelectivity);
     if (rc == 0) {
         _pCommHelper->sendLine (error, "OK");
     }
     return (rc == 0);
 }
 
-bool DSProProxyAdaptor::doAddCustumPoliciesAsXML (CommHelperError &error)
+bool DSProProxyAdaptor::doSetRangeOfInluence (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+
+    String milStd2525Symbol;
+    uint32 ui32Range = 0U;
+    DSPRO_PROXY_ADAPTOR::read (milStd2525Symbol, ui32Range, _pCommHelper, error);
+
+    int rc = _pDSPro->setRangeOfInfluence (milStd2525Symbol, ui32Range);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doSetDefUsefulDistance (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+    Reader *pReader = _pCommHelper->getReaderRef();
+    uint32 ui32Distance = 0U;
+    if (pReader->read32 (&ui32Distance) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    int rc = _pDSPro->setDefaultUsefulDistance (ui32Distance);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doSetUsefulDistance (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+    String mimeType;
+    uint32 ui32Distance = 0U;
+    DSPRO_PROXY_ADAPTOR::read (mimeType, ui32Distance, _pCommHelper, error);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    int rc = _pDSPro->setUsefulDistance (mimeType, ui32Distance);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doSetRankingWeights (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+    float coordRankWeight, timeRankWeight, expirationRankWeight,
+        impRankWeight, sourceReliabilityRankWeigth, informationContentRankWeigth, predRankWeight, targetWeight;
+    coordRankWeight = timeRankWeight = expirationRankWeight = impRankWeight =
+        sourceReliabilityRankWeigth = informationContentRankWeigth = predRankWeight = targetWeight = 0.0f;
+    bool bStrictTarget, bConsiderFuturePathSegmentForMatchmacking;
+    bStrictTarget = true;
+    bConsiderFuturePathSegmentForMatchmacking = false;
+
+    Reader *pReader = _pCommHelper->getReaderRef();
+    if (pReader->readFloat (&coordRankWeight) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readFloat (&timeRankWeight) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readFloat (&expirationRankWeight) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readFloat (&impRankWeight) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readFloat (&sourceReliabilityRankWeigth) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readFloat (&informationContentRankWeigth) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readFloat (&predRankWeight) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readFloat (&targetWeight) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readBool (&bStrictTarget) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readBool (&bConsiderFuturePathSegmentForMatchmacking) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    int rc = _pDSPro->setRankingWeigths (coordRankWeight, timeRankWeight, expirationRankWeight,
+                                         impRankWeight, sourceReliabilityRankWeigth,
+                                         informationContentRankWeigth, predRankWeight, targetWeight,
+                                         bStrictTarget, bConsiderFuturePathSegmentForMatchmacking);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doSetMissionId (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+
+    char *pszMissionId = nullptr;
+    if (_pCommHelper->getReaderRef()->readString (&pszMissionId) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pszMissionId == nullptr) {
+        error = SimpleCommHelper2::ProtocolError;
+        return false;
+    }
+
+    int rc = _pDSPro->setMissionId (pszMissionId);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doSetRole (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+
+    char *pszRole = nullptr;
+    if (_pCommHelper->getReaderRef ()->readString (&pszRole) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pszRole == nullptr) {
+        error = SimpleCommHelper2::ProtocolError;
+        return false;
+    }
+
+    int rc = _pDSPro->setRole (pszRole);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doSetTeam (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+
+    char *pszTeamId = nullptr;
+    if (_pCommHelper->getReaderRef()->readString (&pszTeamId) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pszTeamId == nullptr) {
+        error = SimpleCommHelper2::ProtocolError;
+        return false;
+    }
+
+    int rc = _pDSPro->setTeamId (pszTeamId);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doSetNodeType (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+
+    char *pszNodeType = nullptr;
+    if (_pCommHelper->getReaderRef()->readString (&pszNodeType) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pszNodeType == nullptr) {
+        error = SimpleCommHelper2::ProtocolError;
+        return false;
+    }
+
+    int rc = _pDSPro->setNodeType (pszNodeType);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    return (rc == 0);
+}
+
+bool DSProProxyAdaptor::doAddCustumPoliciesAsXML (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     uint16 ui16Count = 0;
@@ -381,57 +735,45 @@ bool DSProProxyAdaptor::doAddCustumPoliciesAsXML (CommHelperError &error)
         return true;
     }
     bool bSuccess = true;
-    char **ppszXMLDocs = (char **) calloc (ui16Count + 1, sizeof (char));
-    if (ppszXMLDocs == NULL) {
+    char **ppszXMLDocs = static_cast<char **>(calloc (ui16Count + 1, sizeof (char*)));
+    if (ppszXMLDocs == nullptr) {
         return false;
     }
-    uint16 i = 0;
-    for (; i < ui16Count; i++) {
-        uint32 ui32Len = 0;
-        if (_pCommHelper->getReaderRef()->read32 (&ui32Len) < 0) {
+    ppszXMLDocs[ui16Count] = nullptr;
+    for (uint16 i = 0; i < ui16Count; i++) {
+        char *pszXMLDoc = nullptr;
+        if (_pCommHelper->getReaderRef()->readString (&pszXMLDoc) < 0) {
             error = SimpleCommHelper2::CommError;
             bSuccess = false;
             break;
         }
-        if (ui32Len == 0) {
+        if (pszXMLDoc == nullptr) {
             error = SimpleCommHelper2::ProtocolError;
             bSuccess = false;
             break;
         }
-        if (ui32Len > 2047U) {
-            error = SimpleCommHelper2::ProtocolError;
-            bSuccess = false;
-            break;
-        }
-
-        char buf[2048];
-        _pCommHelper->receiveBlob (buf, ui32Len, error);
-        if (error != SimpleCommHelper2::None) {
-            bSuccess = false;
-            break;
-        }
-        buf[ui32Len] = '\0';
-        ppszXMLDocs[i] = strDup (buf);
+        ppszXMLDocs[i] = pszXMLDoc;
     }
     int rc = 0;
     if (bSuccess) {
-        ppszXMLDocs[i] = NULL;
-        rc = _pDSPro->addCustumPoliciesAsXML ((const char **) ppszXMLDocs);
+        rc = _pDSPro->addCustumPoliciesAsXML ((const char **)ppszXMLDocs);
         if (rc == 0) {
             _pCommHelper->sendLine (error, "OK");
         }
     }
 
     // Deallocate XML docs
-    for (uint16 j = 0; j < i; j++) {
-        free (ppszXMLDocs[j]);
+    for (uint16 j = 0; j < ui16Count; j++) {
+        if (ppszXMLDocs[j] != nullptr) {
+            free (ppszXMLDocs[j]);
+        }
     }
     free (ppszXMLDocs);
 
-    return ((error != SimpleCommHelper2::None) && (rc == 0));
+    return ((error == SimpleCommHelper2::None) && (rc == 0));
 }
 
-bool DSProProxyAdaptor::doCancel (CommHelperError &error)
+bool DSProProxyAdaptor::doCancel (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     char buf[256];
@@ -458,14 +800,213 @@ bool DSProProxyAdaptor::doCancel (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doConfigureProperties (CommHelperError &error)
-{   
+bool DSProProxyAdaptor::doCancelByObjectAndInstanceId (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+    char *pszObjectId = nullptr;
+    char *pszInstanceId = nullptr;
+
+    if (_pCommHelper->getReaderRef()->readString (&pszObjectId) < 0) {
+         error = SimpleCommHelper2::CommError;
+         return false;
+    }
+    if (_pCommHelper->getReaderRef()->readString (&pszInstanceId) < 0) {
+         error = SimpleCommHelper2::CommError;
+         if (pszObjectId) free (pszObjectId);
+         return false;
+    }
+
+    int rc = _pDSPro->cancelByObjectAndInstanceId (pszObjectId, pszInstanceId);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    else {
+        _pCommHelper->sendLine (error, "ERROR %d", rc);
+    }
+
+    if (pszObjectId) free (pszObjectId);
+    if (pszInstanceId) free (pszInstanceId);
+
+    return (error == SimpleCommHelper2::None);
+}
+
+bool DSProProxyAdaptor::doChangeEncryptionKey (CommHelperError & error)
+{
+    Reader *pReader = _pCommHelper->getReaderRef();
+
+    uint32 ui32KeyLen = 0;
+    unsigned char *pKey = nullptr;
+    if (pReader->read32 (&ui32KeyLen) != 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    // read the data
+    if (ui32KeyLen > 0) {
+        pKey = (unsigned char *) malloc (ui32KeyLen);
+        if (pKey == nullptr) {
+            checkAndLogMsg ("DSProProxyAdaptor::doChangeEncryptionKey", memoryExhausted);
+        }
+        _pCommHelper->receiveBlob (pKey, ui32KeyLen, error);
+        if (error != SimpleCommHelper2::None) {
+            free (pKey);
+            return false;
+        }
+    }
+
+    int rc = _pDSPro->changeEncryptionKey (pKey, ui32KeyLen);
+    bool bSuccess = (rc == 0);
+    free (pKey);
+
+    if (bSuccess) {
+        _pCommHelper->sendLine (error, "OK");
+        if (error != SimpleCommHelper2::None) {
+            bSuccess = false;
+        }
+    }
+
+    return bSuccess;
+}
+
+bool DSProProxyAdaptor::doDisseminate (CommHelperError & error)
+{
+    return doDisseminateMetadata (error, false);
+}
+
+bool DSProProxyAdaptor::doDisseminateMetadata (CommHelperError & error, bool bReadMimeTypeAndMetadata)
+{
+    Reader *pReader = _pCommHelper->getReaderRef();
+    String groupName;
+    String objectId;
+    String instanceId;
+
+    error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    uint32 ui32MetadataLen = 0;
+    void *pMetadata = nullptr;
+    if (bReadMimeTypeAndMetadata) {
+        // read the metadata length
+        if (pReader->read32 (&ui32MetadataLen) != 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+
+        if (ui32MetadataLen == 0) {
+            error = SimpleCommHelper2::ProtocolError;
+            return false;
+        }
+
+        // read the metadata
+        if (ui32MetadataLen > 0) {
+            pMetadata = malloc (ui32MetadataLen);
+            if (pMetadata == nullptr) {
+                checkAndLogMsg ("DSProProxyAdaptor::doDisseminateMetadata", memoryExhausted);
+                error = SimpleCommHelper2::ProtocolError;
+                return false;
+            }
+            else {
+                _pCommHelper->receiveBlob (pMetadata, ui32MetadataLen, error);
+                if (error != SimpleCommHelper2::None) {
+                    free (pMetadata);
+                    return false;
+                }
+            }
+        }
+    }
+
+    // read the data length
+    uint32 ui32DataLen = 0;
+    void *pData = nullptr;
+    if (pReader->read32 (&ui32DataLen) != 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    // read the data
+    if (ui32DataLen > 0) {
+        pData = malloc (ui32DataLen);
+        if (pData == nullptr) {
+            checkAndLogMsg ("DSProProxyAdaptor::doDisseminateMetadata", memoryExhausted);
+        }
+        _pCommHelper->receiveBlob (pData, ui32DataLen, error);
+        if (error != SimpleCommHelper2::None) {
+            free (pData);
+            return false;
+        }
+    }
+
+    char *pszMimeType = nullptr;
+    if (bReadMimeTypeAndMetadata && (pReader->readString (&pszMimeType) < 0)) {
+        if (pData != nullptr) free (pData);
+        if (pMetadata != nullptr) free (pMetadata);
+    }
+
+    // read the expiration time
+    int64 i64ExpirationTime = 0;
+    if (pReader->read64 (&i64ExpirationTime) != 0) {
+        error = SimpleCommHelper2::CommError;
+        if (pData != nullptr) free (pData);
+        if (pMetadata != nullptr) free (pMetadata);
+        if (pszMimeType != nullptr) free (pszMimeType);
+        return false;
+    }
+
+    char *pMsgId = nullptr;
+    int rc = 0;
+    if (bReadMimeTypeAndMetadata) {
+        rc = _pDSPro->disseminatedMessageMetadata (groupName, objectId, instanceId,
+                                                   pMetadata, ui32MetadataLen,
+                                                   pData, ui32DataLen, pszMimeType, i64ExpirationTime,
+                                                   &pMsgId);
+    }
+    else {
+        rc = _pDSPro->disseminateMessage (groupName, objectId, instanceId, pData, ui32DataLen,
+                                          i64ExpirationTime, &pMsgId);
+    }
+
+    bool bSuccess = ((rc == 0) && (pMsgId != nullptr));
+    if (bSuccess) {
+        _pCommHelper->sendLine (error, "OK");
+        if (error != SimpleCommHelper2::None) {
+            bSuccess = false;
+        }
+    }
+
+    // write the msg id of the pushed data
+    if (bSuccess) {
+        _pCommHelper->sendStringBlock (pMsgId, error);
+        if (error != SimpleCommHelper2::None) {
+            bSuccess = false;
+        }
+    }
+
+    if (bSuccess) {
+        _pCommHelper->receiveMatch (error, "OK");
+        if (error != SimpleCommHelper2::None) {
+            bSuccess = false;
+        }
+    }
+
+    if (pData != nullptr) free (pData);
+    if (pMetadata != nullptr) free (pMetadata);
+    if (pMsgId != nullptr) free (pMsgId);
+    if (pszMimeType != nullptr) free (pszMimeType);
+
+    return bSuccess;
+}
+
+bool DSProProxyAdaptor::doConfigureProperties (CommHelperError & error)
+{
+    const char *pszMethodName = "DSProProxyAdaptor::doConfigureProperties";
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
     uint32 ui32PropertiesLength = 0;
     ConfigManager *pCfgMgr = new ConfigManager();
-    if (pCfgMgr == NULL) {
-        checkAndLogMsg ("DSProProxyAdaptor::doConfigureProperties", memoryExhausted);
+    if (pCfgMgr == nullptr) {
+        checkAndLogMsg (pszMethodName, memoryExhausted);
         return false;
     }
     pCfgMgr->init();
@@ -474,9 +1015,8 @@ bool DSProProxyAdaptor::doConfigureProperties (CommHelperError &error)
         error = SimpleCommHelper2::CommError;
         return false;
     }
-    checkAndLogMsg ("DSProProxyAdaptor::doConfigureProperties", Logger::L_Info,
-                    "Going to read buffer of size %u\n", ui32PropertiesLength);
-    char *pBuf = (char*) calloc (ui32PropertiesLength+1, sizeof (char));
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "Going to read buffer of size %u\n", ui32PropertiesLength);
+    char *pBuf = static_cast<char*>(calloc (ui32PropertiesLength+1, sizeof (char)));
 
     _pCommHelper->receiveBlob (pBuf, ui32PropertiesLength, error);
     if (error != SimpleCommHelper2::None) {
@@ -495,30 +1035,24 @@ bool DSProProxyAdaptor::doConfigureProperties (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doRegisterPath (CommHelperError &error)
+bool DSProProxyAdaptor::doRegisterPath (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
-    Reader *pReader = _pCommHelper->getReaderRef();
-
-    NodePath *pPath = new NodePath();
-    if (pPath->read (pReader, 8092, false) < 0) {
-        error = SimpleCommHelper2::ProtocolError;
-        return false;
-    }
-    pPath->display();
-
-    int rc = _pDSPro->registerPath (pPath);
-    if (rc == 0) {
-        _pCommHelper->sendLine (error, "OK");
+    NodePath *pPath = DSProProxyUnmarshaller::readNodePath (_pCommHelper->getReaderRef());
+    if (pPath != nullptr) {
+        pPath->display();
+        int rc = _pDSPro->registerPath (pPath);
+        if (rc == 0) {
+            _pCommHelper->sendLine (error, "OK");
+        }
     }
     else {
         return false;
     }
-
     return true;
 }
 
-bool DSProProxyAdaptor::doSetCurrentPath (CommHelperError &error)
+bool DSProProxyAdaptor::doSetCurrentPath (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     char buf[100];
@@ -546,25 +1080,29 @@ bool DSProProxyAdaptor::doSetCurrentPath (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doGetCurrentPath (CommHelperError &error)
+bool DSProProxyAdaptor::doGetCurrentPath (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Writer *pWriter = _pCommHelper->getWriterRef();
 
     NodePath *pCurrPath = _pDSPro->getCurrentPath();
-    if (pCurrPath != NULL) {
-        _pCommHelper->sendLine (error, "OK");
-        if (error != SimpleCommHelper2::None) {
-            return false;
-        }
-        pCurrPath->write (pWriter);
-    }
-    else {
+    if (pCurrPath == nullptr) {
         _pCommHelper->sendLine (error, "NOPATH");
         if (error != SimpleCommHelper2::None) {
             return false;
         }
     }
+    else {
+        _pCommHelper->sendLine (error, "OK");
+        if (error != SimpleCommHelper2::None) {
+            return false;
+        }
+        if (DSProProxyUnmarshaller::write (pCurrPath, pWriter) < 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+    }
+
     _pCommHelper->receiveMatch (error, "OK");
     if (error != SimpleCommHelper2::None) {
         return false;
@@ -573,7 +1111,7 @@ bool DSProProxyAdaptor::doGetCurrentPath (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doSetCurrentPosition (CommHelperError &error)
+bool DSProProxyAdaptor::doSetCurrentPosition (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -625,13 +1163,13 @@ bool DSProProxyAdaptor::doSetCurrentPosition (CommHelperError &error)
         }
     }
     else {
-        pszLocation = NULL;
+        pszLocation = nullptr;
     }
 
     // read note's length and note
     if ((rc = pReader->read32 (&ui32Len)) != 0) {
         error = SimpleCommHelper2::CommError;
-        if (pszLocation != NULL) {
+        if (pszLocation != nullptr) {
             delete[] pszLocation;
         }
         return false;
@@ -641,24 +1179,24 @@ bool DSProProxyAdaptor::doSetCurrentPosition (CommHelperError &error)
         pszNote[ui32Len] = '\0';
         _pCommHelper->receiveBlob (pszNote, ui32Len, error);
         if (error != SimpleCommHelper2::None) {
-            if (pszLocation != NULL) {
+            if (pszLocation != nullptr) {
                 delete[] pszLocation;
             }
-            if (pszNote != NULL) {
+            if (pszNote != nullptr) {
                 delete[] pszNote;
             }
             return false;
         }
     }
     else {
-        pszNote = NULL;
+        pszNote = nullptr;
     }
 
     rc = _pDSPro->setCurrentPosition (fLatitude, fLongitude, fAltitude, pszLocation, pszNote);
-    if (pszLocation != NULL) {
+    if (pszLocation != nullptr) {
         delete[] pszLocation;
     }
-    if (pszNote != NULL) {
+    if (pszNote != nullptr) {
         delete[] pszNote;
     }
     if (rc < 0) {
@@ -674,7 +1212,7 @@ bool DSProProxyAdaptor::doSetCurrentPosition (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doSetBatteryLevel (CommHelperError &error)
+bool DSProProxyAdaptor::doSetBatteryLevel (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -688,7 +1226,7 @@ bool DSProProxyAdaptor::doSetBatteryLevel (CommHelperError &error)
 
     if (_pDSPro->setBatteryLevel (ui32BatLev) < 0) {
         error = SimpleCommHelper2::CommError;
-        return false; 
+        return false;
     }
 
     _pCommHelper->sendLine (error, "OK");
@@ -699,7 +1237,7 @@ bool DSProProxyAdaptor::doSetBatteryLevel (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doSetMemoryAvailable (CommHelperError &error)
+bool DSProProxyAdaptor::doSetMemoryAvailable (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -713,7 +1251,7 @@ bool DSProProxyAdaptor::doSetMemoryAvailable (CommHelperError &error)
 
     if (_pDSPro->setBatteryLevel (ui32AvMem) < 0) {
         error = SimpleCommHelper2::CommError;
-        return false; 
+        return false;
     }
 
     _pCommHelper->sendLine (error, "OK");
@@ -724,13 +1262,13 @@ bool DSProProxyAdaptor::doSetMemoryAvailable (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doAddPeer (CommHelperError &error)
+bool DSProProxyAdaptor::doAddPeer (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
     AdaptorType ui8AdaptorType;
-    char *pszNetworkInterface = NULL;
-    char *pszRemoteAddress = NULL;
+    char *pszNetworkInterface = nullptr;
+    char *pszRemoteAddress = nullptr;
     uint16 ui16Port = 0;
     int rc;
 
@@ -749,7 +1287,7 @@ bool DSProProxyAdaptor::doAddPeer (CommHelperError &error)
         _pCommHelper->receiveBlob (pszNetworkInterface, ui32Len, error);
     }
     if (error != SimpleCommHelper2::None) {
-        if (pszNetworkInterface != NULL) {
+        if (pszNetworkInterface != nullptr) {
             free (pszNetworkInterface);
         }
         return false;
@@ -757,7 +1295,7 @@ bool DSProProxyAdaptor::doAddPeer (CommHelperError &error)
 
     if ((rc = pReader->read32 (&ui32Len))) {
         error = SimpleCommHelper2::CommError;
-        if (pszNetworkInterface != NULL) {
+        if (pszNetworkInterface != nullptr) {
             free (pszNetworkInterface);
         }
         return false;
@@ -767,10 +1305,10 @@ bool DSProProxyAdaptor::doAddPeer (CommHelperError &error)
         _pCommHelper->receiveBlob (pszRemoteAddress, ui32Len, error);
     }
     if (error != SimpleCommHelper2::None) {
-        if (pszNetworkInterface != NULL) {
+        if (pszNetworkInterface != nullptr) {
             free (pszNetworkInterface);
         }
-        if (pszRemoteAddress != NULL) {
+        if (pszRemoteAddress != nullptr) {
             free (pszRemoteAddress);
         }
         return false;
@@ -778,20 +1316,20 @@ bool DSProProxyAdaptor::doAddPeer (CommHelperError &error)
 
     if ((rc = pReader->read16 (&ui16Port))) {
         error = SimpleCommHelper2::CommError;
-        if (pszNetworkInterface != NULL) {
+        if (pszNetworkInterface != nullptr) {
             free (pszNetworkInterface);
         }
-        if (pszRemoteAddress != NULL) {
+        if (pszRemoteAddress != nullptr) {
             free (pszRemoteAddress);
         }
         return false;
     }
 
     if (_pDSPro->addPeer (ui8AdaptorType, pszNetworkInterface, pszRemoteAddress, ui16Port) < 0) {
-        if (pszNetworkInterface != NULL) {
+        if (pszNetworkInterface != nullptr) {
             free (pszNetworkInterface);
         }
-        if (pszRemoteAddress != NULL) {
+        if (pszRemoteAddress != nullptr) {
             free (pszRemoteAddress);
         }
         return false;
@@ -799,10 +1337,10 @@ bool DSProProxyAdaptor::doAddPeer (CommHelperError &error)
 
     _pCommHelper->sendLine (error, "OK");
 
-    if (pszNetworkInterface != NULL) {
+    if (pszNetworkInterface != nullptr) {
         free (pszNetworkInterface);
     }
-    if (pszRemoteAddress != NULL) {
+    if (pszRemoteAddress != nullptr) {
         free (pszRemoteAddress);
     }
     if (error != SimpleCommHelper2::None) {
@@ -812,7 +1350,7 @@ bool DSProProxyAdaptor::doAddPeer (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doGetPeerNodeContext (CommHelperError &error)
+bool DSProProxyAdaptor::doGetPeerNodeContext (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -839,19 +1377,23 @@ bool DSProProxyAdaptor::doGetPeerNodeContext (CommHelperError &error)
         sNodeId = _buf;
     }
 
-    NodeContext *pNodeContext = NULL;
+    NodeContextImpl *pNodeContext = nullptr;
     if (sNodeId == _pDSPro->getNodeId()) {
-        pNodeContext = (NodeContext *) _pDSPro->_pImpl->_pNodeContextMgr->getLocalNodeContext();
+        pNodeContext = (NodeContextImpl *) _pDSPro->_pImpl->_pNodeContextMgr->getLocalNodeContext();
     }
-    else { 
+    else {
         pNodeContext = _pDSPro->_pImpl->_pNodeContextMgr->getPeerNodeContext (sNodeId);
     }
 
-    if (pNodeContext != NULL) {
+    if (pNodeContext != nullptr) {
         _pCommHelper->sendLine (error, "OK");
         if (error == SimpleCommHelper2::None) {
-            if (pNodeContext->writeForDSProListener (_pCommHelper->getWriterRef()) > 0) {
-                bSuccess = true;
+            JsonObject *pJson = (JsonObject *) pNodeContext->toJson (nullptr);
+            if (pJson != nullptr) {
+                const String json (pJson->toString());
+                if (_pCommHelper->getWriterRef()->writeString (json) >= 0) {
+                    bSuccess = true;
+                }
             }
         }
     }
@@ -866,7 +1408,7 @@ bool DSProProxyAdaptor::doGetPeerNodeContext (CommHelperError &error)
     return bSuccess;
 }
 
-bool DSProProxyAdaptor::doGetAdaptorType (CommHelperError &error)
+bool DSProProxyAdaptor::doGetAdaptorType (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -897,11 +1439,11 @@ bool DSProProxyAdaptor::doGetAdaptorType (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doGetData (CommHelperError &error)
+bool DSProProxyAdaptor::doGetData (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Writer *pWriter = _pCommHelper->getWriterRef();
-    void *pData = NULL;
+    void *pData = nullptr;
     String messageId;
     uint32 ui32bufferLength = 0;
 
@@ -914,7 +1456,7 @@ bool DSProProxyAdaptor::doGetData (CommHelperError &error)
         return false;
     }
 
-    char *pszSearchId = NULL;
+    char *pszSearchId = nullptr;
     if (_pCommHelper->getReaderRef()->readString (&pszSearchId) < 0) {
         error = SimpleCommHelper2::CommError;
         return false;
@@ -927,7 +1469,7 @@ bool DSProProxyAdaptor::doGetData (CommHelperError &error)
         error = SimpleCommHelper2::None;
         return false;
     }
-    if (pszSearchId != NULL) {
+    if (pszSearchId != nullptr) {
         free (pszSearchId);
     }
     _pCommHelper->sendLine (error, "OK");
@@ -936,7 +1478,7 @@ bool DSProProxyAdaptor::doGetData (CommHelperError &error)
         return false;
     }
 
-    if (pData == NULL) {
+    if (pData == nullptr) {
         ui32bufferLength = 0;
     }
 
@@ -972,15 +1514,15 @@ bool DSProProxyAdaptor::doGetData (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doGetMatchingMetaDataAsXML (CommHelperError &error)
+bool DSProProxyAdaptor::doGetMatchingMetaDataAsJson (CommHelperError & error)
 {
     Reader *pReader = _pCommHelper->getReaderRef();
 
     // Read the number of attributes
     uint32 ui32Attributes = 0;
     pReader->read32 (&ui32Attributes);
-    SQLAVList aVList (ui32Attributes);
-    error = readMetadataAsAvList (pReader, aVList, ui32Attributes);
+    AVList aVList (ui32Attributes);
+    error = DSPRO_PROXY_ADAPTOR::readMetadataAsAvList (pReader, aVList, ui32Attributes);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
@@ -997,11 +1539,11 @@ bool DSProProxyAdaptor::doGetMatchingMetaDataAsXML (CommHelperError &error)
         return false;
     }
 
-    char **ppszMetadata = _pDSPro->getMatchingMetadataAsXML (&aVList, i64BeginArrivalTimestamp,
-                                                             i64EndArrivalTimestamp);
+    char **ppszMetadata = _pDSPro->getMatchingMetadata (&aVList, i64BeginArrivalTimestamp,
+                                                        i64EndArrivalTimestamp);
 
     bool bSucceded = true;
-    if (ppszMetadata != NULL) {
+    if (ppszMetadata != nullptr) {
         for (unsigned int i = 0; ppszMetadata[i] != 0; i++) {
             if (bSucceded && (strlen (ppszMetadata[i]) > 0)) {
                 _pCommHelper->sendStringBlock (ppszMetadata[i], error);
@@ -1037,7 +1579,7 @@ bool DSProProxyAdaptor::doNotUseful (CommHelperError &)
     return false;
 }
 
-bool DSProProxyAdaptor::doSearch (CommHelperError &error)
+bool DSProProxyAdaptor::doSearch (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -1045,7 +1587,7 @@ bool DSProProxyAdaptor::doSearch (CommHelperError &error)
     String queryType;
     String queryQualifiers;
     unsigned int uiQueryLen;
-    void *pQuery = NULL;
+    void *pQuery = nullptr;
     uint32 ui32;
 
     // read the group name
@@ -1108,7 +1650,7 @@ bool DSProProxyAdaptor::doSearch (CommHelperError &error)
     }
     if (uiQueryLen > 0) {
         pQuery = malloc (uiQueryLen);
-        if (pQuery == NULL) {
+        if (pQuery == nullptr) {
             return false;
         }
         _pCommHelper->receiveBlob (pQuery, uiQueryLen, error);
@@ -1124,11 +1666,11 @@ bool DSProProxyAdaptor::doSearch (CommHelperError &error)
         return false;
     }
 
-    char *pszQueryId = NULL;
-    int rc = _pDSPro->search (groupName.c_str(), queryType.c_str(), queryQualifiers.c_str(),
+    char *pszQueryId = nullptr;
+    int rc = _pDSPro->search (groupName, queryType, queryQualifiers,
                               pQuery, uiQueryLen, i64Timeout, &pszQueryId);
 
-    bool bSucceded = ((rc == 0) && (pszQueryId != NULL));
+    bool bSucceded = ((rc == 0) && (pszQueryId != nullptr));
 
     if (bSucceded) {
         _pCommHelper->sendLine (error, "OK");
@@ -1145,7 +1687,7 @@ bool DSProProxyAdaptor::doSearch (CommHelperError &error)
         }
     }
 
-    if (pQuery != NULL) {
+    if (pQuery != nullptr) {
         free (pQuery);
     }
     if (pszQueryId) {
@@ -1155,7 +1697,7 @@ bool DSProProxyAdaptor::doSearch (CommHelperError &error)
     return bSucceded;
 }
 
-bool DSProProxyAdaptor::doReplyToQuery (CommHelperError &error)
+bool DSProProxyAdaptor::doReplyToQuery (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -1191,7 +1733,7 @@ bool DSProProxyAdaptor::doReplyToQuery (CommHelperError &error)
     }
 
     char **ppszMsgIds = (char **) calloc (ui32NumberOfElements+1, sizeof (char *));
-    if (ppszMsgIds == NULL) {
+    if (ppszMsgIds == nullptr) {
         return false;
     }
 
@@ -1205,7 +1747,7 @@ bool DSProProxyAdaptor::doReplyToQuery (CommHelperError &error)
         }
         if (ui32 > 0) {
             ppszMsgIds[uiRead] = (char *) calloc (ui32+1, sizeof (char));
-            if (ppszMsgIds[uiRead] != NULL) {
+            if (ppszMsgIds[uiRead] != nullptr) {
                 _pCommHelper->receiveBlob (ppszMsgIds[i], ui32, error);
                 if (error != SimpleCommHelper2::None) {
                     bSucceded = false;
@@ -1220,10 +1762,10 @@ bool DSProProxyAdaptor::doReplyToQuery (CommHelperError &error)
             }
         }
         else {
-            ppszMsgIds[uiRead] = NULL;
+            ppszMsgIds[uiRead] = nullptr;
         }
     }
-    ppszMsgIds[ui32NumberOfElements] = NULL;
+    ppszMsgIds[ui32NumberOfElements] = nullptr;
 
     if (bSucceded) {
         int rc = _pDSPro->searchReply (queryId.c_str(), (const char **)ppszMsgIds);
@@ -1238,8 +1780,8 @@ bool DSProProxyAdaptor::doReplyToQuery (CommHelperError &error)
     }
 
     // Deallocate msg Ids
-    if (ppszMsgIds != NULL) {
-        for (uint32 i = 0; ppszMsgIds[i] != NULL ; i++) {
+    if (ppszMsgIds != nullptr) {
+        for (uint32 i = 0; ppszMsgIds[i] != nullptr ; i++) {
             free (ppszMsgIds[i]);
         }
         free (ppszMsgIds);
@@ -1248,7 +1790,7 @@ bool DSProProxyAdaptor::doReplyToQuery (CommHelperError &error)
     return bSucceded;
 }
 
-bool DSProProxyAdaptor::doReplyToVolatileQuery (CommHelperError &error)
+bool DSProProxyAdaptor::doReplyToVolatileQuery (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
@@ -1299,7 +1841,53 @@ bool DSProProxyAdaptor::doReplyToVolatileQuery (CommHelperError &error)
     return false;
 }
 
-bool DSProProxyAdaptor::doAddMessage (CommHelperError &error)
+bool DSProProxyAdaptor::doRegisterChunkFragmenter (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+    Reader *pReader = _pCommHelper->getReaderRef();
+    char *pszMimeType = nullptr;
+    if (pReader->readString (&pszMimeType) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    _pCommHelper->sendLine (error, "OK");
+    if (error != SimpleCommHelper2::None) {
+        free (pszMimeType);
+        return false;
+    }
+    if (0 == _pDSPro->registerChunkFragmenter (pszMimeType, this)) {
+        _mChunkers.lock();
+        _registeredChunkers.put (pszMimeType);
+        _mChunkers.unlock();
+    }
+    free (pszMimeType);
+    return true;
+}
+
+bool DSProProxyAdaptor::doRegisterChunkReassembler (CommHelperError & error)
+{
+    error = SimpleCommHelper2::None;
+    Reader *pReader = _pCommHelper->getReaderRef ();
+    char *pszMimeType = nullptr;
+    if (pReader->readString (&pszMimeType) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    _pCommHelper->sendLine (error, "OK");
+    if (error != SimpleCommHelper2::None) {
+        free (pszMimeType);
+        return false;
+    }
+    if (0 == _pDSPro->registerChunkReassembler (pszMimeType, this)) {
+        _mReassemblers.lock();
+        _registeredReassemblers.put (pszMimeType);
+        _mReassemblers.unlock();
+    }
+    free (pszMimeType);
+    return true;
+}
+
+bool DSProProxyAdaptor::doAddMessage (CommHelperError & error)
 {
     Reader *pReader = _pCommHelper->getReaderRef();
     String groupName;
@@ -1307,16 +1895,16 @@ bool DSProProxyAdaptor::doAddMessage (CommHelperError &error)
     String  instanceId;
     String sMetadata;
     uint32 ui32DataLen = 0;
-    void *pData = NULL;
+    void *pData = nullptr;
     int64 i64ExpirationTime = 0;
-    char *pMsgId = NULL;
+    char *pMsgId = nullptr;
 
     error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
 
-    error = readMetadataAsXMLString (pReader, sMetadata);
+    error = readMetadataAsString (pReader, sMetadata);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
@@ -1330,7 +1918,7 @@ bool DSProProxyAdaptor::doAddMessage (CommHelperError &error)
     // read the data
     if (ui32DataLen > 0) {
         pData = malloc (ui32DataLen);
-        if (pData == NULL) {
+        if (pData == nullptr) {
             checkAndLogMsg ("DSProProxyAdaptor::doAddMessage", memoryExhausted);
         }
         _pCommHelper->receiveBlob (pData, ui32DataLen, error);
@@ -1343,7 +1931,7 @@ bool DSProProxyAdaptor::doAddMessage (CommHelperError &error)
     // read the expiration time
     if (pReader->read64 (&i64ExpirationTime) != 0) {
         error = SimpleCommHelper2::CommError;
-        if (pData != NULL) {
+        if (pData != nullptr) {
             free (pData);
         }
         return false;
@@ -1352,7 +1940,7 @@ bool DSProProxyAdaptor::doAddMessage (CommHelperError &error)
     int rc = _pDSPro->addMessage (groupName, objectId, instanceId, sMetadata,
                                   pData, ui32DataLen, i64ExpirationTime, &pMsgId);
 
-    bool bSuccess = ((rc == 0) && (pMsgId != NULL));
+    bool bSuccess = ((rc == 0) && (pMsgId != nullptr));
 
     if (bSuccess) {
         _pCommHelper->sendLine (error, "OK");
@@ -1376,17 +1964,17 @@ bool DSProProxyAdaptor::doAddMessage (CommHelperError &error)
         }
     }
 
-    if (pData != NULL) {
-        delete[] (char*)pData;
+    if (pData != nullptr) {
+        free (pData);
     }
-    if (pMsgId != NULL) {
+    if (pMsgId != nullptr) {
         free (pMsgId);
     }
 
     return bSuccess;
 }
 
-bool DSProProxyAdaptor::doAddMessage_AVList (CommHelperError &error)
+bool DSProProxyAdaptor::doAddMessage_AVList (CommHelperError & error)
 {
     Reader *pReader = _pCommHelper->getReaderRef();
     String groupName;
@@ -1394,9 +1982,9 @@ bool DSProProxyAdaptor::doAddMessage_AVList (CommHelperError &error)
     String  instanceId;
     uint32 ui32Attributes = 0;
     uint32 ui32DataLen = 0;
-    void *pData = NULL;
+    void *pData = nullptr;
     int64 i64ExpirationTime = 0;
-    char *pMsgId = NULL;
+    char *pMsgId = nullptr;
 
     error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
     if (error != SimpleCommHelper2::None) {
@@ -1408,8 +1996,8 @@ bool DSProProxyAdaptor::doAddMessage_AVList (CommHelperError &error)
     if (pReader->read32 (&ui32Attributes) != 0) {
         return false;
     }
-    SQLAVList aVList (ui32Attributes);
-    error = readMetadataAsAvList (pReader, aVList, ui32Attributes);
+    AVList aVList;
+    error = DSPRO_PROXY_ADAPTOR::readMetadataAsAvList (pReader, aVList, ui32Attributes);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
@@ -1423,7 +2011,7 @@ bool DSProProxyAdaptor::doAddMessage_AVList (CommHelperError &error)
     // read the data
     if (ui32DataLen > 0) {
         pData = malloc (ui32DataLen);
-        if (pData == NULL) {
+        if (pData == nullptr) {
             return false;
         }
         _pCommHelper->receiveBlob (pData, ui32DataLen, error);
@@ -1436,19 +2024,19 @@ bool DSProProxyAdaptor::doAddMessage_AVList (CommHelperError &error)
     // read the expiration time
     if (pReader->read64 (&i64ExpirationTime) != 0) {
         error = SimpleCommHelper2::CommError;
-        if (pData != NULL) {
+        if (pData != nullptr) {
             free (pData);
         }
         return false;
     }
 
-    int rc = _pDSPro->addMessage (groupName.c_str(), objectId.c_str(), instanceId.c_str(),
-                                  &aVList, pData, ui32DataLen, i64ExpirationTime, &pMsgId);
+    int rc = _pDSPro->addMessage (groupName, objectId, instanceId, &aVList,
+                                  pData, ui32DataLen, i64ExpirationTime, &pMsgId);
 
-    if (pData != NULL) {
+    if (pData != nullptr) {
         free (pData);
     }
-    const bool bSuccess = ((rc == 0) && (pMsgId != NULL));
+    const bool bSuccess = ((rc == 0) && (pMsgId != nullptr));
 
     if (error == SimpleCommHelper2::None) {
         if (bSuccess) {
@@ -1467,13 +2055,371 @@ bool DSProProxyAdaptor::doAddMessage_AVList (CommHelperError &error)
         _pCommHelper->sendStringBlock (pMsgId, error);
     }
 
-    if (pMsgId != NULL) {
+    if (pMsgId != nullptr) {
         free (pMsgId);
     }
     return bSuccess;
 }
 
-bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError &error)
+bool DSProProxyAdaptor::doAddChunk (CommHelperError & error)
+{
+    return doAddChunkedMessage (error, true);
+}
+
+bool DSProProxyAdaptor::doAddChunk_AVList (CommHelperError & error)
+{
+    return doAddChunkedMessage_AVList (error, true);
+}
+
+bool DSProProxyAdaptor::doAddAdditionalChunk (CommHelperError & error)
+{
+    Reader *pReader = _pCommHelper->getReaderRef();
+
+    char *pszMsgId = nullptr;
+    int rc = pReader->readString (&pszMsgId);
+    String messageId (pszMsgId);
+    if (pszMsgId != nullptr) {
+        free (pszMsgId);
+    }
+    if ((rc < 0) || (messageId.length() <= 0)) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    uint8 ui8ChunkId = 0;
+    if (pReader->read8 (&ui8ChunkId) != 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    // read the metadata length
+    uint32 ui32MimeTypeLen = 0;
+    if (pReader->read32 (&ui32MimeTypeLen) != 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    // read the MIME type
+    String sDataMimeType;
+    if (ui32MimeTypeLen > 0) {
+        if (ui32MimeTypeLen > (BUF_LEN - 1)) {
+            return false;
+        }
+        _pCommHelper->receiveBlob (_buf, ui32MimeTypeLen, error);
+        if (error != SimpleCommHelper2::None) {
+            return false;
+        }
+        _buf[ui32MimeTypeLen] = '\0';
+        sDataMimeType = _buf;
+    }
+
+    // read the chunk
+    uint32 ui32DataLen = 0U;
+    if (pReader->read32 (&ui32DataLen) != 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    // read the data
+    void *pData = nullptr;
+    if (ui32DataLen > 0) {
+        pData = calloc (ui32DataLen, sizeof (char));
+        if (pData == nullptr) {
+            return false;
+        }
+        _pCommHelper->receiveBlob (pData, ui32DataLen, error);
+        if (error != SimpleCommHelper2::None) {
+            free (pData);
+            return false;
+        }
+    }
+    DSPro::Chunk *pChunk = new DSPro::Chunk;
+    if (pChunk != nullptr) {
+        pChunk->ui32ChunkLen = ui32DataLen;
+        pChunk->pChunkData = pData;
+    }
+
+    rc = _pDSPro->addAdditionalChunkedData (messageId.c_str(), pChunk, ui8ChunkId, sDataMimeType);
+
+    const bool bSuccess = (rc == 0);
+
+    if (error == SimpleCommHelper2::None) {
+        if (bSuccess) {
+            _pCommHelper->sendLine (error, "OK");
+        }
+        else {
+            return bSuccess;
+        }
+        if (error != SimpleCommHelper2::None) {
+            return bSuccess;
+        }
+    }
+
+    return true;
+}
+
+bool DSProProxyAdaptor::doAddChunkedMessage (CommHelperError & error, bool bSingleChunk)
+{
+    Reader *pReader = _pCommHelper->getReaderRef();
+
+    String groupName, objectId, instanceId;
+    error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    String sMetadata;
+    error = readMetadataAsString (pReader, sMetadata);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    // read chunkId, if necessary
+    uint8 ui8ChunkId = 0;
+    if (bSingleChunk  && (pReader->read8 (&ui8ChunkId) != 0)) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    // read the number of chunks
+    uint8 ui8NChunks = 0;
+    if (pReader->read8 (&ui8NChunks) != 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    DSPro::Chunk **ppChunks = (DSPro::Chunk **) calloc (ui8NChunks, sizeof (DSPro::Chunk*));
+    for (uint8 i = 0; i < (bSingleChunk ? 1 : ui8NChunks); i++) {
+        // read the data length
+        uint32 ui32DataLen = 0U;
+        if (pReader->read32 (&ui32DataLen) != 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+
+        // read the data
+        void *pData = nullptr;
+        if (ui32DataLen > 0) {
+            pData = calloc (ui32DataLen, sizeof (char));
+            if (pData == nullptr) {
+                return false;
+            }
+            _pCommHelper->receiveBlob (pData, ui32DataLen, error);
+            if (error != SimpleCommHelper2::None) {
+                free (pData);
+                return false;
+            }
+        }
+        ppChunks[i] = new DSPro::Chunk;
+        if (ppChunks[i] != nullptr) {
+            ppChunks[i]->ui32ChunkLen = ui32DataLen;
+            ppChunks[i]->pChunkData = pData;
+        }
+    }
+
+    // read the metadata length
+    uint32 ui32MimeTypeLen = 0;
+    if (pReader->read32 (&ui32MimeTypeLen) != 0) {
+        error = SimpleCommHelper2::CommError;
+        DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+        return false;
+    }
+
+    // read the MIME type
+    String sDataMimeType;
+    if (ui32MimeTypeLen > 0) {
+        if (ui32MimeTypeLen > (BUF_LEN - 1)) {
+            DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+            return false;
+        }
+        _pCommHelper->receiveBlob (_buf, ui32MimeTypeLen, error);
+        if (error != SimpleCommHelper2::None) {
+            DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+            return false;
+        }
+        _buf[ui32MimeTypeLen] = '\0';
+        sDataMimeType = _buf;
+    }
+
+    // read the expiration time
+    int64 i64ExpirationTime;
+    if (pReader->read64 (&i64ExpirationTime) != 0) {
+        error = SimpleCommHelper2::CommError;
+        DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+        return false;
+    }
+
+    char *pszMsgId = nullptr;
+    int rc = bSingleChunk ?
+        _pDSPro->addChunkedData (groupName.c_str(), objectId.c_str(), instanceId.c_str(),
+                                 sMetadata, (const DSPro::Chunk*) ppChunks[0], ui8ChunkId, ui8NChunks,
+                                 sDataMimeType.c_str(), i64ExpirationTime, &pszMsgId) :
+        _pDSPro->addChunkedData (groupName.c_str(), objectId.c_str(), instanceId.c_str(),
+                                 sMetadata.c_str(), (const DSPro::Chunk**) ppChunks, ui8NChunks,
+                                 sDataMimeType.c_str(), i64ExpirationTime, &pszMsgId);
+
+    DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+
+    const bool bSuccess = ((rc == 0) && (pszMsgId != nullptr));
+
+    if (error == SimpleCommHelper2::None) {
+        if (bSuccess) {
+            _pCommHelper->sendLine (error, "OK");
+        }
+        else {
+            return bSuccess;
+        }
+        if (error != SimpleCommHelper2::None) {
+            return bSuccess;
+        }
+    }
+
+    // write the msg id of the pushed data
+    if (error == SimpleCommHelper2::None) {
+        _pCommHelper->sendStringBlock (pszMsgId, error);
+    }
+    if (pszMsgId != nullptr) {
+        free (pszMsgId);
+    }
+
+    return (bSuccess && (error == SimpleCommHelper2::None));
+}
+
+bool  DSProProxyAdaptor::doAddChunkedMessage_AVList (CommHelperError & error, bool bSingleChunk)
+{
+    Reader *pReader = _pCommHelper->getReaderRef ();
+
+    String groupName, objectId, instanceId;
+    error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    // read the metadata
+    // Read the number of attributes
+    uint32 ui32Attributes = 0U;
+    if (pReader->read32 (&ui32Attributes) != 0) {
+        return false;
+    }
+    AVList aVList (ui32Attributes);
+    error = DSPRO_PROXY_ADAPTOR::readMetadataAsAvList (pReader, aVList, ui32Attributes);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    // read chunkId, if necessary
+    uint8 ui8ChunkId = 0;
+    if (bSingleChunk && (pReader->read8 (&ui8ChunkId) != 0)) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    // read the number of chunks
+    uint8 ui8NChunks = 0;
+    if (pReader->read8 (&ui8NChunks) != 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    DSPro::Chunk **ppChunks = (DSPro::Chunk **) calloc (ui8NChunks, sizeof (DSPro::Chunk*));
+    for (uint8 i = 0; i < (bSingleChunk ? 1 : ui8NChunks); i++) {
+        // read the data length
+        uint32 ui32DataLen = 0U;
+        if (pReader->read32 (&ui32DataLen) != 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+
+        // read the data
+        void *pData = nullptr;
+        if (ui32DataLen > 0) {
+            pData = calloc (ui32DataLen, sizeof (char));
+            if (pData == nullptr) {
+                return false;
+            }
+            _pCommHelper->receiveBlob (pData, ui32DataLen, error);
+            if (error != SimpleCommHelper2::None) {
+                free (pData);
+                return false;
+            }
+        }
+        ppChunks[i] = new DSPro::Chunk;
+        if (ppChunks[i] != nullptr) {
+            ppChunks[i]->ui32ChunkLen = ui32DataLen;
+            ppChunks[i]->pChunkData = pData;
+        }
+    }
+
+    // read the metadata length
+    uint32 ui32MimeTypeLen = 0;
+    if (pReader->read32 (&ui32MimeTypeLen) != 0) {
+        error = SimpleCommHelper2::CommError;
+        DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+        return false;
+    }
+
+    // read the MIME type
+    String sDataMimeType;
+    if (ui32MimeTypeLen > 0) {
+        if (ui32MimeTypeLen > (BUF_LEN - 1)) {
+            DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+            return false;
+        }
+        _pCommHelper->receiveBlob (_buf, ui32MimeTypeLen, error);
+        if (error != SimpleCommHelper2::None) {
+            DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+            return false;
+        }
+        _buf[ui32MimeTypeLen] = '\0';
+        sDataMimeType = _buf;
+    }
+
+    // read the expiration time
+    int64 i64ExpirationTime;
+    if (pReader->read64 (&i64ExpirationTime) != 0) {
+        error = SimpleCommHelper2::CommError;
+        DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+        return false;
+    }
+
+    char *pszMsgId = nullptr;
+    int rc = bSingleChunk ?
+        _pDSPro->addChunkedData (groupName.c_str(), objectId.c_str(), instanceId.c_str(),
+                                 &aVList, (const DSPro::Chunk*) ppChunks[0], ui8ChunkId, ui8NChunks,
+                                 sDataMimeType.c_str(), i64ExpirationTime, &pszMsgId) :
+        _pDSPro->addChunkedData (groupName.c_str(), objectId.c_str(), instanceId.c_str(),
+                                 &aVList, (const DSPro::Chunk**) ppChunks, ui8NChunks,
+                                 sDataMimeType.c_str(), i64ExpirationTime, &pszMsgId);
+
+    DSPRO_PROXY_ADAPTOR::deallocateChunks (ppChunks, ui8NChunks);
+
+    const bool bSuccess = ((rc == 0) && (pszMsgId != nullptr));
+
+    if (error == SimpleCommHelper2::None) {
+        if (bSuccess) {
+            _pCommHelper->sendLine (error, "OK");
+        }
+        else {
+            return bSuccess;
+        }
+        if (error != SimpleCommHelper2::None) {
+            return bSuccess;
+        }
+    }
+
+    // write the msg id of the pushed data
+    if (error == SimpleCommHelper2::None) {
+        _pCommHelper->sendStringBlock (pszMsgId, error);
+    }
+
+    if (pszMsgId != nullptr) {
+        free (pszMsgId);
+    }
+
+    return (bSuccess && (error == SimpleCommHelper2::None));
+}
+
+bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError & error)
 {
     Reader *pReader = _pCommHelper->getReaderRef();
     String groupName;
@@ -1481,17 +2427,17 @@ bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError &error)
     String  instanceId;
     String sMetadata;
     uint32 ui32DataLen;
-    void *pData = NULL;
+    void *pData = nullptr;
     String sDataMimeType;
     int64 i64ExpirationTime;
-    char *pszMsgId = NULL;
+    char *pszMsgId = nullptr;
 
     error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
 
-    error = readMetadataAsXMLString (pReader, sMetadata);
+    error = readMetadataAsString (pReader, sMetadata);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
@@ -1505,7 +2451,7 @@ bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError &error)
     // read the data
     if (ui32DataLen > 0) {
         pData = calloc (ui32DataLen, sizeof (char));
-        if (pData == NULL) {
+        if (pData == nullptr) {
             return false;
         }
         _pCommHelper->receiveBlob (pData, ui32DataLen, error);
@@ -1519,7 +2465,7 @@ bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError &error)
     uint32 ui32MimeTypeLen = 0;
     if (pReader->read32 (&ui32MimeTypeLen) != 0) {
         error = SimpleCommHelper2::CommError;
-        if (pData != NULL) {
+        if (pData != nullptr) {
             free (pData);
         }
         return false;
@@ -1528,14 +2474,14 @@ bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError &error)
     // read the MIME type
     if (ui32MimeTypeLen > 0) {
         if (ui32MimeTypeLen > (BUF_LEN-1)) {
-            if (pData != NULL) {
+            if (pData != nullptr) {
                 free (pData);
             }
             return false;
         }
         _pCommHelper->receiveBlob (_buf, ui32MimeTypeLen, error);
         if (error != SimpleCommHelper2::None) {
-            if (pData != NULL) {
+            if (pData != nullptr) {
                 free (pData);
             }
             return false;
@@ -1547,7 +2493,7 @@ bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError &error)
     // read the expiration time
     if (pReader->read64 (&i64ExpirationTime) != 0) {
         error = SimpleCommHelper2::CommError;
-        if (pData != NULL) {
+        if (pData != nullptr) {
             free (pData);
         }
         return false;
@@ -1556,37 +2502,36 @@ bool DSProProxyAdaptor::doChunkAndAddMessage (CommHelperError &error)
     int rc = _pDSPro->chunkAndAddMessage (groupName.c_str(), objectId.c_str(), instanceId.c_str(),
                                           sMetadata.c_str(), pData, ui32DataLen, sDataMimeType.c_str(),
                                           i64ExpirationTime, &pszMsgId);
-	if (pData != NULL) {
-		free(pData);
-	}
+    if (pData != nullptr) {
+        free(pData);
+    }
 
-    const bool bSuccess = ((rc == 0) && (pszMsgId != NULL));
+    const bool bSuccess = ((rc == 0) && (pszMsgId != nullptr));
+    if (error == SimpleCommHelper2::None) {
+        if (bSuccess) {
+            _pCommHelper->sendLine(error, "OK");
+        }
+        else {
+            return bSuccess;
+        }
+        if (error != SimpleCommHelper2::None) {
+            return bSuccess;
+        }
+    }
 
-	if (error == SimpleCommHelper2::None) {
-		if (bSuccess) {
-			_pCommHelper->sendLine(error, "OK");
-		}
-		else {
-			return bSuccess;
-		}
-		if (error != SimpleCommHelper2::None) {
-			return bSuccess;
-		}
-	}
+    // write the msg id of the pushed data
+    if (error == SimpleCommHelper2::None) {
+        _pCommHelper->sendStringBlock (pszMsgId, error);
+    }
 
-	// write the msg id of the pushed data
-	if (error == SimpleCommHelper2::None) {
-		_pCommHelper->sendStringBlock(pszMsgId, error);
-	}
-
-	if (pszMsgId != NULL) {
-		free(pszMsgId);
-	}
+    if (pszMsgId != nullptr) {
+        free(pszMsgId);
+    }
 
     return (bSuccess && (error == SimpleCommHelper2::None));
 }
 
-bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError &error)
+bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError & error)
 {
     Reader *pReader = _pCommHelper->getReaderRef();
     String groupName;
@@ -1594,10 +2539,10 @@ bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError &error)
     String  instanceId;
     uint32 ui32Attributes = 0;
     uint32 ui32DataLen;
-    void *pData = NULL;
+    void *pData = nullptr;
     String sDataMimeType;
     int64 i64ExpirationTime;
-    char *pszMsgId = NULL;
+    char *pszMsgId = nullptr;
 
     error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
     if (error != SimpleCommHelper2::None) {
@@ -1609,8 +2554,8 @@ bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError &error)
     if (pReader->read32 (&ui32Attributes) != 0) {
         return false;
     }
-    SQLAVList aVList (ui32Attributes);
-    error = readMetadataAsAvList (pReader, aVList, ui32Attributes);
+    AVList aVList (ui32Attributes);
+    error = DSPRO_PROXY_ADAPTOR::readMetadataAsAvList (pReader, aVList, ui32Attributes);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
@@ -1624,7 +2569,7 @@ bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError &error)
     // read the data
     if (ui32DataLen > 0) {
         pData = malloc (ui32DataLen);
-        if (pData == NULL) {
+        if (pData == nullptr) {
             return false;
         }
         _pCommHelper->receiveBlob (pData, ui32DataLen, error);
@@ -1638,7 +2583,7 @@ bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError &error)
     uint32 ui32MimeTypeLen = 0;
     if (pReader->read32 (&ui32MimeTypeLen) != 0) {
         error = SimpleCommHelper2::CommError;
-        if (pData != NULL) {
+        if (pData != nullptr) {
             free (pData);
         }
         return false;
@@ -1647,14 +2592,14 @@ bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError &error)
     // read the MIME type
     if (ui32MimeTypeLen > 0) {
         if (ui32MimeTypeLen > (BUF_LEN-1)) {
-            if (pData != NULL) {
+            if (pData != nullptr) {
                 free (pData);
             }
             return false;
         }
         _pCommHelper->receiveBlob (_buf, ui32MimeTypeLen, error);
         if (error != SimpleCommHelper2::None) {
-            if (pData != NULL) {
+            if (pData != nullptr) {
                 free (pData);
             }
             return false;
@@ -1666,39 +2611,38 @@ bool DSProProxyAdaptor::doChunkAndAddMessage_AVList (CommHelperError &error)
     // read the expiration time
     if (pReader->read64 (&i64ExpirationTime) != 0) {
         error = SimpleCommHelper2::CommError;
-        if (pData != NULL) {
+        if (pData != nullptr) {
             free (pData);
         }
         return false;
     }
 
-    int rc = _pDSPro->chunkAndAddMessage (groupName.c_str(), objectId.c_str(), instanceId.c_str(),
-                                          &aVList, pData, ui32DataLen, sDataMimeType.c_str(), i64ExpirationTime,
+    int rc = _pDSPro->chunkAndAddMessage (groupName, objectId, instanceId,
+                                          &aVList, pData, ui32DataLen, sDataMimeType, i64ExpirationTime,
                                           &pszMsgId);
- 
-    const bool bSuccess = ((rc == 0) && (pszMsgId != NULL));
 
-	if (error == SimpleCommHelper2::None) {
-		if (bSuccess) {
-			_pCommHelper->sendLine (error, "OK");
+    const bool bSuccess = ((rc == 0) && (pszMsgId != nullptr));
 
-			// write the msg id of the pushed data
-			if (error == SimpleCommHelper2::None) {
-				_pCommHelper->sendStringBlock(pszMsgId, error);
-			}
-		}
-	}
+    if (error == SimpleCommHelper2::None) {
+        if (bSuccess) {
+            _pCommHelper->sendLine (error, "OK");
+            // write the msg id of the pushed data
+            if (error == SimpleCommHelper2::None) {
+                _pCommHelper->sendStringBlock(pszMsgId, error);
+            }
+        }
+    }
 
-    if (pData != NULL) {
+    if (pData != nullptr) {
         free (pData);
     }
-    if (pszMsgId != NULL) {
+    if (pszMsgId != nullptr) {
         free (pszMsgId);
     }
     return (bSuccess && (error == SimpleCommHelper2::None));
 }
 
-bool DSProProxyAdaptor::doAddAnnotation (CommHelperError &error)
+bool DSProProxyAdaptor::doAddAnnotation (CommHelperError & error)
 {
     Reader *pReader = _pCommHelper->getReaderRef();
     String groupName;
@@ -1708,14 +2652,14 @@ bool DSProProxyAdaptor::doAddAnnotation (CommHelperError &error)
     uint32 ui32RefObj = 0;
     String sReferredObj;
     int64 i64ExpirationTime;
-    char *pMsgId = NULL;
+    char *pMsgId = nullptr;
 
     error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
 
-    error = readMetadataAsXMLString (pReader, sMetadata);
+    error = readMetadataAsString (pReader, sMetadata);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
@@ -1752,7 +2696,7 @@ bool DSProProxyAdaptor::doAddAnnotation (CommHelperError &error)
                                      sReferredObj.c_str(), i64ExpirationTime,
                                      &pMsgId);
 
-    bool bSuccess = ((rc == 0) && (pMsgId != NULL));
+    bool bSuccess = ((rc == 0) && (pMsgId != nullptr));
 
     if (bSuccess) {
         _pCommHelper->receiveMatch (error, "OK");
@@ -1776,14 +2720,14 @@ bool DSProProxyAdaptor::doAddAnnotation (CommHelperError &error)
         }
     }
 
-    if (pMsgId != NULL) {
+    if (pMsgId != nullptr) {
         free (pMsgId);
     }
 
     return bSuccess;
 }
 
-bool DSProProxyAdaptor::doAddAnnotationRef (CommHelperError &error)
+bool DSProProxyAdaptor::doAddAnnotationRef (CommHelperError & error)
 {
     Reader *pReader = _pCommHelper->getReaderRef();
     String groupName;
@@ -1792,14 +2736,14 @@ bool DSProProxyAdaptor::doAddAnnotationRef (CommHelperError &error)
     String sMetadata;
     String sReferredObj;
     int64 i64ExpirationTime;
-    char *pMsgId = NULL;
+    char *pMsgId = nullptr;
 
     error = readGroupObjectIdInstanceId (groupName, objectId, instanceId);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
 
-    error = readMetadataAsXMLString (pReader, sMetadata);
+    error = readMetadataAsString (pReader, sMetadata);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
@@ -1835,7 +2779,7 @@ bool DSProProxyAdaptor::doAddAnnotationRef (CommHelperError &error)
                                      sReferredObj.c_str(), i64ExpirationTime,
                                      &pMsgId);
 
-    bool bSuccess = ((rc == 0) && (pMsgId != NULL));
+    bool bSuccess = ((rc == 0) && (pMsgId != nullptr));
 
     if (bSuccess) {
         _pCommHelper->receiveMatch (error, "OK");
@@ -1859,14 +2803,51 @@ bool DSProProxyAdaptor::doAddAnnotationRef (CommHelperError &error)
         }
     }
 
-    if (pMsgId != NULL) {
+    if (pMsgId != nullptr) {
         free (pMsgId);
     }
 
     return bSuccess;
 }
 
-bool DSProProxyAdaptor::doGetNodeId (CommHelperError &error)
+bool DSProProxyAdaptor::doGetNodeContext (CommHelperError & error)
+{
+    Reader *pReader = _pCommHelper->getReaderRef();
+    if (pReader == nullptr) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    char *pszNodeId = nullptr;
+    if (pReader->readString (&pszNodeId) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    const String nodeId (pszNodeId);
+    if (pszNodeId != nullptr) {
+        free (pszNodeId);
+    }
+    _pCommHelper->sendLine (error, "OK");
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    // write the node context of the specified node (or
+    // the context of the local node if nodeId is null)
+    const String ctxtAsJson (_pDSPro->getNodeContext (nodeId));
+    _pCommHelper->sendStringBlock (ctxtAsJson, error);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    _pCommHelper->receiveMatch (error, "OK");
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    return true;
+}
+
+bool DSProProxyAdaptor::doGetNodeId (CommHelperError & error)
 {
     _pCommHelper->sendLine (error, "OK");
     if (error != SimpleCommHelper2::None) {
@@ -1875,7 +2856,7 @@ bool DSProProxyAdaptor::doGetNodeId (CommHelperError &error)
 
     // write the msg id of the pushed data
     const char *pszNodeId = _pDSPro->getNodeId();
-    if (pszNodeId == NULL) {
+    if (pszNodeId == nullptr) {
         return false;
     }
     _pCommHelper->sendStringBlock (pszNodeId, error);
@@ -1891,7 +2872,43 @@ bool DSProProxyAdaptor::doGetNodeId (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doGetPathForPeer (CommHelperError &error)
+bool DSProProxyAdaptor::doGetPeerMsgCounts (CommHelperError & error)
+{
+    Reader *pReader = _pCommHelper->getReaderRef();
+    if (pReader == nullptr) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    char *pszNodeId = nullptr;
+    if (pReader->readString (&pszNodeId) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    const String nodeId (pszNodeId);
+    if (pszNodeId != nullptr) {
+        free (pszNodeId);
+    }
+    _pCommHelper->sendLine (error, "OK");
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    // write the message counts for the specified node
+    const String sPeerMsgCountsAsJson{_pDSPro->getPeerMsgCounts (nodeId)};
+    _pCommHelper->sendStringBlock (sPeerMsgCountsAsJson, error);
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    _pCommHelper->receiveMatch (error, "OK");
+    if (error != SimpleCommHelper2::None) {
+        return false;
+    }
+
+    return true;
+}
+
+bool DSProProxyAdaptor::doGetPathForPeer (CommHelperError & error)
 {
     Writer *pWriter = _pCommHelper->getWriterRef();
 
@@ -1901,8 +2918,11 @@ bool DSProProxyAdaptor::doGetPathForPeer (CommHelperError &error)
         return false;
     }
 
+    int iPathLen = 0;
+    bool bSuccess = false;
+
     NodeContext *pNodeContext = _pDSPro->_pImpl->_pNodeContextMgr->getPeerNodeContext (line);
-    if (pNodeContext == NULL) {
+    if (pNodeContext == nullptr) {
         _pDSPro->_pImpl->_pNodeContextMgr->releasePeerNodeContextList();
         checkAndLogMsg ("DSProProxyAdaptor::doGetPathForPeer", Logger::L_Info,
                         "no path for peer %s\n", line);
@@ -1912,44 +2932,44 @@ bool DSProProxyAdaptor::doGetPathForPeer (CommHelperError &error)
         }
         return true;
     }
-
-    NodePath *pActualPath = pNodeContext->getPath();
-    if (pActualPath == NULL) {
-        _pDSPro->_pImpl->_pNodeContextMgr->releasePeerNodeContextList();
+    NodePath *pCurrPath = pNodeContext->getPath();
+    if ((pCurrPath == nullptr) || ((iPathLen = pCurrPath->getPathLength()) <= 0)) {
+        _pCommHelper->sendLine (error, "NOPATH");
         checkAndLogMsg ("DSProProxyAdaptor::doGetPathForPeer", Logger::L_Info,
                         "no path for peer %s\n", line);
-        _pCommHelper->sendLine (error, "NOPATH");
         if (error != SimpleCommHelper2::None) {
+            _pDSPro->_pImpl->_pNodeContextMgr->releasePeerNodeContextList();
             return false;
         }
-        return true;
+        bSuccess = true;
+    }
+    else {
+        _pCommHelper->sendLine (error, "OK");
+        if (error == SimpleCommHelper2::None) {
+            checkAndLogMsg ("DSProProxyAdaptor::doGetPathForPeer", Logger::L_Info,
+                            "sending path of length %d for peer %s\n", iPathLen, line);
+            if (DSProProxyUnmarshaller::write (pCurrPath, pWriter) < 0) {
+                error = SimpleCommHelper2::CommError;
+            }
+            else {
+                bSuccess = true;
+            }
+        }
     }
 
-    _pCommHelper->sendLine (error, "OK");
-    if (error != SimpleCommHelper2::None) {
-        _pDSPro->_pImpl->_pNodeContextMgr->releasePeerNodeContextList();
-        return false;
-    }
-
-    checkAndLogMsg ("DSProProxyAdaptor::doGetPathForPeer", Logger::L_Info,
-                    "sending path of length %d for peer %s\n",
-                    pActualPath->getPathLength(), line);
-    if (pActualPath->write (pWriter) < 0) {
-        _pDSPro->_pImpl->_pNodeContextMgr->releasePeerNodeContextList();
-        error = SimpleCommHelper2::CommError;
-        return false;
-    }
-
-    _pCommHelper->receiveMatch (error, "OK");
     _pDSPro->_pImpl->_pNodeContextMgr->releasePeerNodeContextList();
-    if (error != SimpleCommHelper2::None) {
-        return false;
+
+    if (bSuccess) {
+        _pCommHelper->receiveMatch (error, "OK");
+        if (error != SimpleCommHelper2::None) {
+            return false;
+        }
     }
 
-    return true;
+    return bSuccess;
 }
 
-bool DSProProxyAdaptor::doSessionId (CommHelperError &error)
+bool DSProProxyAdaptor::doGetSessionId (CommHelperError & error)
 {
     _pCommHelper->sendLine (error, "OK");
     if (error != SimpleCommHelper2::None) {
@@ -1971,10 +2991,10 @@ bool DSProProxyAdaptor::doSessionId (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doGetPeerList (CommHelperError &error)
+bool DSProProxyAdaptor::doGetPeerList (CommHelperError & error)
 {
     Writer *pWriter = _pCommHelper->getWriterRef();
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return false;
     }
 
@@ -1985,16 +3005,16 @@ bool DSProProxyAdaptor::doGetPeerList (CommHelperError &error)
 
     char **ppszPeerList = _pDSPro->getPeerList();
     unsigned int uiPeerCounter = 0;
-    if (ppszPeerList != NULL) {
-        for (unsigned int i = 0; ppszPeerList[i] != NULL; i++) {
+    if (ppszPeerList != nullptr) {
+        for (unsigned int i = 0; ppszPeerList[i] != nullptr; i++) {
             if (strcmp (ppszPeerList[i], "") != 0) {
                 uiPeerCounter++;
             }
         }
     }
     if (pWriter->write32 (&uiPeerCounter) != 0) {
-        if (ppszPeerList != NULL) {
-            for (int i = 0; ppszPeerList[i] != NULL; i++) {
+        if (ppszPeerList != nullptr) {
+            for (int i = 0; ppszPeerList[i] != nullptr; i++) {
                 free (ppszPeerList[i]);
             }
             free (ppszPeerList);
@@ -2003,14 +3023,14 @@ bool DSProProxyAdaptor::doGetPeerList (CommHelperError &error)
         return false;
     }
     if (uiPeerCounter > 0) {
-        for (unsigned int i = 0; ppszPeerList[i] != NULL; i++) {
+        for (unsigned int i = 0; ppszPeerList[i] != nullptr; i++) {
             unsigned int uiStrLen = strlen (ppszPeerList[i]);
             if (uiStrLen > 0) {
                 if ((pWriter->write32 (&uiStrLen) != 0) ||
                     (pWriter->writeBytes (ppszPeerList[i], uiStrLen) != 0)) {
                     // Free the current element and the remaining ones
                     free (ppszPeerList[i]);
-                    for (i++; ppszPeerList[i] != NULL; i++) {
+                    for (i++; ppszPeerList[i] != nullptr; i++) {
                         free (ppszPeerList[i]);
                     }
                     free (ppszPeerList);
@@ -2021,10 +3041,10 @@ bool DSProProxyAdaptor::doGetPeerList (CommHelperError &error)
             free (ppszPeerList[i]);
         }
         free (ppszPeerList);
-        ppszPeerList = NULL;
+        ppszPeerList = nullptr;
     }
-    else if (ppszPeerList !=  NULL) {
-        for (int i = 0; ppszPeerList[i] != NULL; i++) {
+    else if (ppszPeerList !=  nullptr) {
+        for (int i = 0; ppszPeerList[i] != nullptr; i++) {
             free (ppszPeerList[i]);
         }
         free (ppszPeerList);
@@ -2034,11 +3054,11 @@ bool DSProProxyAdaptor::doGetPeerList (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doRequestCustomAreaChunk (CommHelperError &error)
+bool DSProProxyAdaptor::doRequestCustomAreaChunk (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return false;
     }
     uint32 ui32StartXPixel = 0U;
@@ -2047,8 +3067,8 @@ bool DSProProxyAdaptor::doRequestCustomAreaChunk (CommHelperError &error)
     uint32 ui32EndYPixel = 0U;
     uint8 ui8CompressionQuality = 0;
     int64 i64Timeout = 0;
-    char *pszMsgId = NULL;
-    char *pszMIMEType = NULL;
+    char *pszMsgId = nullptr;
+    char *pszMIMEType = nullptr;
     bool bSuccess = false;
     if ((pReader->readString (&pszMsgId) == 0) &&
         (pReader->readString (&pszMIMEType) == 0) &&
@@ -2075,27 +3095,27 @@ bool DSProProxyAdaptor::doRequestCustomAreaChunk (CommHelperError &error)
         }
     }
 
-    if (pszMsgId != NULL) {
+    if (pszMsgId != nullptr) {
         free (pszMsgId);
     }
-    if (pszMIMEType != NULL) {
+    if (pszMIMEType != nullptr) {
         free (pszMIMEType);
     }
     return bSuccess;
 }
 
-bool DSProProxyAdaptor::doRequestCustomTimeChunk (CommHelperError &error)
+bool DSProProxyAdaptor::doRequestCustomTimeChunk (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Reader *pReader = _pCommHelper->getReaderRef();
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return false;
     }
     int64 i64StartTime = 0U;
     int64 i64EndTime = 0U;
     uint8 ui8CompressionQuality = 0;
-    char *pszMsgId = NULL;
-    char *pszMIMEType = NULL;
+    char *pszMsgId = nullptr;
+    char *pszMIMEType = nullptr;
     int64 i64Timeout = 0;
     bool bSuccess = false;
     if ((pReader->readString (&pszMsgId) == 0) &&
@@ -2122,16 +3142,16 @@ bool DSProProxyAdaptor::doRequestCustomTimeChunk (CommHelperError &error)
         }
     }
 
-    if (pszMsgId != NULL) {
+    if (pszMsgId != nullptr) {
         free (pszMsgId);
     }
-    if (pszMIMEType != NULL) {
+    if (pszMIMEType != nullptr) {
         free (pszMIMEType);
     }
     return bSuccess;
 }
 
-bool DSProProxyAdaptor::doRequestMoreChunks (CommHelperError &error)
+bool DSProProxyAdaptor::doRequestMoreChunks (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     char buf[100];
@@ -2147,8 +3167,8 @@ bool DSProProxyAdaptor::doRequestMoreChunks (CommHelperError &error)
         return false;
     }
 
-    char *pszSearchId = NULL;
-    if (_pCommHelper->getReaderRef ()->readString (&pszSearchId) < 0) {
+    char *pszSearchId = nullptr;
+    if (_pCommHelper->getReaderRef()->readString (&pszSearchId) < 0) {
         error = SimpleCommHelper2::CommError;
         return false;
     }
@@ -2162,6 +3182,49 @@ bool DSProProxyAdaptor::doRequestMoreChunks (CommHelperError &error)
     }
 
     return true;
+}
+
+bool DSProProxyAdaptor::doSubscribe (CommHelperError & error)
+{
+    Reader *pReader = _pCommHelper->getReaderRef();
+
+    char *pszGroupName = nullptr;
+    if (pReader->readString (&pszGroupName) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    const String groupName (pszGroupName);
+    free (pszGroupName);
+
+    uint8 ui8Priority;
+    if (pReader->read8(&ui8Priority) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    bool bGroupReliable, bMsgReliable, bSequenced;
+    if (pReader->readBool (&bGroupReliable) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readBool (&bMsgReliable) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+    if (pReader->readBool (&bSequenced) < 0) {
+        error = SimpleCommHelper2::CommError;
+        return false;
+    }
+
+    int rc = _pDSPro->subscribe (groupName, ui8Priority, bGroupReliable, bMsgReliable, bSequenced);
+    if (rc == 0) {
+        _pCommHelper->sendLine (error, "OK");
+    }
+    else {
+        _pCommHelper->sendLine (error, "ERROR %d", rc);
+    }
+
+    return (error == SimpleCommHelper2::None);
 }
 
 bool DSProProxyAdaptor::doRegisterPathRegisteredCallback()
@@ -2182,7 +3245,7 @@ bool DSProProxyAdaptor::doRegisterCtrlMsgCallback()
     if (_bCtrlMsgListenerRegistered) {
         return true;
     }
-    if (pCtrlMsgNotifier == NULL) {
+    if (pCtrlMsgNotifier == nullptr) {
         return false;
     }
 
@@ -2198,7 +3261,7 @@ bool DSProProxyAdaptor::doRegisterMatchmakingLogCallback()
     if (_bMatchmakingLogListenerRegistered) {
         return true;
     }
-    if (pInstrumentator == NULL) {
+    if (pInstrumentator == nullptr) {
         return false;
     }
 
@@ -2230,11 +3293,11 @@ bool DSProProxyAdaptor::doDeregisterSearchCallback()
     return true;
 }
 
-bool DSProProxyAdaptor::doResetTransmissionCounters (CommHelperError &error)
+bool DSProProxyAdaptor::doResetTransmissionCounters (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Writer *pWriter = _pCommHelper->getWriterRef();
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return false;
     }
 
@@ -2247,33 +3310,33 @@ bool DSProProxyAdaptor::doResetTransmissionCounters (CommHelperError &error)
     return true;
 }
 
-bool DSProProxyAdaptor::doGetDSProIds (CommHelperError &error)
+bool DSProProxyAdaptor::doGetDSProIds (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
     Writer *pWriter = _pCommHelper->getWriterRef();
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return false;
     }
 
     uint32 ui32;
     String objectId;
     String instanceId;
-    char **ppszIds = NULL;
-    
+    char **ppszIds = nullptr;
+
 
     error = readObjectIdInstanceId (objectId, instanceId);
     if (error != SimpleCommHelper2::None) {
         return false;
     }
 
-    ppszIds = _pDSPro->getDSProIds ((objectId.length() > 0 ? objectId.c_str() : NULL),
-                                    (instanceId.length() > 0 ? instanceId.c_str() : NULL));
+    ppszIds = _pDSPro->getDSProIds ((objectId.length() > 0 ? objectId.c_str() : nullptr),
+                                    (instanceId.length() > 0 ? instanceId.c_str() : nullptr));
 
     bool bSuccess = true;
     _pCommHelper->sendLine (error, "OK");
     if (error == SimpleCommHelper2::None) {
-        if (ppszIds != NULL) {
-            for (unsigned int i = 0; ppszIds[i] != NULL; i++) {
+        if (ppszIds != nullptr) {
+            for (unsigned int i = 0; ppszIds[i] != nullptr; i++) {
                 _pCommHelper->sendStringBlock (ppszIds[i], error);
                 if (error != SimpleCommHelper2::None) {
                     bSuccess = false;
@@ -2300,8 +3363,8 @@ bool DSProProxyAdaptor::doGetDSProIds (CommHelperError &error)
         bSuccess = false;
     }
 
-    if (ppszIds != NULL) {
-        for (unsigned int i = 0; ppszIds[i] != NULL; i++) {
+    if (ppszIds != nullptr) {
+        for (unsigned int i = 0; ppszIds[i] != nullptr; i++) {
             free (ppszIds[i]);
         }
         free (ppszIds);
@@ -2313,20 +3376,20 @@ bool DSProProxyAdaptor::doGetDSProIds (CommHelperError &error)
 int DSProProxyAdaptor::dataArrived (const char *pszId, const char *pszGroupName,
                                     const char *pszObjectId, const char *pszInstanceId,
                                     const char *pszAnnotatedObjMsgId, const char *pszMimeType,
-                                    const void *pBuf, uint32 ui32Len, uint8 ui8NChunks,
+                                    const void *pBuf, uint32 ui32Len, uint8 ui8ChunkIndex,
                                     uint8 ui8TotNChunks, const char *pszQueryId)
 {
-    if (pszId == NULL || pBuf == NULL || ui32Len == 0) {
+    if (pszId == nullptr || pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (_pCallbackCommHelper == NULL) {
+    if (_pCallbackCommHelper == nullptr) {
         return -2;
     }
 
     CommHelperError error = SimpleCommHelper2::None;
     Writer *pWriter = _pCallbackCommHelper->getWriterRef();
 
-    _pCallbackCommHelper->sendLine (error, "dataArrivedCallback");
+    _pCallbackCommHelper->sendLine (error, DSProProxyUnmarshaller::DATA_ARRIVED);
     if (error != SimpleCommHelper2::None) {
         return -3;
     }
@@ -2366,7 +3429,7 @@ int DSProProxyAdaptor::dataArrived (const char *pszId, const char *pszGroupName,
     }
 
     //send the ui16HistoryWindow
-    if (pWriter->write8 (&ui8NChunks) != 0) {
+    if (pWriter->write8 (&ui8ChunkIndex) != 0) {
         return -12;
     }
 
@@ -2394,7 +3457,7 @@ int DSProProxyAdaptor::metadataArrived (const char *pszId, const char *pszGroupN
                                         const char *pszXMLMetadada, const char *pszReferredDataId,
                                         const char *pszQueryId)
 {
-    if (pszId == NULL || pszXMLMetadada == NULL || pszReferredDataId == NULL) {
+    if (pszId == nullptr || pszXMLMetadada == nullptr || pszReferredDataId == nullptr) {
         return -1;
     }
     uint32 ui32MetadataLen = strlen (pszXMLMetadada);
@@ -2402,12 +3465,12 @@ int DSProProxyAdaptor::metadataArrived (const char *pszId, const char *pszGroupN
         return -2;
     }
 
-    if (_pCallbackCommHelper == NULL) {
+    if (_pCallbackCommHelper == nullptr) {
         return -3;
     }
 
     CommHelperError error = SimpleCommHelper2::None;
-    _pCallbackCommHelper->sendLine (error, "metadataArrivedCallback");
+    _pCallbackCommHelper->sendLine (error, DSProProxyUnmarshaller::METADATA_ARRIVED);
     if (error != SimpleCommHelper2::None) {
         return -14;
     }
@@ -2448,9 +3511,73 @@ int DSProProxyAdaptor::metadataArrived (const char *pszId, const char *pszGroupN
     return 0;
 }
 
+int DSProProxyAdaptor::dataAvailable (const char *pszId, const char *pszGroupName,
+                                      const char *pszObjectId, const char *pszInstanceId,
+                                      const char *pszReferredDataId, const char *pszMimeType,
+                                      const void *pMetadata, uint32 ui32MetadataLength,
+                                      const char *pszQueryId)
+{
+    if (pszId == nullptr || pMetadata == nullptr || ui32MetadataLength == 0U || pszReferredDataId == nullptr) {
+        return -1;
+    }
+
+    if (_pCallbackCommHelper == nullptr) {
+        return -3;
+    }
+
+    CommHelperError error = SimpleCommHelper2::None;
+    _pCallbackCommHelper->sendLine (error, DSProProxyUnmarshaller::DATA_AVAILABLE);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+    _pCallbackCommHelper->sendStringBlock (pszId, error);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+    _pCallbackCommHelper->sendStringBlock (pszGroupName, error);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+    _pCallbackCommHelper->sendStringBlock (pszObjectId, error);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+    _pCallbackCommHelper->sendStringBlock (pszInstanceId, error);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+    _pCallbackCommHelper->sendStringBlock (pszReferredDataId, error);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+    _pCallbackCommHelper->sendStringBlock (pszMimeType, error);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+    if (_pCallbackCommHelper->getWriterRef()->write32 (&ui32MetadataLength) != 0) {
+        return -10;
+    }
+    //send the metadata.
+    _pCallbackCommHelper->sendBlob (pMetadata, ui32MetadataLength, error);
+    if (error != SimpleCommHelper2::None) {
+        return -11;
+    }
+    _pCallbackCommHelper->sendStringBlock (pszQueryId, error);
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+
+    _pCallbackCommHelper->receiveMatch (error, "OK");
+    if (error != SimpleCommHelper2::None) {
+        return -14;
+    }
+
+    return 0;
+}
+
 void DSProProxyAdaptor::newPeer (const char *pszPeerNodeId)
 {
-    if (pszPeerNodeId == NULL || _pCallbackCommHelper == NULL) {
+    if (pszPeerNodeId == nullptr || _pCallbackCommHelper == nullptr) {
         return;
     }
     uint32 ui32PeerIdLen = strlen (pszPeerNodeId);
@@ -2477,12 +3604,12 @@ void DSProProxyAdaptor::newPeer (const char *pszPeerNodeId)
     if (error != SimpleCommHelper2::None) {
         return;
     }
-    
+
 }
 
 void DSProProxyAdaptor::deadPeer (const char *pszPeerNodeId)
 {
-    if (pszPeerNodeId == NULL || _pCallbackCommHelper == NULL) {
+    if (pszPeerNodeId == nullptr || _pCallbackCommHelper == nullptr) {
         return;
     }
     uint32 ui32PeerIdLen = strlen (pszPeerNodeId);
@@ -2490,7 +3617,7 @@ void DSProProxyAdaptor::deadPeer (const char *pszPeerNodeId)
         return;
     }
 
-    if (_pCallbackCommHelper == NULL) {
+    if (_pCallbackCommHelper == nullptr) {
         return;
     }
 
@@ -2513,18 +3640,22 @@ void DSProProxyAdaptor::deadPeer (const char *pszPeerNodeId)
 
 bool DSProProxyAdaptor::pathRegistered (NodePath *pNodePath, const char *pszNodeId, const char *pszTeam, const char *pszMission)
 {
-    if (_pCallbackCommHelper == NULL) {
+    if ((_pCallbackCommHelper == nullptr) || (pNodePath == nullptr)) {
         return false;
     }
 
     Writer *pWriter = _pCallbackCommHelper->getWriterRef();
+    if (pWriter == nullptr) {
+        return false;
+    }
 
     CommHelperError error = SimpleCommHelper2::None;
     _pCallbackCommHelper->sendLine (error, "pathRegisteredCallback");
     if (error != SimpleCommHelper2::None) {
         return false;
     }
-    if (pNodePath->write (pWriter) < 0) {
+
+    if (DSProProxyUnmarshaller::write (pNodePath, pWriter) < 0) {
         return false;
     }
     _pCallbackCommHelper->sendStringBlock (pszNodeId, error);
@@ -2539,28 +3670,24 @@ bool DSProProxyAdaptor::pathRegistered (NodePath *pNodePath, const char *pszNode
     if (error != SimpleCommHelper2::None) {
         return false;
     }
-    _pCallbackCommHelper->receiveMatch (error, "OK");
-    if (error != SimpleCommHelper2::None) {
-        return false;
-    }
 
     return true;
 }
 
 bool DSProProxyAdaptor::positionUpdated (float latitude, float longitude, float altitude, const char *pszNodeId)
 {
-    if (_pCallbackCommHelper == NULL) {
+    if (_pCallbackCommHelper == nullptr) {
         return false;
     }
 
     Writer *pWriter = _pCallbackCommHelper->getWriterRef();
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return false;
     }
 
     CommHelperError error = SimpleCommHelper2::None;
     _pCallbackCommHelper->sendLine (error, "positionUpdatedCallback");
-    if ((pWriter->write32 (&latitude) != 0) || 
+    if ((pWriter->write32 (&latitude) != 0) ||
         (pWriter->write32 (&longitude)) ||
         (pWriter->write32 (&altitude))) {
         return false;
@@ -2695,7 +3822,7 @@ void DSProProxyAdaptor::searchArrived (const char *pszQueryId, const char *pszGr
 
 void DSProProxyAdaptor::searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds, const char *pszMatchingNodeId)
 {
-    if ((pszQueryId == NULL) || (ppszMatchingMessageIds == NULL) || (ppszMatchingMessageIds[0] == NULL) || (pszMatchingNodeId == NULL)) {
+    if ((pszQueryId == nullptr) || (ppszMatchingMessageIds == nullptr) || (ppszMatchingMessageIds[0] == nullptr) || (pszMatchingNodeId == nullptr)) {
         return;
     }
     CommHelperError error = SimpleCommHelper2::None;
@@ -2707,7 +3834,7 @@ void DSProProxyAdaptor::searchReplyArrived (const char *pszQueryId, const char *
     if (error != SimpleCommHelper2::None) {
         return;
     }
-    for (unsigned int i = 0; ppszMatchingMessageIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszMatchingMessageIds[i] != nullptr; i++) {
         _pCallbackCommHelper->sendStringBlock (ppszMatchingMessageIds[i], error);
         if (error != SimpleCommHelper2::None) {
             return;
@@ -2722,7 +3849,7 @@ void DSProProxyAdaptor::searchReplyArrived (const char *pszQueryId, const char *
 
 void DSProProxyAdaptor::volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId)
 {
-    if ((pszQueryId == NULL) || (pReply == NULL) || (ui162ReplyLen == 0)) {
+    if ((pszQueryId == nullptr) || (pReply == nullptr) || (ui162ReplyLen == 0)) {
         return;
     }
     CommHelperError error = SimpleCommHelper2::None;
@@ -2743,11 +3870,11 @@ void DSProProxyAdaptor::volatileSearchReplyArrived (const char *pszQueryId, cons
 
 bool DSProProxyAdaptor::ctrlMsgArrived (const char *pszType, const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
-    if (pszType == NULL || pszSenderNodeId == NULL || pszPublisherNodeId == NULL) {
+    if (pszType == nullptr || pszSenderNodeId == nullptr || pszPublisherNodeId == nullptr) {
         return false;
     }
 
-    if (_pCallbackCommHelper == NULL) {
+    if (_pCallbackCommHelper == nullptr) {
         return false;
     }
 
@@ -2768,7 +3895,61 @@ bool DSProProxyAdaptor::ctrlMsgArrived (const char *pszType, const char *pszSend
     return true;
 }
 
-bool DSProProxyAdaptor::doGetDisService (CommHelperError &error)
+PtrLList<Chunker::Fragment> * DSProProxyAdaptor::fragmentBuffer (const void *pBuf, uint32 ui32Len,
+                                                                 const char *pszInputChunkMimeType, uint8 ui8NoOfChunks,
+                                                                 const char *pszOutputChunkMimeType, uint8 ui8ChunkCompressionQuality)
+{
+    CommHelperError error = SimpleCommHelper2::None;
+    _pCallbackCommHelper->sendLine (error, "fragmentFromBuffer");
+    if (error != SimpleCommHelper2::None) {
+        return nullptr;
+    }
+    ChunkerMarshaling marshaller (_pCallbackCommHelper);
+    return marshaller.fragmentBuffer (pBuf, ui32Len, pszInputChunkMimeType, ui8NoOfChunks, pszOutputChunkMimeType, ui8ChunkCompressionQuality);
+}
+
+PtrLList<Chunker::Fragment> * DSProProxyAdaptor::fragmentFile (const char *pszFileName, const char *pszInputChunkMimeType,
+                                                               uint8 ui8NoOfChunks, const char *pszOutputChunkMimeType,
+                                                               uint8 ui8ChunkCompressionQuality)
+{
+    // TODO: implement this
+    return nullptr;
+}
+
+Chunker::Fragment * DSProProxyAdaptor::extractFromBuffer (const void *pBuf, uint32 ui32Len, const char *pszInputChunkMimeType,
+                                                          const char *pszOutputChunkMimeType, uint8 ui8ChunkCompressionQuality,
+                                                          Chunker::Interval **ppPortionIntervals)
+{
+    CommHelperError error = SimpleCommHelper2::None;
+    _pCallbackCommHelper->sendLine (error, "extractFromBuffer");
+    if (error != SimpleCommHelper2::None) {
+        return nullptr;
+    }
+    ChunkerMarshaling marshaller (_pCallbackCommHelper);
+    return marshaller.extractFromBuffer (pBuf, ui32Len, pszInputChunkMimeType, pszOutputChunkMimeType,
+                                         ui8ChunkCompressionQuality, ppPortionIntervals);
+}
+Chunker::Fragment * DSProProxyAdaptor::extractFromFile (const char *pszFileName, const char *pszInputChunkMimeType,
+                                                        const char *pszOutputChunkMimeType, uint8 ui8ChunkCompressionQuality,
+                                                        Chunker::Interval **ppPortionIntervals)
+{
+    // TODO: implement this
+    return nullptr;
+}
+
+BufferReader * DSProProxyAdaptor::reassemble (DArray2<BufferReader> *pFragments, Annotations *pAnnotations,
+                                              const char *pszChunkMimeType, uint8 ui8NoOfChunks, uint8 ui8CompressionQuality)
+{
+    CommHelperError error = SimpleCommHelper2::None;
+    _pCallbackCommHelper->sendLine (error, "reassemble");
+    if (error != SimpleCommHelper2::None) {
+        return nullptr;
+    }
+    ChunkReassemblerMarshaling marshaller (_pCallbackCommHelper);
+    return marshaller.reassemble (pFragments, pAnnotations, pszChunkMimeType, ui8NoOfChunks, ui8CompressionQuality);
+}
+
+bool DSProProxyAdaptor::doGetDisService (CommHelperError & error)
 {
     error = SimpleCommHelper2::None;
 
@@ -2805,7 +3986,7 @@ bool DSProProxyAdaptor::doGetDisService (CommHelperError &error)
     if (_pDisSvcProProxyServer->initDisseminationServiceProxyServer (_pDSPro->getDisService(), address, ui16Port) != 0) {
         return false;
     }
-    
+
     _pCommHelper->sendLine (error, "OK");
     return (error == SimpleCommHelper2::None);
 }
@@ -2814,7 +3995,7 @@ bool DSProProxyAdaptor::matchmakingLogListenerCallback (const char *pszLocalNode
                                                         const char *pszObjectName, const char **ppszRankDescriptors, float *pRanks, float *pWeights,
                                                         uint8 ui8Len, const char *pszComment, bool bSkipped, const char *pszOperation)
 {
-    if (_pCallbackCommHelper == NULL) {
+    if (_pCallbackCommHelper == nullptr) {
         return false;
     }
 
@@ -2845,7 +4026,7 @@ bool DSProProxyAdaptor::matchmakingLogListenerCallback (const char *pszLocalNode
 
     pWriter->write8 (&ui8Len);
     for (int i = 0; i < ui8Len; i++) {
-        if (ppszRankDescriptors[i] != NULL) {
+        if (ppszRankDescriptors[i] != nullptr) {
             _pCallbackCommHelper->sendStringBlock (ppszRankDescriptors[i], error);
             if (error != SimpleCommHelper2::None) {
                 return false;
@@ -2932,55 +4113,7 @@ CommHelperError DSProProxyAdaptor::readObjectIdInstanceId (String &objectId, Str
     return SimpleCommHelper2::None;
 }
 
-CommHelperError DSProProxyAdaptor::readMetadataAsAvList (Reader *pReader, SQLAVList &aVList, uint32 ui32Attributes)
-{
-    uint32 ui32;
-    for (unsigned int i = 0; i < ui32Attributes; i++) {
-        if (pReader->read32 (&ui32) != 0) {
-            return SimpleCommHelper2::CommError;
-        }
-        char *pszAttribute = (char *) calloc (ui32+1, sizeof (char));
-        if (pszAttribute == NULL) {
-            return SimpleCommHelper2::None;
-        }
-        if (pReader->readBytes (pszAttribute, ui32) != 0) {
-            free (pszAttribute);
-            return SimpleCommHelper2::CommError;
-        }
-        pszAttribute[ui32] = '\0';
-
-        if (pReader->read32 (&ui32) != 0) {
-            free (pszAttribute);
-            return SimpleCommHelper2::CommError;
-        }
-        char *pszValue = (char *) calloc (ui32+1, sizeof (char));
-        if (pszValue == NULL) {
-            free (pszAttribute);
-            return SimpleCommHelper2::None;
-        }
-        if (pReader->readBytes (pszValue, ui32) != 0) {
-            free (pszAttribute);
-            if (pszValue != NULL) {
-                free (pszValue);
-            }
-            return SimpleCommHelper2::CommError;
-        }
-        pszValue[ui32] = '\0';
-
-        if (aVList.addPair (pszAttribute, pszValue) != 0) {
-            free (pszAttribute);
-            free (pszValue);
-            return SimpleCommHelper2::None;
-        }
-
-        free (pszAttribute);  // AVList makes a copy of both
-        free (pszValue);      // attribute and value
-    }
-
-    return SimpleCommHelper2::None;
-}
-
-CommHelperError DSProProxyAdaptor::readMetadataAsXMLString (NOMADSUtil::Reader *pReader, NOMADSUtil::String &sMetadata)
+CommHelperError DSProProxyAdaptor::readMetadataAsString (NOMADSUtil::Reader *pReader, NOMADSUtil::String &sMetadata)
 {
     uint32 ui32MetadataLen = 0;
 
@@ -2991,7 +4124,7 @@ CommHelperError DSProProxyAdaptor::readMetadataAsXMLString (NOMADSUtil::Reader *
 
     // instantiate buffer for metadata
     char *pszXMLMetadata = (char *) calloc (ui32MetadataLen + 1, sizeof (char));
-    if (pszXMLMetadata == NULL) {
+    if (pszXMLMetadata == nullptr) {
         return SimpleCommHelper2::None;
     }
 

@@ -1,4 +1,4 @@
-all: onNMS
+all: onNMS DisServiceMessageInjector libDisServiceJNIWrapper.so DisServiceLauncher
 
 libdisservice.a: onNMS
 
@@ -8,9 +8,22 @@ copyExecutables:
 	cp ../make/libDisServiceJNIWrapper.so ./
 	cp ../make/DisServiceMessageInjector ./
 
+DisServiceLauncher:
+	make -C ../make/ DisServiceLauncher
+	cp ../make/DisServiceLauncher ./
+
+libDisServiceJNIWrapper.so:
+	make -C ../make/ libDisServiceJNIWrapper.so
+	cp ../make/libDisServiceJNIWrapper.so ./
+
+DisServiceMessageInjector:
+	make -C ../make/ DisServiceMessageInjector
+	cp ../make/DisServiceMessageInjector ./
+
 onNMS:
-	make -C ../make/
-	$(MAKE) copyExecutables
+	make -C ../make/ libdisservice.a
+	make -C ../make/ libdisserviceproxy.a
+	cp ../make/*.a ./
 	
 onNMSValgrind:
 	make -C ../make/ -f Makefile-valgrind
@@ -26,6 +39,9 @@ clean:
 	fi
 	if test -e libdisservice.a; \
 		then rm libdisservice.a; \
+	fi
+	if test -e DisServiceMessageInjector; \
+		then rm DisServiceMessageInjector; \
 	fi
 	if test -e libdisserviceproxy.a; \
 		then rm libdisserviceproxy.a; \

@@ -32,6 +32,7 @@ const char * C45LocalNodeContext::WINDOW_ALGORITHM = "window";
 C45LocalNodeContext::C45LocalNodeContext (const char *pszNodeID, double dTooFarCoeff, double dApproxCoeff)
     : LocalNodeContext (pszNodeID, new C45DecisionTree(), dTooFarCoeff, dApproxCoeff)
 {
+    _pClassifier = new C45DecisionTree();
 }
 
 C45LocalNodeContext::~C45LocalNodeContext()

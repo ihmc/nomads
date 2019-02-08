@@ -22,7 +22,7 @@
  */
 
 #ifndef INCL_NMS_PROXY_SHELL_H
-#define	INCL_NMS_PROXY_SHELL_H
+#define INCL_NMS_PROXY_SHELL_H
 
 #include "CommandProcessor.h"
 #include "NetworkMessageServiceListener.h"
@@ -41,9 +41,10 @@ namespace NOMADSUtil
             int processCmd (const void *pToken, char *pszCmdLine);
 
             int messageArrived (const char *pszIncomingInterface, uint32 ui32SourceIPAddress, uint8 ui8MsgType,
-                                uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL,
+                                uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, bool bUnicast,
                                 const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp);
+                                const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp,
+                                uint64 ui64MsgCount, uint64 ui64UnicastMsgCount);
 
         private:
             void handleBroadcast (const void *pToken, const char *pszCmdLine);
@@ -68,7 +69,6 @@ namespace NOMADSUtil
             void handleGetNeighborQueueLength (const void *pToken, const char *pszCmdLine);
             void handleClearToSend (const void *pToken, const char *pszCmdLine);
             void handleRegisterListener (const void *pToken, const char *pszCmdLine);
-
             void handlePing (const void *pToken, const char *pszCmdLine);
 
         private:
@@ -76,5 +76,5 @@ namespace NOMADSUtil
     };
 }
 
-#endif	/* INCL_NMS_PROXY_SHELL_H */
+#endif    /* INCL_NMS_PROXY_SHELL_H */
 

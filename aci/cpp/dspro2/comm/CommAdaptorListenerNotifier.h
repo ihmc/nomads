@@ -1,6 +1,6 @@
-/* 
+/*
  * CommAdaptorListenerNotifier.h
- * 
+ *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
  *
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_COMM_ADAPTOR_LISTENER_NOTIFIER_H
-#define	INCL_COMM_ADAPTOR_LISTENER_NOTIFIER_H
+#define INCL_COMM_ADAPTOR_LISTENER_NOTIFIER_H
 
 #include "CommAdaptorListener.h"
 
@@ -97,5 +97,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_COMM_ADAPTOR_LISTENER_NOTIFIER_H */
-
+#endif    /* INCL_COMM_ADAPTOR_LISTENER_NOTIFIER_H */

@@ -10,11 +10,17 @@
 
 package us.ihmc.aci.dspro2;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
-import us.ihmc.aci.dspro2.util.LoggerInterface;
+import java.util.List;
 
-import us.ihmc.aci.dspro2.util.LoggerWrapper;
+import org.slf4j.Logger;
+
+import us.ihmc.aci.util.dspro.LogUtils;
+import us.ihmc.chunking.AnnotationWrapper;
+import us.ihmc.chunking.ChunkWrapper;
+import us.ihmc.chunking.Interval;
 import us.ihmc.aci.util.dspro.NodePath;
 import us.ihmc.comm.CommException;
 import us.ihmc.comm.CommHelper;
@@ -25,15 +31,22 @@ import us.ihmc.util.StringUtil;
 /**
  * @author Giacomo Benincasa    (gbenincasa@ihmc.us)
  * @author  Maggie Breedy <mbreedy@ihmc.us>
- * @version $Revision: 1.34 $
+ * @version $Revision$
  */
 public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
 {
+    private boolean _terminate = false;
+    
     public DSProProxyCallbackHandler (DSProProxy proxy, CommHelper commHelper)
     {
         super (proxy);
         _commHelper = commHelper;
         _proxy = proxy;
+    }
+
+    void terminate() {
+        _terminate = true;
+        _commHelper.closeConnection();
     }
 
     @Override
@@ -42,7 +55,7 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         Thread.currentThread().setName ("DSProProxyCallbackHandler");
         setCallbackThreadId();
 
-        while (true) {
+        while (!_terminate) {
             try {
                 String[] callbackArray = _commHelper.receiveParsed();
 
@@ -51,6 +64,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
                 }
                 else if (callbackArray[0].equals ("metadataArrivedCallback")) {
                     doMetadataArrivedCallback();
+                }
+                else if (callbackArray[0].equals ("dataAvailableCallback")) {
+                    doDataAvailableCallback();
                 }
                 else if (callbackArray[0].equals ("newPeerCallback")) {
                     doNewPeerCallback();
@@ -117,6 +133,16 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
                     doWholeMessageArrived();
                 }
 
+                else if (callbackArray[0].equals ("fragmentFromBuffer")) {
+                    doFragment();
+                }
+                else if (callbackArray[0].equals ("extractFromBuffer")) {
+                    doExtract();
+                }
+                else if (callbackArray[0].equals ("reassemble")) {
+                    doReassemble();
+                }
+
                 else {
                     LOG.warn ("ERROR: operation [" + callbackArray[0] + "] unknown.");
                 }
@@ -139,17 +165,15 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
             NodePath path = NodePath.read(_commHelper);
 
             byte[] b = _commHelper.receiveBlock();
-            String nodeId = b != null ? new String (b) : "";
+            String nodeId = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String mission = b != null ? new String (b) : "";
+            String mission = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String team = b != null ? new String (b) : "";
+            String team = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
-            _commHelper.sendLine ("OK");
-
-            _proxy.pathRegistered (path, nodeId, mission, team);
+            _proxy.pathRegistered (path, nodeId, team, mission);
         }
         catch (CommException ce) {
             LOG.warn (StringUtil.getStackTraceAsString (ce));
@@ -171,7 +195,7 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
             float fAltitude =  Float.intBitsToFloat (_commHelper.readI32());
 
             byte[] b = _commHelper.receiveBlock();
-            String nodeId = b != null ? new String (b) : "";
+            String nodeId = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             if (nodeId == null || nodeId.length() == 0) {
                 _commHelper.sendLine ("ERROR");
@@ -196,16 +220,16 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
     {
         try {
             byte[] b = _commHelper.receiveBlock();
-            String localNodeID = b != null ? new String (b) : "";
+            String localNodeID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String peerNodeID = b != null ? new String (b) : "";
+            String peerNodeID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String matchedObjectID = b != null ? new String (b) : "";
+            String matchedObjectID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String matchedObjectName = b != null ? new String (b) : "";
+            String matchedObjectName = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             byte len = _commHelper.read8();
             String[] rankDescriptors = null;
@@ -217,7 +241,7 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
                 weights = new float[len];
                 for (byte i = 0; i < len; i++) {
                     b = _commHelper.receiveBlock();
-                    rankDescriptors[i] = b != null ? new String (b) : "";
+                    rankDescriptors[i] = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
                     partialRanks[i] = Float.intBitsToFloat(_commHelper.readI32());
                     weights[i] = Float.intBitsToFloat(_commHelper.readI32());
@@ -225,10 +249,10 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
             }
 
             b = _commHelper.receiveBlock();
-            String comment  = b != null ? new String (b) : "";
+            String comment  = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String operation  = b != null ? new String (b) : "";
+            String operation  = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             _commHelper.sendLine ("OK");
 
@@ -250,16 +274,16 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
     {
         try {
             byte[] b = _commHelper.receiveBlock();
-            String localNodeID = b != null ? new String (b) : "";
+            String localNodeID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String peerNodeID = b != null ? new String (b) : "";
+            String peerNodeID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String skippedObjectID = b != null ? new String (b) : "";
+            String skippedObjectID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String skippedObjectName = b != null ? new String (b) : "";
+            String skippedObjectName = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             byte len = _commHelper.read8();
             String[] rankDescriptors = null;
@@ -271,7 +295,7 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
                 weights = new float[len];
                 for (byte i = 0; i < len; i++) {
                     b = _commHelper.receiveBlock();
-                    rankDescriptors[i] = b != null ? new String (b) : "";
+                    rankDescriptors[i] = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
                     partialRanks[i] = Float.intBitsToFloat(_commHelper.readI32());
                     weights[i] = Float.intBitsToFloat(_commHelper.readI32());
@@ -279,10 +303,10 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
             }
 
             b = _commHelper.receiveBlock();
-            String comment  = b != null ? new String (b) : "";
+            String comment  = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             b = _commHelper.receiveBlock();
-            String operation  = b != null ? new String (b) : "";
+            String operation  = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             _commHelper.sendLine ("OK");
 
@@ -304,9 +328,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.contextUpdateMessageArrived (sender, publisher);
     }
 
@@ -314,9 +338,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.contextVersionMessageArrived (sender, publisher);
         
     }
@@ -325,9 +349,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.messageRequestMessageArrived (sender, publisher);
     }
 
@@ -335,9 +359,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.chunkRequestMessageArrived (sender, publisher);
     }
 
@@ -345,9 +369,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.positionMessageArrived (sender, publisher);
     }
 
@@ -355,9 +379,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.searchMessageArrived (sender, publisher);
     }
 
@@ -365,9 +389,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.topologyReplyMessageArrived (sender, publisher);
     }
 
@@ -375,9 +399,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.topologyRequestMessageArrived (sender, publisher);
     }
 
@@ -385,9 +409,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.updateMessageArrived (sender, publisher);
     }
 
@@ -395,9 +419,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.versionMessageArrived (sender, publisher);
     }
 
@@ -405,9 +429,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.waypointMessageArrived (sender, publisher);
     }
 
@@ -415,9 +439,9 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         throws CommException
     {
         byte[] b = _commHelper.receiveBlock();
-        String sender = b != null ? new String (b) : "";
+        String sender = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         b = _commHelper.receiveBlock();
-        String publisher = b != null ? new String (b) : "";
+        String publisher = b != null ? new String (b, StandardCharsets.UTF_8) : "";
         _proxy.wholeMessageArrived (sender, publisher);
     }
 
@@ -429,22 +453,22 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
             if (b == null) {
                 return;
             }
-            String id = new String (b);
+            String id = new String (b, StandardCharsets.UTF_8);
 
             b = _commHelper.receiveBlock();
-            String groupname = b != null ? new String (b) : null;
+            String groupname = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String objectId = b != null ? new String (b) : null;
+            String objectId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String instanceId = b != null ? new String (b) : null;
+            String instanceId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String annotatedObjMsgId = b != null ? new String (b) : null;
+            String annotatedObjMsgId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String mimeType = b != null ? new String (b) : null;
+            String mimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             int dataLength = _commHelper.read32();
             byte[] data = new byte [dataLength];
@@ -454,7 +478,7 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
             short totChunksNumber = _commHelper.read8();
 
             b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             _commHelper.sendLine ("OK");
 
@@ -472,43 +496,164 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         }
     }
 
+    public void doFragment() throws CommException, ProtocolException
+    {
+        byte nChunks = _commHelper.read8();
+        byte compressionQuality = _commHelper.read8();
+        byte[] b = _commHelper.receiveBlock();
+        String inputMimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+        b = _commHelper.receiveBlock();
+        String outputMimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+        byte[] data = _commHelper.receiveBlock();
+
+        List<ChunkWrapper> chunks = _proxy.fragment (data, inputMimeType, nChunks, compressionQuality);
+
+        // Return chunks
+        for (ChunkWrapper chunk : chunks) {
+            us.ihmc.aci.util.chunking.ChunkWrapper wrapper = new us.ihmc.aci.util.chunking.ChunkWrapper(chunk.getData(),
+                    chunk.getChunkId(), chunk.getTotalNumberOfChunks(), chunk.getMimeType());
+            _commHelper.write8 (chunk.getChunkId());
+            wrapper.write (_commHelper);
+        }
+        _commHelper.write8 ((byte)0);
+    }
+
+    public void doExtract()  throws CommException, ProtocolException
+    {
+        byte nChunks = _commHelper.read8();
+        byte compressionQuality = _commHelper.read8();
+        byte[] b = _commHelper.receiveBlock();
+        String inputMimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+        b = _commHelper.receiveBlock();
+        String outputMimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+        byte[] data = _commHelper.receiveBlock();
+        byte nIntervals = _commHelper.read8();
+        Collection<Interval> intervals = new ArrayList<>();
+        for (byte i = 0; i < nIntervals; i++) {
+        	us.ihmc.aci.util.chunking.Interval interv = new us.ihmc.aci.util.chunking.Interval();
+            interv.read (_commHelper);
+            intervals.add (interv);
+        }
+
+        byte[] subdata = _proxy.extract (data, inputMimeType, nChunks, compressionQuality, intervals);
+
+        // Return extracted data
+        _commHelper.sendBlock(subdata);
+    }
+
+    public void doReassemble() throws CommException, ProtocolException
+    {
+        final byte totalNumberOfChunks = _commHelper.read8();
+        final byte compressionQuality = _commHelper.read8();
+        byte[] b = _commHelper.receiveBlock();
+        final String mimeType = (b != null ? new String (b, StandardCharsets.UTF_8) : null);
+        
+        byte chunkId = 0;
+        Collection<ChunkWrapper> chunks = new ArrayList<>();
+        do {
+            chunkId = _commHelper.read8();
+            if (chunkId > 0) {
+                us.ihmc.aci.util.chunking.ChunkWrapper cw = new us.ihmc.aci.util.chunking.ChunkWrapper(chunkId, totalNumberOfChunks, mimeType);
+                cw.read (_commHelper);
+                chunks.add(cw);
+            }
+        } while (chunkId > 0);
+
+        Collection<AnnotationWrapper> annotations = new ArrayList<>();
+        final byte nAnnotations = _commHelper.read8();
+        for (byte i = 0; i < nAnnotations; i++) {
+        	us.ihmc.aci.util.chunking.AnnotationWrapper aw = new us.ihmc.aci.util.chunking.AnnotationWrapper();
+            aw.read (_commHelper);
+            annotations.add(aw);
+        }
+
+        byte[] data = _proxy.reassemble (chunks,annotations, mimeType, totalNumberOfChunks, compressionQuality);
+
+        // Return reassembled data
+        _commHelper.sendBlock (data);
+    }
+
     private void doMetadataArrivedCallback()
     {
-        LOG.info ("DSProProxyCallbackHandler::doMetadataArrivedCallback method!");
-        System.out.println ("NOMADS:DSProProxyCallbackHandler: metadataArrived");
-        
+        LOG.trace ("DSProProxyCallbackHandler::doMetadataArrivedCallback method!");
+
         try {
             byte[] b = _commHelper.receiveBlock();
             if (b == null) {
                 return;
             }
-            String id = new String (b);
+            String id = new String (b, StandardCharsets.UTF_8);
 
             b = _commHelper.receiveBlock();
-            String groupname = b != null ? new String (b) : null;
+            String groupname = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String objectId = b != null ? new String (b) : null;
+            String objectId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String instanceId = b != null ? new String (b) : null;
+            String instanceId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String XMLMetadata = b != null ? new String (b) : null;
+            String jsonMetadata = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String referredDataId = b != null ? new String (b) : null;
+            String referredDataId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             _commHelper.sendLine ("OK");
 
-            System.out.println ("NOMADS:DSProProxyCallbackHandler: metadataArrived. Calling _proxy");
             _proxy.metadataArrived (id, groupname, objectId, instanceId,
-                                    XMLMetadata, referredDataId, queryId);
-            
-            System.out.println ("NOMADS:DSProProxyCallbackHandler: metadataArrived. Called _proxy");
+                                    jsonMetadata, referredDataId, queryId);
+        }
+        catch (CommException ce) {
+            LOG.warn (StringUtil.getStackTraceAsString (ce));
+        }
+        catch (Exception ce) {
+            try {
+                _commHelper.sendLine ("ERROR");
+            } catch (CommException ex) {}
+            LOG.warn (StringUtil.getStackTraceAsString (ce));
+        }
+    }
+
+    private void doDataAvailableCallback()
+    {
+        LOG.trace ("DSProProxyCallbackHandler::doDataAvailableCallback method!");
+
+        try {
+            byte[] b = _commHelper.receiveBlock();
+            if (b == null) {
+                return;
+            }
+            String id = new String (b, StandardCharsets.UTF_8);
+
+            b = _commHelper.receiveBlock();
+            String groupname = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+
+            b = _commHelper.receiveBlock();
+            String objectId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+
+            b = _commHelper.receiveBlock();
+            String instanceId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+
+            b = _commHelper.receiveBlock();
+            String referredDataId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+
+            b = _commHelper.receiveBlock();
+            String mimeType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+
+            int dataLength = _commHelper.read32();
+            byte[] metadata = new byte [dataLength];
+            _commHelper.receiveBlob (metadata, 0, dataLength);
+
+            b = _commHelper.receiveBlock();
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
+
+            _commHelper.sendLine ("OK");
+
+            _proxy.dataAvailable (id, groupname, objectId, instanceId, referredDataId, mimeType, metadata, queryId);
         }
         catch (CommException ce) {
             LOG.warn (StringUtil.getStackTraceAsString (ce));
@@ -526,7 +671,7 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         LOG.info ("DSProProxyCallbackHandler::doNewPeerCallback method!");
         try {
             byte[] b = _commHelper.receiveBlock();
-            String peerID = b != null ? new String (b) : "";
+            String peerID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             _commHelper.sendLine ("OK");
             _proxy.newNeighbor (peerID);
@@ -541,7 +686,7 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         LOG.info ("DSProProxyCallbackHandler::doDeadPeerCallback method!");
         try {
             byte[] b = _commHelper.receiveBlock();
-            String peerID = b != null ? new String (b) : "";
+            String peerID = b != null ? new String (b, StandardCharsets.UTF_8) : "";
 
             _commHelper.sendLine ("OK");
             _proxy.deadNeighbor (peerID);
@@ -557,19 +702,19 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         LOG.info ("DSProProxyCallbackHandler::doSearchArrivedCallback method!");
         try {
             byte[] b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String groupName = b != null ? new String (b) : null;
+            String groupName = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String querier = b != null ? new String (b) : null;
+            String querier = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String queryType = b != null ? new String (b) : null;
+            String queryType = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             b = _commHelper.receiveBlock();
-            String queryQualifiers = b != null ? new String (b) : null;
+            String queryQualifiers = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             int queryLen = _commHelper.read32();
             byte[] query = _commHelper.receiveBlob (queryLen);
@@ -587,17 +732,17 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         LOG.info ("DSProProxyCallbackHandler::doSearchReplyArrivedCallback (1) method!");
         try {
             byte[] b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
-            Collection<String> matchingNodeIds = new LinkedList<String>();
+            Collection<String> matchingNodeIds = new ArrayList<>();
             byte[] matchingMsgId = _commHelper.receiveBlock();
             while (matchingMsgId != null) {
-                matchingNodeIds.add (new String (matchingMsgId));
+                matchingNodeIds.add (new String (matchingMsgId, StandardCharsets.UTF_8));
                 matchingMsgId = _commHelper.receiveBlock();
             }
 
             b = _commHelper.receiveBlock();
-            String responderNodeId = b != null ? new String (b) : null;
+            String responderNodeId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             _proxy.searchReplyArrived (queryId, matchingNodeIds, responderNodeId);
         }
@@ -613,12 +758,12 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
         LOG.info ("DSProProxyCallbackHandler::doSearchReplyArrivedCallback (2) method!");
         try {
             byte[] b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             byte[] reply = _commHelper.receiveBlock();
 
             b = _commHelper.receiveBlock();
-            String responderNodeId = b != null ? new String (b) : null;
+            String responderNodeId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
 
             _proxy.searchReplyArrived (queryId, reply, responderNodeId);
         }
@@ -629,5 +774,5 @@ public class DSProProxyCallbackHandler extends ConcurrentProxyCallbackHandler
 
     private DSProProxy _proxy;
     private CommHelper _commHelper;
-    private final static LoggerInterface LOG = LoggerWrapper.getLogger (DSProProxyCallbackHandler.class);
+    private final static Logger LOG = LogUtils.getLogger (DSProProxyCallbackHandler.class);
 }

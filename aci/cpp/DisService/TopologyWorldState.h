@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -63,7 +63,7 @@ namespace IHMC_ACI
         public:
             TopologyWorldState (DisseminationService *pDisService);
             virtual ~TopologyWorldState (void);
-            
+
             /*
              * UTILITIES MODULE
              */
@@ -86,7 +86,7 @@ namespace IHMC_ACI
             int sendSubscriptionState (void);
             int sendSubscriptionStateReqMsg (DisServiceSubscriptionStateReqMsg *pSSReqMsg);
             int updateSubscriptionState (NOMADSUtil::StringHashtable<IHMC_ACI::SubscriptionList> *pSubscriptionsTable, NOMADSUtil::StringHashtable<uint32> *pNodesTable);
-            
+
             /*
              * TOPOLOGY MODULE
              */
@@ -101,7 +101,7 @@ namespace IHMC_ACI
             NOMADSUtil::PtrLList<NOMADSUtil::String> * getInterestedRemoteNodes (DisServiceDataMsg *pDSDMsg);
             const char * getBestGateway (const char *pszTargetNodeId);
             NOMADSUtil::PtrLList<NOMADSUtil::String> * getTargetNodes (DisServiceDataMsg *pDSDMsg);
-              
+
         private:
             friend class ForwardingController;
 

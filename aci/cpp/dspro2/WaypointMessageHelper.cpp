@@ -19,6 +19,7 @@
 
 #include "WaypointMessageHelper.h"
 
+#include "Defs.h"
 #include "BufferReader.h"
 #include "BufferWriter.h"
 #include "Logger.h"
@@ -66,8 +67,8 @@ void * WaypointMessageHelper::writeWaypointMessageForTarget (PreviousMessageIds 
                                                              uint32 &ui32TotalLen)
 {
     ui32TotalLen = 0;
-    if (pWaypointMsgPayload == NULL) {
-        return NULL;
+    if (pWaypointMsgPayload == nullptr) {
+        return nullptr;
     }
 
     const String sPrevMsgs (previouMessagesSentToTargets);
@@ -79,9 +80,9 @@ void * WaypointMessageHelper::writeWaypointMessageForTarget (PreviousMessageIds 
     // Allocate buffer
     char *pData = (char *) malloc (bw.getBufferLength() + ui32LatestMsgLen +
                                    ui32WaypointMsgPayloadLen);
-    if (pData == NULL) {
+    if (pData == nullptr) {
         checkAndLogMsg ("WaypointMessageHelper::writeWaypointMessageForTarget", memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     // Write latest pushed message ID's length

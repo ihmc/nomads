@@ -1,4 +1,4 @@
-/* 
+/*
  * NMSHelper.h
  *
  * This file is part of the IHMC DisService Library/Component
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -44,7 +44,8 @@ namespace IHMC_ACI
                                                                                    bool bAsyncTransmission, uint8 ui8MessageVersion, bool bReplyViaUnicast,
                                                                                    const char **ppszBindingInterfaces, const char **ppszIgnoredInterfaces,
                                                                                    const char **ppszAddedInterfaces, const char *pszDestAddr, uint8 ui8McastTTL,
-                                                                                   NOMADSUtil::ConfigManager *pCfgMgr);
+                                                                                   const char *pszSessionKey, bool bPassphraseEncryption,
+                                                                                   const char *pszGroupKeyFileName, NOMADSUtil::ConfigManager *pCfgMgr);
 
             bool isConnected (void);
             int start (void);
@@ -53,7 +54,7 @@ namespace IHMC_ACI
             int startAdaptors (void);
             int stopAdaptors (void);
 
-            void requestTerminationAndWait();
+            void requestTerminationAndWait (void);
 
         private:
             NOMADSUtil::NetworkMessageService *_pNMS;

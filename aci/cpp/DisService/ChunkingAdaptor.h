@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -38,6 +38,11 @@ namespace NOMADSUtil
     class ConfigManager;
     class Reader;
     class Writer;
+}
+
+namespace IHMC_MISC
+{
+    class ChunkingManager;
 }
 
 namespace IHMC_ACI
@@ -75,7 +80,8 @@ namespace IHMC_ACI
             /**
              * NOTE: the returned Reader should be deallocated by the caller.
              */
-            static NOMADSUtil::Reader * reassemble (NOMADSUtil::PtrLList<Message> *pFragments,
+            static NOMADSUtil::Reader * reassemble (IHMC_MISC::ChunkingManager *pChunkingMgr,
+                                                    NOMADSUtil::PtrLList<Message> *pFragments,
                                                     NOMADSUtil::PtrLList<Message> *pAnnotations,
                                                     uint32 &ui32LargeObjLen);
 

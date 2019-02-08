@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -108,7 +108,7 @@ MessageListenerNotifier::MessageListenerNotifier()
 }
 
 MessageListenerNotifier::~MessageListenerNotifier()
-{  
+{
 }
 
 void MessageListenerNotifier::newIncomingMessage (const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
@@ -134,7 +134,7 @@ GroupMembershipListenerNotifier::GroupMembershipListenerNotifier()
 }
 
 GroupMembershipListenerNotifier::~GroupMembershipListenerNotifier()
-{  
+{
 }
 
 void GroupMembershipListenerNotifier::newSubscriptionForPeer (const char *pszPeerNodeId, Subscription *pSubscription)
@@ -179,7 +179,7 @@ NetworkStateListenerNotifier::NetworkStateListenerNotifier()
 }
 
 NetworkStateListenerNotifier::~NetworkStateListenerNotifier()
-{  
+{
 }
 
 void NetworkStateListenerNotifier::networkQuiescent (const char **ppszInterfaces)
@@ -193,6 +193,19 @@ void NetworkStateListenerNotifier::networkQuiescent (const char **ppszInterfaces
     _m.unlock (170);
 }
 
+void NetworkStateListenerNotifier::messageCountUpdate (const char *pszPeerNodeId, const char *pszIncomingInterface,
+                                                       const char *pszPeerIp, uint64 ui64GroumMsgCount, uint64 ui64UnicastMsgCount)
+{
+    _m.lock (171);
+    for (unsigned int i = 0; i < _listeners.size (); i++) {
+        if (_listeners.used (i) && _listeners[i].pListener != NULL) {
+            _listeners[i].pListener->messageCountUpdate (pszPeerNodeId, pszIncomingInterface, pszPeerIp,
+                                                         ui64GroumMsgCount, ui64UnicastMsgCount);
+        }
+    }
+    _m.unlock (171);
+}
+
 //------------------------------------------------------------------------------
 // PeerStateListenerNotifier
 //------------------------------------------------------------------------------
@@ -202,7 +215,7 @@ PeerStateListenerNotifier::PeerStateListenerNotifier()
 }
 
 PeerStateListenerNotifier::~PeerStateListenerNotifier()
-{  
+{
 }
 
 void PeerStateListenerNotifier::newNeighbor (const char *pszNodeUID, const char *pszPeerRemoteAddr,
@@ -275,7 +288,7 @@ SearchNotifier::SearchNotifier (void)
 
 SearchNotifier::~SearchNotifier (void)
 {
-    
+
 }
 
 void SearchNotifier::searchArrived (const char *pszQueryId, const char *pszGroupName,

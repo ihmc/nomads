@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -11,7 +11,7 @@
  * mp3_hufftab.h --
  * This object just contains the data table used in huffman decoding.
  * Copyright 1997 - Jerry Hsu, James Kao, Edward Roman
- * $Header: /export/cvs/nomads.root/externals/dali-1.0/packages/mpeg/huffmantable.h,v 1.1 2016/06/25 23:05:35 gbenincasa Exp $
+ * $Header$
  */
 
 #ifndef MP3_HUFFTAB_H

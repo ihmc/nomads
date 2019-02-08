@@ -1,4 +1,4 @@
-/* 
+/*
  * StorageController.cpp
  *
  * This class should be extended by external components,
@@ -56,12 +56,8 @@ InformationStore * StorageController::getInformationStore (void)
     return _pInfoStore;
 }
 
-const char * StorageController::getMetadataTableName (void)
+NOMADSUtil::String StorageController::getMetadataTableName (void)
 {
-    return _pInfoStore->_pszMetadataTableName;
+    return _pInfoStore->_tableName;
 }
 
-const char * StorageController::getMetadataTableAllColumns (void)
-{
-    return _pInfoStore->_pszMetadataAll;
-}

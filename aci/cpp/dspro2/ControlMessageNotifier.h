@@ -1,4 +1,4 @@
-/** 
+/**
  * Instrumentator.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_CONTROL_MESSAGE_NOTIFIER_H
-#define	INCL_CONTROL_MESSAGE_NOTIFIER_H
+#define INCL_CONTROL_MESSAGE_NOTIFIER_H
 
 #include "ControlMessageListener.h"
 #include "DArray2.h"
@@ -76,5 +76,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	// INCL_CONTROL_MESSAGE_NOTIFIER_H
-
+#endif    // INCL_CONTROL_MESSAGE_NOTIFIER_H

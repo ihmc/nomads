@@ -3,7 +3,7 @@
  *
  * This file is part of the IHMC Misc Library
  * Copyright (c) IHMC. All Rights Reserved.
- * 
+ *
  * Usage restricted to not-for-profit use only.
  * Contact IHMC for other types of licenses.
  */
@@ -28,7 +28,7 @@ C45RuleSetInfo::C45RuleSetInfo(int noRules, const char * defaultClass, bool isCo
     _isComposite = isComposite;
     _ui16Version = ui16Version;
 }
-	
+
 void C45RuleSetInfo::copyInfo(C45RuleSetInfo * info)
 {
     _noRules = info->_noRules;

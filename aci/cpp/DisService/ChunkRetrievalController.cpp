@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -42,25 +42,27 @@ char **createOutgoingInterfacesList (const char *pszOutgoingInterface)
 }
 
 ChunkRetrievalController::ChunkRetrievalController (DisseminationService *pDisService,
+                                                    MessageReassembler *pMessageReassembler,
                                                     ChunkDiscoveryController *pDiscoveryCtrl,
                                                     DataCacheInterface *pDataCacheInterface)
     : MessagingService (pDisService),
+      _pDiscoveryCtrl (pDiscoveryCtrl),
+      _pDisService (pDisService),
+      _pDataCacheInterface (pDataCacheInterface),
+      _pMessageReassembler (pMessageReassembler),
+      _pHit (NULL),
+      _pListHits (NULL),
+      _pContainerHitsList (NULL),
       _hitHistoryTable (true, // bCaseSensitiveKeys
                         true, // bCloneKeys
                         true, // bDeleteKeys
                         true) // bDeleteValues
 {
-    _pDisService = pDisService;
-    _pDiscoveryCtrl = pDiscoveryCtrl;
-    _pDataCacheInterface = pDataCacheInterface;    
     if (_pDisService == NULL || _pDiscoveryCtrl == NULL ||
         _pDataCacheInterface == NULL) {
         checkAndLogMsg ("ChunkRetrievalController::ChunkRetrievalController",
                         Logger::L_SevereError, "could not initialize ChunkRetrievalController\n");
     }
-    _pHit = NULL;
-    _pListHits = NULL;
-    _pContainerHitsList = NULL;
 }
 
 ChunkRetrievalController::~ChunkRetrievalController()
@@ -73,7 +75,7 @@ ChunkRetrievalController::~ChunkRetrievalController()
         for (_pHit = _pListHits->getFirst(); _pHit != NULL; _pHit = _pListHits->getNext()) {
             delete (_pHit);
         }
-        delete _pListHits; _pListHits = NULL; 
+        delete _pListHits; _pListHits = NULL;
         delete _pContainerHitsList; _pContainerHitsList = NULL;
     }
 }
@@ -82,7 +84,7 @@ ChunkRetrievalController::~ChunkRetrievalController()
  * It checks which type of message is arrived and respond it.
  */
 void ChunkRetrievalController::newIncomingMessage (const void *, uint16, DisServiceMsg *pDisServiceMsg,
-                                                   uint32, const char *pszIncomingInterface) 
+                                                   uint32, const char *pszIncomingInterface)
 {
     if (pDisServiceMsg == NULL) {
         checkAndLogMsg ("ChunkRetrievalController::newIncomingMessage",
@@ -99,7 +101,7 @@ void ChunkRetrievalController::newIncomingMessage (const void *, uint16, DisServ
             checkAndLogMsg ("ChunkRetrievalController::newIncomingMessage", Logger::L_LowDetailDebug,
                             "received a query from %s; query id is %s\n",
                             pCRMQ->getSenderNodeId(), pCRMQ->getQueryId());
-            rc = replyToQuery (pCRMQ, pszIncomingInterface); 
+            rc = replyToQuery (pCRMQ, pszIncomingInterface);
             break;
         }
 
@@ -125,6 +127,7 @@ void ChunkRetrievalController::newIncomingMessage (const void *, uint16, DisServ
 
 int ChunkRetrievalController::replyToQuery (ChunkRetrievalMsgQuery *pCRMQ, const char *pszIncomingInterface)
 {
+    const char *pszMethodName = "ChunkRetrievalController::replyToQuery";
     if (pCRMQ == NULL) {
         return -1;
     }
@@ -141,6 +144,8 @@ int ChunkRetrievalController::replyToQuery (ChunkRetrievalMsgQuery *pCRMQ, const
     PtrLList<MessageHeader> *pChunks = _pDataCacheInterface->getCompleteChunkMessageInfos (pszQueryId);
     if (pChunks != NULL) {
         char **ppszOutgoingInterfaces = createOutgoingInterfacesList (pszIncomingInterface);
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "sending ChunkRetrievalMsgQueryHits to %s for query id %s.\n",
+                        pszTargetNodeId, pszQueryId);
         ChunkRetrievalMsgQueryHits crmqh (_pDisService->getNodeId(), pszTargetNodeId, pChunks, pszQueryId, false);
         int rc = broadcastCtrlMessage (&crmqh, (const char**) NULL, "Sending Hit Query Msg");
         if (ppszOutgoingInterfaces != NULL) {
@@ -165,10 +170,16 @@ int ChunkRetrievalController::replyToQueryHits (ChunkRetrievalMsgQueryHits *pCRM
     if (pszSenderNodeId == NULL) {
         return -1;
     }
-    if (pCRMQH->getTargetNodeId() == NULL) {
+    const String target (pCRMQH->getTargetNodeId());
+    if (target.length() <= 0) {
         return -2;
     }
-    // it been received a hit for pszQueryId
+    String nodeId (_pDisService->getNodeId());
+    if (nodeId != target) {
+        return -3;
+    }
+
+    // it has been received a hit for pszQueryId
     const char *pszQueryId = pCRMQH->getQueryId();
     if (pszQueryId == NULL) {
         return -4;
@@ -185,19 +196,31 @@ int ChunkRetrievalController::replyToQueryHits (ChunkRetrievalMsgQueryHits *pCRM
         // Ignore the new hit (TODO: may store the message for later, in case more chunks are needed...)
         return 0;
     }
+
+    // Request a new chunk only if there isn't any new chunk being reassembled
+    MessageHeader *pMHToRequest = NULL;
     for (MessageHeader *pMH = pCMIs->getFirst(); pMH != NULL; pMH = pCMIs->getNext()) {
         if (!_pDataCacheInterface->hasCompleteMessage (pMH) &&
             !_pDataCacheInterface->containsMessage (pMH)) {
-            checkAndLogMsg ("ChunkRetrievalController::replyToQueryHits",
-                            Logger::L_Info, "requesting %s to peer %s\n",
-                            pMH->getMsgId(), pszSenderNodeId);
-            _pDisService->historyRequest (0,               // client ID
-                                          pMH->getMsgId(), // pszMessageID
-                                          0);              // time out
-            break;  // Force requesting only one chunk
+            if (_pMessageReassembler->isBeingReassembled (pMH->getGroupName(), pMH->getPublisherNodeId(),
+                                                          pMH->getMsgSeqId(), pMH->getChunkId())) {
+                pMHToRequest = NULL;
+                break;
+            }
+            if (pMHToRequest == NULL) {
+                pMHToRequest = pMH;
+            }
         }
     }
 
+    if (pMHToRequest != NULL) {
+        checkAndLogMsg ("ChunkRetrievalController::replyToQueryHits",
+                        Logger::L_Info, "requesting %s to peer %s\n",
+                        pMHToRequest->getMsgId(), pszSenderNodeId);
+        _pDisService->historyRequest (0,                        // client ID
+                                      pMHToRequest->getMsgId(), // pszMessageID
+                                      0);                       // time out
+    }
     return 0;
 }
 
@@ -220,7 +243,7 @@ ChunkRetrievalController::Hit::Hit (const char *pszSenderNodeId, MessageHeader *
 ChunkRetrievalController::Hit::~Hit (void)
 {
     // Deallocated in the destructor ~ChunkRetrievalController (void)
-}        
+}
 
 //==============================================================================
 // ChunkDiscoveryController
@@ -245,10 +268,23 @@ ChunkDiscoveryController::~ChunkDiscoveryController()
 bool ChunkDiscoveryController::hasReceivedHitForQuery (const char *pszQueryId)
 {
     _m.lock (5);
-    bool bRcvd = !_discovering.containsKey (pszQueryId);
-    _m.unlock (5);
+    if (_discovering.containsKey (pszQueryId)) {
+        Discovery *pDisc = _discovering.get (pszQueryId);
+        uint8 ui8 = pDisc->_ui8NChunks;
+        _m.unlock (5);
 
-    return bRcvd;
+        DArray2<String> tokenizedKey;
+        if (convertKeyToField (pszQueryId, tokenizedKey, 3, MSG_ID_GROUP, MSG_ID_SENDER, MSG_ID_SEQ_NUM) < 0) {
+            return true;
+        }
+        unsigned int uiTotNChunks = 0;
+        int iNChunks = _pDataCacheInterface->countChunks (tokenizedKey[MSG_ID_GROUP], tokenizedKey[MSG_ID_SENDER],
+                                                          (uint32)atoi (tokenizedKey[MSG_ID_SEQ_NUM]), uiTotNChunks);
+        return (iNChunks > 0) && (iNChunks > ui8);
+    }
+    _m.unlock (5);
+    return true;
+
 }
 
 void ChunkDiscoveryController::newIncomingMessage (const void *, uint16, DisServiceMsg *pDisServiceMsg,
@@ -264,7 +300,7 @@ void ChunkDiscoveryController::newIncomingMessage (const void *, uint16, DisServ
         return;
     }
 
-    ChunkRetrievalMsgQueryHits *pCRMQH = (ChunkRetrievalMsgQueryHits*) pDisServiceMsg;
+    ChunkRetrievalMsgQueryHits *pCRMQH = static_cast<ChunkRetrievalMsgQueryHits*>(pDisServiceMsg);
     const char *pszQueryId = (pCRMQH->getQueryId());
     if (pszQueryId == NULL) {
         checkAndLogMsg ("ChunkDiscoveryController::newIncomingMessage", Logger::L_Warning,
@@ -297,20 +333,22 @@ void ChunkDiscoveryController::newIncomingMessage (const void *, uint16, DisServ
     }
     chunkIds += "]";
 
-    bool bCanRemove = false;
+    bool bStopDiscovery = false;
     for (MessageHeader *pMH = pCMIs->getFirst(); pMH != NULL; pMH = pCMIs->getNext()) {
         if (!_pDataCacheInterface->hasCompleteMessage (pMH) &&
             !_pDataCacheInterface->containsMessage (pMH)) {
-            bCanRemove = true;
+            // At least one of the chunks owned by the replying peer is missing,
+            // descovery can therefore be halted
+            bStopDiscovery = true;
             break;
         }
     }
 
-    if (bCanRemove) {
+    if (bStopDiscovery) {
         _m.lock (6);
-        int64 *pTimeout = _discovering.remove (pszQueryId);
-        if (pTimeout != NULL) {
-            delete pTimeout;
+        Discovery *pDisc = _discovering.remove (pszQueryId);
+        if (pDisc != NULL) {
+            delete pDisc;
             checkAndLogMsg ("ChunkDiscoveryController::newIncomingMessage", Logger::L_Info,
                             "received hit for <%s>; the discovered chunks are %s. Discovering "
                             "ID removed from the hashset.\n", pszQueryId, chunkIds.c_str());
@@ -340,35 +378,50 @@ void ChunkDiscoveryController::retrieveInternal (const char *pszId, int64 i64Tim
     if (pszId == NULL) {
         return;
     }
-    const int64 i64RelativeTimeout = i64Timeout;
-    if (i64Timeout < 0) {
-        i64Timeout = 0;
-    }
-    else if (i64Timeout > 0) {
-        i64Timeout += getTimeInMilliseconds();
-    }
-
     DArray2<String> tokenizedKey;
     if (convertKeyToField (pszId, tokenizedKey, 3, MSG_ID_GROUP, MSG_ID_SENDER, MSG_ID_SEQ_NUM) < 0) {
         return;
     }
     unsigned int uiTotNChunks = 0;
-    int iNChunks = _pDataCacheInterface->countChunks ((const char *) tokenizedKey[MSG_ID_GROUP],
-                                                      (const char *) tokenizedKey[MSG_ID_SENDER],
-                                                      (uint32) atoi (tokenizedKey[MSG_ID_SEQ_NUM]),
-                                                      uiTotNChunks);
+    int iNChunks = _pDataCacheInterface->countChunks (tokenizedKey[MSG_ID_GROUP], tokenizedKey[MSG_ID_SENDER],
+                                                      (uint32)atoi (tokenizedKey[MSG_ID_SEQ_NUM]), uiTotNChunks);
     if ((iNChunks < 0) ||             // Error
-        ((((unsigned int) iNChunks) == uiTotNChunks) && (uiTotNChunks > 0))) {
+        ((((unsigned int)iNChunks) == uiTotNChunks) && (uiTotNChunks > 0))) {
         // All the chunks have already been received
         return;
     }
+    i64Timeout = (i64Timeout <= 0) ? 0 : i64Timeout + getTimeInMilliseconds();
+    Discovery disc (pszId, tokenizedKey[MSG_ID_GROUP], tokenizedKey[MSG_ID_SENDER],
+                    (uint32)atoi (tokenizedKey[MSG_ID_SEQ_NUM]),
+                    (uint8) iNChunks, (uint8) uiTotNChunks, i64Timeout);
 
-    PtrLList<MessageHeader> *pChunks = _pDataCacheInterface->getCompleteChunkMessageInfos ((const char *) tokenizedKey[MSG_ID_GROUP],
-                                                                                           (const char *) tokenizedKey[MSG_ID_SENDER],
-                                                                                           (uint32) atoi (tokenizedKey[MSG_ID_SEQ_NUM]));
+    return retrieveInternal (&disc, bLock);
+}
 
-    ChunkRetrievalMsgQuery crmq (_pDisService->getNodeId(), pszId, pChunks);
-    int rc = broadcastCtrlMessage (&crmq, "Sending Retrieval Query Msg");
+void ChunkDiscoveryController::retrieveInternal (Discovery *pDisc, bool bLock)
+{
+    unsigned int uiTotNChunks = 0;
+    int iNChunks = _pDataCacheInterface->countChunks (pDisc->_group, pDisc->_sender, pDisc->_ui32SeqId, uiTotNChunks);
+    if ((iNChunks < 0) ||             // Error
+        ((((unsigned int)iNChunks) == uiTotNChunks) && (uiTotNChunks > 0))) {
+        // All the chunks have already been received
+        return;
+    }
+    if (iNChunks > pDisc->_ui8NChunks) {
+
+    }
+
+    int iCount = 0;
+    PtrLList<MessageHeader> *pChunks = _pDataCacheInterface->getCompleteChunkMessageInfos (pDisc->_group, pDisc->_sender, pDisc->_ui32SeqId);
+    if (pChunks != NULL) {
+        iCount = pChunks->getCount();
+    }
+
+    int rc = -1;
+    if (iCount <= pDisc->_ui8NChunks) {
+        ChunkRetrievalMsgQuery crmq (_pDisService->getNodeId(), pDisc->_id, pChunks);
+        rc = broadcastCtrlMessage (&crmq, "Sending Retrieval Query Msg");
+    }
 
     String chunkIds ("[");
     if (pChunks != NULL) {
@@ -391,20 +444,19 @@ void ChunkDiscoveryController::retrieveInternal (const char *pszId, int64 i64Tim
     else {
         checkAndLogMsg ("ChunkDiscoveryController::retrieve", Logger::L_Info,
                         "sent message query for more chunks for message %s. The locally "
-                        "cached chunks are %s.\n", pszId, chunkIds.c_str());
+                        "cached chunks are %s.\n", pDisc->_id.c_str(), chunkIds.c_str());
     }
 
     if (bLock) {
         _m.lock (7);
     }
-    if (!_discovering.containsKey (pszId)) {
+    if (!_discovering.containsKey (pDisc->_id)) {
         checkAndLogMsg ("ChunkDiscoveryController::retrieve", Logger::L_Info,
-                        "query ID <%s> added to discovery hashset with timeout %lld\n. The locally "
-                        "cached chunks are %s.\n", pszId, i64RelativeTimeout, chunkIds.c_str());
-        int64 *pTimeout = new int64;
-        if (pTimeout != NULL) {
-            *pTimeout = i64Timeout;
-            _discovering.put (pszId, pTimeout);
+                        "query ID <%s> added to discovery hashset\n. The locally "
+                        "cached chunks are %s.\n", pDisc->_id.c_str(), chunkIds.c_str());
+        Discovery *pdisc = new Discovery (*pDisc);
+        if (pdisc != NULL) {
+            _discovering.put (pDisc->_id, pdisc);
         }
     }
     if (bLock) {
@@ -412,7 +464,7 @@ void ChunkDiscoveryController::retrieveInternal (const char *pszId, int64 i64Tim
     }
 }
 
-void ChunkDiscoveryController::sendDiscoveryMessage()
+void ChunkDiscoveryController::sendDiscoveryMessage (void)
 {
     _m.lock (8);
     if (_discovering.getCount() == 0U) {
@@ -421,17 +473,44 @@ void ChunkDiscoveryController::sendDiscoveryMessage()
     }
 
     const int64 i64CurrentTime = getTimeInMilliseconds();
-    StringHashtable<int64>::Iterator iter = _discovering.getAllElements();
+    StringHashtable<Discovery>::Iterator iter = _discovering.getAllElements();
     do {
-        int64 *pI64Timeout = iter.getValue();
-        if ((pI64Timeout == NULL) || (*pI64Timeout == 0) || (i64CurrentTime < (*pI64Timeout))) {
+        Discovery *pDisc = iter.getValue();
+        if ((pDisc == NULL) || (pDisc->_i64Timeout == 0) || (i64CurrentTime < (pDisc->_i64Timeout))) {
             checkAndLogMsg ("ChunkDiscoveryController::sendDiscoveryMessage", Logger::L_Info,
                             "sending discovery for %s (%u messages to be discovered).\n", iter.getKey(), _discovering.getCount());
-            retrieveInternal (iter.getKey(), (pI64Timeout == NULL ? 0 : *pI64Timeout), false);
+            retrieveInternal (pDisc, false);
         }
         iter.nextElement();
     } while (!iter.end());
 
     _m.unlock (8);
+}
+
+ChunkDiscoveryController::Discovery::Discovery (const char *pszId, const char *pszGroup, const char *pszSender,
+                                                uint32 ui32SeqId, uint8 ui8NChunks, uint8 ui8TotNChunks, int64 i64Timeout)
+    : _ui8NChunks (ui8NChunks),
+      _ui8TotNChunks (ui8TotNChunks),
+      _i64Timeout (i64Timeout),
+      _ui32SeqId (ui32SeqId),
+      _group (pszGroup),
+      _sender (pszSender),
+      _id (pszId)
+{
+}
+
+ChunkDiscoveryController::Discovery::Discovery (const Discovery &rhsDisc)
+    : _ui8NChunks (rhsDisc._ui8NChunks),
+      _ui8TotNChunks (rhsDisc._ui8TotNChunks),
+      _i64Timeout (rhsDisc._i64Timeout),
+      _ui32SeqId (rhsDisc._ui32SeqId),
+      _group (rhsDisc._group),
+      _sender (rhsDisc._sender),
+      _id (rhsDisc._id)
+{
+}
+
+ChunkDiscoveryController::Discovery::~Discovery (void)
+{
 }
 

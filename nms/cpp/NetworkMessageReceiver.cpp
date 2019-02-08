@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -18,7 +18,6 @@
  */
 
 #include "NetworkMessageReceiver.h"
-
 #include "MessageFactory.h"
 #include "MulticastUDPDatagramSocket.h"
 #include "NetworkInterfaceManager.h"
@@ -29,7 +28,7 @@ using namespace NOMADSUtil;
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 NetworkMessageReceiver::NetworkMessageReceiver (NetworkInterfaceManagerListener *pNMSParent, NetworkInterface *pNetIface,
-                                                bool bReceive)
+												bool bReceive)
     : _bReceive (bReceive), _pNMSParent (pNMSParent), _pNetIface (pNetIface)
 {
     _bEstimateRate = false;
@@ -38,7 +37,7 @@ NetworkMessageReceiver::NetworkMessageReceiver (NetworkInterfaceManagerListener 
 }
 
 NetworkMessageReceiver::NetworkMessageReceiver (NetworkInterfaceManagerListener *pNMSParent, NetworkInterface *pNetIface,
-                                                bool bReceive, RateEstimator *pRateEstimator, Type type)
+												bool bReceive, RateEstimator *pRateEstimator, Type type)
     : _bReceive (bReceive), _pNMSParent (pNMSParent), _pNetIface (pNetIface)
 {
     _bEstimateRate = false;
@@ -60,7 +59,6 @@ void NetworkMessageReceiver::run (void)
 {
     started();
     char achBuf [MAX_MESSAGE_SIZE];
-
     while (!terminationRequested()) {
         if (_pNetIface->rebind() != 0) {
             sleepForMilliseconds (15000);
@@ -69,7 +67,6 @@ void NetworkMessageReceiver::run (void)
             receive (achBuf, MAX_MESSAGE_SIZE);
         }
     }
-
     terminating();
 }
 
@@ -78,17 +75,14 @@ int NetworkMessageReceiver::receive (char *achBuf, int iBufLen)
     if (achBuf == NULL || iBufLen <= 0) {
         return -1;
     }
-
     const char *pszMethodName = "NetworkMessageReceiver::receive";
-
     InetAddr remoteAddr;
     InetAddr incomingIfaceByAddr;
     // Max returned value should be about 65,000 (udp mtu), but we can have negative values
     int32 rc = _pNetIface->receive (achBuf, iBufLen, &incomingIfaceByAddr, &remoteAddr);
     if (rc < 0) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                        "error receiving packets (_pmcSocket.receive (%s) returned negative value: %d)\n",
-                        _pNetIface->getBindingInterfaceSpec(), rc);
+                        "error receiving packets (_pmcSocket.receive (%s) returned negative value: %d)\n", _pNetIface->getBindingInterfaceSpec(), rc);
     }
     else if ((rc > 0) && (remoteAddr.getIPAddress() != incomingIfaceByAddr.getIPAddress())) {
         if (incomingIfaceByAddr.getIPAddress() == INADDR_ANY) {
@@ -99,7 +93,6 @@ int NetworkMessageReceiver::receive (char *achBuf, int iBufLen)
         NetworkMessage *pNetMsg = MessageFactory::createNetworkMessageFromBuffer (achBuf, rc, NetworkMessage::getVersionFromBuffer (achBuf, rc));
         if ((pNetMsg != NULL) && (!pNetMsg->isMalformed())) {
             pNetMsg->display(); // debug
-
             if (!NetUtils::isLocalAddress (remoteAddr.getIPAddress(), NULL) &&
                 !NetUtils::isLocalAddress (pNetMsg->getSourceAddr(), NULL)) {
                 if (_bEstimateRate && _pRateEstimator != NULL) {
@@ -129,7 +122,7 @@ int NetworkMessageReceiver::receive (char *achBuf, int iBufLen)
     }
     else {
         checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
-                        "ignoring my own broadcast\n");
+                       "ignoring my own broadcast\n");
     }
     return 0;
 }
@@ -193,3 +186,4 @@ uint32 NetworkMessageReceiver::RateEstimator::getRate (void)
 {
     return _ui32ComputedRate;
 }
+

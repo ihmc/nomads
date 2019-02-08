@@ -20,10 +20,12 @@
 #ifndef INCL_NODE_CONTEXT_MANAGER_H
 #define INCL_NODE_CONTEXT_MANAGER_H
 
+#include "DArray2.h"
 #include "PeerNodeContext.h"
 #include "Topology.h"
 
 #include "LoggingMutex.h"
+#include "StrClass.h"
 
 namespace NOMADSUtil
 {
@@ -35,11 +37,15 @@ namespace IHMC_C45
     class C45AVList;
 }
 
+namespace IHMC_VOI
+{
+    class NodePath;
+}
+
 namespace IHMC_ACI
 {
     class LocalNodeContext;
-    class MetadataConfiguration;
-    class NodePath;
+    class MetadataConfigurationImpl;
 
     class NodeContextManager
     {
@@ -48,21 +54,19 @@ namespace IHMC_ACI
             virtual ~NodeContextManager (void);
 
             int configure (CommAdaptorManager *pCommMgr, Topology *pTopology,
-                           MetadataConfiguration *pMetadataConf);
+                           MetadataConfigurationImpl *pMetadataConf);
 
             void setBatteryLevel (unsigned int uiBattery);
             void setMemoryAvailable (unsigned int uiMemory);
-            int registerPath (NodePath *pPath);
+            int registerPath (IHMC_VOI::NodePath *pPath);
             int setCurrentPath (const char *pszPathId);
 
-            /**
-             * Uses the given Writer to write the payload of the message to send
-             * to the new peer. Returns -1 in case of errors, returns 0 otherwise.
+            /*
+             * Updates peer list and sends a VersionsMessage to the new peer
              */
-            int newPeer (const char *pszNodeID);
-            int newPeer (const char *pszNodeID, NOMADSUtil::Writer *pWriter);
+            int newPeer (const char *pszNodeId);
 
-            void deadPeer (const char *pszNodeID);
+            void deadPeer (const char *pszNodeId);
 
             /**
              * A peer node has sent its own versions of the local node context.
@@ -75,7 +79,7 @@ namespace IHMC_ACI
              */
             int versionsMessageArrived (const void *pData, uint32 ui32DataLength,
                                         const char *pszPublisherNodeId,
-                                        char **ppszNodeToForwardTo);
+                                        NOMADSUtil::String &nodeToForwardTo);
 
             /**
              * A peer node has sent an update of its node context.
@@ -85,26 +89,11 @@ namespace IHMC_ACI
              * the node context, or part of it, is not upto date, therefore a
              * version message should be sent in order to synchronize it.
              */
-            int updatesMessageArrived (const void *pData, uint32 ui32DataLength,
-                                       const char *pszPublisherNodeId,
-                                       bool &bContextUnsynchronized);
-
-            /**
-             * A new peer never seen before has sent its node context.
-             * Returns -1 in case of errors, returns 0 otherwise
-             */
-            int wholeMessageArrived (const void *pData, uint32 ui32DataLength, const char *pszPublisherNodeId,
-                                     char **ppszNodeToForwardTo);
-
-            /**
-             * A peer node has sent an updated position in his actual path.
-             * Return values:
-             * 1 send a version message,
-             * 0 do not send a reply,
-             * -1 an error occurred
-             */
-            int wayPointMessageArrived (void *pData, uint32 ui32DataLength, const char *pszPublisherNodeId,
-                                        bool &bPositionHasChanged);
+            int nodeContextMessageArrived (const void *pData, uint32 ui32DataLength,
+                                           const char *pszPublisherNodeId,
+                                           bool &bContextUnsynchronized,
+                                           bool &bNodeContextUpdated,
+                                           NOMADSUtil::String &nodeToForwardTo);
 
             int updateClassifier (IHMC_C45::C45AVList *pDataset);
 
@@ -140,29 +129,29 @@ namespace IHMC_ACI
              *
              * NOTE: The caller MUST deallocate the returned object (but it
              * MUST NOT deallocate the contained elements).
-             * if ppszPeerNodeIDFilter == NULL the method does not work. If no
+             * if ppszPeerNodeIDFilter == nullptr the method does not work. If no
              * filtering needs to be applied, use the above method.
              */
             PeerNodeContextList * getPeerNodeContextList (const char **ppszPeerNodeIDFilter);
 
             /**
-             * Returns the list of the known peers' ids 
+             * Returns the list of the known peers' ids
              * NOTE: the list must be deallocated by the caller
              */
-            char ** getPeerList (bool bNeighborsOnly);
+            NOMADSUtil::DArray2<NOMADSUtil::String> * getPeerList (bool bNeighborsOnly);
 
             /**
              * After use "releasePeerNodeContextList()" must be called
              * to unlock the mutex "_mPeer".
              * The caller MUST NOT delete the returned object.
              */
-            PeerNodeContext * getPeerNodeContext (const char *pszNodeID);
+            PeerNodeContext * getPeerNodeContext (const char *pszNodeId);
 
             /**
              * Releases the mutex "_mPeer".
              */
             void releasePeerNodeContextList (void);
-            
+
             /**
              * Call this method between "getPeerNodeContextList()" and
              * "releasePeerNodeContextList()" to ensure that the returned
@@ -174,7 +163,7 @@ namespace IHMC_ACI
              */
             unsigned int getActivePeerNumber (void);
 
-            char ** getActivePeerList (void);
+            NOMADSUtil::DArray2<NOMADSUtil::String> * getActivePeerList (void);
 
             /**
              * Returns the sublist of peers in ppszPeerNodeIds that are reachable
@@ -183,28 +172,34 @@ namespace IHMC_ACI
              * NOTE: the caller should deallocate the returned array, but NOT
              *       it elements.
              */
-            char ** getReachablePeers (AdaptorId adaptorId, const char **ppszPeerNodeIds);
+            //char ** getReachablePeers (AdaptorId adaptorId, const char **ppszPeerNodeIds);
 
         private:
+            PeerNodeContext * getNodeContextInternal (const char *pszNodeId);
+
             /**
              * Write updates when the local context is changed. Returns
              * the list of active peers who are interested in the updates.
              */
-            int localContextHasChanged (const NodeContext::Versions &versions);
+            int localContextHasChanged (const Versions &versions);
+
+            /**
+             * Uses the given Writer to write the payload of the message to send
+             * to the new peer. Returns -1 in case of errors, returns 0 otherwise.
+             */
+            int newPeer (const char *pszNodeId, NOMADSUtil::Writer *pWriter);
 
         private:
-            PeerNodeContext * getNodeContextInternal (const char *pszNodeID);
-
             LocalNodeContext *_pLocalNodeContext;
             NOMADSUtil::PtrLList<PeerNodeContext> *_pPeerNodeContextList;
             unsigned int _uiActivePeerNumber;
 
             CommAdaptorManager *_pCommMgr;
-            MetadataConfiguration *_pMetadataConf;
+            MetadataConfigurationImpl *_pMetadataConf;
             Topology *_pTopology;
-            const char *_pszNodeId;
+            const NOMADSUtil::String _nodeId;
 
-            NOMADSUtil::LoggingMutex _mLocal; // Recursive mutexes. 
+            NOMADSUtil::LoggingMutex _mLocal; // Recursive mutexes.
             NOMADSUtil::LoggingMutex _mPeer;  // Recursive mutexes.
     };
 }

@@ -22,7 +22,7 @@ INCLUDES=-I..-I../test \
          -isystem $(NOMADS_HOME)/util/cpp \
 	 -isystem $(SQLITE_HOME)/
 
-cppflags= -g -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
+cppflags= -g -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES) -std=c++11
 sources = $(wildcard ../*.cpp)
 objects = $(sources:../%.cpp=%.o)
 LIBS=$(UTIL_HOME)/cpp/$(LIB_FOLDER)/libutil.a \

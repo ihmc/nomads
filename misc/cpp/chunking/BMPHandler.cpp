@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -145,6 +145,7 @@ BMPImage * BMPChunker::fragmentBMP (BMPImage *pSourceImage, uint8 ui8DesiredChun
         checkAndLogMsg ("BMPChunker::fragmentBMP", Logger::L_MildError,
                         "could not initialize a new bitmap of size %lux%lu and %d bits/pixel; rc = %d\n",
                         ui32NewWidth, ui32NewHeight, pSourceImage->getBitsPerPixel());
+        delete pChunkedImage;
         return NULL;
     }
     uint8 ui8XOff = BMPHandler::computeXOffset (ui8DesiredChunkId, ui8TotalNoOfChunks);
@@ -193,11 +194,16 @@ BMPImage * BMPChunker::extractFromBMP (BMPImage *pSourceImage, uint32 ui32StartX
                         ui32NewWidth, ui32NewHeight, pSourceImage->getBitsPerPixel());
         return NULL;
     }
+    checkAndLogMsg ("DEBUG", Logger::L_MediumDetailDebug, "(%u %u) (%u %u)\n", ui32StartX, ui32EndX, ui32StartY, ui32EndY);
     for (uint32 x = ui32StartX; x <= ui32EndX; x++) {
         for (uint32 y = ui32StartY; y <= ui32EndY; y++) {
             uint8 ui8Red, ui8Green, ui8Blue;
-            assert (pSourceImage->getPixel (x, y, &ui8Red, &ui8Green, &ui8Blue) == 0);
-            assert (pExtractedImage->setPixel ((x - ui32StartX), (y - ui32StartY), ui8Red, ui8Green, ui8Blue) == 0);
+            ui8Red = ui8Green = ui8Blue = 0;
+            int rc1 = pSourceImage->getPixel (x, y, &ui8Red, &ui8Green, &ui8Blue);
+            int rc2 = pExtractedImage->setPixel ((x - ui32StartX), (y - ui32StartY), ui8Red, ui8Green, ui8Blue);
+            checkAndLogMsg ("DEBUG", Logger::L_MediumDetailDebug, "rc1=%d    rc2=%d\n", rc1, rc2);
+            assert (rc1 == 0);
+            assert (rc2 == 0);
         }
     }
     return pExtractedImage;

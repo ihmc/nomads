@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,6 +27,7 @@
 #include "MessageId.h"
 #include "MessageInfo.h"
 #include "PreparedStatement.h"
+#include "SessionId.h"
 #include "SQLPropertyStore.h"
 #include "SQLTransmissionHistory.h"
 
@@ -211,7 +212,7 @@ SQLMessageHeaderStorage::~SQLMessageHeaderStorage()
     delete _pDeleteRow;
     _pDeleteRow = NULL;
 
-    _pDB->close();
+    (*_pDB)->close();
     _pDB = NULL;
     _m.unlock (200);
 }
@@ -219,7 +220,7 @@ SQLMessageHeaderStorage::~SQLMessageHeaderStorage()
 int SQLMessageHeaderStorage::init()
 {
     const char *pszMethodName = "SQLMessageHeaderStorage::init";
-    
+
     _m.lock (201);
     _pDB = Database::getDatabase (Database::SQLite);
     if (_pDB == NULL) {
@@ -228,14 +229,14 @@ int SQLMessageHeaderStorage::init()
          _m.unlock (201);
         return -1;
     }
-    if (_pDB->open (_dbName.c_str()) != 0) {
+    if ((*_pDB)->open (_dbName.c_str()) != 0) {
          _m.unlock (201);
         return -2;
     }
 
     String sql (getCreateTableSQLStatement());
-    if (_pDB->execute (sql) < 0) {
-        const char *pszErr = _pDB->getErrorMessage();
+    if ((*_pDB)->execute (sql) < 0) {
+        const char *pszErr = (*_pDB)->getErrorMessage();
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "could not initialize table: %s\n", pszErr);
         _m.unlock (201);
         return -2;
@@ -250,9 +251,9 @@ int SQLMessageHeaderStorage::init()
     //--------------------------------------------------------------------------
 
     String insertStmt (getInsertIntoTableSQLStatement());
-    _pInsertByteCode = _pDB->prepare (insertStmt);
+    _pInsertByteCode = (*_pDB)->prepare (insertStmt);
     if (_pInsertByteCode == NULL) {
-        const char *pszErr = _pDB->getErrorMessage();
+        const char *pszErr = (*_pDB)->getErrorMessage();
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "could not prepare insert statement: %s\n", pszErr);
         _m.unlock (201);
         return -3;
@@ -262,7 +263,7 @@ int SQLMessageHeaderStorage::init()
     _pPropStore = new SQLPropertyStore();
     int rc;
     if ((rc = _pPropStore->init (_dbName.c_str())) != 0) {
-        const char *pszErr = _pDB->getErrorMessage();
+        const char *pszErr = (*_pDB)->getErrorMessage();
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "failed to initialize SQLPropertyStore; rc = %d. %s\n",
                         rc, pszErr);
@@ -318,6 +319,7 @@ int SQLMessageHeaderStorage::insert (Message *pMsg)
 
 int SQLMessageHeaderStorage::insertIntoDataCacheBind (PreparedStatement *pStmt, Message *pMsg)
 {
+    const char *pszMethodName = "SQLMessageHeaderStorage::insertIntoDataCacheBind";
     MessageHeader *pMH = pMsg->getMessageHeader();
     if (pMH == NULL) {
         return -1;
@@ -340,101 +342,101 @@ int SQLMessageHeaderStorage::insertIntoDataCacheBind (PreparedStatement *pStmt, 
     }
 
     if (pStmt->bind (FIELD_GROUP_NAME_COLUMN_NUMBER + 1, pMH->getGroupName()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -2;
     }
     if (pStmt->bind (FIELD_SENDER_ID_COLUMN_NUMBER + 1, pMH->getPublisherNodeId()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -3;
     }
     if (pStmt->bind (FIELD_MSG_SEQ_ID_COLUMN_NUMBER + 1, pMH->getMsgSeqId()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -4;
     }
     if (pStmt->bind (FIELD_CHUNK_ID_COLUMN_NUMBER + 1, pMH->getChunkId()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -5;
     }
     if (pStmt->bind (FIELD_OBJECT_ID_COLUMN_NUMBER + 1, pMH->getObjectId()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -6;
     }
     if (pStmt->bind (FIELD_INSTANCE_ID_COLUMN_NUMBER + 1, pMH->getInstanceId()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -7;
     }
     if (pStmt->bind (FIELD_ANNOTATION_MSG_ID_COLUMN_NUMBER + 1, pMH->getAnnotates()) < 0) {
-        checkAndLogMsg("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -7;
     }
     uint32 ui32Len = 0U;
     const void *pAnnotationMetadata = pMH->getAnnotationMetadata (ui32Len);
     if (pStmt->bind (FIELD_ANNOTATION_METADATA_COLUMN_NUMBER + 1, pAnnotationMetadata, ui32Len) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -8;
     }
     if (pStmt->bind (FIELD_TAG_COLUMN_NUMBER + 1, pMH->getTag()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -9;
     }
     if (pStmt->bind (FIELD_CLIENT_ID_COLUMN_NUMBER + 1, pMH->getClientId()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -10;
     }
     if (pStmt->bind (FIELD_CLIENT_TYPE_COLUMN_NUMBER + 1, pMH->getClientType()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -11;
     }
     if (pStmt->bind (FIELD_MIME_TYPE_COLUMN_NUMBER + 1, pMH->getMimeType()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -12;
     }
     if (pStmt->bind (FIELD_CHECKSUM_COLUMN_NUMBER + 1, pMH->getChecksum()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -13;
     }
     if (pStmt->bind (FIELD_TOT_MSG_LENGTH_COLUMN_NUMBER + 1, pMH->getTotalMessageLength()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -14;
     }
     if (pStmt->bind (FIELD_FRAGMENT_LENGTH_COLUMN_NUMBER + 1, pMH->getFragmentLength()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -15;
     }
     if (pStmt->bind (FIELD_FRAGMENT_OFFSET_COLUMN_NUMBER + 1, pMH->getFragmentOffset()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -16;
     }
     if (pStmt->bind (FIELD_METADATA_LENGTH_COLUMN_NUMBER + 1, ui32MetadataLength) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -17;
     }
     if (pStmt->bind (FIELD_TOT_N_CHUNKS_NUMBER + 1, ui8NChunks) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -18;
     }
     if (pStmt->bind (FIELD_HISTORY_WINDOW_COLUMN_NUMBER + 1, pMH->getHistoryWindow()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -19;
     }
     if (pStmt->bind (FIELD_PRIORITY_COLUMN_NUMBER + 1, pMH->getPriority()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -20;
     }
     if (pStmt->bind (FIELD_EXPIRATION_COLUMN_NUMBER + 1, pMH->getExpiration()) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -21;
     }
     if (pStmt->bind (FIELD_ACKNOLEDGMENT_COLUMN_NUMBER + 1, bAcknoledgemnt) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -22;
     }
     if (pStmt->bind (FIELD_METADATA_COLUMN_NUMBER + 1, bIsMetadata) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -23;
     }
     if (pStmt->bind (FIELD_ARRIVAL_TIMESTAMP_COLUMN_NUMBER + 1, i64ArrivalTimestamp) < 0) {
-        checkAndLogMsg ("SQLMessageHeaderStorage::insertIntoDataCacheBind", bindingError);
+        checkAndLogMsg (pszMethodName, bindingError);
         return -24;
     }
 
@@ -501,7 +503,7 @@ bool SQLMessageHeaderStorage::hasCompleteDataMessage (const char *pszGroupName, 
                        + FIELD_FRAGMENT_OFFSET +" = 0 AND "
                        + FIELD_FRAGMENT_LENGTH + " = " + FIELD_TOT_MSG_LENGTH + ";";
 
-            _pHasCompleteMsgPrepStmt = _pDB->prepare (sql.c_str());
+            _pHasCompleteMsgPrepStmt = (*_pDB)->prepare (sql.c_str());
             if (_pHasCompleteMsgPrepStmt != NULL) {
                 checkAndLogMsg (pszMethodName, Logger::L_Info,
                                 "Statement %s prepared successfully.\n", (const char *)sql);
@@ -525,7 +527,7 @@ bool SQLMessageHeaderStorage::hasCompleteDataMessage (const char *pszGroupName, 
                        + FIELD_FRAGMENT_OFFSET +" = 0 AND "
                        + FIELD_FRAGMENT_LENGTH + " = " + FIELD_TOT_MSG_LENGTH + ";";
 
-            _pHasCompleteMsgOrAnyChunkPrepStmt = _pDB->prepare (sql.c_str());
+            _pHasCompleteMsgOrAnyChunkPrepStmt = (*_pDB)->prepare (sql.c_str());
             if (_pHasCompleteMsgOrAnyChunkPrepStmt != NULL) {
                 checkAndLogMsg (pszMethodName, Logger::L_Info,
                                 "Statement %s prepared successfully.\n", (const char *)sql);
@@ -587,7 +589,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMsgInfo (DisServiceDataCac
 
     _m.lock (207);
 
-    PreparedStatement *pPrepStmt = _pDB->prepare (pQuery->getSqlQuery());
+    PreparedStatement *pPrepStmt = (*_pDB)->prepare (pQuery->getSqlQuery());
     if (pPrepStmt == NULL) {
         checkAndLogMsg ("SQLMessageHeaderStorage::getMsgInfo", Logger::L_SevereError,
                         "error preparing statement\n");
@@ -668,7 +670,7 @@ PtrLList<MessageId> * SQLMessageHeaderStorage::getNotReplicatedMsgList (const ch
                               " AND "  + FIELD_FRAGMENT_LENGTH + " = " + FIELD_TOT_MSG_LENGTH +
                               " ORDER BY "  + FIELD_CHUNK_ID + " ASC;";
 
-        _pGetNotSentMsgInfoPrepStmt = _pDB->prepare (sql.c_str());
+        _pGetNotSentMsgInfoPrepStmt = (*_pDB)->prepare (sql.c_str());
         if (_pGetNotSentMsgInfoPrepStmt != NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_Info,
                             "statement %s prepared successfully\n", (const char *)sql);
@@ -681,27 +683,27 @@ PtrLList<MessageId> * SQLMessageHeaderStorage::getNotReplicatedMsgList (const ch
         }
     }
 
-    // Bind the values to the prepared statement 
-    if (_pGetNotSentMsgInfoPrepStmt->bind (1, pszTargetPeer)) { 
-        checkAndLogMsg (pszMethodName, Logger::L_SevereError, 
-                        "error when binding values\n"); 
+    // Bind the values to the prepared statement
+    if (_pGetNotSentMsgInfoPrepStmt->bind (1, pszTargetPeer)) {
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                        "error when binding values\n");
         _pGetNotSentMsgInfoPrepStmt->reset();
         _m.unlock (209);
-        return NULL; 
-    } 
+        return NULL;
+    }
 
-    // Execute the statement 
+    // Execute the statement
     int iElements = 0;
     PtrLList<MessageId> *pList = getMessageIds (_pGetNotSentMsgInfoPrepStmt, &iElements, true);
     checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
                     "database select identified %lu messages that were not replicated to target %s (prior to filtering based on receiver list)\n",
                     pList->getCount(), pszTargetPeer);
-    _pGetNotSentMsgInfoPrepStmt->reset(); 
+    _pGetNotSentMsgInfoPrepStmt->reset();
 
     if (pList != NULL) {
         MessageId *pMId;
         pList->resetGet();
-        for (unsigned int uiCounter = 0; (pMId = pList->getNext()) != NULL;) { 
+        for (unsigned int uiCounter = 0; (pMId = pList->getNext()) != NULL;) {
             if (uiLimit == 0 || uiCounter < uiLimit) {
                 bool bRemoved = false;
                 if (pFilters != NULL) {
@@ -733,8 +735,8 @@ PtrLList<MessageId> * SQLMessageHeaderStorage::getNotReplicatedMsgList (const ch
             pList = NULL;
         }
     }
-    _m.unlock (209); 
-    return pList; 
+    _m.unlock (209);
+    return pList;
 }
 
 int SQLMessageHeaderStorage::countChunks (const char *pszGroupName, const char *pszPublisherNodeId,
@@ -761,7 +763,7 @@ int SQLMessageHeaderStorage::countChunks (const char *pszGroupName, const char *
                              + FIELD_FRAGMENT_LENGTH + " = "  // Select only _complete_
                              + FIELD_TOT_MSG_LENGTH + ";";    // chunks
 
-        _pCountChunksPrepStmt = _pDB->prepare (sql.c_str());
+        _pCountChunksPrepStmt = (*_pDB)->prepare (sql.c_str());
         if (_pCountChunksPrepStmt != NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_Info,
                             "Statement %s prepared successfully.\n", (const char *)sql);
@@ -794,7 +796,7 @@ int SQLMessageHeaderStorage::countChunks (const char *pszGroupName, const char *
 
     int iCount, nChunks;
     iCount = nChunks = 0;
-    
+
     uint8 uint8MinChunkId, ui8MaxChunkId;
     uint8MinChunkId = MessageHeader::MIN_CHUNK_ID;
     ui8MaxChunkId = MessageHeader::MAX_CHUNK_ID;
@@ -911,7 +913,7 @@ MessageHeader * SQLMessageHeaderStorage::getMsgInfo (const char *pszGroupName, c
                                             + FIELD_CHUNK_ID + " = ?4 AND "
                                             + FIELD_FRAGMENT_OFFSET +" = ?5 AND "
                                             + FIELD_FRAGMENT_LENGTH + " = ?6;";
-            _pGetMsgInfoPrepStmt = _pDB->prepare (sql.c_str());
+            _pGetMsgInfoPrepStmt = (*_pDB)->prepare (sql.c_str());
             if (_pGetMsgInfoPrepStmt != NULL) {
                 checkAndLogMsg (pszMethodName, Logger::L_Info,
                                 "statement %s prepared successfully\n", (const char *) sql);
@@ -947,7 +949,7 @@ MessageHeader * SQLMessageHeaderStorage::getMsgInfo (const char *pszGroupName, c
                                             + FIELD_CHUNK_ID + " = ?4 AND "
                                             + FIELD_FRAGMENT_OFFSET +" = 0 AND "
                                             + FIELD_FRAGMENT_LENGTH + " = " + FIELD_TOT_MSG_LENGTH + ";";
-            _pGetCompleteMsgInfoPrepStmt = _pDB->prepare (sql.c_str());
+            _pGetCompleteMsgInfoPrepStmt = (*_pDB)->prepare (sql.c_str());
             if (_pGetCompleteMsgInfoPrepStmt != NULL) {
                 checkAndLogMsg (pszMethodName, Logger::L_Info,
                                 "statement %s prepared successfully\n", (const char *) sql);
@@ -970,7 +972,7 @@ MessageHeader * SQLMessageHeaderStorage::getMsgInfo (const char *pszGroupName, c
         }
         pQueryStmt = _pGetCompleteMsgInfoPrepStmt;
     }
-    
+
     // Execute the statement
     _m.lock (209);
     int iElements = 0;
@@ -1019,7 +1021,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
                              + FIELD_SENDER_ID + " = ?2 AND "
                              + FIELD_MSG_SEQ_ID + " = ?3;";
 
-        _pGetMatchingFragmentMsgInfoPrepStmt_1 = _pDB->prepare ((const char *) sql);
+        _pGetMatchingFragmentMsgInfoPrepStmt_1 = (*_pDB)->prepare ((const char *) sql);
         if (_pGetMatchingFragmentMsgInfoPrepStmt_1 != NULL) {
             checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", Logger::L_Info,
                             "Statement %s prepared successfully.\n", (const char *)sql);
@@ -1027,7 +1029,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
         else {
             checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", Logger::L_SevereError,
                             "Could not prepare statement: %s.\n",
-                            (const char *)sql); 
+                            (const char *)sql);
             _m.unlock (210);
             return NULL;
         }
@@ -1035,7 +1037,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
 
     // Bind the values to the prepared statement
     if (_pGetMatchingFragmentMsgInfoPrepStmt_1->bind (1, pszGroupName) < 0 ||
-        _pGetMatchingFragmentMsgInfoPrepStmt_1->bind (2, pszSender) < 0 || 
+        _pGetMatchingFragmentMsgInfoPrepStmt_1->bind (2, pszSender) < 0 ||
         _pGetMatchingFragmentMsgInfoPrepStmt_1->bind (3, ui32MsgSeqId) < 0) {
         checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", bindingError);
         _pGetMatchingFragmentMsgInfoPrepStmt_1->reset();
@@ -1068,7 +1070,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
                                  + FIELD_MSG_SEQ_ID + " = ?3 AND "
                                  + FIELD_CHUNK_ID + " = ?4;";
 
-        _pGetMatchingFragmentMsgInfoPrepStmt_2 = _pDB->prepare ((const char *) sql);
+        _pGetMatchingFragmentMsgInfoPrepStmt_2 = (*_pDB)->prepare ((const char *) sql);
         if (_pGetMatchingFragmentMsgInfoPrepStmt_2 != NULL) {
             checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", Logger::L_Info,
                             "Statement %s prepared successfully.\n", (const char *)sql);
@@ -1076,7 +1078,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
         else {
             checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", Logger::L_SevereError,
                             "Could not prepare statement: %s.\n",
-                            (const char *)sql); 
+                            (const char *)sql);
             _m.unlock (211);
             return NULL;
         }
@@ -1084,7 +1086,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
 
     // Bind the values to the prepared statement
     if (_pGetMatchingFragmentMsgInfoPrepStmt_2->bind (1, pszGroupName) < 0 ||
-        _pGetMatchingFragmentMsgInfoPrepStmt_2->bind (2, pszSender) < 0 || 
+        _pGetMatchingFragmentMsgInfoPrepStmt_2->bind (2, pszSender) < 0 ||
         _pGetMatchingFragmentMsgInfoPrepStmt_2->bind (3, ui32MsgSeqId) < 0 ||
         _pGetMatchingFragmentMsgInfoPrepStmt_2->bind (4, ui32ChunkSeqId) < 0) {
         checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", bindingError);
@@ -1137,7 +1139,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
                                  + FIELD_CHUNK_ID + " = ?4 AND "
                                  + "(" + rangeStatement + ");";
 
-        _pGetMatchingFragmentMsgInfoPrepStmt_3 = _pDB->prepare ((const char *) sql);
+        _pGetMatchingFragmentMsgInfoPrepStmt_3 = (*_pDB)->prepare ((const char *) sql);
         if (_pGetMatchingFragmentMsgInfoPrepStmt_3 != NULL) {
             checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", Logger::L_Info,
                             "Statement %s prepared successfully.\n", (const char *)sql);
@@ -1145,7 +1147,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
         else {
             checkAndLogMsg ("SQLMessageHeaderStorage::getMatchingFragments", Logger::L_SevereError,
                             "Could not prepare statement: %s.\n",
-                            (const char *)sql); 
+                            (const char *)sql);
             _m.unlock (212);
             return NULL;
         }
@@ -1153,7 +1155,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getMatchingFragments (const c
 
     // Bind the values to the prepared statement
     if (_pGetMatchingFragmentMsgInfoPrepStmt_3->bind (1, pszGroupName) < 0 ||
-        _pGetMatchingFragmentMsgInfoPrepStmt_3->bind (2, pszSender) < 0 || 
+        _pGetMatchingFragmentMsgInfoPrepStmt_3->bind (2, pszSender) < 0 ||
         _pGetMatchingFragmentMsgInfoPrepStmt_3->bind (3, ui32MsgSeqId) < 0 ||
         _pGetMatchingFragmentMsgInfoPrepStmt_3->bind (4, ui32ChunkSeqId) < 0 ||
         _pGetMatchingFragmentMsgInfoPrepStmt_3->bind (5, ui32StartOffset) < 0 ||
@@ -1192,7 +1194,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getCompleteChunkMessageInfos 
                                  + FIELD_MSG_SEQ_ID + " = ?3 AND "
                                  + FIELD_FRAGMENT_LENGTH + " = " + FIELD_TOT_MSG_LENGTH + ";";
 
-        _pGetComplChunkMsgHeadersPrepStmt = _pDB->prepare ((const char *) sql);
+        _pGetComplChunkMsgHeadersPrepStmt = (*_pDB)->prepare ((const char *) sql);
         if (_pGetComplChunkMsgHeadersPrepStmt != NULL) {
             checkAndLogMsg ("SQLMessageHeaderStorage::getCompleteChunkMessageInfos", Logger::L_Info,
                             "Statement %s prepared successfully.\n", (const char *)sql);
@@ -1200,7 +1202,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getCompleteChunkMessageInfos 
         else {
             checkAndLogMsg ("SQLMessageHeaderStorage::getCompleteChunkMessageInfos", Logger::L_SevereError,
                             "Could not prepare statement: %s.\n",
-                            (const char *)sql); 
+                            (const char *)sql);
             _m.unlock (213);
             return NULL;
         }
@@ -1208,7 +1210,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getCompleteChunkMessageInfos 
 
     // Bind the values to the prepared statement
     if (_pGetComplChunkMsgHeadersPrepStmt->bind (1, pszGroupName) < 0 ||
-        _pGetComplChunkMsgHeadersPrepStmt->bind (2, pszSender) < 0 || 
+        _pGetComplChunkMsgHeadersPrepStmt->bind (2, pszSender) < 0 ||
         _pGetComplChunkMsgHeadersPrepStmt->bind (3, ui32MsgSeqId) < 0) {
         checkAndLogMsg ("SQLMessageHeaderStorage::getCompleteChunkMessageInfos", bindingError);
         _pGetComplChunkMsgHeadersPrepStmt->reset();
@@ -1242,7 +1244,7 @@ PtrLList<MessageHeader> * SQLMessageHeaderStorage::getAnnotationsOnMsgMessageInf
             + FIELD_ANNOTATION_MSG_ID + " = ?1 AND "
             + FIELD_FRAGMENT_LENGTH + " = " + FIELD_TOT_MSG_LENGTH + ";";
 
-        _pGetComplAnnotationsPrepStmt = _pDB->prepare (sql.c_str());
+        _pGetComplAnnotationsPrepStmt = (*_pDB)->prepare (sql.c_str());
         if (_pGetComplChunkMsgHeadersPrepStmt != NULL) {
             checkAndLogMsg ("SQLMessageHeaderStorage::getAnnotationsOnMsgMessageInfos", Logger::L_Info,
                             "Statement %s prepared successfully.\n", sql.c_str());
@@ -1298,7 +1300,7 @@ void * SQLMessageHeaderStorage::getAnnotationMetadata (const char *pszGroupName,
             + SQLMessageHeaderStorage::FIELD_FRAGMENT_OFFSET + " = "
             + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + ";";
 
-        _pGetAnnotationMetadataPrepStmt = _pDB->prepare (sql.c_str ());
+        _pGetAnnotationMetadataPrepStmt = (*_pDB)->prepare (sql.c_str());
         if (_pGetAnnotationMetadataPrepStmt == NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                 "failed to prepare statement. %s\n", sql.c_str());
@@ -1443,6 +1445,7 @@ MessageHeader * SQLMessageHeaderStorage::getMessageInfo (Row *pRow)
                         "sqlite3_get_table() returned a non-bool type for ui8Acknoledgment\n");
         free (pszGroupName);
         free (pszSenderNodeId);
+        if (pAnnotationMetadata != NULL) free (pAnnotationMetadata);
         return NULL;
     }
     if ((ui8MetaData != 1) && (ui8MetaData != 0)) {
@@ -1450,6 +1453,7 @@ MessageHeader * SQLMessageHeaderStorage::getMessageInfo (Row *pRow)
                         "sqlite3_get_table() returned a non-bool type for ui8Acknoledgment\n");
         free (pszGroupName);
         free (pszSenderNodeId);
+        if (pAnnotationMetadata != NULL) free (pAnnotationMetadata);
         return NULL;
     }
 
@@ -1496,6 +1500,9 @@ MessageHeader * SQLMessageHeaderStorage::getMessageInfo (Row *pRow)
     if (pszChecksum != NULL) {
         free (pszChecksum);
         pszChecksum = NULL;
+    }
+    if (pAnnotationMetadata != NULL) {
+        free (pAnnotationMetadata);
     }
     if (pMH == NULL) {
         checkAndLogMsg ("SQLMessageHeaderStorage::getMsgInfo", memoryExhausted);
@@ -1561,9 +1568,9 @@ MessageId * SQLMessageHeaderStorage::getMessageId (Row *pRow)
     pRow->getValue (FIELD_SENDER_ID_COLUMN_NUMBER, &pszSenderNodeId);
     pRow->getValue (FIELD_MSG_SEQ_ID_COLUMN_NUMBER, ui32MsgSeqId);
     pRow->getValue (FIELD_CHUNK_ID_COLUMN_NUMBER, ui8ChunkId);
-    
+
     MessageId *pMId = new MessageId (pszGroupName, pszSenderNodeId, ui32MsgSeqId, ui8ChunkId);
-    
+
     // MessageId's constructor makes a copy of pszGroupName and pszSenderNodeId,
     // they can therefore be deallocated
     free (pszGroupName);
@@ -1613,7 +1620,7 @@ uint32 SQLMessageHeaderStorage::getNextExpectedSeqId (const char *pszGroupName, 
 
     _m.lock (215);
 
-    PreparedStatement *pStmt = _pDB->prepare ((const char *)sql);
+    PreparedStatement *pStmt = (*_pDB)->prepare ((const char *)sql);
     if (pStmt == NULL) {
         checkAndLogMsg ("SQLMessageHeaderStorage::getNextExpectedSeqId", Logger::L_SevereError,
                         "could not prepare statement %s\n", (const char *) sql);
@@ -1716,14 +1723,14 @@ PtrLList<StorageInterface::RetrievedSubscription> * SQLMessageHeaderStorage::ret
         return NULL;
     }
 
-    PreparedStatement *pStmt = _pDB->prepare ((const char *)sql);
+    PreparedStatement *pStmt = (*_pDB)->prepare ((const char *)sql);
     if (pStmt == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                         "Could not prepare statement%s\n", (const char *) sql);
         _m.unlock (216);
         return NULL;
     }
-    
+
     Row *pRow = pStmt->getRow();
     if (pRow == NULL) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
@@ -1787,8 +1794,8 @@ PtrLList<StorageInterface::RetrievedSubscription> * SQLMessageHeaderStorage::ret
 //  SELECT
 //==============================================================================
 PtrLList<MessageHeader> * SQLMessageHeaderStorage::execSelectMsgInfo (const char *pszGroupName, const char *pszSenderNodeId, uint8 ui8ClientType,
-                                                                      uint16 ui6Tag, uint32 ui32From, uint32 ui32To, uint32 ui32OffsetStart, 
-                                                                      uint32 offsetEnd, uint16 ui16Limit, const char *pszOrderBy, bool bDescOrder, 
+                                                                      uint16 ui6Tag, uint32 ui32From, uint32 ui32To, uint32 ui32OffsetStart,
+                                                                      uint32 offsetEnd, uint16 ui16Limit, const char *pszOrderBy, bool bDescOrder,
                                                                       DArray2<String> *pDAArgs)
 {
     _m.lock (217);
@@ -1894,7 +1901,7 @@ DArray2<String> * SQLMessageHeaderStorage::getSenders (const char *pszGroupName,
     sql = sql + FIELD_GROUP_NAME + " = ?;";
 
     _m.lock (219);
-    PreparedStatement *pStmt = _pDB->prepare ((const char *) sql);
+    PreparedStatement *pStmt = (*_pDB)->prepare ((const char *) sql);
     if (pStmt == NULL) {
         checkAndLogMsg ("SQLMessageHeaderStorage::getSenders", Logger::L_SevereError,
                         "could not prepare statement\n");
@@ -2055,7 +2062,7 @@ DArray2<String> * SQLMessageHeaderStorage::execSelectQuery (const char *pszWhat,
 
     isFirstCond = true;
     if ((pDAArgs != NULL) && (pDAArgs->size() > 0)) {
-        sql = (String) sql + " GROUP BY ";                
+        sql = (String) sql + " GROUP BY ";
         for (unsigned int i=0; i < pDAArgs->size(); i++) {
             if (pDAArgs->used(i) == 0) {
                 continue;
@@ -2097,7 +2104,7 @@ DArray2<String> * SQLMessageHeaderStorage::execQueryAndReturnKey (const char *ps
 
     _m.lock (221);
 
-    PreparedStatement *pStmt = _pDB->prepare (pszSQLStmt);
+    PreparedStatement *pStmt = (*_pDB)->prepare (pszSQLStmt);
     if (pStmt == NULL) {
         checkAndLogMsg (pszMethodName , Logger::L_SevereError,
                         "could not prepare statement\n");
@@ -2114,8 +2121,7 @@ DArray2<String> * SQLMessageHeaderStorage::execQueryAndReturnKey (const char *ps
     }
 
     if (!pStmt->next (pRow)) {
-        checkAndLogMsg (pszMethodName, Logger::L_MildError,
-                        "found 0 matches for query <%s>\n", pszSQLStmt);
+        checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "found no matches for query <%s>\n", pszSQLStmt);
         delete pStmt;
         delete pRow;
         _m.unlock (221);
@@ -2143,6 +2149,20 @@ DArray2<String> * SQLMessageHeaderStorage::execQueryAndReturnKey (const char *ps
     return pResultArray;
 }
 
+void SQLMessageHeaderStorage::clear (void)
+{
+    const char *pszMethodName = "SQLMessageHeaderStorage::clear";
+    _m.lock (223);
+    const String query ("DELETE FROM DisServiceDataCache  WHERE mimeType != '" + SessionId::MIME_TYPE + "';");
+    if ((*_pDB)->execute (query) == 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "DisServiceDataCache table cleared\n");
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not clear DisServiceDataCache table\n");
+    }
+    _m.unlock (223);
+}
+
 //------------------------------------------------------------------------------
 // ELIMINATE
 //------------------------------------------------------------------------------
@@ -2166,7 +2186,7 @@ DArray2<String> * SQLMessageHeaderStorage::getExpiredEntries()
     sql += " AND ";
     sql += FIELD_EXPIRATION;
     sql += " <> 0;";
-    checkAndLogMsg ("SQLMessageHeaderStorage::getExpiredEntry", Logger::L_Info,
+    checkAndLogMsg ("SQLMessageHeaderStorage::getExpiredEntry", Logger::L_HighDetailDebug,
                     "The query is %s\n", (const char *) sql);
 
     _m.lock (223);
@@ -2196,7 +2216,7 @@ int SQLMessageHeaderStorage::eliminateAllTheMessageFragments (const char *pszGro
         sql = sql + FIELD_FRAGMENT_LENGTH;
         sql = sql + ";";
 
-        _pEliminateFragmentIDs = _pDB->prepare ((const char *) sql);
+        _pEliminateFragmentIDs = (*_pDB)->prepare ((const char *) sql);
         if (_pEliminateFragmentIDs == NULL) {
             checkAndLogMsg ("SQLMessageHeaderStorage::eliminateAllTheMessageFragments", Logger::L_SevereError,
                             "could not prepare statement for query is %s\n", (const char *) sql);
@@ -2244,7 +2264,7 @@ int SQLMessageHeaderStorage::eliminateAllTheMessageFragments (const char *pszGro
         sql = sql + FIELD_FRAGMENT_LENGTH;
         sql = sql + ";";
 
-        _pEliminateFragments = _pDB->prepare ((const char *) sql);
+        _pEliminateFragments = (*_pDB)->prepare ((const char *) sql);
         if (_pEliminateFragments == NULL) {
             checkAndLogMsg ("SQLMessageHeaderStorage::eliminateAllTheMessageFragments", Logger::L_SevereError,
                             "could not prepare statement for query is %s\n", (const char *) sql);
@@ -2318,7 +2338,7 @@ int SQLMessageHeaderStorage::eliminate (const char *pszKey)
         sql = sql + FIELD_FRAGMENT_LENGTH + " = ?6";
         sql = sql + ";";
 
-        _pDeleteRow = _pDB->prepare ((const char *)sql);
+        _pDeleteRow = (*_pDB)->prepare ((const char *)sql);
         if (_pDeleteRow == NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                             "failed to prepare statement %s\n", (const char *) sql);
@@ -2372,7 +2392,7 @@ NOMADSUtil::PtrLList<MessageId> * SQLMessageHeaderStorage::getMessageIdsForFragm
         sql += FIELD_TOT_MSG_LENGTH;
         sql += ";";
 
-        _pFindAllMessageIDsWithFragments = _pDB->prepare (sql);
+        _pFindAllMessageIDsWithFragments = (*_pDB)->prepare (sql);
         if (_pFindAllMessageIDsWithFragments == NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError,
                             "could not prepare statement for query <%s>\n", (const char *) sql);
@@ -2438,7 +2458,7 @@ char ** SQLMessageHeaderStorage::getDisseminationServiceIds (const char *pszObje
 {
     int rc;
     _m.lock (226);
-    
+
     PreparedStatement *pStmp = (pszInstanceId == NULL ? _pGetDSIdsByObjId : _pGetDSIdsByObjAndInstId);
     if (pStmp == NULL) {
         String sql;
@@ -2459,13 +2479,13 @@ char ** SQLMessageHeaderStorage::getDisseminationServiceIds (const char *pszObje
             sql += " = ?";
             sql += ";";
 
-            _pGetDSIdsByObjAndInstId = _pDB->prepare (sql);
+            _pGetDSIdsByObjAndInstId = (*_pDB)->prepare (sql);
             pStmp = _pGetDSIdsByObjAndInstId;
         }
         else {
             sql += ";";
 
-            _pGetDSIdsByObjId = _pDB->prepare (sql);
+            _pGetDSIdsByObjId = (*_pDB)->prepare (sql);
             pStmp = _pGetDSIdsByObjId;
         }
 
@@ -2476,7 +2496,7 @@ char ** SQLMessageHeaderStorage::getDisseminationServiceIds (const char *pszObje
             return NULL;
         }
         else {
-            checkAndLogMsg ("SQLMessageHeaderStorage::getDisseminationServiceIds", Logger::L_Info,
+            checkAndLogMsg ("SQLMessageHeaderStorage::getDisseminationServiceIds", Logger::L_LowDetailDebug,
                             "statement <%s> prepared successfully\n", (const char *) sql);
         }
     }
@@ -2500,7 +2520,7 @@ char ** SQLMessageHeaderStorage::getDisseminationServiceIds (const char *pszObje
     while (pStmp->next (pRow)) {
         char *pszGroupName, *pszPublisherNodeId, *pszMsgSeqId;
         pszGroupName = pszPublisherNodeId =  pszMsgSeqId = NULL;
-        
+
         if (((rc = pRow->getValue (0, &pszGroupName)) == 0) &&
             ((rc = pRow->getValue (1, &pszPublisherNodeId)) == 0) &&
             ((rc = pRow->getValue (2, &pszMsgSeqId)) == 0)) {
@@ -2545,7 +2565,7 @@ DArray2<String> * SQLMessageHeaderStorage::getResourceOrderedByUtility()
     sql = sql + FIELD_ARRIVAL_TIMESTAMP + " DESC;";
 
     checkAndLogMsg ("SQLMessageHeaderStorage::getResourceOrderedByUtility",
-                    Logger::L_Info, "The query is %s\n", (const char *) sql);
+                    Logger::L_LowDetailDebug, "The query is %s\n", sql.c_str());
 
     _m.lock (227);
     DArray2<String> *dArrRet = execQueryAndReturnKey (sql);

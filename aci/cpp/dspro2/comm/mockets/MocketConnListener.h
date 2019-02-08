@@ -1,4 +1,4 @@
-/* 
+/*
  * MocketConnListener.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_MOCKET_CONN_LISTENER_H
-#define	INCL_MOCKET_CONN_LISTENER_H
+#define INCL_MOCKET_CONN_LISTENER_H
 
 #include "ConnListener.h"
 #include "ServerMocket.h"
@@ -40,7 +40,8 @@ namespace IHMC_ACI
                                 const char *pszNodeId, const char *pszSessionId,
                                 const char *pszMocketConfigFile,
                                 CommAdaptorListener *pListener,
-                                ConnCommAdaptor *pConnCommAdaptor);
+                                ConnCommAdaptor *pConnCommAdaptor,
+                                const char *pszCertFile, const char *pszKeyFile);
             virtual ~MocketConnListener (void);
 
             void requestTermination (void);
@@ -57,5 +58,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_MOCKET_CONN_LISTENER_H */
-
+#endif    /* INCL_MOCKET_CONN_LISTENER_H */

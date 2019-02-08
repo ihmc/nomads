@@ -9,6 +9,21 @@ LOCAL_SRC_FILES := android/obj/local/armeabi/libutil.so
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../util/cpp
 include $(PREBUILT_SHARED_LIBRARY)
 
+#openssl include
+include $(CLEAR_VARS)
+LOCAL_MODULE := ssl
+LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.2h/libssl.a
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.2h/include
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := crypto
+LOCAL_SRC_FILES := ../../android/externals/openssl/openssl-1.0.2h/libcrypto.a
+LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.2h/include
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
 #include $(CLEAR_VARS)
 #LOCAL_MODULE := nockets
 #LOCAL_SRC_FILES := android/obj/local/armeabi/libnockets.so
@@ -57,9 +72,9 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../misc/cpp/nockets \
 	$(LOCAL_PATH)/../../util/cpp \
 	$(LOCAL_PATH)/../../util/cpp/net \
-	$(LOCAL_PATH)/../../util/cpp/proxy
-#	$(LOCAL_PATH)/../../android/externals/openssl/jni/include \
-#	$(LOCAL_PATH)/../../android/externals/openssl/jni/crypto
+	$(LOCAL_PATH)/../../util/cpp/proxy \
+	$(LOCAL_PATH)/../../util/cpp/security \
+	$(LOCAL_PATH)/../../android/externals/openssl/openssl-1.0.2h/include 
 
 LOCAL_SHARED_LIBRARIES := \
 	util \

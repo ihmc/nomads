@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -116,7 +116,7 @@ int DisseminationServiceProxyCallbackHandler::doDataArrivedCallback (void)
 
     memset (szSenderBuf, 0, sizeof (szSenderBuf));
     memset (szGroupNameBuf, 0, sizeof (szGroupNameBuf));
-    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);   
+    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);
     _pCommHelper->receiveLine (szGroupNameBuf, sizeof (szGroupNameBuf)-1);
 
     void *pDataBuf;
@@ -236,7 +236,7 @@ int DisseminationServiceProxyCallbackHandler::doChunkArrivedCallback (void)
 
     memset (szSenderBuf, 0, sizeof (szSenderBuf));
     memset (szGroupNameBuf, 0, sizeof (szGroupNameBuf));
-    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);   
+    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);
     _pCommHelper->receiveLine (szGroupNameBuf, sizeof (szGroupNameBuf)-1);
 
     void *pChunkBuf;
@@ -374,7 +374,7 @@ int DisseminationServiceProxyCallbackHandler::doMetadataArrivedCallback (void)
 
     memset (szSenderBuf, 0, sizeof (szSenderBuf));
     memset (szGroupNameBuf, 0, sizeof (szGroupNameBuf));
-    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);   
+    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);
     _pCommHelper->receiveLine (szGroupNameBuf, sizeof (szGroupNameBuf)-1);
 
     void *pDataBuf;
@@ -455,7 +455,7 @@ int DisseminationServiceProxyCallbackHandler::doMetadataArrivedCallback (void)
 
     uint8 ui8;
     if (_pCommHelper->getReaderRef()->read8 (&ui8) != 0) {
-        if (pDataBuf != NULL) { 
+        if (pDataBuf != NULL) {
             free (pDataBuf);
         }
         return false;
@@ -463,7 +463,7 @@ int DisseminationServiceProxyCallbackHandler::doMetadataArrivedCallback (void)
     bool bDataChunked = (ui8 == 1 ? true : false);
     if ((_pCommHelper->getReaderRef()->read16 (&ui16Tag) != 0) ||
         (_pCommHelper->getReaderRef()->read8 (&ui8Priority) != 0)) {
-        if (pDataBuf != NULL) { 
+        if (pDataBuf != NULL) {
             free (pDataBuf);
         }
         return false;
@@ -472,7 +472,7 @@ int DisseminationServiceProxyCallbackHandler::doMetadataArrivedCallback (void)
     if (_pCommHelper->getReaderRef()->read32 (&ui32) == 0) {
         if (ui32 > 0) {
             if (ui32 > 127) {
-                if (pDataBuf != NULL) { 
+                if (pDataBuf != NULL) {
                     free (pDataBuf);
                 }
                 return false;
@@ -483,7 +483,7 @@ int DisseminationServiceProxyCallbackHandler::doMetadataArrivedCallback (void)
         queryId = buf;
     }
     else {
-        if (pDataBuf != NULL) { 
+        if (pDataBuf != NULL) {
             free (pDataBuf);
         }
         return false;
@@ -495,7 +495,7 @@ int DisseminationServiceProxyCallbackHandler::doMetadataArrivedCallback (void)
 
     _pCommHelper->sendLine ("OK");
 
-    if (pDataBuf != NULL) { 
+    if (pDataBuf != NULL) {
         free (pDataBuf);
     }
 
@@ -509,7 +509,7 @@ int DisseminationServiceProxyCallbackHandler::doDataAvailableCallback (void)
 
     memset (szSenderBuf, 0, sizeof (szSenderBuf));
     memset (szGroupNameBuf, 0, sizeof (szGroupNameBuf));
-    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);   
+    _pCommHelper->receiveLine (szSenderBuf, sizeof (szSenderBuf)-1);
     _pCommHelper->receiveLine (szGroupNameBuf, sizeof (szGroupNameBuf)-1);
 
     void *pDataBuf;

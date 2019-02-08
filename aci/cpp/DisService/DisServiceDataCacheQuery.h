@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -123,7 +123,7 @@ namespace IHMC_ACI
              * Adds a constraint to get all the messages except the ones specified in the array passed as parameter
              */
             void addConstraintOnMsgIdNotIn (const char **ppszMessageIdFilters);
-            
+
             /**
              * Adds a constraint to get all the messages except the ones specified in the ReceivedMsgsByGrp passed as parameter
              */
@@ -215,7 +215,7 @@ namespace IHMC_ACI
              * Specify constraint on a specific fragment of the message.
              */
             void addConstraintOnFragment (uint32 ui32FragOffset, uint32 ui32FragLength, bool bFragRangeExactMatch=true);
-            
+
             /**
              * This method will select all the chunks except the ones specified
              * in the range
@@ -245,7 +245,7 @@ namespace IHMC_ACI
             /**
              * Specify constraint on the utility. This methods should be used
              * only when the query is addressed to the DEFAULT_TABLE
-             * NOTE: the field Utility is not in the cache yet, 
+             * NOTE: the field Utility is not in the cache yet,
              * don't use the following 2 methods for now!!!
              */
             void addConstraintOnUtilityGreaterThan (int8 i8UtilityLowerThreshold);
@@ -260,7 +260,7 @@ namespace IHMC_ACI
             void setNoFragments (bool bNoFrag);
 
             /**
-             * Returns 
+             * Returns
              *   0) if it was possible to set the requested order,
              *  -1) otherwise.
              * NOTE: The first is to be preferred to the second as it is more

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -102,12 +102,12 @@ namespace IHMC_ACI
                 XPATH_PREDICATE = 0x00
             };
 
-            DisseminationService (const char *pszNodeUID = NULL);
+            DisseminationService (const char * pszNodeUID = nullptr);
 
             #if defined (USE_XLAYER)
-                DisseminationService (const char *pszXLayerIP, uint16 ui16XLayerPort, const char *pszSenderId = NULL);
+                DisseminationService (const char *pszXLayerIP, uint16 ui16XLayerPort, const char *pszSenderId = nullptr);
             #else
-                DisseminationService (uint16 ui16Port, const char *pszSenderId = NULL);
+                DisseminationService (uint16 ui16Port, const char *pszSenderId = nullptr);
             #endif
 
             DisseminationService (NOMADSUtil::ConfigManager *pConfigManager);
@@ -117,8 +117,8 @@ namespace IHMC_ACI
             /**
              * Initializes DisService, but does not start threads to receive / handle any incoming data
              * Application must call start() when it is ready to start receiving data
-             * NOTE: start() should not be called until the controllers have been initialized 
-             */ 
+             * NOTE: start() should not be called until the controllers have been initialized
+             */
             int init (void);
 
             int start (void);
@@ -128,15 +128,15 @@ namespace IHMC_ACI
             void requestTerminationAndWait (void);
 
             /**
+             * Change the encryption key that is used to encrypt the payload of the messages sent with NMS
+             */
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
+
+            /**
              * Get the id of the node
              * By default, a random UUID is generated for each node during initialization
              */
             const char * getNodeId (void);
-
-            /**
-             * Get the id of the current session.
-             */
-            const char * getSessionId (void);
 
             /**
              * Set the maximum size of each fragment
@@ -213,7 +213,7 @@ namespace IHMC_ACI
              * ui8Priority - the priority value for the data, with higher values indicated higher priority
              *
              * pszIdBuf - the buffer into which the id of this message will be copied.
-             *            NOTE: This parameter may be NULL if the caller does not need to receive the id of the message.
+             *            NOTE: This parameter may be nullptr if the caller does not need to receive the id of the message.
              *
              * ui32IdBufLen - the length of the buffer to receive the message id.
              *                NOTE: if the buffer is too small to hold the id, the id will not be copied into the buffer.
@@ -268,7 +268,7 @@ namespace IHMC_ACI
              * ui8Priority - the priority value for the data, with higher values indicated higher priority
              *
              * pszIdBuf - the buffer into which the id of this message will be copied.
-             *            NOTE: This parameter may be NULL if the caller does not need to receive the id of the message.
+             *            NOTE: This parameter may be nullptr if the caller does not need to receive the id of the message.
              *
              * ui32IdBufLen - the length of the buffer to receive the message id.
              *                NOTE: if the buffer is too small to hold the id, the id will not be copied into the buffer.
@@ -288,7 +288,7 @@ namespace IHMC_ACI
              *
              * i64NewExpirationTime - the new value for the expiration time
              *
-             */        
+             */
             int modify (uint16 ui16ClientId, const char *pszId, int64 i64NewExpirationTime);
 
             /**
@@ -421,7 +421,7 @@ namespace IHMC_ACI
              * ui8Priority -
              */
             int subscribe (uint16 ui16ClientId, const char *pszGroupName, uint8 ui8Priority, bool bGroupReliable, bool bMsgReliable, bool bSequenced);
-    
+
          /**
              * Subscribe with a predicate. The application will subsequently receive any messages
              * with a positive evaluation of the predicate.
@@ -435,12 +435,12 @@ namespace IHMC_ACI
              *
              * ui8PredicateType - the type of the predicate to be evaluated.
              *                    The supported type are listed in DisseminationService::SubscriptionPredicateType.
-             * 
+             *
              * pszPredicate - the predicate to evaluate
-             * 
+             *
              * bGroupReliable - used to indicate that the data transmission of all the message in the grup should be reliable
              *                  and not just best effort.
-             * 
+             *
              * bMsgReliable - used to indicate that the data transmission of a single message should be reliable and not
              *                just best effort.
              *
@@ -564,7 +564,7 @@ namespace IHMC_ACI
              *                Used to multiplex requests from multiple clients
              *
              * pListener - the listener that will be invoked upon arrival of data.
-             */     
+             */
             int registerDisseminationServiceListener (uint16 ui16ClientId, DisseminationServiceListener *pListener);
 
             /**
@@ -629,7 +629,7 @@ namespace IHMC_ACI
             /**
              * Retrieve data that is identified by the specified id. The data must have been made available
              * by some (other) node and the local node must have received the metadata associated with the data.
-             * 
+             *
              * If the retrieved data, or complete chunks are already available in the cache, they
              * are returned. If the data is not found, then it will be searched on neighboring nodes,
              * and if it is found it will be requested.
@@ -785,7 +785,7 @@ namespace IHMC_ACI
              * Returns the maximum amount of bytes that, with the current
              * configuration, will be sent without need of fragmentation
              */
-            // uint16 getActualMTU (const char * pszGroupName, const char * pszTargetNode=NULL);
+            // uint16 getActualMTU (const char * pszGroupName, const char * pszTargetNode=nullptr);
 
             /**
              * Returns the list of the peers that are currently in communications range
@@ -924,7 +924,7 @@ namespace IHMC_ACI
                                const char *pszDataMimeType, bool bChunkData,
                                int64 i64ExpirationTime, uint16 ui16HistoryWindow,
                                uint16 ui16Tag, uint8 ui8Priority, char *pszIdBuf,
-                               uint32 ui32IdBufLen, const char *pszRefObj=NULL);
+                               uint32 ui32IdBufLen, const char *pszRefObj=nullptr);
             virtual int storeInternalNoNotify (uint16 ui16ClientId, const char *pszGroupName,
                                                const char *pszObjectId, const char *pszInstanceId,
                                                const void *pMetadata, uint32 ui32MetadataLength,
@@ -944,7 +944,7 @@ namespace IHMC_ACI
             friend class TopologyService;
 
             friend class MessageReassembler;
-            friend class BasicWorldState;           
+            friend class BasicWorldState;
             friend class DataCache;
             friend class PersistentDataCache;
             friend class PullReplicationController;
@@ -977,7 +977,7 @@ namespace IHMC_ACI
                 DisseminationServiceListener *pListener;
                 Type type;
             };
-            
+
             struct PeerStatusClientInfo
             {
                 PeerStatusClientInfo (void);
@@ -986,7 +986,7 @@ namespace IHMC_ACI
                 unsigned int uiIndex;
             };
 
-            uint16 getNumberOfActiveNeighbors (void);            
+            uint16 getNumberOfActiveNeighbors (void);
 
             NetworkStateListenerNotifier *_pNetworkStateNotifier;
 
@@ -994,7 +994,7 @@ namespace IHMC_ACI
             int registerDisseminationServiceProxyAdaptor (uint16 ui16ClientId, DisseminationServiceListener *pListener);
             int registerDisseminationServiceListenerInternal (uint16 ui16ClientId, DisseminationServiceListener *pListener, ClientInfo::Type type);
 
-            void construct (NOMADSUtil::ConfigManager *_pConfigManager);
+            void construct (void);
             DisServiceStats * getStats (void);
             int sendStatus (void);
 
@@ -1102,7 +1102,7 @@ namespace IHMC_ACI
             bool clearToSendOnAllInterfaces (void);
 
             /*
-             * BroadcastDisServiceDataMsg broadcasts a messages containing data from the clients 
+             * BroadcastDisServiceDataMsg broadcasts a messages containing data from the clients
              * whereas broadcastDisServiceCntrlMsg created by the dissemination service.
              * Data created by the application maybe be bigger than the DEFAULT_MAX_FRAGMENT_SIZE,
              * thus they may need to be fragmented.
@@ -1114,15 +1114,15 @@ namespace IHMC_ACI
              */
             int broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
                                             const char *pszPurpose,
-                                            const char **pszOutgoingInterfaces = NULL,
-                                            const char *pszTargetAddr = NULL,
-                                            const char *pszHints = NULL);
+                                            const char **pszOutgoingInterfaces = nullptr,
+                                            const char *pszTargetAddr = nullptr,
+                                            const char *pszHints = nullptr);
 
             int broadcastDisServiceCntrlMsg (DisServiceCtrlMsg *pDDCtrlMsg,
                                              const char **ppszOutgoingInterfaces,
                                              const char *pszPurpose,
-                                             const char *pszTargetAddr = NULL,
-                                             const char *pszHints = NULL);
+                                             const char *pszTargetAddr = nullptr,
+                                             const char *pszHints = nullptr);
 
             int transmitDisServiceControllerMsg (DisServiceCtrlMsg *pCtrlMsg,
                                                  bool bReliable, const char *pszPurpose);
@@ -1136,9 +1136,9 @@ namespace IHMC_ACI
         private:
             int historyRequest (uint16 ui16ClientId, HistoryRequest *pRequest);
 
-            NOMADSUtil::ConfigManager *_pCfgMgr;
             NOMADSUtil::String _nodeId;
-            NOMADSUtil::String _sessionId;
+            NOMADSUtil::ConfigManager *_pCfgMgr;
+            const bool _bDeleteConfigManager;
 
             bool _bKeepAliveMsgEnabled;
 
@@ -1148,7 +1148,7 @@ namespace IHMC_ACI
 
             bool _bTargetFilteringEnabled;
             bool _bOppListeningEnabled;
- 
+
             bool _bQueryDataCacheEnabled;
             uint8 _ui8QueryDataCacheReplyType;
 
@@ -1266,24 +1266,22 @@ namespace IHMC_ACI
         return _pSubscriptionState;
     }
 
-    inline DisseminationService::ClientInfo::ClientInfo (void)
-    {
-        pListener = NULL;
-    }
+    inline DisseminationService::ClientInfo::ClientInfo (void) :
+        pListener{nullptr}
+    { }
 
     inline DisseminationService::ClientInfo::~ClientInfo (void)
     {
-        pListener = NULL; 
+        pListener = nullptr;
     }
 
-    inline DisseminationService::PeerStatusClientInfo::PeerStatusClientInfo (void)
-    {
-        pListener = NULL;
-    }
+    inline DisseminationService::PeerStatusClientInfo::PeerStatusClientInfo (void) :
+        pListener{nullptr}
+    { }
 
     inline DisseminationService::PeerStatusClientInfo::~PeerStatusClientInfo (void)
     {
-        pListener = NULL;
+        pListener = nullptr;
     }
 
     inline bool DisseminationService::MessageToNotifyToClient::operator == (const DisseminationService::MessageToNotifyToClient &mtn)

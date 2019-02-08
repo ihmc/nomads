@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -37,8 +37,7 @@ namespace IHMC_ACI
             //------------------------------------------------------------------
             // DisService -> ForwardingController
             //------------------------------------------------------------------
-            DefaultForwardingController (DisseminationService *pDisService);
-            DefaultForwardingController (DisseminationService *pDisService, float fForwardProbability);
+            explicit DefaultForwardingController (DisseminationService *pDisService, float fForwardProbability = 0.0f);
 
             virtual ~DefaultForwardingController (void);
 
@@ -59,17 +58,18 @@ namespace IHMC_ACI
             static const uint32 DEFAULT_MESSAGE_HISTORY_DURATION = 10000; // 10 Seconds
 
         private:
-            void doProbabilisticForwarding (DisServiceMsg *pDSMsg, uint32 ui32SourceIPAddress);
-            void doProbabilisticForwardingCtrlMsg (DisServiceCtrlMsg *pDSCtrlMsg, uint32 ui32SourceIPAddress);
-            void doProbabilisticForwardingDataMsg (DisServiceDataMsg *pDSDMsg, uint32 ui32SourceIPAddress);
+            void doProbabilisticForwarding (DisServiceMsg *pDSMsg, uint32 ui32SourceIPAddress, const char **pszOutgoingInterfaces);
+            void doProbabilisticForwardingCtrlMsg (DisServiceCtrlMsg *pDSCtrlMsg, uint32 ui32SourceIPAddress, const char **pszOutgoingInterfaces);
+            void doProbabilisticForwardingDataMsg (DisServiceDataMsg *pDSDMsg, uint32 ui32SourceIPAddress, const char **pszOutgoingInterfaces);
 
-            void doStatefulForwarding (DisServiceMsg *pDSMsg);
+            void doStatefulForwarding (DisServiceMsg *pDSMsg, const char **pszOutgoingInterfaces);
 
             void init (void);
 
         private:
             bool _bPurelyProbForwarding;
             float _fForwardProbability;
+            bool _bRelayDataMsgs;
             bool _bForwardDataMsgs;
             bool _bForwardDataRequestMsgs;
             bool _bForwardChunkQueryMsgs;

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -70,16 +70,16 @@ DisServiceStats::DisServiceStats (void)
 
     _ui32TotDataFragRcvd = 0;
     _ui32DataFragFrwded = 0;
-    
+
     _ui32QueryMessageSent = 0;
     _ui32QueryMessageBytesSent = 0;
     _ui32QueryMessageReceived = 0;
     _ui32QueryMessageBytesReceived = 0;
-    
+
     _ui32QueryHitsMessageSent = 0;
     _ui32QueryHitsMessageBytesSent = 0;
     _ui32QueryHitsMessageReceived = 0;
-    _ui32QueryHitsMessageBytesReceived = 0;    
+    _ui32QueryHitsMessageBytesReceived = 0;
 }
 
 DisServiceStats::~DisServiceStats (void)
@@ -154,20 +154,20 @@ void DisServiceStats::newIncomingMessage (const void *, uint16, DisServiceMsg *p
 
         case DisServiceMsg::DSMT_HistoryReqReply:
             break;
-        
-        case DisServiceMsg::CRMT_QueryHits:        
+
+        case DisServiceMsg::CRMT_QueryHits:
             break;
-            
+
         case DisServiceMsg::CRMT_Query:
             queryMessageReceived (pszRemoteNodeId, ui16Size);
             break;
-            
+
         case DisServiceMsg::DSMT_SubAdvMessage:
             break;
 
         case DisServiceMsg::DSMT_ImprovedSubStateMessage:
             break;
-            
+
         case DisServiceMsg::DSMT_ProbabilitiesMsg:
             break;
 

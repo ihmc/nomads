@@ -192,7 +192,7 @@ BufferReader * MPEG1Reassembler::getReassembledVideo (void)
         return NULL;
     }
     ChunkWrapper *pChunkWr = _chunks.getFirst();
-    MPEG1Parser *pParser = pChunkWr->_pReader; 
+    MPEG1Parser *pParser = pChunkWr->_pReader;
     const int64 i64ChunkSize = pParser->getSize();
     if (iCount == 1) {
         void *pBuf = malloc (i64ChunkSize);

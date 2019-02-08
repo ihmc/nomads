@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -25,7 +25,7 @@ extern "C" {
  * for comparison and assignment.  Unpacked is used when we need
  * to access individual r, g, b color.  The tag field can be used
  * in different way up to the programmer.  For example, in a hash
- * table, tag == 1 if r, g, b (pack != 0) are valid and tag == 0x00 
+ * table, tag == 1 if r, g, b (pack != 0) are valid and tag == 0x00
  * (pack == 0) if r, g, b are empty.  (Note that this works in both
  * little-endian and big-endian machine.)
  *
@@ -44,8 +44,8 @@ extern "C" {
 
 /*
  * Type ColorHashEntry
- * 
- * An entry in the ColorHashTable. Consists a the key color, an a 
+ *
+ * An entry in the ColorHashTable. Consists a the key color, an a
  * value.  The value can be used as counter, index etc.
  */
     typedef struct ColorHashEntry {
@@ -70,7 +70,7 @@ extern "C" {
 #define ColorHashTableGetNumOfEntry(x)  (x)->numOfEntry
 
 /*
- * Error codes 
+ * Error codes
  */
 #define DVM_COLOR_HASH_TABLE_OK   0
 #define DVM_COLOR_HASH_TABLE_FULL -1

@@ -1,4 +1,4 @@
-/* 
+/*
  * TagGenerator.h
  *
  * Singleton class for the handling of mockets tags.
@@ -23,7 +23,7 @@
  */
 
 #ifndef INCL_UNIQUE_TAG_GENERATOR_H
-#define	INCL_UNIQUE_TAG_GENERATOR_H
+#define INCL_UNIQUE_TAG_GENERATOR_H
 
 #include "Mutex.h"
 #include "StringHashtable.h"
@@ -41,7 +41,7 @@ namespace IHMC_ACI
             static uint16 getVersionTag (void);
 
             /**
-             * Returns the unique tag 
+             * Returns the unique tag
              */
             uint16 getWaypointTagForPeer (const char *pszPublisherNodeId);
 
@@ -61,7 +61,7 @@ namespace IHMC_ACI
 
     inline TagGenerator * TagGenerator::getInstance (void)
     {
-        if (_pTagGenerator == NULL) {
+        if (_pTagGenerator == nullptr) {
             _pTagGenerator = new TagGenerator();
         }
         return _pTagGenerator;
@@ -86,9 +86,9 @@ namespace IHMC_ACI
     {
         _m.lock();
         uint16 *pui16AdHocTag = tagsById.get (pszId);
-        if (pui16AdHocTag == NULL) {
+        if (pui16AdHocTag == nullptr) {
             pui16AdHocTag = new uint16;
-            if (pui16AdHocTag == NULL) {
+            if (pui16AdHocTag == nullptr) {
                 _m.unlock();
                 return _ui16CurrTag++;
             }
@@ -101,5 +101,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_UNIQUE_TAG_GENERATOR_H */
-
+#endif    /* INCL_UNIQUE_TAG_GENERATOR_H */

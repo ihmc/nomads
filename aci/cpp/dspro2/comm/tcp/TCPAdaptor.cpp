@@ -31,6 +31,7 @@
 #include "Message.h"
 #include "MessageInfo.h"
 #include "SearchProperties.h"
+#include "SessionId.h"
 
 #include "BufferWriter.h"
 #include "ConfigManager.h"
@@ -42,14 +43,14 @@ using namespace NOMADSUtil;
 
 const unsigned short TCPAdaptor::DEFAULT_PORT = 8888;
 
-TCPAdaptor::TCPAdaptor (AdaptorId uiId, const char *pszNodeId, const char *pszSessionId,
+TCPAdaptor::TCPAdaptor (AdaptorId uiId, const char *pszNodeId,
                         CommAdaptorListener *pListener, uint16 ui16Port)
-    : ConnCommAdaptor (uiId, TCP, false, pszNodeId, pszSessionId, pListener, ui16Port),
+    : ConnCommAdaptor (uiId, TCP, false, pszNodeId, pListener, ui16Port),
       _ui8DefaultPriority (5)
 {
 }
 
-TCPAdaptor::~TCPAdaptor()
+TCPAdaptor::~TCPAdaptor (void)
 {
 }
 
@@ -58,7 +59,7 @@ int TCPAdaptor::init (ConfigManager *pCfgMgr)
     setName ("IHMC_ACI::TCPAdaptor");
     char **ppszNetIfs = ConfigFileReader::parseNetIFs (pCfgMgr->getValue ("aci.dspro.tcp.netIFs"));
     int rc = ConnCommAdaptor::init (ppszNetIfs);
-    if (ppszNetIfs != NULL) {
+    if (ppszNetIfs != nullptr) {
         // deallocate
     }
     return rc;
@@ -66,7 +67,7 @@ int TCPAdaptor::init (ConfigManager *pCfgMgr)
 
 void TCPAdaptor::resetTransmissionCounters (void)
 {
-    // Nothing to do    
+    // Nothing to do
 }
 
 bool TCPAdaptor::supportsManycast (void)
@@ -78,17 +79,17 @@ int TCPAdaptor::connectToPeerInternal (const char *pszRemotePeerAddr, uint16 ui1
 {
     const char *pszMethodName = "TCPAdaptor::connectToPeerInternal";
 
-    if (pszRemotePeerAddr == NULL) {
+    if (pszRemotePeerAddr == nullptr) {
         return -1;
     }
 
     TCPSocket *pSocket = new TCPSocket();
-    if (pSocket == NULL) {
+    if (pSocket == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
         return -2;
     }
 
-    // pm->registerPeerUnreachableWarningCallback (unreachablePeerCallback, NULL);
+    // pm->registerPeerUnreachableWarningCallback (unreachablePeerCallback, nullptr);
     int rc = pSocket->connect (pszRemotePeerAddr, ui16Port);
     if (rc != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "failed to connect to "
@@ -98,8 +99,9 @@ int TCPAdaptor::connectToPeerInternal (const char *pszRemotePeerAddr, uint16 ui1
     }
 
     // Create handler and delegate pMocket handling
+    const String sessionId (SessionId::getInstance()->getSessionId());
     TCPEndPoint endPoint (pSocket, ConnEndPoint::DEFAULT_TIMEOUT);
-    const ConnHandler::HandshakeResult handshake (ConnHandler::doHandshake (&endPoint, _nodeId, _sessionId, _pListener));
+    const ConnHandler::HandshakeResult handshake (ConnHandler::doHandshake (&endPoint, _nodeId, sessionId, _pListener));
     if (handshake._remotePeerId.length() <= 0) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "handshake failed\n");
         pSocket->disconnect();
@@ -109,7 +111,7 @@ int TCPAdaptor::connectToPeerInternal (const char *pszRemotePeerAddr, uint16 ui1
 
     TCPConnHandler *pHandler = new TCPConnHandler (_adptorProperties, handshake._remotePeerId,
                                                    _pListener, pSocket, handshake._localConnectionIfaceAddr);
-    if (pHandler == NULL) {
+    if (pHandler == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
         pSocket->disconnect();
         delete pSocket;
@@ -151,7 +153,7 @@ int TCPAdaptor::sendContextVersionMessage (const void *pBuf, uint32 ui32Len,
 int TCPAdaptor::sendDataMessage (Message *pMsg, const char **ppszRecipientNodeIds,
                                  const char **ppszInterfaces)
 {
-    if (pMsg == NULL || pMsg->getMessageHeader() == NULL || ppszRecipientNodeIds == NULL) {
+    if (pMsg == nullptr || pMsg->getMessageHeader() == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -164,9 +166,9 @@ int TCPAdaptor::sendDataMessage (Message *pMsg, const char **ppszRecipientNodeId
 
     int rc = 0;
     _mHandlers.lock();
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         ConnHandler *pHandler = _handlersByPeerId.get (ppszRecipientNodeIds[i]);
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             int rc = pHandler->send (bw.getBuffer(), bw.getBufferLength(), pMsg->getMessageHeader()->getPriority());
             if (rc < 0) {
                 checkAndLogMsg ("TCPAdaptor::sendDataMessage", Logger::L_Warning,
@@ -185,7 +187,7 @@ int TCPAdaptor::sendDataMessage (Message *pMsg, const char **ppszRecipientNodeId
 
     cleanHandlers();
     _mHandlers.unlock();
-    
+
     return (rc == 0 ? 0 : -2);
 }
 
@@ -193,7 +195,7 @@ int TCPAdaptor::sendChunkedMessage (Message *pMsg, const char *pszDataMimeType,
                                     const char **ppszRecipientNodeIds,
                                     const char **ppszInterfaces)
 {
-    if (pMsg == NULL || ppszRecipientNodeIds == NULL) {
+    if (pMsg == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -207,9 +209,9 @@ int TCPAdaptor::sendChunkedMessage (Message *pMsg, const char *pszDataMimeType,
 
     int rc = 0;
     _mHandlers.lock();
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         ConnHandler *pHandler = _handlersByPeerId.get (ppszRecipientNodeIds[i]);
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             int rc = pHandler->send (bw.getBuffer(), bw.getBufferLength(), pMsg->getMessageHeader()->getPriority());
             if (rc < 0) {
                 checkAndLogMsg ("TCPAdaptor::sendDataMessage", Logger::L_Warning,
@@ -228,7 +230,7 @@ int TCPAdaptor::sendChunkedMessage (Message *pMsg, const char *pszDataMimeType,
 
     cleanHandlers();
     _mHandlers.unlock();
-    
+
     return (rc == 0 ? 0 : -2);
 }
 
@@ -236,7 +238,7 @@ int TCPAdaptor::sendMessageRequestMessage (const char *pszMsgId, const char *psz
                                            const char **ppszRecipientNodeIds,
                                            const char **ppszInterfaces)
 {
-    if (pszMsgId == NULL || ppszRecipientNodeIds == NULL) {
+    if (pszMsgId == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -258,7 +260,7 @@ int TCPAdaptor::sendChunkRequestMessage (const char *pszMsgId, DArray<uint8> *pC
                                          const char **ppszRecipientNodeIds,
                                          const char **ppszInterfaces)
 {
-    if (pszMsgId == NULL || ppszRecipientNodeIds == NULL) {
+    if (pszMsgId == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -267,7 +269,7 @@ int TCPAdaptor::sendChunkRequestMessage (const char *pszMsgId, DArray<uint8> *pC
         return -2;
     }
 
-    uint8 ui8NCachedChunks = pCachedChunks == NULL ? 0 : pCachedChunks->size();
+    uint8 ui8NCachedChunks = pCachedChunks == nullptr ? 0 : pCachedChunks->size();
 
     BufferWriter bw (4+ui32IdLen+(ui8NCachedChunks+1), 64);
     bw.write32 (&ui32IdLen);
@@ -288,7 +290,7 @@ int TCPAdaptor::sendPositionMessage (const void *pBuf, uint32 ui32Len,
                                      const char **ppszRecipientNodeIds,
                                      const char **ppszInterfaces)
 {
-    return sendMessage (MessageHeaders::Position, pBuf, ui32Len, NULL,
+    return sendMessage (MessageHeaders::Position, pBuf, ui32Len, nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui8DefaultPriority);
 }
 
@@ -298,7 +300,7 @@ int TCPAdaptor::sendSearchMessage (SearchProperties &searchProp,
 {
     BufferWriter bw (searchProp.uiQueryLen + 128, 128);
     SearchProperties::write (searchProp, &bw);
-    return sendMessage (MessageHeaders::Search, bw.getBuffer(), bw.getBufferLength(), NULL,
+    return sendMessage (MessageHeaders::Search, bw.getBuffer(), bw.getBufferLength(), nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui8DefaultPriority);
 }
 
@@ -309,7 +311,7 @@ int TCPAdaptor::sendSearchReplyMessage (const char *pszQueryId,
                                         const char **ppszRecipientNodeIds,
                                         const char **ppszInterfaces)
 {
-    if (pszQueryId == NULL) {
+    if (pszQueryId == nullptr) {
         return -1;
     }
     uint16 ui16 = strlen (pszQueryId);
@@ -317,12 +319,12 @@ int TCPAdaptor::sendSearchReplyMessage (const char *pszQueryId,
         return -2;
     }
     BufferWriter bw (256, 128);
-    if (SearchProperties::write (pszQueryId, pszTarget, NULL, // pszQueryType
+    if (SearchProperties::write (pszQueryId, pszTarget, nullptr, // pszQueryType
                                  ppszMatchingMsgIds, pszMatchingNode, &bw) < 0) {
         return -3;
     }
 
-    return sendMessage (MessageHeaders::SearchReply, bw.getBuffer(), bw.getBufferLength(), NULL,
+    return sendMessage (MessageHeaders::SearchReply, bw.getBuffer(), bw.getBufferLength(), nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui8DefaultPriority);
 }
 
@@ -332,7 +334,7 @@ int TCPAdaptor::sendVolatileSearchReplyMessage (const char *pszQueryId,
                                                 const char **ppszRecipientNodeIds,
                                                 const char **ppszInterfaces)
 {
-    if (pszQueryId == NULL) {
+    if (pszQueryId == nullptr) {
         return -1;
     }
     uint16 ui16 = strlen (pszQueryId);
@@ -340,12 +342,12 @@ int TCPAdaptor::sendVolatileSearchReplyMessage (const char *pszQueryId,
         return -2;
     }
     BufferWriter bw (256, 128);
-    if (SearchProperties::write (pszQueryId, pszTarget, NULL, // pszQueryType
+    if (SearchProperties::write (pszQueryId, pszTarget, nullptr, // pszQueryType
                                  pReply, ui16ReplyLen, pszMatchingNode, &bw) < 0) {
         return -3;
     }
 
-    return sendMessage (MessageHeaders::SearchReply, bw.getBuffer(), bw.getBufferLength(), NULL,
+    return sendMessage (MessageHeaders::SearchReply, bw.getBuffer(), bw.getBufferLength(), nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui8DefaultPriority);
 }
 
@@ -353,7 +355,7 @@ int TCPAdaptor::sendTopologyReplyMessage (const void *pBuf, uint32 ui32BufLen,
                                               const char **ppszRecipientNodeIds,
                                               const char **ppszInterfaces)
 {
-    return sendMessage (MessageHeaders::TopoReply, pBuf, ui32BufLen, NULL,
+    return sendMessage (MessageHeaders::TopoReply, pBuf, ui32BufLen, nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui8DefaultPriority);
 }
 
@@ -403,3 +405,11 @@ int TCPAdaptor::sendWholeMessage (const void *pBuf, uint32 ui32Len,
                         pszPublisherNodeId, ppszRecipientNodeIds,
                         ppszInterfaces, _ui8DefaultPriority);
 }
+
+int TCPAdaptor::notifyEvent (const void *pBuf, uint32 ui32Len,
+                             const char *pszPublisherNodeId,
+                             const char *pszTopic, const char **ppszInterfaces)
+{
+    return 0;
+}
+

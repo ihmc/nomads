@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_COMM_ADAPTOR_H
-#define	INCL_COMM_ADAPTOR_H
+#define INCL_COMM_ADAPTOR_H
 
 #include "AdaptorProperties.h"
 #include "CommAdaptorListener.h"
@@ -44,6 +44,9 @@ namespace IHMC_ACI
             virtual ~CommAdaptor (void);
 
             virtual int init (NOMADSUtil::ConfigManager *pCfgMgr) = 0;
+
+            virtual int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len) = 0;
+
             virtual int startAdaptor (void) = 0;
             virtual int stopAdaptor (void) = 0;
 
@@ -52,7 +55,6 @@ namespace IHMC_ACI
             AdaptorType getAdaptorType (void) const;
             const char * getAdaptorAsString (void);
             NOMADSUtil::String getNodeId (void) const;
-            NOMADSUtil::String getSessionId (void) const;
 
             virtual void resetTransmissionCounters (void) = 0;
 
@@ -121,16 +123,32 @@ namespace IHMC_ACI
                                           const char *pszPublisherNodeId,
                                           const char **ppszRecipientNodeIds,
                                           const char **ppszInterfaces) = 0;
- 
+            virtual int notifyEvent (const void *pBuf, uint32 ui32Len,
+                                     const char *pszPublisherNodeId,
+                                     const char *pszTopic, const char **ppszInterfaces) = 0;
+
+            struct Subscription
+            {
+                explicit Subscription (const char *pszGroupName);
+                ~Subscription (void);
+
+                uint8 ui8Priority;
+                bool bGroupReliable;
+                bool bMsgReliable;
+                bool bSequenced;
+                NOMADSUtil::String groupName;
+            };
+
+            virtual int subscribe (Subscription &sub) = 0;
+
         protected:
             CommAdaptor (AdaptorId uiId, AdaptorType adaptorType, bool bSupportsCaching,
-                         bool bSupportsDirectConnection, const char *pszNodeId, const char *pszSessionId,
+                         bool bSupportsDirectConnection, const char *pszNodeId,
                          CommAdaptorListener *pListener);
 
         protected:
             CommAdaptorListener *_pListener;
             const NOMADSUtil::String _nodeId;
-            const NOMADSUtil::String _sessionId;
             const AdaptorProperties _adptorProperties;
     };
 
@@ -155,5 +173,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_COMM_ADAPTOR_H */
-
+#endif    /* INCL_COMM_ADAPTOR_H */

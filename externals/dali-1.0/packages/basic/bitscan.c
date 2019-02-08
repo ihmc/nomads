@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -21,24 +21,24 @@
  *  CloseScan()
  *
  *  -  OpenScan() takes in two buffer as input :- one byte buffer, which
- *     contained the data to be process, and one bit buffer, which acts 
- *     as a bitmap-region.  It returns a pointer to a BitImageScan 
+ *     contained the data to be process, and one bit buffer, which acts
+ *     as a bitmap-region.  It returns a pointer to a BitImageScan
  *     structure.  This structure records the state of a scan and need
- *     to be passed around to other scan related functions. 
+ *     to be passed around to other scan related functions.
  *
  *  -  GetNextExtent() takes in a BitImageScan pointer, and output an
  *     extent.  An extent is a pair of coordinates (x1, y) and (x2, y)
- *     in the same row, such that in the bitmap-region, all bits between 
+ *     in the same row, such that in the bitmap-region, all bits between
  *     (x1, y) and (x2-1, y) is 1, and bits at (x1-1, y) and (x2, y) has
  *     value 0.   GetNextExtent() output an extent in the form of
- *     (x1, x2 - x1, y)  GetNextExtent() returns SCAN_NOT_DONE if it founds 
- *     an extent and return it.  SCAN_DONE is returned if it cannot 
- *     found anymore extent in the bitmap-region.  If SCAN_DONE is 
+ *     (x1, x2 - x1, y)  GetNextExtent() returns SCAN_NOT_DONE if it founds
+ *     an extent and return it.  SCAN_DONE is returned if it cannot
+ *     found anymore extent in the bitmap-region.  If SCAN_DONE is
  *     returned, the output pointers are invalid.
  *
  * -   CloseScan() free the BitImageScan structure.  After CloseScan()
  *     is called on a BitImageScan structure, the structure cannot be
- *     used any more.  
+ *     used any more.
  *
  * Here is a typical usage of the bit scan functions :
  *
@@ -53,12 +53,12 @@
  * BitImageCloseScan(scan);
  *
  *
- * TODO : Make GetNextExtent faster by comparing 32-bits / 8-bits at a 
+ * TODO : Make GetNextExtent faster by comparing 32-bits / 8-bits at a
  *        time.
  *      : Make CloseScan into a macro.
  *
  * Yongjian Xiang: July 97
- *		
+ *
  *	1.	Modified the function _BitImageGetNextExtent_ .
  *		In the previous implementation, if _BitImageGetNextExtent_
  *		is called when the current byte is the last partial byte on a row of the
@@ -71,9 +71,9 @@
  *		because it does not check that the current byte is already the last byte.
  *		on the row.
  *
- *	2.	Added a new data type:  _ExtentArray_, 	
+ *	2.	Added a new data type:  _ExtentArray_,
  *		Added a function to get the bounding box of a bit image.
- *			
+ *
  *----------------------------------------------------------------------
  */
 
@@ -102,7 +102,7 @@ static int _firstTime;
 }
 
 
-BitImageScan* 
+BitImageScan*
 BitImageOpenScan(bit, width, height)
     BitImage *bit;
     int width;      /* height and width of the ByteImage being process */
@@ -147,11 +147,11 @@ BitImageOpenScan(bit, width, height)
 	scan->byteWidth = bit->byteWidth;
 	scan->lastBit   = bit->lastBit;
     }
-    scan->height = min(height, bit->height); 
+    scan->height = min(height, bit->height);
     // end 16-1-98 addition
     if (bit->firstBit != 0)
 	scan->regionSkip = bit->parentWidth - scan->byteWidth - 1;
-    else 
+    else
 	scan->regionSkip = bit->parentWidth - scan->byteWidth;
     scan->x = 0;
     scan->y = 0;
@@ -159,7 +159,7 @@ BitImageOpenScan(bit, width, height)
     return scan;
 }
 
-int 
+int
 BitImageGetNextExtent(s, startx, len, outy)
     BitImageScan *s;
     int *startx;
@@ -232,7 +232,7 @@ BitImageGetNextExtent(s, startx, len, outy)
 		 * the end.
 		 */
 		    regionByte = *currByte;
-		    while (1) 
+		    while (1)
 			TEST_ONE_AND_JUMP;
 		} else {
 		    x += 8;
@@ -246,7 +246,7 @@ BitImageGetNextExtent(s, startx, len, outy)
 	 *
 	 * case 1:  The starting bytes to scan at the time this function is
 	 *          called is already the last bytes on the current row of the bit images.
-	 *			
+	 *
 	 * case 2;  All bits before the beginning of the last partial bytes
 	 *          have been scanned, no 1 found.
 	 *
@@ -256,20 +256,20 @@ BitImageGetNextExtent(s, startx, len, outy)
 	tail = lastBit - currBit;
 	if (lastBit > currBit) {
 	    regionByte = (*currByte) << (8 - tail);
-	    DO_N_TIMES(tail, 
+	    DO_N_TIMES(tail,
 		TEST_ONE_AND_JUMP);
 	}
 
 	/* No 1 found on the current row, continue on the next row.   */
 	x = 0;
 	y = y + 1;
-	currBit  = firstBit; 
+	currBit  = firstBit;
 	currByte += scan->regionSkip;
     }
     return SCAN_DONE;			/* The last row has been scanned */
 
 found1:
-	 
+
     *startx = x;
     *outy = y;
 
@@ -306,7 +306,7 @@ found1:
 	     * the end.
 	     */
 		regionByte = *currByte;
-		while (1) 
+		while (1)
 		    TEST_ZERO_AND_JUMP;
 	    } else {
 		x += 8;
@@ -319,19 +319,19 @@ found1:
     tail = lastBit - currBit;
     if (lastBit > currBit) {
 	regionByte = (*currByte) << (8 - tail);
-	DO_N_TIMES(tail, 
+	DO_N_TIMES(tail,
 	    TEST_ZERO_AND_JUMP);
     }
 
-    /* 
+    /*
      * No 0 found on the current row, move scan
      * to the next line. The function returns
      */
     *len = unitWidth - *startx ;
     scan->x = 0;
     scan->y = y+1;
-    scan->currBit  = scan->region->firstBit; 
-    scan->currByte = currByte + scan->regionSkip; 
+    scan->currBit  = scan->region->firstBit;
+    scan->currByte = currByte + scan->regionSkip;
     return SCAN_NOT_DONE;
 
 found0:

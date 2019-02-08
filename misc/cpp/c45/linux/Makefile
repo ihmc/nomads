@@ -13,11 +13,11 @@ CSOURCES = $(wildcard ../*.c)
 COBJECTS = $(CSOURCES:../%.c=%.o)
 
 #Environment
-ARCH = $(shell sh ./guessArch.sh)
-include Makefile.$(ARCH)
+ARCH = $(shell sh ../../../../util/scripts/guessArch.sh)
+include ../../../../util/scripts/Makefile.$(ARCH)
 
 CFLAGS = -g -Wall -DUNIX $(BUILD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM
-CPPFLAGS = -g -Wall -DUNIX $(BUILD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM -I.. \
+CPPFLAGS = -g -Wall -DUNIX $(ARCH_FLAGS) $(BUILD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM -I.. \
             -I$(NOMADS_HOME)/util/cpp
 LD_FLAGS = -lpthread -lnsl -ldl
 
@@ -31,6 +31,7 @@ all:
 	cc $(CFLAGS) -c $<
 
 %.o : ../%.cpp
+	@echo "Building for $(ARCH)"
 	g++ $(CPPFLAGS) -c $<
 
 #	Definitions of file sets
@@ -53,6 +54,7 @@ libutil.a :
 	make -C $(NOMADS_HOME)/util/cpp/linux/ libutil.a
 
 libc4.5.a:	$(COBJECTS) $(CPPOBJECTS) libutil.a
+	@echo "Building for $(ARCH)"
 	ar -rcv libc4.5.a $(COBJECTS) $(CPPOBJECTS) \
 	$(NOMADS_HOME)/util/cpp/linux/libutil.a
 

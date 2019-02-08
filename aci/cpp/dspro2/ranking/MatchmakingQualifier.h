@@ -1,4 +1,4 @@
-/* 
+/*
  * MatchmakingQualifier.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_MATCHMAKING_QUALIFIER_H
-#define	INCL_MATCHMAKING_QUALIFIER_H
+#define INCL_MATCHMAKING_QUALIFIER_H
 
 #include "FTypes.h"
 #include "PtrLList.h"
@@ -115,5 +115,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_MATCHMAKING_QUALIFIER_H */
-
+#endif    /* INCL_MATCHMAKING_QUALIFIER_H */

@@ -263,6 +263,9 @@
     <ClCompile Include="..\NMSHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\SessionId.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\AckController.h">
@@ -530,6 +533,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\NMSHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SessionId.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

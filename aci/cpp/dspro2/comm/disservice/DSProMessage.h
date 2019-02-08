@@ -1,4 +1,4 @@
-/* 
+/*
  * DSProMessage.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_DS_PRO_MESSAGE_H
-#define	INCL_DS_PRO_MESSAGE_H
+#define INCL_DS_PRO_MESSAGE_H
 
 #include "DisServiceMsg.h"
 #include "MessageHeaders.h"
@@ -149,7 +149,7 @@ namespace IHMC_ACI
     inline int DSProMessageHelper::writesCtrlMsg (NOMADSUtil::Writer* pWriter, const char* pszPublisherNodeId,
                                                   uint32 ui32PubLen, const void* pBuf, uint32 ui32BufLen)
     {
-        if (pWriter == NULL || ((ui32PubLen > 0) && (pszPublisherNodeId == NULL))) {
+        if (pWriter == nullptr || ((ui32PubLen > 0) && (pszPublisherNodeId == nullptr))) {
             return -1;
         }
 
@@ -167,5 +167,5 @@ namespace IHMC_ACI
     }
 }
 
-#endif	// INCL_DS_PRO_MESSAGE_H
+#endif    // INCL_DS_PRO_MESSAGE_H
 

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -23,7 +23,6 @@
 #include "File.h"
 #include "FileUtils.h"
 #include "Logger.h"
-#include "NLFLib.h"
 
 #include <string.h>
 
@@ -51,7 +50,7 @@ NOMADSUtil::String MimeUtils::getMimeType (const char *pszFileName)
         return String();
     }
     File file (pszFileName);
-    return toType (file.getExtension());
+    return toMimeType (toType (file.getExtension()));
 }
 
 Chunker::Type MimeUtils::mimeTypeToFragmentType (const char *pszMimeType)
@@ -60,17 +59,18 @@ Chunker::Type MimeUtils::mimeTypeToFragmentType (const char *pszMimeType)
         return Chunker::UNSUPPORTED;
     }
     if ((0 == stringcasecmp (pszMimeType, "image/x-ms-bmp")) ||
-        (0 == stringcasecmp (pszMimeType, "image/x-bmp"))) {    
+        (0 == stringcasecmp (pszMimeType, "image/x-bmp"))) {
         return Chunker::BMP;
     }
-    if (0 == stringcasecmp (pszMimeType, "image/jpeg")) {
+    if ((0 == stringcasecmp (pszMimeType, "image/jpg")) ||
+        (0 == stringcasecmp (pszMimeType, "image/jpeg"))) {
         return Chunker::JPEG;
     }
     if (0 == stringcasecmp (pszMimeType, "image/jp2")) {
         return Chunker::JPEG2000;
     }
     if (0 == stringcasecmp (pszMimeType, "video/mpeg")) {
-        return Chunker::V_MPEG;                     
+        return Chunker::V_MPEG;
     }
     if (0 == stringcasecmp (pszMimeType, "audio/mpeg")) {
         return Chunker::A_MPEG;
@@ -92,7 +92,6 @@ Chunker::Type MimeUtils::mimeTypeToFragmentType (const char *pszMimeType)
     }
 
     return Chunker::UNSUPPORTED;
-
 }
 
 Chunker::Type MimeUtils::toType (const String &extension)
@@ -121,6 +120,9 @@ Chunker::Type MimeUtils::toType (const String &extension)
     if (extension ^= "mpg") {
         return Chunker::V_MPEG;
     }
+    if (extension ^= "zip") {
+        return Chunker::ZIP;
+    }
     return Chunker::UNSUPPORTED;
 }
 
@@ -134,6 +136,7 @@ String MimeUtils::toExtesion (Chunker::Type extension)
         case Chunker::AVI: return String ("avi");
         case Chunker::MOV: return String ("mov");
         case Chunker::V_MPEG: return String ("mpeg");
+        case Chunker::ZIP: return String ("zip");
         default: return String();
     }
 }
@@ -148,7 +151,26 @@ String MimeUtils::toMimeType (Chunker::Type extension)
         case Chunker::AVI: return String ("video/avi");
         case Chunker::MOV: return String ("video/quicktime");
         case Chunker::V_MPEG: return String ("video/mpeg");
+        case Chunker::ZIP: return String ("application/x-zip-compressed");
         default: return String();
+    }
+}
+
+ChunkReassembler::Type MimeUtils::toReassemblerType (Chunker::Type type)
+{
+    switch (type) {
+        case Chunker::BMP:
+        case Chunker::JPEG:
+        case Chunker::JPEG2000:
+        case Chunker::PNG:
+            return ChunkReassembler::Image;
+        case Chunker::A_MPEG:
+        case Chunker::AVI:
+        case Chunker::MOV:
+        case Chunker::V_MPEG:
+            return ChunkReassembler::Video;
+        default:
+            return ChunkReassembler::UNSUPPORTED;
     }
 }
 

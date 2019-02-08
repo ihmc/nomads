@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -86,7 +86,9 @@ namespace IHMC_ACI
                 DSMT_VolatileSearchMsgReply = 0x2B,
 
                 DSMT_ImprovedSubStateMessage = 0x2C,
-                DSMT_ProbabilitiesMsg = 0x2D
+                DSMT_ProbabilitiesMsg = 0x2D,
+
+                DSMT_SessionSync = 0x2E
             };
 
             struct Range {
@@ -250,6 +252,31 @@ namespace IHMC_ACI
     };
 
     //=================================================================
+    // DisServiceSessionSyncMsg CONTROL
+    //=================================================================
+
+    class DisServiceSessionSyncMsg : public DisServiceCtrlMsg
+    {
+        public:
+            DisServiceSessionSyncMsg (void);
+            explicit DisServiceSessionSyncMsg (const char *pszSenderNodeId);
+            ~DisServiceSessionSyncMsg (void);
+
+            NOMADSUtil::String getSessionSync (int64 &i64Timestamp);
+
+            int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
+            int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
+
+        private:
+            struct Sync {
+                int64 i64Timestamp;
+                NOMADSUtil::String _sessionId;
+            };
+
+            Sync _sync;
+    };
+
+    //=================================================================
     // DisServiceDataReqMsg CONTROL
     //=================================================================
 
@@ -366,6 +393,7 @@ namespace IHMC_ACI
 
             NOMADSUtil::PtrLList<FragmentRequest> *_pFragmentRequests;
             NOMADSUtil::PtrLList<FragmentRequest> *_pCompleteMessageRequests;
+            int64 _i64SendingTime;
             NOMADSUtil::String _queryTargetNodeId;
     };
 
@@ -438,6 +466,7 @@ namespace IHMC_ACI
             void setBandwidth (uint8 ui8Bandwidth);
             void setNodesInConnectivityHistory (uint8 ui8NodesInConnectivityHistory);
             void setNodesRepetitivity (uint8 ui8NodesRepetitivity);
+            void setPubAdv (const NOMADSUtil::String &group, uint32 ui32);
 
         private:
             uint32 _ui32TopologyStateUpdateSeqId;
@@ -451,6 +480,9 @@ namespace IHMC_ACI
             uint8 _ui8NodesInConnectivityHistory;
             uint8 _ui8NodesRepetitivity;
             uint8 _ui8NodeImportance;
+
+            uint32 _seqId;
+            NOMADSUtil::String _group;
     };
 
     //==========================================================================
@@ -799,7 +831,7 @@ namespace IHMC_ACI
             NOMADSUtil::DArray<uint8> * getLocallyCachedChunks (void);
             const char * getQueryId (void) const;
 
-        private:           
+        private:
             NOMADSUtil::String _queryId;
             NOMADSUtil::DArray<uint8> _locallyCachedChunks;
     };
@@ -815,15 +847,15 @@ namespace IHMC_ACI
     class ChunkRetrievalMsgQueryHits: public DisServiceCtrlMsg
     {
         public:
-            ChunkRetrievalMsgQueryHits (bool bDeallocateChunks=true);   									
-            ChunkRetrievalMsgQueryHits (const char *pszSenderNodeId, 
+            ChunkRetrievalMsgQueryHits (bool bDeallocateChunks=true);
+            ChunkRetrievalMsgQueryHits (const char *pszSenderNodeId,
                                         const char *pszTargetNodeId,
                                         NOMADSUtil::PtrLList<MessageHeader> *pMH,
-                                        const char *pszQueryId, bool bDeallocateChunks=true);                                                                     
+                                        const char *pszQueryId, bool bDeallocateChunks=true);
             virtual ~ChunkRetrievalMsgQueryHits (void);
 
             int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
-            int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);  
+            int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
             NOMADSUtil::PtrLList<MessageHeader> *getMessageHeaders (void);
             const char *getQueryId (void);
 
@@ -832,11 +864,11 @@ namespace IHMC_ACI
             NOMADSUtil::PtrLList<MessageHeader> *_pCMHs;
             NOMADSUtil::String _queryId;
     };
-    
+
     //==========================================================================
     // DisServiceSubscribtionAdvertisement CONTROL
     //==========================================================================
-    
+
     /*
      * This message advertises what subscriptions a Node has subscribed.
      * It includes the list of nodes the message traverse.
@@ -846,37 +878,37 @@ namespace IHMC_ACI
         public:
             /* Allocates the Subscription list and the Path data structures */
             DisServiceSubscribtionAdvertisement (void);
-            
+
             /* It creates a new DSSA message with the given SubList */
             DisServiceSubscribtionAdvertisement (const char *pszSenderNodeId, const char *pszOriginatorNodeId,
                                                  NOMADSUtil::PtrLList<NOMADSUtil::String> *pSubList);
-            
+
             /* It creates a new DSSA message with the given SubList and Path */
             DisServiceSubscribtionAdvertisement (const char *pszSenderNodeId, const char *pszOriginatorNodeId,
                                                  NOMADSUtil::PtrLList<NOMADSUtil::String> *pSubList,
                                                  NOMADSUtil::PtrLList<NOMADSUtil::String> *pPath);
             /* Deallocate the Subscription List and Path data structures */
             ~DisServiceSubscribtionAdvertisement (void);
-            
+
             int addSubscription (const char *pszSubscription);
             int removeSubscription (const char *pszSubscription);
-            int prependNode (const char *pszNodeId);            
+            int prependNode (const char *pszNodeId);
             NOMADSUtil::PtrLList<NOMADSUtil::String> * getSubscriptions (void);
             NOMADSUtil::PtrLList<NOMADSUtil::String> * getPath (void);
             const char * getOriginatorNodeId (void);
-             
+
             int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
             int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
-            
+
             void display (void);
-            
+
         private:
             NOMADSUtil::String _originatorNodeId;
             NOMADSUtil::PtrLList<NOMADSUtil::String> _subscriptionList;
             NOMADSUtil::PtrLList<NOMADSUtil::String> _path;
     };
 
-    
+
     //==================================================================
     // ControllerToControllerMsg
     //==================================================================
@@ -914,11 +946,11 @@ namespace IHMC_ACI
             void * getMetaData (void);
             uint32 getMetaDataLength (void);
             void * getData (void);
-            uint32 getDataLength (void);    
+            uint32 getDataLength (void);
 
         private:
             int writeInternal (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize, bool bCheckSize);
-    
+
         protected:
             NOMADSUtil::String _receiverNodeID;
             uint8 _ui8CtrlType;
@@ -1130,28 +1162,28 @@ namespace IHMC_ACI
             NOMADSUtil::StringHashtable<IHMC_ACI::SubscriptionList> *_pSubscriptionsTable;
             NOMADSUtil::StringHashtable<uint32> *_pNodesTable;
     };
-    
+
     //================================================================
     // DisServiceProbabilitiesMsg CONTROL
     //================================================================
 
-    class DisServiceProbabilitiesMsg : public DisServiceCtrlMsg 
+    class DisServiceProbabilitiesMsg : public DisServiceCtrlMsg
     {
         public:
             DisServiceProbabilitiesMsg (void);
-            DisServiceProbabilitiesMsg (const char *pszSenderNodeId, 
+            DisServiceProbabilitiesMsg (const char *pszSenderNodeId,
                                         NOMADSUtil::StringHashtable<NOMADSUtil::StringFloatHashtable> *pProbabilitiesTable);
             virtual ~DisServiceProbabilitiesMsg (void);
 
             int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
             int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
-            
-            NOMADSUtil::StringHashtable<NOMADSUtil::StringFloatHashtable> * getProbabilitiesTable(void);
-            
+
+            NOMADSUtil::StringHashtable<NOMADSUtil::StringFloatHashtable> * getProbabilitiesTable (void);
+
         private:
             NOMADSUtil::StringHashtable<NOMADSUtil::StringFloatHashtable> *_pProbabilitiesTable;
     };
-    
+
 }
 
 #endif   // #ifndef INCL_DIS_SERVICE_MESSAGE_H

@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -31,7 +31,7 @@
  */
 #define MACRO_BLOCK_STUFFING 34
 #define MACRO_BLOCK_ESCAPE 35
-/* 
+/*
  * Interface to jrevdct.c routines (from JPEG decoder)
  */
 

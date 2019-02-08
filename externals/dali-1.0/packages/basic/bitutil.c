@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -29,12 +29,12 @@
  *-----------------------------------------------------
  * The global variables thePreMask, thePostMask
  *
- * Predefined mask that is useful for masking bits, 
+ * Predefined mask that is useful for masking bits,
  * particularly when dealing with bit buffers.
- * 
+ *
  * ANDing with thePreMask[k] will zero out the first k
  * bits, while ANDing with thePostMask[k] will zero out
- * the last 8-k bits. (easier to think : ANDing with 
+ * the last 8-k bits. (easier to think : ANDing with
  * thePostMask[k] preserve the first k bit.)
  *
  * See also bit*.c or pbm*.c for example usage.
@@ -70,10 +70,10 @@ unsigned char thePostMask[8] =
  *
  * CopyRow*() Functions
  *
- * copy a rows of non-byte-align bits to another row of non-byte-align 
- * bits.  
- * 
- * - destByte and srcByte points to the first bytes of the row 
+ * copy a rows of non-byte-align bits to another row of non-byte-align
+ * bits.
+ *
+ * - destByte and srcByte points to the first bytes of the row
  *   respectively.
  * - dest1st and src1st are the firstBit field of dest and src
  * - destLast and srcLast are the lastBit field of dest and src
@@ -155,9 +155,9 @@ CopyRowEqual(destByte, dest1st, destLast, srcByte, src1st, srcLast, width)
 
 /*
  *-------------------------------------------------------------------
- * Return the next n bits in the consecutive bytes pointed to by 
- * *byte, starting with bit *firstBit.  Advance *byte to the next 
- * byte if all bits in *byte have been look at.  If n < 8, then the 
+ * Return the next n bits in the consecutive bytes pointed to by
+ * *byte, starting with bit *firstBit.  Advance *byte to the next
+ * byte if all bits in *byte have been look at.  If n < 8, then the
  * byte return will have 8-n 0s as prefix. firstBit will be updated
  * for the next get operation.
  *-------------------------------------------------------------------

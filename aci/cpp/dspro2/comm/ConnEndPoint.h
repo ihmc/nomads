@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_CONNECTION_END_POINT_H
-#define	INCL_CONNECTION_END_POINT_H
+#define INCL_CONNECTION_END_POINT_H
 
 #include "FTypes.h"
 #include "StrClass.h"
@@ -67,5 +67,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_CONNECTION_END_POINT_H */
-
+#endif    /* INCL_CONNECTION_END_POINT_H */

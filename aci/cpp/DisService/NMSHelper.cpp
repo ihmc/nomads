@@ -1,4 +1,4 @@
-/* 
+/*
  * NMSHelper.cpp
  *
  * This file is part of the IHMC DisService Library/Component
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -74,6 +74,7 @@ namespace IHMC_ACI
                                     bool bAsyncTransmission, uint8 ui8MessageVersion, bool bReplyViaUnicast,
                                     const char **ppszBindingInterfaces, const char **ppszIgnoredInterfaces,
                                     const char **ppszAddedInterfaces, const char *pszDestAddr, uint8 ui8McastTTL,
+                                    const char *pszGroupKeyFileName, bool bPassphraseEncryption,
                                     NOMADSUtil::ConfigManager &cfgMgr)
     {
         if (NULL == obsoletePropertiesSanityCheck (cfgMgr, "aci.disService.propagationMode", NMSProperties::NMS_TRANSMISSION_MODE)) {
@@ -94,18 +95,24 @@ namespace IHMC_ACI
         if (NULL == obsoletePropertiesSanityCheck (cfgMgr, "aci.disService.networkMessageService.replyViaUnicast", NMSProperties::NMS_TRANSMISSION_UNICAST_REPLY)) {
             cfgMgr.setValue (NMSProperties::NMS_TRANSMISSION_UNICAST_REPLY, bReplyViaUnicast);
         }
+		if (NULL == obsoletePropertiesSanityCheck(cfgMgr, "aci.disService.networkMessageService.groupKeyFile", NMSProperties::NMS_GROUP_KEY_FILE)) {
+			cfgMgr.setValue(NMSProperties::NMS_GROUP_KEY_FILE, pszGroupKeyFileName);
+		}
+        if (NULL == obsoletePropertiesSanityCheck (cfgMgr, "aci.disService.networkMessageService.passphrase.encryption", NMSProperties::NMS_PASSPHRASE_ENCRYPTION)) {
+            cfgMgr.setValue (NMSProperties::NMS_PASSPHRASE_ENCRYPTION, bPassphraseEncryption);
+        }
         const String reqIfaces (toSemicolomnSeparatedString (ppszBindingInterfaces));
         if (reqIfaces.length() > 0) {
             // Use DisService defaults
             cfgMgr.setValue (NMSProperties::NMS_REQUIRED_INTERFACES, reqIfaces);
         }
         const String ignIfaces (toSemicolomnSeparatedString (ppszIgnoredInterfaces));
-        if (reqIfaces.length() > 0) {
+        if (ignIfaces.length() > 0) {
             // Use DisService defaults
             cfgMgr.setValue (NMSProperties::NMS_IGNORED_INTERFACES, ignIfaces);
         }
         const String optIfaces (toSemicolomnSeparatedString (ppszAddedInterfaces));
-        if (reqIfaces.length() > 0) {
+        if (optIfaces.length() > 0) {
             // Use DisService defaults
             cfgMgr.setValue (NMSProperties::NMS_OPTIONAL_INTERFACES, optIfaces);
         }
@@ -136,14 +143,15 @@ NetworkMessageServiceInterface * NMSHelper::getNetworkMessageService (NOMADSUtil
                                                                       bool bAsyncTransmission, uint8 ui8MessageVersion, bool bReplyViaUnicast,
                                                                       const char **ppszBindingInterfaces, const char **ppszIgnoredInterfaces,
                                                                       const char **ppszAddedInterfaces, const char *pszDestAddr, uint8 ui8McastTTL,
-                                                                      ConfigManager *pCfgMgr)
+                                                                      const char *pszSessionKey, bool bPassphraseEncryption, const char *pszGroupKeyFileName, ConfigManager *pCfgMgr)
 {
     if (pCfgMgr == NULL) {
         return NULL;
     }
     const char *pszMethodName = "NMSHelper::getNetworkMessageService";
+	checkAndLogMsg(pszMethodName, Logger::L_LowDetailDebug, "pszGroupKeyFile %s\n", pszGroupKeyFileName);
     disserviceToNMSProperties (mode, ui16NMSSvcPort, bAsyncDelivery, bAsyncTransmission, ui8MessageVersion, bReplyViaUnicast,
-                               ppszBindingInterfaces, ppszIgnoredInterfaces, ppszAddedInterfaces, pszDestAddr, ui8McastTTL, *pCfgMgr);
+                               ppszBindingInterfaces, ppszIgnoredInterfaces, ppszAddedInterfaces, pszDestAddr, ui8McastTTL, pszGroupKeyFileName, bPassphraseEncryption, *pCfgMgr);
     mode = static_cast<NOMADSUtil::PROPAGATION_MODE>(pCfgMgr->getValueAsInt (NMSProperties::NMS_TRANSMISSION_MODE));
     bAsyncDelivery = pCfgMgr->getValueAsBool(NMSProperties::NMS_DELIVERY_ASYNC);
     bAsyncTransmission = pCfgMgr->getValueAsBool (NMSProperties::NMS_TRANSMISSION_ASYNC);
@@ -160,12 +168,13 @@ NetworkMessageServiceInterface * NMSHelper::getNetworkMessageService (NOMADSUtil
     }
     const bool bHostNMSSvc = pCfgMgr->getValueAsBool ("aci.disService.networkMessageService.proxy.instantiateSvc", bDefaultHostNMSSvc);
     if (!bIslocalHost && bHostNMSSvc) {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "bIslocalHost == false and bHostNMSSvc == true\n");
         return NULL;
     }
 
     const uint16 ui16NMSProxyServerPort = static_cast<uint16>(pCfgMgr->getValueAsUInt32 (NMSProperties::NMS_PROXY_PORT, NMSProperties::DEFAULT_NMS_PROXY_PORT));
     if (bHostNMSSvc) {
-        _pNMS = new NetworkMessageService (mode, bAsyncDelivery, bAsyncTransmission, ui8MessageVersion, bReplyViaUnicast);
+        _pNMS = new NetworkMessageService (mode, bAsyncDelivery, bAsyncTransmission, ui8MessageVersion, bReplyViaUnicast, pszSessionKey, pszGroupKeyFileName);
         int rc = _pNMS->init (pCfgMgr);
         if (rc < 0) {
             delete _pNMS;
@@ -178,7 +187,6 @@ NetworkMessageServiceInterface * NMSHelper::getNetworkMessageService (NOMADSUtil
             _pProxySrv = new NetworkMessageServiceProxyServer (_pNMS, true);
             rc = _pProxySrv->init (ui16NMSProxyServerPort);
             if (rc < 0) {
-                delete _pNMS;
                 _pNMS = NULL;
                 delete _pProxySrv;
                 _pProxySrv = NULL;

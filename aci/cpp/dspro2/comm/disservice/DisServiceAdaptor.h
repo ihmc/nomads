@@ -1,5 +1,5 @@
-/* 
- * CommAdaptor.h
+/*
+ * DisServiceAdaptor.h
  *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
@@ -16,23 +16,23 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * Author: Giacomo Benincasa	(gbenincasa@ihmc.us)
+ * Author: Giacomo Benincasa    (gbenincasa@ihmc.us)
  * Created on June 26, 2012, 10:42 PM
  */
 
 #ifndef INCL_DISSERVICE_ADAPTOR_H
-#define	INCL_DISSERVICE_ADAPTOR_H
+#define INCL_DISSERVICE_ADAPTOR_H
 
 #include "CommAdaptor.h"
 
 #include "MessageHeaders.h"
-#include "SessionIdChecker.h"
 
 #include "DisseminationServiceListener.h"
 #include "Listener.h"
 #include "Services.h"
 
 #include "UInt32Hashset.h"
+#include "StringHashset.h"
 
 namespace NOMADSUtil
 {
@@ -56,7 +56,8 @@ namespace IHMC_ACI
                               private DisseminationServiceListener,
                               private MessageListener,
                               private PeerStateListener,
-                              private MessagingService
+                              private MessagingService,
+                              private NetworkStateListener
     {
         public:
             static const char * DSPRO_GROUP_NAME;
@@ -65,13 +66,16 @@ namespace IHMC_ACI
             ~DisServiceAdaptor (void);
 
             static bool checkGroupName (const char *pszIncomingGroupName, const char *pszExpectedGroupName);
-            static DisServiceAdaptor * getDisServiceAdaptor (unsigned int uiId, const char *pszSessionId,
-                                                             const char *pszNodeId, CommAdaptorListener *pListener,
+            static DisServiceAdaptor * getDisServiceAdaptor (unsigned int uiId, const char *pszNodeId,
+                                                             CommAdaptorListener *pListener,
                                                              NOMADSUtil::ConfigManager *pCfgMgr);
 
             DisseminationService * getDisseminationService (void);
 
             int init (NOMADSUtil::ConfigManager *pConfMgr);
+
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
+
             int startAdaptor (void);
             int stopAdaptor (void);
 
@@ -172,11 +176,19 @@ namespace IHMC_ACI
                                   const char *pszPublisherNodeId,
                                   const char **ppszRecipientNodeIds,
                                   const char **ppszInterfaces);
+            int notifyEvent (const void *pBuf, uint32 ui32Len,
+                             const char *pszPublisherNodeId,
+                             const char *pszTopic, const char **ppszInterfaces);
+
+            int subscribe (Subscription &sub);
+
+            void networkQuiescent (const char **pszInterfaces);
+            void messageCountUpdate (const char *pszPeerNodeId, const char *pszIncomingInterface, const char *pszPeerIp,
+                                     uint64 ui64GroumMsgCount, uint64 ui64UnicastMsgCount);
 
         protected:
             DisServiceAdaptor (unsigned int uiId, CommAdaptorListener *pListener,
-                               const char *pszNodeId, const char *pszSessionId,
-                               DisseminationService *pDisService);
+                               const char *pszNodeId, DisseminationService *pDisService);
 
         private:
             void handleDataMsg (DisServiceDataMsg* pDisServiceMsg, const char *pszIncomingInterface);
@@ -201,8 +213,9 @@ namespace IHMC_ACI
             DisseminationService *_pDisService;
             PropertyStoreInterface *_pPropertyStore;
             static DisServiceAdaptor *_pDisServiceAdaptor;
-            const SessionIdChecker _sessionIdChecker;
+            NOMADSUtil::Mutex _mSubscribedGrps;
             NOMADSUtil::UInt32Hashset _periodicCtrlMessages;
+            NOMADSUtil::StringHashset _subscribedGroups;
     };
 
     inline bool DisServiceAdaptor::supportsManycast (void)
@@ -212,5 +225,3 @@ namespace IHMC_ACI
 }
 
 #endif // INCL_DISSERVICE_ADAPTOR_H
-
-

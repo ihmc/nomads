@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -36,10 +36,42 @@ using namespace IHMC_MISC;
 using namespace NOMADSUtil;
 
 //=============================================================================
+// DatabasePtr
+//=============================================================================
+
+DatabasePtr::DatabasePtr (Database *pDB)
+    : _pDB (pDB)
+{
+}
+
+DatabasePtr::~DatabasePtr (void)
+{
+    delete _pDB;
+}
+
+Database& DatabasePtr::operator* (void)
+{
+    return *_pDB;
+}
+
+
+Database* DatabasePtr::operator-> (void)
+{
+    return _pDB;
+}
+
+Database * DatabasePtr::replace (Database *pDB)
+{
+    Database *ptmp = _pDB;
+    _pDB = pDB;
+    return ptmp;
+}
+
+//=============================================================================
 // Database
 //=============================================================================
 
-Database * Database::_pDB = NULL;
+Database::Wrapper * Database::WRAPPER = NULL;
 
 Database::Database (Type type)
     : _type (type)
@@ -48,31 +80,64 @@ Database::Database (Type type)
 
 Database::~Database()
 {
-    _pDB = NULL;
+    WRAPPER = NULL;
 }
 
-Database * Database::getDatabase (Type type)
+DatabasePtr * Database::getDatabase (Type type, ReinitializeDatabaseFnPtr pFnPtr)
 {
-    if (_pDB != NULL) {
+    if (WRAPPER != NULL) {
         checkAndLogMsg ("Database::getDatabase", Logger::L_SevereError,
                         "a database of type %s was requested when a database of "
                         "type %s had already been instantiated\n",
-                        getTypeAsString (type), getTypeAsString (_pDB->getType()));
-        return _pDB;
+                        getTypeAsString (type), getTypeAsString ((*WRAPPER->_pDB)->getType()));
+        return WRAPPER->_pDB;
     }
 
     switch (type) {
-        case SQLite:
-            _pDB = new SQLiteDatabase();
+        case SQLite: {
+            WRAPPER = new Wrapper;
+            WRAPPER->_pDB = new DatabasePtr (new SQLiteDatabase());
             break;
+        }
 
         default:
             checkAndLogMsg ("Database::getDatabase", Logger::L_SevereError,
                             "unknown database type: %s\n", getTypeAsString (type));
-            return NULL;		
+            return NULL;
     }
 
-    return _pDB;
+    if (pFnPtr != NULL) {
+        //_reinitializeDbFns.push_back (pFnPtr);
+    }
+
+    return WRAPPER->_pDB;
+}
+
+void Database::reloadDatabase (void)
+{
+    if (WRAPPER == NULL) {
+        return;
+    }
+
+    DatabasePtr *pDB = WRAPPER->_pDB;
+
+    const Type type = (*pDB)->getType();
+    switch (type) {
+        case SQLite: {
+            Database *pOld = pDB->replace (new SQLiteDatabase());
+            pOld->close();
+            delete pOld;
+            break;
+        }
+
+        default:
+            checkAndLogMsg ("Database::getDatabase", Logger::L_SevereError,
+                            "unknown database type: %s\n", getTypeAsString (type));
+    }
+
+    /*for (ReinitializeDatabaseFnPtr pFn : _reinitializeDbFns) {
+        pFn (_pDB);
+    }*/
 }
 
 Database::Type Database::getType (void) const
@@ -82,7 +147,7 @@ Database::Type Database::getType (void) const
 
 const char * Database::getDBName (void) const
 {
-    return _dbName.c_str(); 
+    return _dbName.c_str();
 }
 
 const char * Database::getTypeAsString (Type type)
@@ -92,6 +157,27 @@ const char * Database::getTypeAsString (Type type)
             return "SQLite";
     }
     return NULL;
+}
+
+//=============================================================================
+// Transaction
+//=============================================================================
+
+Transaction::Transaction (Database *pDB)
+    : _bSuccess (false),
+      _pDB (pDB)
+{
+    _pDB->beginTransaction();
+}
+
+Transaction::~Transaction (void)
+{
+    _pDB->endTransaction (_bSuccess);
+}
+
+void Transaction::setSuccess (void)
+{
+    _bSuccess = true;
 }
 
 //=============================================================================
@@ -105,16 +191,16 @@ const char * SQLiteDatabase::SQLITE_PRAGMAS[] = {
     "journal_mode ",
     "journal_size_limit",
     "locking_mode",
-    "synchronous"  
+    "synchronous"
 };
 
-SQLiteDatabase::SQLiteDatabase()
-    : Database (Database::SQLite)
+SQLiteDatabase::SQLiteDatabase (void)
+    : Database (Database::SQLite),
+      _pDB (NULL)
 {
-    _pDB = NULL;
 }
 
-SQLiteDatabase::~SQLiteDatabase()
+SQLiteDatabase::~SQLiteDatabase (void)
 {
     close();
 }
@@ -149,7 +235,7 @@ int SQLiteDatabase::execute (const char *pszStatement)
 {
     if (pszStatement == NULL) {
         checkAndLogMsg ("SQLiteDatabase::prepare", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     char *pszErrMsg = NULL;
@@ -178,7 +264,7 @@ int SQLiteDatabase::executeInternal (const char *pszStatement, AbstractSQLiteTab
 {
     if (pszStatement == NULL) {
         checkAndLogMsg ("SQLiteDatabase::prepare", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     char **ppszResult;
@@ -249,9 +335,9 @@ int SQLiteDatabase::beginTransaction()
     return execute ("BEGIN;");
 }
 
-int SQLiteDatabase::endTransaction()
+int SQLiteDatabase::endTransaction (bool bSuccess)
 {
-    return execute ("COMMIT;");
+    return bSuccess ? execute ("COMMIT;") : execute ("ROLLBACK;");
 }
 
 int SQLiteDatabase::setAsynchronousMode (PragmaAsynchronousMode mode)

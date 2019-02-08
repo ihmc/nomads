@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -26,6 +26,9 @@
 #include <string.h>
 
 #define MAXSIZE 65535
+ /* a=target variable, b=bit number to act upon 0-n */
+#define BIT_CHECK(a,b) ((a) & (1<<(b)))
+#define BIT_SET(a,b) ((a) |= (1<<(b)))
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 using namespace NOMADSUtil;
@@ -34,6 +37,7 @@ NetworkMessage::NetworkMessage (void)
 {
     _pBuf = NULL;
     _ui16NetMsgLen = 0;
+    _crc.init();
 }
 
 NetworkMessage::NetworkMessage (const NetworkMessage& nm) //copy constructor
@@ -50,6 +54,7 @@ NetworkMessage::NetworkMessage (const void *pBuf, uint16 ui16BufSize)
 
 NetworkMessage::~NetworkMessage (void)
 {
+    _crc.reset();
     if (_pBuf != NULL) {
         free (_pBuf);
         _pBuf = NULL;
@@ -129,8 +134,32 @@ uint8 NetworkMessage::getChunkType (void) const
 
 bool NetworkMessage::isReliableMsg (void) const
 {
-    uint8 ui8Rel = *((uint8*)(_pBuf + RELIABLE_FIELD));
-    return (ui8Rel == 1);
+    uint8 bitarray = *(((uint8*)_pBuf) + RELIABLE_FIELD);
+    return (0 != BIT_CHECK (bitarray, 0));
+}
+
+bool NetworkMessage::isEncrypted (void) const
+{
+    uint8 bitarray = *(((uint8*)_pBuf) + RELIABLE_FIELD);
+    return (0 != BIT_CHECK (bitarray, 1));
+}
+
+void NetworkMessage::setEncrypted (void)
+{
+    uint8 bitarray = *(((uint8*)_pBuf) + RELIABLE_FIELD);
+    BIT_SET (bitarray, 1);
+    ((uint8*)_pBuf)[RELIABLE_FIELD] = bitarray;
+}
+
+uint16 NetworkMessage::getMsgChecksum (void) const
+{
+    return *((uint16*)(_pBuf + CHECKSUM_FIELD));
+}
+
+void NOMADSUtil::NetworkMessage::setMsgChecksum (const uint16 ui16Checksum)
+{
+    *((uint16*)(_pBuf + CHECKSUM_FIELD)) = ui16Checksum;
+
 }
 
 void * NetworkMessage::getMetaData (void) const
@@ -235,6 +264,16 @@ void NetworkMessage::display() const
     }
     checkAndLogMsg (pszMethod, Logger::L_HighDetailDebug, "______________________\n");
 }
+
+//use CRC16 to calculate the message checksum
+uint16 NetworkMessage::calculateChecksum (const void * pBuf, const uint16 ui16BufLen)
+{
+    _crc.reset ();
+    _crc.update (pBuf, ui16BufLen);
+    uint16 ui16Checksum = _crc.getChecksum ();
+    return ui16Checksum;
+}
+
 /*
 void NetworkMessage::dump (FILE *file)
 {
@@ -294,3 +333,4 @@ void NetworkMessage::incrementHopCount (void)
 {
     (*((uint8*)(_pBuf + HOP_COUNT_FIELD_OFFSET)))++;
 }
+

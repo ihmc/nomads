@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -30,15 +30,17 @@
 #include "MPEG1Handler.h"
 #include "VideoCodec.h"
 
-#include "BufferReader.h"
 #include "BMPImage.h"
 #include "FFMPEGReader.h"
 
+#include "BufferReader.h"
 #include "FileUtils.h"
 #include "Logger.h"
+#include "Writer.h"
 
 #include <stdlib.h>
 #include <limits.h>
+#include "MimeUtils.h"
 
 #define encodingErrMsg Logger::L_MildError, "failed to encode BMP chunk into %s.\n"
 #define decodingErrMsg Logger::L_MildError, "failed to decode %s chunk into BMP.\n"
@@ -53,10 +55,10 @@ namespace IHMC_MISC
     Chunker::Fragment * toFragment (Reader *pReader, Chunker::Type inputObjectType, uint8 ui8CurrentChunk, uint8 ui8NoOfChunks, Chunker::Type outputChunkType)
     {
         Chunker::Fragment *pFragment = new Chunker::Fragment();
-        pFragment->src_type = inputObjectType;
+        pFragment->src_type = MimeUtils::toMimeType (inputObjectType);
         pFragment->pReader = pReader;
-        pFragment->ui64FragLen = pReader->getBytesAvailable ();
-        pFragment->out_type = outputChunkType;
+        pFragment->ui64FragLen = pReader->getBytesAvailable();
+        pFragment->out_type = MimeUtils::toMimeType (outputChunkType);
         pFragment->ui8Part = ui8CurrentChunk;
         pFragment->ui8TotParts = ui8NoOfChunks;
         return pFragment;
@@ -78,11 +80,23 @@ namespace IHMC_MISC
         }
         return 0;
     }
+
+    int roundUpToMultiple (int numToRound, int multiple=4)
+    {
+        if (multiple == 0)
+            return numToRound;
+
+        int remainder = numToRound % multiple;
+        if (remainder == 0)
+            return numToRound;
+
+        return numToRound + multiple - remainder;
+    }
 }
 
-PtrLList<Chunker::Fragment> * Chunker::fragmentFile (const char *pszFileName, Type inputObjectType,
-                                                     uint8 ui8NoOfChunks, Type outputChunkType,
-                                                     uint8 ui8ChunkCompressionQuality)
+Fragments * Chunker::fragmentFile (const char *pszFileName, Type inputObjectType,
+                                   uint8 ui8NoOfChunks, Type outputChunkType,
+                                   uint8 ui8ChunkCompressionQuality)
 {
     if (pszFileName == NULL) {
         return NULL;
@@ -140,8 +154,8 @@ PtrLList<Chunker::Fragment> * Chunker::fragmentFile (const char *pszFileName, Ty
     return pFragments;
 }
 
-PtrLList<Chunker::Fragment> * Chunker::fragmentBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, uint8 ui8NoOfChunks,
-                                                       Type outputChunkType, uint8 ui8ChunkCompressionQuality)
+Fragments * Chunker::fragmentBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, uint8 ui8NoOfChunks,
+                                     Type outputChunkType, uint8 ui8ChunkCompressionQuality)
 {
     PtrLList<Fragment> *pFragments = NULL;
     if (ImageCodec::supports (inputObjectType)) {
@@ -157,16 +171,21 @@ PtrLList<Chunker::Fragment> * Chunker::fragmentBuffer (const void *pBuf, uint32 
                                 "failed to fragment BMP to create chunk %d of %d\n",
                                 static_cast<int>(ui8CurrentChunk), static_cast<int>(ui8NoOfChunks));
                 delete pFragments;
+                delete pBMPImage;
                 return NULL;
             }
 
             BufferReader *pReader = ImageCodec::encode (pBMPChunk, outputChunkType, ui8ChunkCompressionQuality);
             if (pReader == NULL) {
                 delete pFragments;
+                delete pBMPImage;
+                delete pBMPChunk;
                 return NULL;
             }
+            delete pBMPChunk;
             pFragments->append (toFragment (pReader, inputObjectType, ui8CurrentChunk, ui8NoOfChunks, outputChunkType));
         }
+        delete pBMPImage;
     }
     else if (VideoCodec::supports (inputObjectType)) {
         if (V_MPEG) {
@@ -195,7 +214,7 @@ PtrLList<Chunker::Fragment> * Chunker::fragmentBuffer (const void *pBuf, uint32 
 Chunker::Fragment * Chunker::extractFromFile (const char *pszFileName, Type inputObjectType, Type outputChunkType,
                                               uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals)
 {
-    
+
     if (ImageCodec::supports (inputObjectType)) {
         // Convert to buffer (images are assumed not to be too big...)
         BufferReader *pReader = ChunkingUtils::toReader (pszFileName);
@@ -237,7 +256,7 @@ Chunker::Fragment * Chunker::extractFromFile (const char *pszFileName, Type inpu
         Reader *pReader = FFmpegChunker::extractFromFFmpeg (&reader, i64StartT, i64EndT);
         if (pReader == NULL) {
             return NULL;
-        }  
+        }
         return toFragment (pReader, inputObjectType, 1, 1, outputChunkType);
         #else
         return NULL;
@@ -250,7 +269,8 @@ Chunker::Fragment * Chunker::extractFromFile (const char *pszFileName, Type inpu
 Chunker::Fragment * Chunker::extractFromBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, Type outputChunkType,
                                                 uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals)
 {
-    
+    const char *pszMethodName = "Chunker::extractFromBuffer";
+
     if (ImageCodec::supports (inputObjectType)) {
         BMPImage *pBMPImage = ImageCodec::decode (pBuf, ui32Len, inputObjectType);
         if (pBMPImage == NULL) {
@@ -258,13 +278,14 @@ Chunker::Fragment * Chunker::extractFromBuffer (const void *pBuf, uint32 ui32Len
         }
 
         uint32 ui32StartX = 0U;
-        uint32 ui32EndX = pBMPImage->getWidth();
+        uint32 ui32EndX = pBMPImage->getWidth() - 1;
         uint32 ui32StartY = 0U;
-        uint32 ui32EndY = pBMPImage->getHeight();
+        uint32 ui32EndY = pBMPImage->getHeight() - 1;
 
         if (ppPortionIntervals != NULL) {
             for (unsigned int i = 0; ppPortionIntervals[i] != NULL; i++) {
                 if ((ppPortionIntervals[i]->uiStart > UINT_MAX) || (ppPortionIntervals[i]->uiEnd > UINT_MAX)) {
+                    delete pBMPImage;
                     return NULL;
                 }
                 if (ppPortionIntervals[i]->dimension == X) {
@@ -276,20 +297,29 @@ Chunker::Fragment * Chunker::extractFromBuffer (const void *pBuf, uint32 ui32Len
                     ui32EndY = ppPortionIntervals[i]->uiEnd;
                 }
                 else {
+                    delete pBMPImage;
                     return NULL;
                 }
             }
         }
 
+        checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "extracting subimage of size %u x %u from image of size %u x %u (image size: %u).\n",
+                        (ui32EndX - ui32StartX), (ui32EndY - ui32StartY), pBMPImage->getWidth(), pBMPImage->getHeight(), pBMPImage->getImageSize());
         BMPImage *pBMPChunk = BMPChunker::extractFromBMP (pBMPImage, ui32StartX, ui32EndX, ui32StartY, ui32EndY);
+
+        delete pBMPImage;
         if (pBMPChunk == NULL) {
             return NULL;
         }
+
+
         BufferReader *pReader = ImageCodec::encode (pBMPChunk, outputChunkType, ui8ChunkCompressionQuality);
+
+        delete pBMPChunk;
         if (pReader == NULL) {
             return NULL;
         }
-        return toFragment (pReader, inputObjectType, 1, 1, outputChunkType);   
+        return toFragment (pReader, inputObjectType, 1, 1, outputChunkType);
     }
     if ((VideoCodec::supports (inputObjectType) && VideoCodec::supports (outputChunkType)) ||
              (AudioCodec::supports (inputObjectType) && AudioCodec::supports (outputChunkType))) {
@@ -321,6 +351,52 @@ Chunker::Interval::Interval (const Interval& interval)
 }
 
 Chunker::Interval::~Interval (void)
+{
+}
+
+int Chunker::Interval::read (NOMADSUtil::Reader *pReader)
+{
+    if (pReader == NULL) {
+        return -1;
+    }
+    uint8 ui8 = -1;
+    if (pReader->read8 (&ui8) < 0) {
+        return -2;
+    }
+    switch (ui8) {
+        case X: dimension = X; break;
+        case Y: dimension = Y; break;
+        case T: dimension = T; break;
+        default: return -3;
+    }
+    if (pReader->read64 (&uiStart) < 0) {
+        return -4;
+    }
+    if (pReader->read64 (&uiEnd) < 0) {
+        return -5;
+    }
+    return 0;
+}
+
+int Chunker::Interval::write (NOMADSUtil::Writer *pWriter)
+{
+    if (pWriter == NULL) {
+        return -1;
+    }
+    uint8 ui8 = (uint8)dimension;
+    if (pWriter->write8 (&ui8) < 0) {
+        return -2;
+    }
+    if (pWriter->write64 (&uiStart) < 0) {
+        return -3;
+    }
+    if (pWriter->write64 (&uiEnd) < 0) {
+        return -4;
+    }
+    return 0;
+}
+
+ChunkerInterface::~ChunkerInterface (void)
 {
 }
 

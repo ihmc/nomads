@@ -38,6 +38,7 @@
 #include "NodeContextManager.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 const uint16 Topology::_TOPOLOGY_SIZE = 1;
@@ -54,8 +55,8 @@ namespace IHMC_ACI
 
 Topology::Topology (const char *pszNodeId)
     : _nodeId (pszNodeId),
-      _pAdaptorMgr (NULL),
-      _pNodeContextMgr (NULL),
+      _pAdaptorMgr (nullptr),
+      _pNodeContextMgr (nullptr),
       //_graph (true,   // bDeleteElements=true,
       //        false), // bDirected
       _availableInterfaces (true, // bCaseSensitiveKeys
@@ -63,7 +64,7 @@ Topology::Topology (const char *pszNodeId)
                             true) // bDeleteKeys
 {
     NodeInfo *pLocalNodeInfo = new NodeInfo;
-    pLocalNodeInfo->bReply = false;		// local node has the complete flag
+    pLocalNodeInfo->bReply = false;        // local node has the complete flag
     pLocalNodeInfo->i64TimeStamp = 0;
     _graph.addVertex (_nodeId, pLocalNodeInfo);
 }
@@ -75,7 +76,7 @@ Topology::~Topology (void)
 int Topology::configure (CommAdaptorManager *pCommAdaptorManager,
                          NodeContextManager *pNodeContextManager)
 {
-    if (pCommAdaptorManager == NULL || pNodeContextManager == NULL) {
+    if (pCommAdaptorManager == nullptr || pNodeContextManager == nullptr) {
         return -1;
     }
 
@@ -83,7 +84,7 @@ int Topology::configure (CommAdaptorManager *pCommAdaptorManager,
     _pNodeContextMgr = pNodeContextManager;
 
     NICInfo **ppNICInterfaces = NetUtils::getNICsInfo (false, false);
-    for (unsigned int i = 0; ppNICInterfaces[i] != NULL; i++) {
+    for (unsigned int i = 0; ppNICInterfaces[i] != nullptr; i++) {
         _availableInterfaces.put (ppNICInterfaces[i]->getIPAddrAsString().c_str());
     }
     StringHashset::Iterator iter = _availableInterfaces.getAllElements();
@@ -98,7 +99,7 @@ int Topology::configure (CommAdaptorManager *pCommAdaptorManager,
 
 void Topology::display (FILE *pOutput)
 {
-    if (pOutput == NULL) {
+    if (pOutput == nullptr) {
         return;
     }
     _m.lock();
@@ -109,7 +110,7 @@ void Topology::display (FILE *pOutput)
 int Topology::addLink (const char *pszDstPeerId, const char *pszInterface,
                        AdaptorId adaptorId, AdaptorType type)
 {
-    if (pszDstPeerId == NULL || pszInterface == NULL) {
+    if (pszDstPeerId == nullptr || pszInterface == nullptr) {
         return -1;
     }
 
@@ -119,34 +120,36 @@ int Topology::addLink (const char *pszDstPeerId, const char *pszInterface,
     }
 
     logTopology ("Topology::addLink 1", Logger::L_Info,
-                 "adding link form myself to %s\n", pszDstPeerId);
+                 "adding link from myself to %s\n", pszDstPeerId);
 
     NodeInfo *pNodeInfo = _graph.getVertex (pszDstPeerId);
-    if (pNodeInfo == NULL) { // new neighbor previously not in the topology
-    	pNodeInfo = new NodeInfo();
-    	if (pNodeInfo == NULL) {
+    if (pNodeInfo == nullptr) {
+        // New neighbor previously not in the topology
+        pNodeInfo = new NodeInfo();
+        if (pNodeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLink", memoryExhausted);
-    	}
-    	pNodeInfo->i64TimeStamp = 0;
-    	pNodeInfo->bReply = true;
-    	_graph.addVertex (pszDstPeerId, pNodeInfo);
-    	EdgeInfo *pEdgeInfo = new EdgeInfo();
-    	if (pEdgeInfo == NULL) {
+        }
+        pNodeInfo->i64TimeStamp = 0;
+        pNodeInfo->bReply = true;
+        _graph.addVertex (pszDstPeerId, pNodeInfo);
+        EdgeInfo *pEdgeInfo = new EdgeInfo{};
+        if (pEdgeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLink", memoryExhausted);
-    	}
-    	pEdgeInfo->stats[0].adaptorId = adaptorId;
-    	pEdgeInfo->stats[0].i64LastMsgRcvdTime = getTimeInMilliseconds();
-    	pEdgeInfo->stats[0].type = type;
-    	_graph.addEdge (_nodeId, pszDstPeerId, pszInterface, pEdgeInfo);
-    	int rc = notifyNewNeighbor (pszDstPeerId);
-    	if (rc != 0) {
+        }
+        pEdgeInfo->stats[0].adaptorId = adaptorId;
+        pEdgeInfo->stats[0].i64LastMsgRcvdTime = getTimeInMilliseconds();
+        pEdgeInfo->stats[0].type = type;
+        _graph.addEdge (_nodeId, pszDstPeerId, pszInterface, pEdgeInfo);
+
+        int rc = notifyNewNeighbor (pszDstPeerId);
+        if (rc != 0) {
             _m.unlock();
             return rc;
         }
 
         _m.unlock();
-        if (_pNodeContextMgr != NULL) {
-    	    return _pNodeContextMgr->newPeer (pszDstPeerId);
+        if (_pNodeContextMgr != nullptr) {
+            return _pNodeContextMgr->newPeer (pszDstPeerId);
         }
         return -2;
     }
@@ -154,9 +157,9 @@ int Topology::addLink (const char *pszDstPeerId, const char *pszInterface,
     PtrLList<Edge<EdgeInfo> > edgeList;
     _graph.getEdgeList (_nodeId, pszDstPeerId, &edgeList);
     if (edgeList.isEmpty()) {
-        // new neighbor that was previously in the topology but not a neighbor
-        EdgeInfo *pEdgeInfo = new EdgeInfo();
-        if (pEdgeInfo == NULL) {
+        // New neighbor that was previously in the topology but not a neighbor
+        EdgeInfo *pEdgeInfo = new EdgeInfo{};
+        if (pEdgeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLink", memoryExhausted);
         }
         pEdgeInfo->stats[0].adaptorId = adaptorId;
@@ -170,10 +173,10 @@ int Topology::addLink (const char *pszDstPeerId, const char *pszInterface,
     }
 
     Edge<EdgeInfo> *pEdge = _graph.getEdge (_nodeId, pszDstPeerId, pszInterface);
-    if (pEdge == NULL) {
-        // new interface to a known neighbor
-        EdgeInfo *pEdgeInfo = new EdgeInfo;
-        if (pEdgeInfo == NULL) {
+    if (pEdge == nullptr) {
+        // New interface for a known neighbor
+        EdgeInfo *pEdgeInfo = new EdgeInfo{};
+        if (pEdgeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLink", memoryExhausted);
         }
         pEdgeInfo->stats[0].adaptorId = adaptorId;
@@ -186,26 +189,25 @@ int Topology::addLink (const char *pszDstPeerId, const char *pszInterface,
     }
 
     EdgeInfo *pEdgeInfo = pEdge->_pEdgeElement;
-    if (pEdgeInfo == NULL) {
+    if (pEdgeInfo == nullptr) {
         _m.unlock();
         return -3;
     }
 
-    bool bFound = false;
     for (unsigned int i = 0; i < pEdgeInfo->stats.size(); i++) {
-        if (pEdgeInfo->stats.used (i) && pEdgeInfo->stats[i].adaptorId == adaptorId) {
+        if (pEdgeInfo->stats.used (i) && (pEdgeInfo->stats[i].adaptorId == adaptorId)) {
+            // Known neighbor, known interface, known adaptor
             pEdgeInfo->stats[i].i64LastMsgRcvdTime = getTimeInMilliseconds();
-            bFound = true;
-            break;
+            _m.unlock();
+            return 0;
         }
     }
 
-    if (!bFound) {
-        // new adaptor connected to a known interface to a known neighbor
-        int index = pEdgeInfo->stats.firstFree();
-        pEdgeInfo->stats[index].adaptorId = adaptorId;
-        pEdgeInfo->stats[index].i64LastMsgRcvdTime = getTimeInMilliseconds();
-    }
+    // New adaptor connected to a known interface to a known neighbor
+    int index = pEdgeInfo->stats.firstFree();
+    pEdgeInfo->stats[index].adaptorId = adaptorId;
+    pEdgeInfo->stats[index].i64LastMsgRcvdTime = getTimeInMilliseconds();
+    pEdgeInfo->stats[index].type = type;
 
     _m.unlock();
     return 0;
@@ -214,7 +216,7 @@ int Topology::addLink (const char *pszDstPeerId, const char *pszInterface,
 int Topology::addLink (const char *pszSrcPeerId, const char *pszDstPeerId,
                        const char *pszInterface, AdaptorId adaptorId, AdaptorType type)
 {
-    if (pszSrcPeerId == NULL || pszDstPeerId == NULL || pszInterface == NULL) {
+    if (pszSrcPeerId == nullptr || pszDstPeerId == nullptr || pszInterface == nullptr) {
         return -1;
     }
 
@@ -227,7 +229,7 @@ int Topology::addLink (const char *pszSrcPeerId, const char *pszDstPeerId,
 int Topology::addLinkInternal (const char *pszSrcPeerId, const char *pszDstPeerId,
                                const char *pszInterface, AdaptorId adaptorId, AdaptorType type)
 {
-    if (pszSrcPeerId == NULL || pszDstPeerId == NULL || pszInterface == NULL) {
+    if (pszSrcPeerId == nullptr || pszDstPeerId == nullptr || pszInterface == nullptr) {
         return -1;
     }
 
@@ -240,35 +242,36 @@ int Topology::addLinkInternal (const char *pszSrcPeerId, const char *pszDstPeerI
 
     // Add Source Vertex
     NodeInfo *pNodeInfo = _graph.getVertex (pszSrcPeerId);
-    if (pNodeInfo == NULL) { // new neighbor previously not in the topology
-    	pNodeInfo = new NodeInfo();
-    	if (pNodeInfo == NULL) {
+    if (pNodeInfo == nullptr) { // new neighbor previously not in the topology
+        pNodeInfo = new NodeInfo();
+        if (pNodeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLinkInternal", memoryExhausted);
-    	}
-    	pNodeInfo->i64TimeStamp = 0;
-    	pNodeInfo->bReply = true;
-    	_graph.addVertex (pszSrcPeerId, pNodeInfo);
+        }
+        pNodeInfo->i64TimeStamp = 0;
+        pNodeInfo->bReply = true;
+        _graph.addVertex (pszSrcPeerId, pNodeInfo);
     }
 
     // Add Destination Vertex
     pNodeInfo = _graph.getVertex (pszDstPeerId);
-    if (pNodeInfo == NULL) { // new neighbor previously not in the topology
-    	pNodeInfo = new NodeInfo();
-    	if (pNodeInfo == NULL) {
+    if (pNodeInfo == nullptr) {
+        // New neighbor previously not in the topology
+        pNodeInfo = new NodeInfo();
+        if (pNodeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLinkInternal", memoryExhausted);
-    	}
-    	pNodeInfo->i64TimeStamp = 0;
-    	pNodeInfo->bReply = true;
-    	_graph.addVertex (pszDstPeerId, pNodeInfo);
+        }
+        pNodeInfo->i64TimeStamp = 0;
+        pNodeInfo->bReply = true;
+        _graph.addVertex (pszDstPeerId, pNodeInfo);
     }
 
     // Add source - destination edge
     PtrLList<Edge<EdgeInfo> > edgeList;
     _graph.getEdgeList (pszSrcPeerId, pszDstPeerId, &edgeList);
     if (edgeList.isEmpty()) {
-        // new neighbor that was previously in the topology but not a neighbor
-        EdgeInfo *pEdgeInfo = new EdgeInfo();
-        if (pEdgeInfo == NULL) {
+        // New neighbor that was previously in the topology, but not a neighbor
+        EdgeInfo *pEdgeInfo = new EdgeInfo{};
+        if (pEdgeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLinkInternal", memoryExhausted);
         }
         pEdgeInfo->stats[0].adaptorId = adaptorId;
@@ -281,10 +284,10 @@ int Topology::addLinkInternal (const char *pszSrcPeerId, const char *pszDstPeerI
 
     // Add source - destination edge
     Edge<EdgeInfo> *pEdge = _graph.getEdge (pszSrcPeerId, pszDstPeerId, pszInterface);
-    if (pEdge == NULL) {
-        // new interface to a known neighbor
-        EdgeInfo *pEdgeInfo = new EdgeInfo();
-        if (pEdgeInfo == NULL) {
+    if (pEdge == nullptr) {
+        // New interface to a known neighbor
+        EdgeInfo *pEdgeInfo = new EdgeInfo{};
+        if (pEdgeInfo == nullptr) {
             checkAndLogMsg ("Topology::addLinkInternal", memoryExhausted);
         }
         pEdgeInfo->stats[0].adaptorId = adaptorId;
@@ -296,39 +299,37 @@ int Topology::addLinkInternal (const char *pszSrcPeerId, const char *pszDstPeerI
     }
 
     EdgeInfo *pEdgeInfo = pEdge->_pEdgeElement;
-    if (pEdgeInfo == NULL) {
+    if (pEdgeInfo == nullptr) {
         return -3;
     }
 
-    // Add adaptor
-    bool bFound = false;
     for (unsigned int i = 0; i < pEdgeInfo->stats.size(); i++) {
         if (pEdgeInfo->stats.used (i) && pEdgeInfo->stats[i].adaptorId == adaptorId) {
             logTopology ("Topology::addLinkInternal", Logger::L_Info,
                          "edge %s -> %s already exists, only updating time\n",
                          pszSrcPeerId, pszDstPeerId);
+            // Existing adaptor to reach a known neighbor via a known interface
             pEdgeInfo->stats[i].i64LastMsgRcvdTime = getTimeInMilliseconds();
-            bFound = true;
-            break;
+            return 0;
         }
     }
 
-    if (!bFound) {
-        // new adaptor connected to a known interface to a known neighbor
-        int index = pEdgeInfo->stats.firstFree();
-        pEdgeInfo->stats[index].adaptorId = adaptorId;
-        pEdgeInfo->stats[index].i64LastMsgRcvdTime = getTimeInMilliseconds();
-        logTopology ("Topology::addLinkInternal", Logger::L_Info,
-                     "edge %s -> %s already exists, but new adaptor.\n",
-                     pszSrcPeerId, pszDstPeerId);
-    }
+
+    // New adaptor connected to a known neighbor via a known interface
+    int index = pEdgeInfo->stats.firstFree();
+    pEdgeInfo->stats[index].adaptorId = adaptorId;
+    pEdgeInfo->stats[index].i64LastMsgRcvdTime = getTimeInMilliseconds();
+    pEdgeInfo->stats[index].type = type;
+    logTopology ("Topology::addLinkInternal", Logger::L_Info,
+                 "edge %s -> %s already exists, but new adaptor.\n",
+                 pszSrcPeerId, pszDstPeerId);
 
     return 0;
 }
 
 int Topology::removeAllLinksFromPeer (const char *pszPeerId)
 {
-    if (pszPeerId == NULL) {
+    if (pszPeerId == nullptr) {
         return -1;
     }
 
@@ -343,7 +344,7 @@ int Topology::removeAllLinksFromPeer (const char *pszPeerId)
 
 int Topology::replaceAllLinksForPeer (const char *pszPeerId, AdaptorId adaptorId, NOMADSUtil::PtrLList<NOMADSUtil::String> &neighbors)
 {
-    if (pszPeerId == NULL) {
+    if (pszPeerId == nullptr) {
         return -1;
     }
 
@@ -355,7 +356,7 @@ int Topology::replaceAllLinksForPeer (const char *pszPeerId, AdaptorId adaptorId
     _m.lock();
     _graph.removeAllEdgesFromVertex (pszPeerId);
     String *pNext = neighbors.getFirst();
-    for (String *pCurr; (pCurr = pNext) != NULL;) {
+    for (String *pCurr; (pCurr = pNext) != nullptr;) {
         pNext = neighbors.getNext();
         addLinkInternal (pszPeerId, pCurr->c_str(), DEFAULT_INTERFACE, adaptorId, UNKNOWN);
         delete neighbors.remove (pCurr);
@@ -366,7 +367,7 @@ int Topology::replaceAllLinksForPeer (const char *pszPeerId, AdaptorId adaptorId
 
 int Topology::removeLink (const char *pszDstPeerId, AdaptorId adaptorId)
 {
-    if (pszDstPeerId == NULL) {
+    if (pszDstPeerId == nullptr) {
         return -1;
     }
 
@@ -380,48 +381,51 @@ int Topology::removeLink (const char *pszDstPeerId, AdaptorId adaptorId)
         return -2;
     }
 
+    /* TO-DO: remove link should only remove the link with a specific label,
+     * to support multiple interfaces connected via the same AdaptorId */
     DArray2<String> interfacesToRemove (2U);
     unsigned int index = 0;
-    for (Edge<EdgeInfo> *pEdge = edges.getFirst(); pEdge != NULL; pEdge = edges.getNext()) {
+    for (Edge<EdgeInfo> *pEdge = edges.getFirst(); pEdge != nullptr; pEdge = edges.getNext()) {
         for (unsigned int i = 0; i < pEdge->_pEdgeElement->stats.size(); i++) {
-            if (pEdge->_pEdgeElement->stats[i].adaptorId == adaptorId) {
+            if (pEdge->_pEdgeElement->stats.used (i) &&
+                (pEdge->_pEdgeElement->stats[i].adaptorId == adaptorId)) {
                 interfacesToRemove[index] = pEdge->_pszEdgeLabel;
             }
         }
     }
 
-    int rc = 0;
     for (unsigned int i = 0; i < interfacesToRemove.size(); i++) {
-        if (removeLink (pszDstPeerId, interfacesToRemove[i].c_str(), adaptorId) < 0 && rc == 0) {
-            rc = -3;
+        if (removeLink (pszDstPeerId, interfacesToRemove[i].c_str(), adaptorId) < 0) {
+            _m.unlock();
+            return -3;
         }
     }
 
     _m.unlock();
-    return rc;
+    return 0;
 }
 
 int Topology::removeLink (const char *pszDstPeerId, const char *pszInterface, AdaptorId adaptorId)
 {
-    if (pszDstPeerId == NULL || pszInterface == NULL) {
+    if (pszDstPeerId == nullptr || pszInterface == nullptr) {
         return -1;
     }
 
     _m.lock();
     Edge<EdgeInfo> *pEdge = _graph.getEdge (_nodeId, pszDstPeerId, pszInterface);
-    if (pEdge == NULL) {
+    if (pEdge == nullptr) {
         _m.unlock();
         return 0;
     }
 
     EdgeInfo *pEdgeInfo = pEdge->_pEdgeElement;
-    if (pEdgeInfo == NULL) {
+    if (pEdgeInfo == nullptr) {
         _m.unlock();
         return -2;
     }
 
-    unsigned int uiAdaptorCounts = 0; // Count the adaptors that are left, after
-                                      // removing adaptorId
+    // Count the remanining adaptors after removing adaptorId
+    unsigned int uiAdaptorCounts = 0;
     for (unsigned int i = 0; i < pEdgeInfo->stats.size(); i++) {
         if (pEdgeInfo->stats.used (i)) {
             if (pEdgeInfo->stats[i].adaptorId == adaptorId) {
@@ -437,12 +441,13 @@ int Topology::removeLink (const char *pszDstPeerId, const char *pszInterface, Ad
     if (uiAdaptorCounts == 0) {
         rc = _graph.removeEdge (_nodeId, pszDstPeerId, pszInterface);
         PtrLList<Edge<EdgeInfo> > *pEdges = _graph.getEdgeList (pszDstPeerId);
-        if (pEdges == NULL || pEdges->getFirst() == NULL) {
+        if ((pEdges == nullptr) || (pEdges->getFirst() == nullptr)) {
             checkAndLogMsg ("Topology::removeLink", Logger::L_Info, "removed link %s to peer %s. "
                             "It was the only link. Removing peer.\n", pszInterface, pszDstPeerId);
             _graph.deleteElements (_nodeId, _TOPOLOGY_SIZE);
             rc = notifyLinkChanges (pszDstPeerId);
         }
+        delete pEdges;
     }
 
     _m.unlock();
@@ -451,23 +456,23 @@ int Topology::removeLink (const char *pszDstPeerId, const char *pszInterface, Ad
 
 int Topology::topologyRequestArrived (const char * pszSenderNodeId, const void *pBuf, uint32 ui32Len)
 {
-    if ((pBuf == NULL) || (ui32Len <= 0)) {
+    if ((pBuf == nullptr) || (ui32Len <= 0)) {
         return -1;
     }
-    
+
     _m.lock();
 
     BufferReader *pBr = new BufferReader (pBuf,ui32Len);
     uint32 ui32BuffLen = 0;
     uint16 ui16Temp = 0;
-    int8 rc;
-    char *pszOriginalSenderId = NULL;
+    int rc;
+    char *pszOriginalSenderId = nullptr;
     int64 i64Time;
     uint16 ui16ttl;
     uint16 ui16ReplyNum = 0;
-    char **ppszReplyList = NULL;
+    char **ppszReplyList = nullptr;
     uint32 ui32Position = 11;
-    if ((rc = pBr->read16 (& ui16Temp)) < 0) {		// node id
+    if ((rc = pBr->read16 (& ui16Temp)) < 0) {        // node id
         _m.unlock();
         return rc;
     }
@@ -478,7 +483,7 @@ int Topology::topologyRequestArrived (const char * pszSenderNodeId, const void *
     }
     pszOriginalSenderId[ui16Temp] = '\0';
     ui32Position += ui16Temp;
-    if ((rc = pBr->read64 (&i64Time)) < 0) {  		// timestamp
+    if ((rc = pBr->read64 (&i64Time)) < 0) {          // timestamp
         _m.unlock();
         return rc;
     }
@@ -521,17 +526,17 @@ int Topology::topologyRequestArrived (const char * pszSenderNodeId, const void *
         return rc;
     }
 
-    PtrLList<const char> *pUpdates = _graph.updateGraph (pBr, &ui32BuffLen);		// topology
-    if ((!bFlag) && (pUpdates != NULL)) {												// set reply flags
+    PtrLList<const char> *pUpdates = _graph.updateGraph (pBr, &ui32BuffLen);        // topology
+    if ((!bFlag) && (pUpdates != nullptr)) {                                                // set reply flags
         const char *pszUpNode = (char *) pUpdates->getFirst();
-        for (; pszUpNode != NULL; pszUpNode = pUpdates->getNext()) {
+        for (; pszUpNode != nullptr; pszUpNode = pUpdates->getNext()) {
             PtrLList<String> neighList;
             PtrLList<const char> pathList;
             int numNeigh = _graph.getNeighborsList (pszUpNode, &neighList);
             String *pCurrNeigh = neighList.getFirst();
             for (int j = 0; j < numNeigh; j ++) {
                 int path = _graph.getShortestPath (_nodeId, pCurrNeigh->c_str(), &pathList, false);
-                if ((path > 0) && (path < _TOPOLOGY_SIZE -1)) {
+                if ((path > 0) && (path < (_TOPOLOGY_SIZE - 1))) {
                     _graph.getVertex (pCurrNeigh->c_str())->bReply = false;
                 }
                 pathList.removeAll();
@@ -551,7 +556,7 @@ int Topology::topologyRequestArrived (const char * pszSenderNodeId, const void *
         }
         pszUpNode = (char *) pUpdates->getNext();
     }
-    _graph.getVertex(_nodeId)->bReply = bFlag;
+    _graph.getVertex (_nodeId)->bReply = bFlag;
     rc = 0;
     for (int i = 0; i < ui16ReplyNum; i ++) {
         if (strcmp (ppszReplyList[i], _nodeId) == 0) {
@@ -568,10 +573,10 @@ int Topology::topologyRequestArrived (const char * pszSenderNodeId, const void *
         return rc; // do not forward the message if TTL is expired
     }
     Targets **ppTargets = getForwardingTargetsInternal (_nodeId, pszSenderNodeId);
-    if ((ppTargets == NULL) || (ppTargets[0] == NULL)) {
+    if ((ppTargets == nullptr) || (ppTargets[0] == nullptr)) {
         _m.unlock();
         Targets::deallocateTargets (ppTargets);
-        return rc;		// return if there are no targets
+        return rc;        // return if there are no targets
     }
     Targets::deallocateTargets (ppTargets);
 
@@ -636,33 +641,33 @@ int Topology::topologyRequestArrived (const char * pszSenderNodeId, const void *
     BufferReader *pTempBr = new BufferReader (tempBw.getBuffer(), tempBw.getBufferLength());
     ui32BuffLen = tempBw.getBufferLength();
     tempGraph.updateGraph (pTempBr, &ui32BuffLen);
-    if ((rc = tempGraph.writeGraph (&bw, &ui32BuffLen)) < 0) {	// topology
+    if ((rc = tempGraph.writeGraph (&bw, &ui32BuffLen)) < 0) {    // topology
         _m.unlock();
         return rc;
     }
 
     _m.unlock();
-    if (_pAdaptorMgr != NULL) {
+    if (_pAdaptorMgr != nullptr) {
         _pAdaptorMgr->sendTopologyRequestMessage ((const void *) bw.getBuffer(),
                                                   (unsigned int) bw.getBufferLength(), ppTargets);
     }
-    // TODO: delete pBr and pTempBr and pszReplyList and pszOriginalSenderNodeId    
+    // TODO: delete pBr and pTempBr and pszReplyList and pszOriginalSenderNodeId
     return 0;
 }
 
-int Topology::topologyReplyArrived(const char *pszSenderNodeId, const void *pBuf, uint32 ui32Len)
+int Topology::topologyReplyArrived (const char *pszSenderNodeId, const void *pBuf, uint32 ui32Len)
 {
-    if ((pBuf == NULL) || (ui32Len <= 0)) {
+    if ((pBuf == nullptr) || (ui32Len <= 0)) {
         return -1;
     }
     BufferReader *pBr = new BufferReader (pBuf,ui32Len);
     uint32 ui32BuffLen = 0;
     uint16 ui16Temp = 0;
-    int8 rc;
-    char *pszTargetNodeId = NULL;
+    int rc;
+    char *pszTargetNodeId = nullptr;
     int64 i64Time;
     uint32 ui32Position = 7;
-    if ((rc = pBr->read16 (&ui16Temp)) < 0) {		// node id
+    if ((rc = pBr->read16 (&ui16Temp)) < 0) {        // node id
         return rc;
     }
     pszTargetNodeId = (char *) calloc (ui16Temp + 1, sizeof(char));
@@ -671,7 +676,7 @@ int Topology::topologyReplyArrived(const char *pszSenderNodeId, const void *pBuf
     }
     pszTargetNodeId[ui16Temp] = '\0';
     ui32Position += ui16Temp;
-    if ((rc = pBr->read64(& i64Time)) < 0) {  		// timestamp
+    if ((rc = pBr->read64(& i64Time)) < 0) {          // timestamp
         return rc;
     }
 
@@ -682,14 +687,14 @@ int Topology::topologyReplyArrived(const char *pszSenderNodeId, const void *pBuf
             return 0; // discard message if old
         }
     }
-    bool flag;					// complete flag
+    bool flag;                    // complete flag
     if ((rc = pBr->read8 (&flag)) < 0) {
         _m.unlock();
         return rc;
     }
 
     PtrLList<const char> *pUpdates = _graph.updateGraph (pBr, &ui32BuffLen); // topology
-    if ((!flag) && (pUpdates != NULL)) {												// set reply flags
+    if ((!flag) && (pUpdates != nullptr)) {                                                // set reply flags
         char *pszUpNode = (char *) pUpdates->getFirst();
         for(int i = 0; i < pUpdates->getCount(); i ++) {
             PtrLList<String> neighList;
@@ -701,7 +706,7 @@ int Topology::topologyReplyArrived(const char *pszSenderNodeId, const void *pBuf
                 if ((path > 0) && (path < _TOPOLOGY_SIZE -1)) {
                     _graph.getVertex (pCurrNeigh->c_str())->bReply = false;
                 }
-                pathList.removeAll();
+                pathList.removeAll (true);
             }
             pszUpNode = (char *) pUpdates->getNext();
         }
@@ -718,53 +723,54 @@ int Topology::topologyReplyArrived(const char *pszSenderNodeId, const void *pBuf
         }
         pszUpNode = (char *) pUpdates->getNext();
     }
-    _graph.getVertex(_nodeId)->bReply = flag;
-    if (!strcmp(_nodeId, pszTargetNodeId)) {
+    _graph.getVertex (_nodeId)->bReply = flag;
+    if (!strcmp (_nodeId, pszTargetNodeId)) {
         _m.unlock();
         return 0; // check if the node was the target
     }
     PtrLList<const char> pathList; // forward the reply message
-    _graph.getShortestPath(_nodeId, pszTargetNodeId, & pathList, false);
+    _graph.getShortestPath (_nodeId, pszTargetNodeId, &pathList, false);
     Targets *pNextHop = getNextHopAsTargetInternal (pathList.getFirst());
-    if (pNextHop == NULL) {
+    pathList.removeAll (true);
+    if (pNextHop == nullptr) {
         _m.unlock();
         return rc; // return if there are no targets
     }
     pBr->setPosition (ui32Position);
     HTGraph<NodeInfo, EdgeInfo> tempGraph;
     BufferWriter bw(0,5);
-    tempGraph.updateGraph(pBr, & ui32BuffLen);
+    tempGraph.updateGraph (pBr, &ui32BuffLen);
     ui16Temp = strlen (pszTargetNodeId); // node id
-    if ((rc = bw.write16(& ui16Temp)) < 0) {
+    if ((rc = bw.write16 (&ui16Temp)) < 0) {
         _m.unlock();
         delete pNextHop;
         return rc;
     }
-    if ((rc = bw.writeBytes(pszTargetNodeId, (long int) ui16Temp)) < 0) {
+    if ((rc = bw.writeBytes (pszTargetNodeId, (long int) ui16Temp)) < 0) {
         _m.unlock();
         delete pNextHop;
         return rc;
     }
-    if ((rc = bw.write64(& i64Time)) < 0) { // timestamp
+    if ((rc = bw.write64 (&i64Time)) < 0) { // timestamp
         _m.unlock();
         delete pNextHop;
         return rc;
     }
-    if ((rc = bw.write8(& flag)) < 0) { // complete flag
+    if ((rc = bw.write8 (&flag)) < 0) { // complete flag
         _m.unlock();
         delete pNextHop;
         return rc;
     }
     BufferWriter tempBw(0,5);
-    if ((rc = _graph.writeNeighborhood(& tempBw, & ui32BuffLen, _nodeId)) < 0) {
+    if ((rc = _graph.writeNeighborhood (&tempBw, &ui32BuffLen, _nodeId)) < 0) {
         _m.unlock();
         delete pNextHop;
         return rc;
     }
     BufferReader * pTempBr = new BufferReader(tempBw.getBuffer(), tempBw.getBufferLength());
     ui32BuffLen = tempBw.getBufferLength();
-    tempGraph.updateGraph(pTempBr, & ui32BuffLen);
-    if ((rc = tempGraph.writeGraph(& bw, & ui32BuffLen)) < 0) {	// topology
+    tempGraph.updateGraph (pTempBr, &ui32BuffLen);
+    if ((rc = tempGraph.writeGraph (&bw, &ui32BuffLen)) < 0) {    // topology
         _m.unlock();
         delete pNextHop;
         return rc;
@@ -772,8 +778,8 @@ int Topology::topologyReplyArrived(const char *pszSenderNodeId, const void *pBuf
 
     _m.unlock();
 
-    if (_pAdaptorMgr != NULL) {
-        TargetPtr targets[2] = {pNextHop, NULL};
+    if (_pAdaptorMgr != nullptr) {
+        TargetPtr targets[2] = {pNextHop, nullptr};
         _pAdaptorMgr->sendTopologyReplyMessage ((const void *) bw.getBuffer(),
                                                 (unsigned int) bw.getBufferLength(), targets);
     }
@@ -786,12 +792,12 @@ int Topology::topologyReplyArrived(const char *pszSenderNodeId, const void *pBuf
 Targets ** Topology::getRoutes (const char *pszRecipientPeerId)
 {
     char **ppszRecipientsPeerIds = (char **) calloc (2, sizeof (char*));
-    if (ppszRecipientsPeerIds == NULL) {
-        checkAndLogMsg("Topology::getRoutes", memoryExhausted);
-        return NULL;
+    if (ppszRecipientsPeerIds == nullptr) {
+        checkAndLogMsg ("Topology::getRoutes", memoryExhausted);
+        return nullptr;
     }
-    ppszRecipientsPeerIds[0] = (char *)pszRecipientPeerId;
-    Targets **ppTargets = getRoutes ((const char **)ppszRecipientsPeerIds);
+    ppszRecipientsPeerIds[0] = (char *) pszRecipientPeerId;
+    Targets **ppTargets = getRoutes ((const char **) ppszRecipientsPeerIds);
     free (ppszRecipientsPeerIds);
     return ppTargets;
 }
@@ -800,18 +806,18 @@ Targets ** Topology::getRoutes (const char **ppszRecipientsPeerIds)
 {
     _m.lock();
     PtrLList<Edge<EdgeInfo> > *pEdges = _graph.getEdgeList (_nodeId);
-    if (pEdges == NULL) {
+    if (pEdges == nullptr) {
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
 
     UInt32Hashtable<Targets> ht;
     Edge<EdgeInfo> *pEdge = pEdges->getFirst();
-    while (pEdge != NULL) {
+    while (pEdge != nullptr) {
         EdgeInfo *pEdgeInfo = pEdge->_pEdgeElement;
-        if (pEdgeInfo != NULL) {
-            bool bAddPeerRoute = (ppszRecipientsPeerIds == NULL);
-            for (unsigned i = 0; !bAddPeerRoute && ppszRecipientsPeerIds[i] != NULL; i++) {
+        if (pEdgeInfo != nullptr) {
+            bool bAddPeerRoute = (ppszRecipientsPeerIds == nullptr);
+            for (unsigned i = 0; !bAddPeerRoute && ppszRecipientsPeerIds[i] != nullptr; i++) {
                 if (strcmp (pEdge->_pszDstVertexKey, ppszRecipientsPeerIds[i]) == 0) {
                     bAddPeerRoute = true;
                 }
@@ -820,7 +826,7 @@ Targets ** Topology::getRoutes (const char **ppszRecipientsPeerIds)
                 for (unsigned int i = 0; i < pEdgeInfo->stats.size(); i++) {
                     if (pEdgeInfo->stats.used (i)) {
                         Targets *pTarget = ht.get (pEdgeInfo->stats[i].adaptorId);
-                        if (pTarget == NULL) {
+                        if (pTarget == nullptr) {
                             pTarget = new Targets();
                             pTarget->adaptorId = pEdgeInfo->stats[i].adaptorId;
                             ht.put (pEdgeInfo->stats[i].adaptorId, pTarget);
@@ -829,7 +835,7 @@ Targets ** Topology::getRoutes (const char **ppszRecipientsPeerIds)
                         bool bFound = false;
                         for (unsigned k = 0; k < pTarget->aTargetNodeIds.size(); k++) {
                             if (strcmp (pTarget->aTargetNodeIds[k], pEdge->_pszDstVertexKey) == 0) {
-                               bFound = true; 
+                               bFound = true;
                             }
                         }
                         if (!bFound) {
@@ -840,7 +846,7 @@ Targets ** Topology::getRoutes (const char **ppszRecipientsPeerIds)
                         bFound = false;
                         for (unsigned k = 0; k < pTarget->aInterfaces.size(); k++) {
                             if (strcmp (pTarget->aInterfaces[k], pEdge->_pszEdgeLabel) == 0) {
-                               bFound = true; 
+                               bFound = true;
                             }
                         }
                         if (!bFound) {
@@ -854,11 +860,12 @@ Targets ** Topology::getRoutes (const char **ppszRecipientsPeerIds)
 
         pEdge = pEdges->getNext();
     }
+    delete pEdges;
 
     Targets **ppTargets = (Targets **) calloc (ht.getCount(), sizeof (Targets*));
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         _m.unlock();
-        return NULL;
+        return nullptr;
     }
     UInt32Hashtable<Targets>::Iterator iter = ht.getAllElements();
     for (unsigned int i = 0; iter.nextElement(); i++) {
@@ -880,16 +887,16 @@ bool Topology::isNeighbor (const char *pszNodeId)
 
 bool Topology::isOnShortestRoute (const char *pszNodeId, const char *pszDstPeerId)
 {
-    if (pszNodeId == NULL || pszDstPeerId == NULL) {
+    if (pszNodeId == nullptr || pszDstPeerId == nullptr) {
         return false;
     }
 
     _m.lock();
     if (_graph.hasNeighbor (_nodeId, pszDstPeerId)) {
         Targets **ppTargets = getForwardingTargetsInternal (_nodeId, pszDstPeerId);
-        for (unsigned int i =0;  ppTargets[i] != NULL; i++) {
+        for (unsigned int i =0;  ppTargets[i] != nullptr; i++) {
             for (unsigned int j = 0; j < ppTargets[i]->aTargetNodeIds.size(); j++) {
-                if (ppTargets[i]->aTargetNodeIds[j] != NULL && strcmp (ppTargets[i]->aTargetNodeIds[j], pszNodeId) == 0) {
+                if (ppTargets[i]->aTargetNodeIds[j] != nullptr && strcmp (ppTargets[i]->aTargetNodeIds[j], pszNodeId) == 0) {
                     Targets::deallocateTargets (ppTargets);
                     _m.unlock();
                     return true;
@@ -901,12 +908,14 @@ bool Topology::isOnShortestRoute (const char *pszNodeId, const char *pszDstPeerI
     else if (_graph.hasVertex (pszDstPeerId)) {
         PtrLList<const char> path;
         _graph.getShortestPath (_nodeId, pszDstPeerId, &path, false);
-        for (const char *pszCurr = path.getFirst(); pszCurr != NULL; pszCurr = path.getNext()) {
+        for (const char *pszCurr = path.getFirst(); pszCurr != nullptr; pszCurr = path.getNext()) {
             if (strcmp (pszNodeId, pszCurr) == 0) {
                 _m.unlock();
+                path.removeAll (true);
                 return true;
             }
         }
+        path.removeAll (true);
     }
 
     _m.unlock();
@@ -915,19 +924,19 @@ bool Topology::isOnShortestRoute (const char *pszNodeId, const char *pszDstPeerI
 
 int Topology::read (Reader *pReader, PtrLList<String> &neighbors)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
     uint16 ui16Len = 0;
-    
+
     for (int rc = pReader->read16 (&ui16Len); rc >= 0 && ui16Len > 0;
          rc = pReader->read16 (&ui16Len)) {
         char *pszNeighbor = (char *) calloc (ui16Len+1, sizeof (char));
-        if (pszNeighbor != NULL) {
+        if (pszNeighbor != nullptr) {
             pReader->readBytes (pszNeighbor, ui16Len);
             pszNeighbor[ui16Len] = '\0';
             String *pNeighbor = new String (pszNeighbor);
-            if (pNeighbor != NULL) {
+            if (pNeighbor != nullptr) {
                 neighbors.prepend (pNeighbor);
             }
             free (pszNeighbor);
@@ -939,13 +948,13 @@ int Topology::read (Reader *pReader, PtrLList<String> &neighbors)
 
 int Topology::write (Writer *pWriter, uint32 ui32MaxLen)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
     PtrLList<String> *pNeighbors = getNeighbors();
     uint16 ui16Len;
     String *pNext = pNeighbors->getFirst();
-    for (String *pCurr; (pCurr = pNext) != NULL;) {
+    for (String *pCurr; (pCurr = pNext) != nullptr;) {
         pNext = pNeighbors->getNext();
         ui16Len = pCurr->length();
         if (ui16Len > 0) {
@@ -955,7 +964,7 @@ int Topology::write (Writer *pWriter, uint32 ui32MaxLen)
         delete pNeighbors->remove (pCurr);
     }
     delete pNeighbors;
-    pNeighbors = NULL;
+    pNeighbors = nullptr;
     ui16Len = 0;
     pWriter->write16 (&ui16Len);
     return 0;
@@ -968,20 +977,20 @@ int Topology::notifyNewNeighbor (const char *pszDstPeerId)
     }
 
     NodeInfo *pNI = _graph.getVertex (_nodeId);
-    if (pNI == NULL) {
+    if (pNI == nullptr) {
         return -1;
     }
     pNI->i64TimeStamp = getTimeInMilliseconds();
     BufferWriter bw (0,5);
     uint32 ui32BuffLen = 0;
     uint16 ui16Temp = 0;
-    int8 rc;
-    ui16Temp = strlen (_nodeId);		// node id
+    int rc;
+    ui16Temp = strlen (_nodeId);        // node id
     if ((rc = bw.write16(& ui16Temp)) < 0) {
-    	return rc;
+        return rc;
     }
     if ((rc = bw.writeBytes (_nodeId, (long int) ui16Temp)) < 0) {
-    	return rc;
+        return rc;
     }
     if ((rc = bw.write64 (&_graph.getVertex (_nodeId)->i64TimeStamp)) < 0) {  // timestamp
         return rc;
@@ -990,9 +999,9 @@ int Topology::notifyNewNeighbor (const char *pszDstPeerId)
     if ((rc = bw.write16 (&ui16Temp)) < 0) {
         return rc;
     }
-    ui16Temp = 1;		// reply list: new neighbor
+    ui16Temp = 1;        // reply list: new neighbor
     if ((rc = bw.write16 (&ui16Temp)) < 0) {
-    	return rc;
+        return rc;
     }
     ui16Temp = strlen(pszDstPeerId);
     if ((rc = bw.write16 (&ui16Temp)) < 0) {
@@ -1003,22 +1012,22 @@ int Topology::notifyNewNeighbor (const char *pszDstPeerId)
     }
     bool flag = _graph.getVertex (_nodeId)->bReply; // complete flag
     if ((rc = bw.write8(& flag)) < 0) {
-       	return rc;
+           return rc;
     }
     if (flag) {
-    	if ((rc = _graph.writeGraph (&bw, & ui32BuffLen)) < 0) {
+        if ((rc = _graph.writeGraph (&bw, & ui32BuffLen)) < 0) {
             return rc;
-    	}
+        }
     }
     else if ((rc = _graph.writeNeighborhood (&bw, & ui32BuffLen, _nodeId)) < 0) {
         return rc;
     }
     Targets **ppTargets = getNeighborsAsTargets();
-    if ((ppTargets == NULL) || (ppTargets[0] == NULL)) {
+    if ((ppTargets == nullptr) || (ppTargets[0] == nullptr)) {
         Targets::deallocateTargets (ppTargets);
         return -1;
     }
-    if (_pAdaptorMgr != NULL) {
+    if (_pAdaptorMgr != nullptr) {
         _pAdaptorMgr->sendTopologyRequestMessage ((const void *) bw.getBuffer(),
                                                   (unsigned int) bw.getBufferLength(), ppTargets);
     }
@@ -1033,46 +1042,46 @@ int Topology::notifyLinkChanges (const char *pszDstPeerId)
     }
 
     NodeInfo *pNI = _graph.getVertex (_nodeId);
-    if (pNI == NULL) {
+    if (pNI == nullptr) {
         return -1;
     }
     _graph.getVertex (_nodeId)->i64TimeStamp = getTimeInMilliseconds();
     BufferWriter bw (0,5);
     uint32 ui32BuffLen = 0;
     uint16 ui16Temp = 0;
-    int8 rc;
+    int rc;
     ui16Temp = strlen (_nodeId); // node id
-    if ((rc = bw.write16 (& ui16Temp)) < 0) {
-    	return rc;
+    if ((rc = bw.write16 (&ui16Temp)) < 0) {
+        return rc;
     }
     if ((rc = bw.writeBytes (_nodeId, (long int) ui16Temp)) < 0) {
-    	return rc;
+        return rc;
     }
 
-    if ((rc = bw.write64 (& _graph.getVertex(_nodeId)->i64TimeStamp)) < 0) {  // timestamp
+    if ((rc = bw.write64 (&_graph.getVertex (_nodeId)->i64TimeStamp)) < 0) {  // timestamp
         return rc;
     }
     ui16Temp = _TOPOLOGY_SIZE; // TTL
-    if ((rc = bw.write16 (& ui16Temp)) < 0) {
+    if ((rc = bw.write16 (&ui16Temp)) < 0) {
         return rc;
     }
     ui16Temp = 0; // reply list empty
-    if ((rc = bw.write16 (& ui16Temp)) < 0) {
-    	return rc;
+    if ((rc = bw.write16 (&ui16Temp)) < 0) {
+        return rc;
     }
     bool bFlag = false; // complete flag
-    if ((rc = bw.write8 (& bFlag)) < 0) {
-       	return rc;
+    if ((rc = bw.write8 (&bFlag)) < 0) {
+           return rc;
     }
-    if ((rc = _graph.writeNeighborhood (& bw, & ui32BuffLen, _nodeId)) < 0) {
-    	return rc;
+    if ((rc = _graph.writeNeighborhood (&bw, &ui32BuffLen, _nodeId)) < 0) {
+        return rc;
     }
     Targets **ppTargets = getNeighborsAsTargets();
-    if ((ppTargets == NULL) || (ppTargets[0] == NULL)) {
+    if ((ppTargets == nullptr) || (ppTargets[0] == nullptr)) {
         Targets::deallocateTargets (ppTargets);
         return 0;
     }
-    if (_pAdaptorMgr != NULL) {
+    if (_pAdaptorMgr != nullptr) {
         _pAdaptorMgr->sendTopologyRequestMessage ((const void *) bw.getBuffer(),
                                                   (unsigned int) bw.getBufferLength(), ppTargets);
     }
@@ -1090,7 +1099,7 @@ int Topology::notifyReply (const char *pszTargetNodeId)
     PtrLList<const char> pathList; // forward the reply message
     _graph.getShortestPath (_nodeId, pszTargetNodeId, &pathList, false);
     Targets *pNextHop = getNextHopAsTargetInternal (pathList.getFirst());
-    if (pNextHop == NULL) {
+    if (pNextHop == nullptr) {
         return 0; // return if there are no targets
     }
 
@@ -1107,11 +1116,11 @@ int Topology::notifyReply (const char *pszTargetNodeId)
         delete pNextHop;
         return rc;
     }
-    if ((rc = bw.write64 (&_graph.getVertex(_nodeId)->i64TimeStamp)) < 0) { 	 // timestamp
+    if ((rc = bw.write64 (&_graph.getVertex (_nodeId)->i64TimeStamp)) < 0) {      // timestamp
         delete pNextHop;
         return rc;
     }
-    if ((rc = bw.write8 (&_graph.getVertex(_nodeId)->bReply)) < 0) {	 // complete flag
+    if ((rc = bw.write8 (&_graph.getVertex (_nodeId)->bReply)) < 0) {     // complete flag
         delete pNextHop;
         return rc;
     }
@@ -1121,30 +1130,27 @@ int Topology::notifyReply (const char *pszTargetNodeId)
             return rc;
         }
     }
-    else if ((rc = _graph.writeNeighborhood(&bw, &ui32BuffLen, _nodeId)) < 0) {
+    else if ((rc = _graph.writeNeighborhood (&bw, &ui32BuffLen, _nodeId)) < 0) {
         delete pNextHop;
         return rc;
     }
 
-    if (_pAdaptorMgr != NULL) {
-        TargetPtr targets[2] = {pNextHop, NULL};
+    if (_pAdaptorMgr != nullptr) {
+        TargetPtr targets[2] = {pNextHop, nullptr};
         _pAdaptorMgr->sendTopologyReplyMessage ((const void *) bw.getBuffer(),
                                                 (unsigned int) bw.getBufferLength(), targets);
     }
     delete pNextHop;
-    return 0;
-}
+    pathList.removeAll (true);
 
-PtrLList<String> * Topology::getNeighbors()
-{
-    return getNeighbors (_nodeId);
+    return 0;
 }
 
 PtrLList<String> * Topology::getNeighbors (const char *pszNodeId)
 {
     PtrLList<String> *pList = new PtrLList<String>();
-    if (pList == NULL) {
-        return NULL;
+    if (pList == nullptr) {
+        return nullptr;
     }
     _m.lock();
     _graph.getNeighborsList (pszNodeId, pList);
@@ -1167,7 +1173,7 @@ Targets ** Topology::getNextHopsAsTarget (NodeIdSet &nodeIdSet)
     StringHashtable<Targets> targets;
     for (NodeIdIterator iter = nodeIdSet.getIterator(); !iter.end(); iter.nextElement()) {
         Targets *pNextHop = getNextHopAsTarget (iter.getKey());
-        if (pNextHop != NULL) {
+        if (pNextHop != nullptr) {
             if (!targets.containsKey (pNextHop->aTargetNodeIds[0])) {
                 targets.put (pNextHop->aTargetNodeIds[0], pNextHop);
             }
@@ -1177,10 +1183,10 @@ Targets ** Topology::getNextHopsAsTarget (NodeIdSet &nodeIdSet)
         }
     }
     if (targets.getCount() == 0) {
-        return NULL;
+        return nullptr;
     }
     Targets **ppTargets = (Targets **) calloc (targets.getCount() + 1, sizeof (Targets*));
-    if (ppTargets != NULL) {
+    if (ppTargets != nullptr) {
         StringHashtable<Targets>::Iterator iter = targets.getAllElements();
         for (unsigned int i = 0; !iter.end(); iter.nextElement(), i++) {
             ppTargets[i] = iter.getValue();
@@ -1199,7 +1205,7 @@ Targets * Topology::getNextHopAsTarget (const char *pszDstPeerId)
 
 Targets * Topology::getNextHopAsTargetInternal (const char *pszDstPeerId)
 {
-    Targets **ppTargets = NULL;
+    Targets **ppTargets = nullptr;
     if (_graph.hasNeighbor (_nodeId, pszDstPeerId)) {
         PtrLList<Edge<EdgeInfo> > edgeList;
         _graph.getEdgeList (_nodeId, pszDstPeerId, &edgeList);
@@ -1212,24 +1218,27 @@ Targets * Topology::getNextHopAsTargetInternal (const char *pszDstPeerId)
         // Get the next hop
         const char *pszCurr = path.getFirst();
         // Find the first peer that it's not myself
-        for (; pszCurr != NULL && strcmp (_nodeId, pszCurr) == 0; pszCurr = path.getNext());
-        if (pszCurr == NULL || strcmp (_nodeId, pszCurr) == 0) {
-            return NULL;
+        while ((pszCurr != nullptr) && (strcmp (_nodeId, pszCurr) == 0)) {
+            pszCurr = path.getNext();
+        }
+        path.removeAll (true);
+        if (pszCurr == nullptr) {
+            return nullptr;
         }
         _graph.getEdgeList (_nodeId, pszCurr, &edgeList);
         ppTargets = getNodesAsTargets (&edgeList);
     }
 
     // Sanity check
-    if (ppTargets != NULL) {
+    if (ppTargets != nullptr) {
         unsigned int i = 0;
-        for (; ppTargets[i] != NULL; i++);
+        for (; ppTargets[i] != nullptr; i++);
         assert (i < 2);
         Targets *pNextHop = ppTargets[0];
         free (ppTargets);
         return pNextHop;
     }
-    return NULL;
+    return nullptr;
 }
 
 Targets ** Topology::getForwardingTargets (const char *pszCurrPeerId,
@@ -1244,17 +1253,17 @@ Targets ** Topology::getForwardingTargets (const char *pszCurrPeerId,
 Targets ** Topology:: getForwardingTargetsInternal (const char *pszCurrPeerId,
                                                     const char *pszPrevPeerId)
 {
-    PtrLList<String> prevNodeList;
     PtrLList<Edge<EdgeInfo> > *pCurrEdgeList = _graph.getEdgeList (pszCurrPeerId);
-    if (pCurrEdgeList == NULL) {
-        return NULL;
+    if (pCurrEdgeList == nullptr) {
+        return nullptr;
     }
-    _m.lock();
+
+    PtrLList<String> prevNodeList;
     _graph.getNeighborsList (pszPrevPeerId, &prevNodeList);
     prevNodeList.prepend (new String (pszPrevPeerId));
-    for (Edge<EdgeInfo> *pEdge = pCurrEdgeList->getFirst(); pEdge != NULL;) {
+    for (Edge<EdgeInfo> *pEdge = pCurrEdgeList->getFirst(); pEdge != nullptr;) {
         Edge<EdgeInfo> *pNextEdge = pCurrEdgeList->getNext();
-        for (String *pPrevNeighbor = prevNodeList.getFirst(); pPrevNeighbor != NULL;) {
+        for (String *pPrevNeighbor = prevNodeList.getFirst(); pPrevNeighbor != nullptr;) {
             if (!strcmp (pEdge->_pszDstVertexKey, pPrevNeighbor->c_str())) {
                 pCurrEdgeList->remove (pEdge);
                 break;
@@ -1263,18 +1272,18 @@ Targets ** Topology:: getForwardingTargetsInternal (const char *pszCurrPeerId,
         }
         pEdge = pNextEdge;
     }
-    _m.unlock();
 
     // Deallocate prevNodeList's elements
     String *pCurr, *pTmp;
     pTmp = prevNodeList.getFirst();
-    while ((pCurr = pTmp) != NULL) {
+    while ((pCurr = pTmp) != nullptr) {
         pTmp = prevNodeList.getNext();
         delete prevNodeList.remove (pCurr);
     }
 
     Targets **ppTargets = getNodesAsTargets (pCurrEdgeList);
     delete pCurrEdgeList;
+
     return ppTargets;
 }
 
@@ -1282,37 +1291,37 @@ Targets ** Topology::getNodesAsTargets (PtrLList<Edge<Topology::EdgeInfo> > *pEd
 {
     const int iNumEdges = pEdgeList->getCount();
     if (iNumEdges <= 0) {
-        return NULL;
+        return nullptr;
     }
-    int *pTableCount = (int *) calloc (iNumEdges, sizeof (int));
+
     int iInterfaces = 0;
+    auto pTableCount = new int[iNumEdges] {0};
     Edge<EdgeInfo> ***pppEdgeTable;
     pppEdgeTable = (Edge<EdgeInfo> ***) calloc (iNumEdges, sizeof (Edge<EdgeInfo> **));
     for (int i = 0; i < iNumEdges; i ++) {
-    	pppEdgeTable[i] = (Edge<EdgeInfo> **) calloc (iNumEdges, sizeof (Edge<EdgeInfo> *));
-    	pTableCount[i] = 0;
+        pppEdgeTable[i] = (Edge<EdgeInfo> **) calloc (iNumEdges, sizeof (Edge<EdgeInfo> *));
     }
-    Edge<EdgeInfo> *pEdge = pEdgeList->getFirst();		// group edges by interface
+    Edge<EdgeInfo> *pEdge = pEdgeList->getFirst();        // group edges by interface
     pppEdgeTable[0][0] = pEdge;
     pTableCount[0]++;
     iInterfaces++;
     bool bFlag;
     for (int i = 1; i < iNumEdges; i ++) {
-    	bFlag = false;
-    	pEdge = pEdgeList->getNext();
-    	for (int j = 0; j < iInterfaces; j ++) {
-            if (strcmp(pppEdgeTable[j][0]->_pszEdgeLabel, pEdge->_pszEdgeLabel) == 0) {
+        bFlag = false;
+        pEdge = pEdgeList->getNext();
+        for (int j = 0; j < iInterfaces; j ++) {
+            if (strcmp (pppEdgeTable[j][0]->_pszEdgeLabel, pEdge->_pszEdgeLabel) == 0) {
                 pppEdgeTable[j][pTableCount[j]] = pEdge;
-                pTableCount[j] ++;
+                pTableCount[j]++;
                 bFlag = true;
                 break;
             }
-    	}
-    	if (!bFlag) {
+        }
+        if (!bFlag) {
             pppEdgeTable[iInterfaces][0] = pEdge;
             pTableCount[iInterfaces]++;
             iInterfaces ++;
-    	}
+        }
     }
 
     int iMax, iMaxInt;
@@ -1321,7 +1330,7 @@ Targets ** Topology::getNodesAsTargets (PtrLList<Edge<Topology::EdgeInfo> > *pEd
     PtrLList<String> neighList;
     int iNumVertex = 0;  // Count the number of nodes
     DArray2<char*> aNodeIDs;
-    for (pEdge = pEdgeList->getFirst(); pEdge != NULL; pEdge = pEdgeList->getNext()) {
+    for (pEdge = pEdgeList->getFirst(); pEdge != nullptr; pEdge = pEdgeList->getNext()) {
         bFlag = true;
         for (unsigned int j = 0; j < aNodeIDs.size(); j++) {
             if (aNodeIDs.used (j) && (!strcmp (aNodeIDs[j], pEdge->_pszDstVertexKey))) {
@@ -1337,32 +1346,32 @@ Targets ** Topology::getNodesAsTargets (PtrLList<Edge<Topology::EdgeInfo> > *pEd
 
     int iOutgoingNodes = 0;
     for (int k = 0; k < iInterfaces; k++) {
-    	iMax = pTableCount[k];
-    	iMaxInt = k;
-    	for (int i = k+1; i < iInterfaces; i++) { // select the interface that covers the highest
+        iMax = pTableCount[k];
+        iMaxInt = k;
+        for (int i = k+1; i < iInterfaces; i++) { // select the interface that covers the highest
             if (pTableCount[i] > iMax) { // number of ppTargets and set it as first interface
                 iMax = pTableCount[i];
                 iMaxInt = i;
             }
-    	}
-    	ppTemp = pppEdgeTable[k];
-    	pppEdgeTable[k] = pppEdgeTable[iMaxInt];
-    	pppEdgeTable[iMaxInt] = ppTemp;
-    	iTemp = pTableCount[k];
-    	pTableCount[k] = pTableCount[iMaxInt];
-    	pTableCount[iMaxInt] = iTemp;
-    	iOutgoingNodes += pTableCount[k];
-    	if (iOutgoingNodes == iNumVertex) {
+        }
+        ppTemp = pppEdgeTable[k];
+        pppEdgeTable[k] = pppEdgeTable[iMaxInt];
+        pppEdgeTable[iMaxInt] = ppTemp;
+        iTemp = pTableCount[k];
+        pTableCount[k] = pTableCount[iMaxInt];
+        pTableCount[iMaxInt] = iTemp;
+        iOutgoingNodes += pTableCount[k];
+        if (iOutgoingNodes == iNumVertex) {
             // all ppTargets covered by an interface: stop and select the adaptors
             break;
         }
-    	for (int i = k+1; i < iInterfaces; i++) { // delete from the table all ppTargets already
-            for (int j = 0; j < pTableCount[i]; j++) {	// covered by an interface
+        for (int i = k+1; i < iInterfaces; i++) { // delete from the table all ppTargets already
+            for (int j = 0; j < pTableCount[i]; j++) {    // covered by an interface
                 for(int h = 0; h < pTableCount[k]; h++) {
                     if(strcmp(pppEdgeTable[k][h]->_pszDstVertexKey, pppEdgeTable[i][j]->_pszDstVertexKey) == 0) {
-                        pppEdgeTable[i][j] = NULL;
+                        pppEdgeTable[i][j] = nullptr;
                         pppEdgeTable[i][j] = pppEdgeTable[i][pTableCount[i]-1];
-                        pppEdgeTable[i][pTableCount[i]-1] = NULL;
+                        pppEdgeTable[i][pTableCount[i]-1] = nullptr;
                         pTableCount[i]--;
                         j--;
                         break;
@@ -1371,23 +1380,23 @@ Targets ** Topology::getNodesAsTargets (PtrLList<Edge<Topology::EdgeInfo> > *pEd
             }
             if (pTableCount[i] == 0) {
                 free (pppEdgeTable[i]);
-                pppEdgeTable[i] = NULL;
+                pppEdgeTable[i] = nullptr;
                 pppEdgeTable[i] = pppEdgeTable[iInterfaces-1];
-                pppEdgeTable[iInterfaces-1] = NULL;
+                pppEdgeTable[iInterfaces-1] = nullptr;
                 iInterfaces--;
                 i--;
             }
-    	}
+        }
     }
 
-    DArray2<int> adaptorCount; // count the adaptors
+    DArray2<int> adaptorCount;          // count the adaptors
     DArray2<unsigned int> adaptorId;
     for (int i = 0; i < iInterfaces; i++) {
-       	for (int j = 0; j < pTableCount[i]; j++) {
+           for (int j = 0; j < pTableCount[i]; j++) {
             for (unsigned int k = 0; k < pppEdgeTable[i][j]->_pEdgeElement->stats.size(); k++) {
                 if (pppEdgeTable[i][j]->_pEdgeElement->stats.used (k)) {
                     bFlag = false;
-                    for (unsigned int h = 0; h < adaptorId.size(); h ++) {
+                    for (unsigned int h = 0; h < adaptorId.size(); h++) {
                         if (pppEdgeTable[i][j]->_pEdgeElement->stats[k].adaptorId == adaptorId[h]) {
                             adaptorCount[h]++;
                             bFlag = true;
@@ -1401,72 +1410,74 @@ Targets ** Topology::getNodesAsTargets (PtrLList<Edge<Topology::EdgeInfo> > *pEd
                     }
                 }
             }
-       	}
+           }
     }
 
     Targets **ppTargets = (Targets **) calloc (1, sizeof (Targets *));
-    ppTargets[0] = NULL;
+    ppTargets[0] = nullptr;
     iOutgoingNodes = 0;
     iTemp = 1;
     int nodes;
     do { // compose the output
-    	iMax = 0;
-    	iMaxInt = 0;
-    	nodes = 0;
-    	for (unsigned int j = 0; j < adaptorCount.size(); j++) {   // select the adaptor that covers the highest
-            if (adaptorCount.used(j) && adaptorCount[j] > iMax) {  // number of ppTargets
+        iMax = 0;
+        iMaxInt = 0;
+        nodes = 0;
+        for (unsigned int j = 0; j < adaptorCount.size(); j++) {   // select the adaptor that covers the highest
+            if (adaptorCount.used (j) && (adaptorCount[j] > iMax)) {  // number of ppTargets
                 iMax = adaptorCount[j];
                 iMaxInt = j;
             }
-    	}
-    	ppTargets = (Targets **) realloc (ppTargets, (iTemp+1) * sizeof (Targets *));
-    	ppTargets[iTemp-1] = new Targets (adaptorCount[iMaxInt]);
-    	ppTargets[iTemp-1]->adaptorId = adaptorId[iMaxInt];
-    	for (int i = 0; i < iInterfaces; i++) {
-    	    for (int j = 0; j < pTableCount[i]; j++) {
-    	    	for (unsigned int k = 0; k < pppEdgeTable[i][j]->_pEdgeElement->stats.size(); k++) {
-                    if (pppEdgeTable[i][j]->_pEdgeElement->stats.used (k) && pppEdgeTable[i][j]->_pEdgeElement->stats[k].adaptorId == adaptorId[iMaxInt]) {
+        }
+        ppTargets = (Targets **) realloc (ppTargets, (iTemp+1) * sizeof (Targets *));
+        ppTargets[iTemp-1] = new Targets (adaptorCount[iMaxInt]);
+        ppTargets[iTemp-1]->adaptorId = adaptorId[iMaxInt];
+        for (int i = 0; i < iInterfaces; i++) {
+            for (int j = 0; j < pTableCount[i]; j++) {
+                for (unsigned int k = 0; k < pppEdgeTable[i][j]->_pEdgeElement->stats.size(); k++) {
+                    if (pppEdgeTable[i][j]->_pEdgeElement->stats.used (k) &&
+                        (pppEdgeTable[i][j]->_pEdgeElement->stats[k].adaptorId == adaptorId[iMaxInt])) {
                         ppTargets[iTemp-1]->aTargetNodeIds[nodes] = strDup (pppEdgeTable[i][j]->_pszDstVertexKey);
                         ppTargets[iTemp-1]->aInterfaces[nodes] = strDup (pppEdgeTable[i][j]->_pszEdgeLabel);
                         nodes++;
-                        pppEdgeTable[i][j] = NULL;
+                        pppEdgeTable[i][j] = nullptr;
                         pTableCount[i]--;
                         if(pTableCount[i] > 0) {
                             pppEdgeTable[i][j] = pppEdgeTable[i][pTableCount[i]];
-                            pppEdgeTable[i][pTableCount[i]] = NULL;
+                            pppEdgeTable[i][pTableCount[i]] = nullptr;
                             j--;
                         }
                         break;
                     }
-    	    	}
-    	    }
-    	    if (pTableCount[i] == 0) {
+                }
+            }
+            if (pTableCount[i] == 0) {
                 free (pppEdgeTable[i]);
-    	    	pppEdgeTable[i] = NULL;
+                pppEdgeTable[i] = nullptr;
                 iInterfaces--;
                 if (iInterfaces > 0) {
                     pppEdgeTable[i] = pppEdgeTable[iInterfaces];
-                    pppEdgeTable[iInterfaces] = NULL;
+                    pppEdgeTable[iInterfaces] = nullptr;
                     pTableCount[i] = pTableCount[iInterfaces];
                     pTableCount[iInterfaces] = 0;
                     i--;
                 }
-    	    }
-    	}
-    	ppTargets[iTemp] = NULL;
-    	iTemp++;
-    	iOutgoingNodes += nodes;
-    	adaptorCount.clear (iMaxInt);
-    	adaptorId.clear (iMaxInt);
+            }
+        }
+        ppTargets[iTemp] = nullptr;
+        iTemp++;
+        iOutgoingNodes += nodes;
+        adaptorCount.clear (iMaxInt);
+        adaptorId.clear (iMaxInt);
     } while (iOutgoingNodes < iNumVertex);
 
     for (int i = 0; i < iNumEdges; i++) {
-        if (pppEdgeTable[i] != NULL) {
+        if (pppEdgeTable[i] != nullptr) {
             free (pppEdgeTable[i]);
         }
     }
     free (pppEdgeTable);
-    free (pTableCount);
+    delete pTableCount;
+
     return ppTargets;
 }
 
@@ -1492,10 +1503,10 @@ int Topology::NodeInfo::write (Writer *pWriter, uint32 *pBytesRead)
 
 StaticTopology::StaticTopology (const char *pszNodeId)
     : Topology (pszNodeId)
-{   
+{
 }
 
-StaticTopology::~StaticTopology() 
+StaticTopology::~StaticTopology()
 {
 }
 
@@ -1503,7 +1514,7 @@ int StaticTopology::configure (CommAdaptorManager *pCommAdaptorMgr,
                                NodeContextManager *pNodeContextMgr,
                                NOMADSUtil::ConfigManager *pCfgMgr)
 {
-    if (pCommAdaptorMgr == NULL || pNodeContextMgr == NULL || pCfgMgr == NULL) {
+    if (pCommAdaptorMgr == nullptr || pNodeContextMgr == nullptr || pCfgMgr == nullptr) {
         return -1;
     }
 
@@ -1546,7 +1557,7 @@ int StaticTopology::configure (CommAdaptorManager *pCommAdaptorMgr,
 
 int StaticTopology::readStaticTopologyFile (const char *pszFileName, DArray2<StaticLink> &links)
 {
-    if (pszFileName == NULL) {
+    if (pszFileName == nullptr) {
         return -1;
     }
     FileReader fr (pszFileName, "r");
@@ -1558,7 +1569,7 @@ int StaticTopology::readStaticTopologyFile (const char *pszFileName, DArray2<Sta
             String line (buf, (unsigned short) iBytesRead);
             StringTokenizer tokenizer (line.c_str(), ' ', ' ');
             const char *pszToken = tokenizer.getNextToken();
-            for (unsigned int tokenId = 0; pszToken != NULL; tokenId++) {
+            for (unsigned int tokenId = 0; pszToken != nullptr; tokenId++) {
                 switch (tokenId) {
                     case 0:
                         links[uiLineNumber].srcPeerId = pszToken;
@@ -1609,4 +1620,3 @@ StaticTopology::StaticLink::StaticLink()
 StaticTopology::StaticLink::~StaticLink()
 {
 }
-

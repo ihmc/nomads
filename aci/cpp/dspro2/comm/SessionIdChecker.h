@@ -1,4 +1,4 @@
-/* 
+/*
  * SessionIdChecker.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,24 +21,13 @@
  */
 
 #ifndef INCL_SESSION_ID_CHECKER_H
-#define	INCL_SESSION_ID_CHECKER_H
+#define INCL_SESSION_ID_CHECKER_H
 
 #include "StrClass.h"
 
 namespace IHMC_ACI
 {
-    class SessionIdChecker
-    {
-        public:
-            SessionIdChecker (NOMADSUtil::String sessionId);
-            ~SessionIdChecker (void);
-
-            bool checkSessionId (const char *pszIncomingMsgSenderNodeId) const;
-
-        private:
-            NOMADSUtil::String _sessionId;
-    };
+    bool checkSessionId (const char *pszIncomingMsgSenderNodeId);
 }
 
-#endif	/* INCL_SESSION_ID_CHECKER_H */
-
+#endif    /* INCL_SESSION_ID_CHECKER_H */

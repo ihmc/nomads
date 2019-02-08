@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,9 +22,11 @@
 
 #include "FTypes.h"
 #include "PtrLList.h"
+#include "StringStringHashtable.h"
 
 namespace NOMADSUtil
 {
+    class Writer;
     class Reader;
 }
 
@@ -48,41 +50,64 @@ namespace IHMC_MISC
                 A_MPEG      = 0x05, // Audio MPEG
                 AVI         = 0x06,
                 MOV         = 0x07,
-                V_MPEG      = 0x08 // Video MPEG
+                V_MPEG      = 0x08, // Video MPEG
+                ZIP         = 0x09  // Compressed Zip
             };
 
             struct Fragment {
                 NOMADSUtil::Reader *pReader;
                 uint64 ui64FragLen;     // The length of the fragment
-                Type src_type;          // The type of the source object
-                Type out_type;          // The type of the output fragments
+                NOMADSUtil::String src_type;          // The type of the source object
+                NOMADSUtil::String out_type;          // The type of the output fragments
                 uint8 ui8Part;          // The number of this fragment
                 uint8 ui8TotParts;      // The total number of fragments
 
                 bool operator == (Fragment &rhsFragment);
             };
 
+            typedef NOMADSUtil::PtrLList<Fragment> Fragments;
+
             struct Interval {
                 Interval (void);
                 Interval (const Interval &interval);
                 ~Interval (void);
+
+                int read (NOMADSUtil::Reader *pReader);
+                int write (NOMADSUtil::Writer *pWriter);
 
                 Dimension dimension;
                 uint64 uiStart;
                 uint64 uiEnd;
             };
 
-            static NOMADSUtil::PtrLList<Fragment> * fragmentFile (const char *pszFileName, Type inputObjectType,
-                                                                    uint8 ui8NoOfChunks, Type outputChunkType,
-                                                                    uint8 ui8ChunkCompressionQuality);
-            static NOMADSUtil::PtrLList<Fragment> * fragmentBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType,
-                                                                    uint8 ui8NoOfChunks, Type outputChunkType,
-                                                                    uint8 ui8ChunkCompressionQuality);
+            static Fragments * fragmentFile (const char *pszFileName, Type inputObjectType,
+                                             uint8 ui8NoOfChunks, Type outputChunkType,
+                                             uint8 ui8ChunkCompressionQuality);
+            static Fragments * fragmentBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType,
+                                               uint8 ui8NoOfChunks, Type outputChunkType,
+                                               uint8 ui8ChunkCompressionQuality);
 
             static Fragment * extractFromFile (const char *pszFileName, Type inputObjectType, Type outputChunkType,
                                                  uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals);
             static Fragment * extractFromBuffer (const void *pBuf, uint32 ui32Len, Type inputObjectType, Type outputChunkType,
                                                  uint8 ui8ChunkCompressionQuality, Interval **ppPortionIntervals);
+    };
+
+    class ChunkerInterface
+    {
+        public:
+            virtual ~ChunkerInterface (void);
+            virtual NOMADSUtil::PtrLList<Chunker::Fragment> * fragmentFile (const char *pszFileName, const char *pszInputChunkMimeType,
+                                                                            uint8 ui8NoOfChunks, const char *pszOutputChunkMimeType,
+                                                                            uint8 ui8ChunkCompressionQuality) = 0;
+            virtual NOMADSUtil::PtrLList<Chunker::Fragment> * fragmentBuffer (const void *pBuf, uint32 ui32Len, const char *pszInputChunkMimeType,
+                                                                              uint8 ui8NoOfChunks, const char *pszOutputChunkMimeType,
+                                                                              uint8 ui8ChunkCompressionQuality) = 0;
+
+            virtual Chunker::Fragment * extractFromFile (const char *pszFileName, const char *pszInputChunkMimeType, const char *pszOutputChunkMimeType,
+                                                         uint8 ui8ChunkCompressionQuality, Chunker::Interval **ppPortionIntervals) = 0;
+            virtual Chunker::Fragment * extractFromBuffer (const void *pBuf, uint32 ui32Len, const char *pszInputChunkMimeType, const char *pszOutputChunkMimeType,
+                                                           uint8 ui8ChunkCompressionQuality, Chunker::Interval **ppPortionIntervals) = 0;
     };
 
     inline bool Chunker::Fragment::operator == (Chunker::Fragment &rhsFragment)

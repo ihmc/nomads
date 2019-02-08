@@ -1,4 +1,4 @@
-/* 
+/*
  * SchedulerQueueManagment.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -31,6 +31,7 @@
 #include "StrClass.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 //------------------------------------------------------------------------------
@@ -85,9 +86,12 @@ bool ReplaceNonePolicy::isReplaceable (Scheduler::MsgIDWrapper *pMsgIdWr)
 
 ReplaceLowPriorityPolicy::ReplaceLowPriorityPolicy (float *pThresholds, unsigned int iLen)
 {
+    _uiLen = 0;
     _pThresholds = (float*) malloc (sizeof(float)*iLen);
-    memcpy (_pThresholds, pThresholds, sizeof(float)*iLen);
-    _uiLen = iLen;
+    if (_pThresholds != nullptr) {
+        memcpy (_pThresholds, pThresholds, sizeof (float)*iLen);
+        _uiLen = iLen;
+    }
 }
 
 ReplaceLowPriorityPolicy::~ReplaceLowPriorityPolicy (void)
@@ -128,7 +132,7 @@ QueueReplacementPolicy * QueueReplacementPolicyFactory::getQueueReplacementPolic
     const char *pszMethodName = "QueueReplacementPolicyFactory::getQueueReplacementPolicy";
     const char *pszProperty = "aci.dspro.scheduler.queue.replacement";
 
-    if (pCfgMgr == NULL ||
+    if (pCfgMgr == nullptr ||
         !pCfgMgr->hasValue (pszProperty)) {
         return new ReplaceAllPolicy();
     }
@@ -142,12 +146,12 @@ QueueReplacementPolicy * QueueReplacementPolicyFactory::getQueueReplacementPolic
         checkAndLogMsg (pszMethodName, Logger::L_Info, "%s policy loaded", pszReplacementPolicy);
         return new ReplaceNonePolicy();
     }
-    else if (0 == stringcasecmp (pszReplacementPolicy, "REPLACE_LOW_INDEXES")) {        
+    else if (0 == stringcasecmp (pszReplacementPolicy, "REPLACE_LOW_INDEXES")) {
         const char *pszValue;
 
         float totalRankThreshold;
         String property = (String) pszProperty + ".rank.total";
-        if ((pszValue = pCfgMgr->getValue (property)) != NULL) {
+        if ((pszValue = pCfgMgr->getValue (property)) != nullptr) {
             totalRankThreshold = (float) atof (pszValue);
         }
         else {
@@ -156,7 +160,7 @@ QueueReplacementPolicy * QueueReplacementPolicyFactory::getQueueReplacementPolic
 
         float timeRankThreshold;
         property = (String) pszProperty + ".rank.time";
-        if ((pszValue = pCfgMgr->getValue (property)) != NULL) {
+        if ((pszValue = pCfgMgr->getValue (property)) != nullptr) {
             timeRankThreshold = (float) atof (pszValue);
         }
         else {
@@ -201,18 +205,18 @@ MetadataMutationPolicy::~MetadataMutationPolicy()
 
 DefaultMutationPolicy::DefaultMutationPolicy()
 {
-    
+
 }
 
 DefaultMutationPolicy::~DefaultMutationPolicy()
 {
-    
+
 }
 
-char * DefaultMutationPolicy::mutate (const char *, NodeIdSet &,
-                                      RankByTargetMap &, Scheduler *)
+GenMetadataWrapper  * DefaultMutationPolicy::mutate (const char *, NodeIdSet &,
+                                                     RankByTargetMap &, Scheduler *)
 {
-    return NULL;
+    return nullptr;
 }
 
 PrevMsgMutationPolicy::PrevMsgMutationPolicy (MetadataGenerator *pMutator)
@@ -222,15 +226,15 @@ PrevMsgMutationPolicy::PrevMsgMutationPolicy (MetadataGenerator *pMutator)
 
 PrevMsgMutationPolicy::~PrevMsgMutationPolicy()
 {
-    
+
 }
 
-char * PrevMsgMutationPolicy::mutate (const char *pszOriginalMetadataId,
-                                      NodeIdSet &targetNodes, RankByTargetMap &ranksByTarget,
-                                      Scheduler *pScheduler)
+GenMetadataWrapper * PrevMsgMutationPolicy::mutate (const char *pszOriginalMetadataId,
+                                                    NodeIdSet &targetNodes, RankByTargetMap &ranksByTarget,
+                                                    Scheduler *pScheduler)
 {
-    if ((pszOriginalMetadataId == NULL) || (targetNodes.isEmpty()) || (pScheduler == NULL)) {
-        return NULL;
+    if ((pszOriginalMetadataId == nullptr) || (targetNodes.isEmpty()) || (pScheduler == nullptr)) {
+        return nullptr;
     }
     PreviousMessageIds prevMsgIds;
     for (NodeIdIterator iter = targetNodes.getIterator(); !iter.end(); iter.nextElement()) {
@@ -248,17 +252,17 @@ MetadataMutationPolicy * MetadataMutationPolicyFactory::getMetadataMutationPolic
 
     prevPushedMsgInfo = Scheduler::PREV_PUSH_MSG_INFO_DISABLED;
 
-    if (pCfgMgr != NULL && pCfgMgr->hasValue (pszProperty)) {
+    if (pCfgMgr != nullptr && pCfgMgr->hasValue (pszProperty)) {
         const char *pszMutationPolicy = pCfgMgr->getValue (pszProperty);
         if (0 == stringcasecmp (pszMutationPolicy, "PREV_MSG")) {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "%s policy loaded\n", pszMutationPolicy);
-            String prevPushedMsgInfoMode (pszProperty);
-            prevPushedMsgInfoMode += ".prevMsg";
-            const char *pszPrevPushedMsgInfoMode = pCfgMgr->getValue (prevPushedMsgInfoMode.c_str(), "DISABLED");
-            if (0 == stringcasecmp (pszPrevPushedMsgInfoMode, "SESSION_AWARE")) {
+            String prevPushedMsgInfoModeProp (pszProperty);
+            prevPushedMsgInfoModeProp += ".prevMsg";
+            const String prevPushedMsgInfoMode (pCfgMgr->getValue (prevPushedMsgInfoModeProp, "DISABLED"));
+            if (prevPushedMsgInfoMode ^= "SESSION_AWARE") {
                 prevPushedMsgInfo = Scheduler::PREV_PUSH_MSG_INFO_SESSION_AWARE;
             }
-            else if (0 == stringcasecmp (pszPrevPushedMsgInfoMode, "SESSIONLESS")) {
+            else if (prevPushedMsgInfoMode ^= "SESSIONLESS") {
                 prevPushedMsgInfo = Scheduler::PREV_PUSH_MSG_INFO_SESSIONLESS;
             }
             else {

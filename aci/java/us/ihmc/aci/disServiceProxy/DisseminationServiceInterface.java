@@ -34,7 +34,7 @@ public interface DisseminationServiceInterface extends DisseminationServiceProxy
     public void reinitialize();
     public boolean isInitialized();
     public String getNodeId() throws CommException;
-    public List<String> getPeerList();
+    public List<String> getPeerList() throws CommException;
     public String store (String groupName, String objectId, String instanceId,
                          String mimeType, byte[] metaData, byte[] data, long expiration,
                          short historyWindow, short tag, byte priority)

@@ -55,14 +55,14 @@ int ChunkQuery::addInterval (IHMC_MISC::Chunker::Interval &interval)
 
 int ChunkQuery::read (Reader *pReader)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
     if (pReader->readUI8 (&_ui8CompressionQuality)) {
         return -2;
     }
-    char *psztmp = NULL;
-    if ((pReader->readString (&psztmp) < 0) || (psztmp == NULL)) {
+    char *psztmp = nullptr;
+    if ((pReader->readString (&psztmp) < 0) || (psztmp == nullptr)) {
         return -3;
     }
     _objectMsgId = psztmp;
@@ -78,7 +78,7 @@ int ChunkQuery::read (Reader *pReader)
 
 int ChunkQuery::write (Writer *pWriter)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
     if (pWriter->writeUI8 (&_ui8CompressionQuality)) {

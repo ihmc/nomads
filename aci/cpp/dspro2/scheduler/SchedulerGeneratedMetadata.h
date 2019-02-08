@@ -1,4 +1,4 @@
-/* 
+/*
  * SchedulerGeneratedMetadata.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -31,7 +31,7 @@
  */
 
 #ifndef INCLD_SCHEDULER_GENERATED_METADATA_H
-#define	INCLD_SCHEDULER_GENERATED_METADATA_H
+#define INCLD_SCHEDULER_GENERATED_METADATA_H
 
 #include "LoggingMutex.h"
 #include "StringStringHashtable.h"
@@ -53,7 +53,7 @@ namespace IHMC_ACI
             SchedulerGeneratedMetadata (void);
 
             static SchedulerGeneratedMetadata *_pInstance;
-   
+
             NOMADSUtil::LoggingMutex _m;
             NOMADSUtil::StringStringHashtable _generatedMetadataIds;    // maps from the ID of the generated
                                                                         // metadata to the ID of the base
@@ -61,5 +61,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	// INCLD_SCHEDULER_GENERATED_METADATA_H
-
+#endif    // INCLD_SCHEDULER_GENERATED_METADATA_H

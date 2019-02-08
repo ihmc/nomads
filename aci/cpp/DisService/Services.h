@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -77,8 +77,8 @@ namespace IHMC_ACI
              * Specifying a NULL (for a const char*) or a 0 (for the other types) indicates a wild card.
              * The returned value is a newly allocated linked list of matching MessageInfo.
              *
-             * NOTE: The caller must call releaseQueryResults() when done. Until this method has been invoked, the 
-             * DataCache is locked to prevent any race conditions, which implies that any operations (e.g. push()) 
+             * NOTE: The caller must call releaseQueryResults() when done. Until this method has been invoked, the
+             * DataCache is locked to prevent any race conditions, which implies that any operations (e.g. push())
              * that needs to change the data cache will be blocked.
              */
             virtual NOMADSUtil::PtrLList<MessageHeader> * lockAndQueryDataCache (const char *pszSQLStatement);
@@ -92,12 +92,12 @@ namespace IHMC_ACI
 
             /**
              * Get the complete MessageHeader object that describes the data
-             * message identified by pszId. 
+             * message identified by pszId.
              */
             virtual MessageHeader * getMessageInfo (const char *pszId);
 
             /**
-             * Returns all the messages with expired expiration time 
+             * Returns all the messages with expired expiration time
              */
             virtual NOMADSUtil::DArray2<NOMADSUtil::String> * getExpiredEntries (void);
 
@@ -121,7 +121,7 @@ namespace IHMC_ACI
 
             /**
              * Returns all the subscriptions currently present on the local
-             * nodes. 
+             * nodes.
              */
             NOMADSUtil::PtrLList<NOMADSUtil::String> * getAllLocalSubscriptions (void);
 

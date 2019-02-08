@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -9,7 +9,7 @@
  */
 #include "basicInt.h"
 
-/* 
+/*
  * Interface to jrevdct.c routines (from JPEG decoder)
  */
 
@@ -43,7 +43,7 @@ extern unsigned char theCropTable[4096];
      */
 
 /*
- * Santity check a block.  This function also gives us a hook 
+ * Santity check a block.  This function also gives us a hook
  * to stop in a debugger when something bad happens.
  */
 #if 1

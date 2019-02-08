@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -225,7 +225,7 @@ Thing * NodeInfo::clone()
 Thing * NodeInfo::deepClone()
 {
     return StringHashthing::deepClone();
-}       
+}
 
 double NodeInfo::getWeight()
 {
@@ -424,11 +424,11 @@ int RemoteNodeInfo::subscribe (const char *pszGroupName, Subscription *pSubscrip
         _pRemoteSubscriptions = new SubscriptionList();
     }
     if (!_pRemoteSubscriptions->hasGenericSubscription (pszGroupName)) {
-        _pRemoteSubscriptions->addSubscription (pszGroupName, pSubscription);   
+        _pRemoteSubscriptions->addSubscription (pszGroupName, pSubscription);
     }
     else {
         _pRemoteSubscriptions->removeGroup (pszGroupName);
-        _pRemoteSubscriptions->addSubscription (pszGroupName, pSubscription);  
+        _pRemoteSubscriptions->addSubscription (pszGroupName, pSubscription);
     }
     return 0;
 }
@@ -527,7 +527,7 @@ bool RemoteNodeInfo::isNodeInterested (DisServiceDataMsg *pDSDMsg)
     if (_pRemoteSubscriptions) {
         for (StringHashtable<Subscription>::Iterator i = _pRemoteSubscriptions->getIterator(); !i.end(); i.nextElement()) {
             const char *pszSubGroupName = i.getKey();
-            if (0 == stricmp (pszSubGroupName, pszMsgGroupName)) { 
+            if (0 == stricmp (pszSubGroupName, pszMsgGroupName)) {
                 Subscription *pSub = i.getValue();
                 if ((pSub->getSubscriptionType() == Subscription::GROUP_PREDICATE_SUBSCRIPTION) || pSub->matches(pDSDMsg->getMessage())) {
                     bFound = true;
@@ -560,17 +560,17 @@ void RemoteNodeInfo::printRemoteNodeInfo (void)
 
 // Indirect encounters
 
-NOMADSUtil::StringFloatHashtable * RemoteNodeInfo::getIndirectProbabilities (void) 
+NOMADSUtil::StringFloatHashtable * RemoteNodeInfo::getIndirectProbabilities (void)
 {
     return _pIndirectProbabilities;
 }
 
-void RemoteNodeInfo::setIndirectProbabilities (NOMADSUtil::StringFloatHashtable *pIndirectProbabilities) 
+void RemoteNodeInfo::setIndirectProbabilities (NOMADSUtil::StringFloatHashtable *pIndirectProbabilities)
 {
     _pIndirectProbabilities = pIndirectProbabilities;
 }
 
-void RemoteNodeInfo::ageIndirectProbabilities (float fAgeParam, float fProbThreshold, int iTimeSinceLastAging) 
+void RemoteNodeInfo::ageIndirectProbabilities (float fAgeParam, float fProbThreshold, int iTimeSinceLastAging)
 {
     // Ages the indirect probabilities
     // TODO: find a better way, instead of creating a temporary table
@@ -621,6 +621,7 @@ void RemoteNodeInfo::addIndirectProbability (const char *pszNeighborNodeId, floa
 LocalNodeInfo::LocalNodeInfo (const char *pszNodeId, uint8 ui8MemorySpace, uint8 ui8Bandwidth, int64 i64WinSize)
     : NodeInfo (pszNodeId, ui8MemorySpace, ui8Bandwidth, i64WinSize),
       _m (30),
+      _subscriptionAdvertisement (&_subscriptionAdvertisementInner),
       _localSubscriptions (US_INITSIZE, // ulInitSize
                            true),       // bDelValues
       _pubState (true,  // bCaseSensitiveKeys
@@ -1213,17 +1214,48 @@ bool LocalNodeInfo::requireSequentiality (const char *pszGroupName, uint16 ui16T
 uint32 LocalNodeInfo::getGroupPubState (const char *pszGroupName)
 {
     _m.lock (322);
+    uint32 ui32SeqId = getGroupPubStateInternal (pszGroupName);
+    _m.unlock (322);
+    return ui32SeqId;
+}
+
+uint32 LocalNodeInfo::getGroupPubStateInternal (const char *pszGroupName)
+{
+
     GroupPubState *pGPS = _pubState.get (pszGroupName);
     if (pGPS == NULL) {
-        pGPS = new GroupPubState();
+        pGPS = new GroupPubState ();
         if (pGPS != NULL) {
             _pubState.put (pszGroupName, pGPS);
         }
     }
     uint32 ui32Ret = pGPS->ui32NextSeqNum;
-    _m.unlock (322);
+    String * psGroup = new String (pszGroupName);
+    if (psGroup != NULL) {
+        if (_subscriptionAdvertisementInner.search (psGroup) == NULL) {
+            _subscriptionAdvertisementInner.prepend (psGroup);
+        }
+        else {
+            delete psGroup;
+        }
+    }
     return ui32Ret;
 }
+
+bool LocalNodeInfo::getGroupPubStateToAdvertise (NOMADSUtil::String &group, uint32 /*ui32SeqId*/)
+{
+    _m.lock (322);
+    bool found = false;
+    String *psGroup = _subscriptionAdvertisement.getNext();
+    if ((psGroup != NULL) && (!psGroup->startsWith ("DSPro"))) {
+        group = *psGroup;
+        //ui32SeqId = getGroupPubStateInternal (group);
+        found = true;
+    }
+    _m.unlock (322);
+    return found;
+}
+
 
 int LocalNodeInfo::incrementGroupPubState (const char *pszGroupName)
 {

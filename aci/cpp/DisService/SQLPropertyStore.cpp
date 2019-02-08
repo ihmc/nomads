@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,6 +22,7 @@
 #include "Database.h"
 #include "PreparedStatement.h"
 #include "Result.h"
+#include "SessionId.h"
 
 #include "Logger.h"
 
@@ -37,6 +38,30 @@ const String SQLPropertyStore::ATTR_COL = "Attribute";
 const String SQLPropertyStore::VALUE_COL = "Value";
 
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
+
+namespace SQL_PROPERTY_STORE
+{
+    class ClearTable : public SessionIdListener
+    {
+        public:
+            ClearTable (SQLPropertyStore *pProperties)
+                : _pProperties (pProperties)
+            {
+            }
+
+            ~ClearTable (void)
+            {
+            }
+
+            void sessionIdChanged (void)
+            {
+                _pProperties->clear();
+            }
+
+        private:
+            SQLPropertyStore *_pProperties;
+    };
+}
 
 SQLPropertyStore::SQLPropertyStore (void)
 {
@@ -62,13 +87,13 @@ int SQLPropertyStore::init (const char *pszStorageFile)
     _storageFile = pszStorageFile;
 
     // Initialize the DB
-    Database *pDB = Database::getDatabase (Database::SQLite);
+    DatabasePtr *pDB = Database::getDatabase (Database::SQLite);
     if (pDB == NULL) {
         checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
                         "Database::getDatabase returned NULL\n");
         return -1;
     }
-    if (0 != (rc = pDB->open (_storageFile))) {
+    if (0 != (rc = (*pDB)->open (_storageFile))) {
         checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
                         "failed to open database; rc = %d\n", rc);
         return -2;
@@ -82,7 +107,7 @@ int SQLPropertyStore::init (const char *pszStorageFile)
                           ATTR_COL + " TEXT NOT NULL, " +
                           VALUE_COL + " TEXT NOT NULL, " +
                           "UNIQUE (" + NODE_ID_COL + ", " + ATTR_COL + "));";
-    if (0 != (rc = pDB->execute (sql))) {
+    if (0 != (rc = (*pDB)->execute (sql))) {
         checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
                         "failed to create table with statement [%s]; rc = %d\n",
                         (const char*) sql, rc);
@@ -92,7 +117,7 @@ int SQLPropertyStore::init (const char *pszStorageFile)
 
     // Initialize the Prepared Statements
     sql = (String) "INSERT INTO " + TABLE_NAME + " VALUES (?1,?2,?3);";
-    _ppsSetProperty = pDB->prepare (sql);
+    _ppsSetProperty = (*pDB)->prepare (sql);
     if (_ppsSetProperty == NULL) {
         checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
                         "failed to prepare insert statement [%s]\n",
@@ -103,7 +128,7 @@ int SQLPropertyStore::init (const char *pszStorageFile)
 
     sql = (String) "SELECT " + VALUE_COL + " FROM " + TABLE_NAME +
                    " WHERE " + NODE_ID_COL + " = ?1 AND " + ATTR_COL + " = ?2;";
-    _ppsGetProperty = pDB->prepare (sql);
+    _ppsGetProperty = (*pDB)->prepare (sql);
     if (_ppsGetProperty == NULL) {
         checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
                         "failed to prepare select statement [%s]\n",
@@ -114,7 +139,7 @@ int SQLPropertyStore::init (const char *pszStorageFile)
 
     sql = (String) "DELETE FROM " + TABLE_NAME +
                    " WHERE " + NODE_ID_COL + " = ?1 AND " + ATTR_COL + " = ?2;";
-    _ppsRemoveProperty = pDB->prepare (sql);
+    _ppsRemoveProperty = (*pDB)->prepare (sql);
     if (_ppsRemoveProperty == NULL) {
         checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
                         "failed to prepare delete statement [%s]\n",
@@ -126,7 +151,7 @@ int SQLPropertyStore::init (const char *pszStorageFile)
     sql = (String) "UPDATE " + TABLE_NAME +
             " SET " + VALUE_COL + " = ?3 " +
             " WHERE " + NODE_ID_COL + " = ?1 AND " + ATTR_COL + " = ?2;";
-    _ppsUpdateProperty = pDB->prepare (sql);
+    _ppsUpdateProperty = (*pDB)->prepare (sql);
     if (_ppsUpdateProperty == NULL) {
         checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
                         "failed to prepare update statement [%s]\n",
@@ -135,7 +160,20 @@ int SQLPropertyStore::init (const char *pszStorageFile)
         return -7;
     }
 
+    sql = (String) "DELETE FROM " + TABLE_NAME + ";";
+    _ppsDeleteAll = (*pDB)->prepare (sql);
+    if (_ppsDeleteAll == NULL) {
+        checkAndLogMsg ("SQLPropertyStore::init", Logger::L_MildError,
+                        "failed to prepare delete statement [%s]\n",
+                        (const char*)sql);
+        _m.unlock();
+        return -8;
+    }
+
     _m.unlock();
+
+    SessionId::getInstance()->registerSessionIdListener(new SQL_PROPERTY_STORE::ClearTable (this));
+
     return 0;
 }
 
@@ -177,6 +215,7 @@ String SQLPropertyStore::get (const char *pszNodeID, const char *pszAttr)
     if (pszValue) {
         free (pszValue);
     }
+    delete pRow;
     _m.unlock();
     return value;
 }
@@ -210,6 +249,26 @@ int SQLPropertyStore::remove (const char *pszNodeID, const char *pszAttr)
 int SQLPropertyStore::update (const char *pszNodeID, const char *pszAttr, const char *pszNewValue)
 {
     return setInternal (_ppsUpdateProperty, pszNodeID, pszAttr, pszNewValue);
+}
+
+void SQLPropertyStore::clear (void)
+{
+    const char *pszMethodName = "SQLPropertyStore::clear";
+    const String query ("DELETE FROM DisServiceDataCache WHERE Attribute NOT LIKE 'dspro.latestMsgSeqId.DSPro%reset%' OR Attribute NOT LIKE 'latestResetMessage';");
+
+    _m.lock();
+
+    _ppsDeleteAll->reset();
+    if (_ppsDeleteAll->update() == 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "%s table cleared\n",
+                        TABLE_NAME.c_str());
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not clear %s table\n",
+                        TABLE_NAME.c_str());
+    }
+
+    _m.unlock();
 }
 
 int SQLPropertyStore::setInternal (PreparedStatement *pPreparedStmt, const char *pszNodeID, const char *pszAttr, const char *pszValue)

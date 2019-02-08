@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -71,7 +71,7 @@ DisseminationServiceProxy::~DisseminationServiceProxy (void)
     }
     delete _pReconnectSemaphore;
     _pReconnectSemaphore = 0;
-    
+
     // delete all SubscriptionInfo objects
     SubscriptionInfo *tmp = 0;
     SubscriptionInfo *tmp2 = 0;
@@ -460,7 +460,7 @@ int DisseminationServiceProxy::makeAvailable (const char *pszGroupName, const ch
 {
     _mutex.lock (140);
     CHECK_CONNECTION_OR_FAIL (140);
-    try {  
+    try {
         _pCommHelper->sendLine ("makeAvailable");
         _pCommHelper->sendLine (pszGroupName);
         _pCommHelper->sendStringBlock (pszObjectId);
@@ -582,7 +582,7 @@ int DisseminationServiceProxy::cancel (uint16 ui16Tag)
     _mutex.lock (144);
     CHECK_CONNECTION_OR_FAIL(144);
     try {
-        _pCommHelper->sendLine ("cancel_str");    
+        _pCommHelper->sendLine ("cancel_str");
         _pCommHelper->getWriterRef()->write16 (&ui16Tag);
 
         _pCommHelper->receiveMatch ("OK");

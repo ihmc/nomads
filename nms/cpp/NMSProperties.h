@@ -1,4 +1,4 @@
-/* 
+/*
  * NMSProperties.h
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_NMS_PROPERTIES_H
-#define	INCL_NMS_PROPERTIES_H
+#define INCL_NMS_PROPERTIES_H
 
 #include "StrClass.h"
 
@@ -55,10 +55,13 @@ namespace NOMADSUtil
             static const String NMS_MTU;
 
             static const String NMS_MSG_VERSION;
-
             static const String NMS_DELIVERY_ASYNC;
+
+            static const String NMS_GROUP_KEY_FILE;
+            static const String NMS_PASSPHRASE_ENCRYPTION;
+
     };
 }
 
-#endif	/* INCL_NMS_PROPERTIES_H */
+#endif    /* INCL_NMS_PROPERTIES_H */
 

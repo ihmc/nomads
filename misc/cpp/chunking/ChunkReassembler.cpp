@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -55,7 +55,7 @@ namespace IHMC_MISC
 
     bool checkAndLogReassembler (Reassembler *pReassembler, ChunkReassembler::Type type)
     {
-        if (pReassembler == NULL) {     
+        if (pReassembler == NULL) {
             checkAndLogMsg ("ChunkReassembler::checkAndLogReassembler", Logger::L_MildError,
                             "not initialized for reassembling type %s.\n", toString (type));
             return false;
@@ -207,9 +207,14 @@ namespace IHMC_MISC
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "not initialized for reassembling images\n");
             return NULL;
         }
-        const BMPImage *pImage = bAnnotated ?
-                                 pBMPReassembler->getAnnotatedImage() :
-                                 pBMPReassembler->getReassembledImage();
+
+        const BMPImage *pImage = NULL;
+        if (bAnnotated) {
+            pImage = pBMPReassembler->getAnnotatedImage();
+        }
+        if (pImage == NULL) {
+            pImage = pBMPReassembler->getReassembledImage();
+        }
         if (pImage == NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to get %s image\n",
                             bAnnotated ? "annotated" : "reassembled");
@@ -225,12 +230,22 @@ ChunkReassembler::ChunkReassembler (void)
     : _type (UNSUPPORTED),
       _ui8NoOfChunks (0),
       _pBMPReassembler (NULL),
+      _pMpeg1Reassembler (NULL),
       _pFFMPEGReassembler (NULL)
 {
 }
 
 ChunkReassembler::~ChunkReassembler (void)
-{    
+{
+    if (_pBMPReassembler != NULL) {
+        delete _pBMPReassembler;
+    }
+    if (_pMpeg1Reassembler != NULL) {
+        delete _pMpeg1Reassembler;
+    }
+    if (_pFFMPEGReassembler != NULL) {
+        delete _pFFMPEGReassembler;
+    }
 }
 
 int ChunkReassembler::init (Type reassemblerType, uint8 ui8NoOfChunks)

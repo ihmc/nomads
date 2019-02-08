@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_TCP_CONN_LISTENER_H
-#define	INCL_TCP_CONN_LISTENER_H
+#define INCL_TCP_CONN_LISTENER_H
 
 #include "ConnListener.h"
 #include "TCPSocket.h"
@@ -55,5 +55,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_TCP_CONN_LISTENER_H */
-
+#endif    /* INCL_TCP_CONN_LISTENER_H */

@@ -1,4 +1,4 @@
-/* 
+/*
  * TagGenerator.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,10 +21,10 @@
 
 using namespace IHMC_ACI;
 
-TagGenerator * TagGenerator::_pTagGenerator = NULL;
+TagGenerator * TagGenerator::_pTagGenerator = nullptr;
 const uint16 TagGenerator::_ui16DefaultTag = 0;
 const uint16 TagGenerator::_ui16VersionTag = 1;
-            
+
 TagGenerator::TagGenerator()
     : _waypointTagByPeerId (true, // bCaseSensitiveKeys
                             true, // bCloneKeys

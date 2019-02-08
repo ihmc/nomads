@@ -1,4 +1,4 @@
-/* 
+/*
  * SchedulerCache.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,23 +21,33 @@
  */
 
 #ifndef INCL_SCHEDULER_CACHE_H
-#define	INCL_SCHEDULER_CACHE_H
+#define INCL_SCHEDULER_CACHE_H
 
 #include "Mutex.h"
-#include  "StrClass.h"
+#include "StrClass.h"
+
+namespace IHMC_VOI
+{
+    class MetadataInterface;
+    class Voi;
+}
 
 namespace IHMC_ACI
 {
+    class Message;
     class PropertyStoreInterface;
 
     class SchedulerCache
     {
         public:
-            SchedulerCache (PropertyStoreInterface *pPropertyStore);
+            SchedulerCache (PropertyStoreInterface *pPropertyStore, IHMC_VOI::Voi *pVoi);
             virtual ~SchedulerCache (void);
 
+            NOMADSUtil::String getLatestResetMessageId (void);
+
             NOMADSUtil::String getLatestMessageIdPushedToTarget (const char *pszTarget);
-            int setLatestMessageIdPushedToTarget (const char *pszTarget, const char *pszLatestMessageId);
+            int setLatestMessageIdPushedToTarget (const char *pszTarget, const char *pszLatestMessageId,
+                                                  IHMC_VOI::MetadataInterface *pMetadata);
             int resetLatestMessageIdPushedToTarget (const char *pszTarget);
 
             int64 getMostRecentMessageTimestamp (const char *pszTarget, const char *pszObjectId);
@@ -46,15 +56,17 @@ namespace IHMC_ACI
         private:
             NOMADSUtil::String getLatestMessageIdPushedToTargetInternal (const char *pszTarget);
             int64 getMostRecentMessageTimestampInternal (const char *pszTarget, const char *pszObjectId);
+            int setLatestResetMessageId (const char *pszLatestResetMessageId);
 
         private:
             static const char * LATEST_MESSAGE_ID_PUSHED_TO_TARGET_PROPERTY;
             static const char * LATEST_MESSAGE_TO_TARGET_SOURCE_TIMESTAMP_PROPERTY;
+            static const char * LATEST_RESET_MESSAGE_PROPERTY;
 
             PropertyStoreInterface *_pPropertyStore;
+            IHMC_VOI::Voi *_pVoi;
             NOMADSUtil::Mutex _m;
     };
 }
 
-#endif	/* SCHEDULERCACHE_H */
-
+#endif    /* SCHEDULERCACHE_H */

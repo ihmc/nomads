@@ -69,13 +69,13 @@ namespace IHMC_ACI
             int topologyReplyArrived (const char *pszSenderNodeId, const void *pBuf, uint32 ui32Len);
 
             /**
-             * NOTE: the list and its elements must be deallocated by the caller 
+             * NOTE: the list and its elements must be deallocated by the caller
              */
             NOMADSUtil::PtrLList<NOMADSUtil::String> * getNeighbors (void);
             NOMADSUtil::PtrLList<NOMADSUtil::String> * getNeighbors (const char *pszNodeId);
 
             /**
-             * Returns an array of Targets, the last one is a NULL pointer.
+             * Returns an array of Targets, the last one is a nullptr pointer.
              */
             Targets ** getNeighborsAsTargets (void);
 
@@ -85,7 +85,7 @@ namespace IHMC_ACI
              */
             Targets ** getForwardingTargets (const char *pszCurrPeerId, const char *pszPrevPeerId);
 
-            Targets ** getNextHopsAsTarget (NodeIdSet &nodeIdSet);
+            Targets ** getNextHopsAsTarget (IHMC_VOI::NodeIdSet &nodeIdSet);
             Targets * getNextHopAsTarget (const char *pszDstPeerId);
 
             Targets ** getRoutes (const char *pszRecipientPeerId);
@@ -109,14 +109,14 @@ namespace IHMC_ACI
         protected:
             struct NodeInfo
             {
-            	NodeInfo (void);
-            	~NodeInfo (void);
+                NodeInfo (void);
+                ~NodeInfo (void);
 
-            	NodeInfo * operator = (NodeInfo *pNodeInfo);
-            	bool operator != (NodeInfo &rhsNodeInfo);
+                NodeInfo * operator = (NodeInfo *pNodeInfo);
+                bool operator != (NodeInfo &rhsNodeInfo);
 
-            	int write (NOMADSUtil::Writer *pWriter, uint32 *pBytesWritten);
-            	int read (NOMADSUtil::Reader *pReader, uint32 *pBytesRead);
+                int write (NOMADSUtil::Writer *pWriter, uint32 *pBytesWritten);
+                int read (NOMADSUtil::Reader *pReader, uint32 *pBytesRead);
 
                 int64 i64TimeStamp;
                 bool bReply;
@@ -124,6 +124,12 @@ namespace IHMC_ACI
 
             struct AdaptorStats
             {
+                AdaptorStats (void) = default;
+                AdaptorStats (const AdaptorStats & as) = delete;
+                AdaptorStats (AdaptorStats && as) = delete;
+                AdaptorStats & operator= (const AdaptorStats & as) = delete;
+                AdaptorStats & operator= (AdaptorStats && as) = delete;
+
                 AdaptorId adaptorId;
                 int64 i64LastMsgRcvdTime;
                 AdaptorType type;
@@ -131,25 +137,32 @@ namespace IHMC_ACI
 
             struct EdgeInfo
             {
-                int getCost() { return 1; }
-                void setCost (float fCost) {} 
+                EdgeInfo (void) = default;
+                EdgeInfo (const EdgeInfo & ei) = delete;
+                EdgeInfo (EdgeInfo && ei) = delete;
+                EdgeInfo & operator= (const EdgeInfo & ei) = delete;
+                EdgeInfo & operator= (EdgeInfo && ei) = delete;
+
+                int getCost (void) { return 1; }
+                void setCost (float fCost) {}
                 NOMADSUtil::DArray2<AdaptorStats> stats;
             };
 
-            NOMADSUtil::String _nodeId;
+            const NOMADSUtil::String _nodeId;
             CommAdaptorManager *_pAdaptorMgr;
             NodeContextManager *_pNodeContextMgr;
             NOMADSUtil::HTGraph<NodeInfo, EdgeInfo> _graph;
             NOMADSUtil::Mutex _m;
             NOMADSUtil::StringHashset _availableInterfaces;
 
-        protected:
-            int notifyNewNeighbor (const char *pszDstPeerId); // Completely new neighbor
-            int notifyLinkChanges (const char *pszDstPeerId); // new/dead link to a known neighbor
-            int notifyReply (const char *pszTargetNodeId);    // send a reply message to the target node
+        private:
+            int notifyNewNeighbor (const char *pszDstPeerId);       // Completely new neighbor
+            int notifyLinkChanges (const char *pszDstPeerId);       // new/dead link to a known neighbor
+            int notifyReply (const char *pszTargetNodeId);          // send a reply message to the target node
 
             int addLinkInternal (const char *pszSrcPeerId, const char *pszDstPeerId,
                                  const char *pszInterface, AdaptorId adaptorId, AdaptorType type);
+            // Returns targets for forwarding that are not 1-hop neighbors of the sender node
             Targets ** getForwardingTargetsInternal (const char *pszCurrPeerId, const char *pszPrevPeerId);
             Targets ** getNodesAsTargets (NOMADSUtil::PtrLList<NOMADSUtil::Edge<EdgeInfo> > *pEdgeList);
             Targets * getNextHopAsTargetInternal (const char *pszDstPeerId);
@@ -180,7 +193,7 @@ namespace IHMC_ACI
             };
 
             int readStaticTopologyFile (const char *pszFileName, NOMADSUtil::DArray2<StaticLink> &links);
-    
+
         private:
             static const char * USE_STATIC_TOPOLOGY_FILE;
     };
@@ -200,7 +213,11 @@ namespace IHMC_ACI
         }
         return true;
     }
+
+    inline NOMADSUtil::PtrLList<NOMADSUtil::String> * Topology::getNeighbors()
+    {
+        return getNeighbors (_nodeId);
+    }
 }
 
 #endif // INCL_TOPOLOGY_H
-

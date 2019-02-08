@@ -23,8 +23,8 @@ void Classify(Description CaseDesc, Tree T, float Weight);
 /*                                                              	 */
 /*************************************************************************/
 
-ClassNo Category(Description CaseDesc, Tree DecisionTree) 
-{ 
+ClassNo Category(Description CaseDesc, Tree DecisionTree)
+{
     ClassNo c, BestClass;
     if(! ClassSum) {
 		ClassSum = (float *) malloc((MaxClass+1) * sizeof(float));
@@ -110,5 +110,5 @@ void Classify(Description CaseDesc, Tree T, float Weight)
 				Classify(CaseDesc, T->Branch[v], (Weight * T->Branch[v]->Items) / T->Items);
 	    	}
 	    	return;
-    } 
+    }
 }

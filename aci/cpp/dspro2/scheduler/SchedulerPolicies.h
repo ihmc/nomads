@@ -1,4 +1,4 @@
-/* 
+/*
  * SchedulerQueueManagment.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -23,9 +23,10 @@
  */
 
 #ifndef INLC_SCHEDULER_POLICIES_H
-#define	INLC_SCHEDULER_POLICIES_H
+#define INLC_SCHEDULER_POLICIES_H
 
 #include "Scheduler.h"
+#include "MetadataGenerator.h"
 
 namespace NOMADSUtil
 {
@@ -38,7 +39,7 @@ namespace IHMC_ACI
     class InformationStoreAdaptor;
     class MetadataGenerator;
     class Scheduler;
- 
+
     //--------------------------------------------------------------------------
     // Queue Replacement Policies
     //--------------------------------------------------------------------------
@@ -49,7 +50,7 @@ namespace IHMC_ACI
             QueueReplacementPolicy (void);
             virtual ~QueueReplacementPolicy (void);
 
-            virtual bool isReplaceable (Scheduler::MsgIDWrapper *pMsgIdWr) = 0;            
+            virtual bool isReplaceable (Scheduler::MsgIDWrapper *pMsgIdWr) = 0;
     };
 
     class ReplaceAllPolicy : public QueueReplacementPolicy
@@ -115,13 +116,13 @@ namespace IHMC_ACI
             virtual ~MetadataMutationPolicy (void);
 
             /**
-             * Returns the ID of the mutatad metadata message or NULL if the
+             * Returns the ID of the mutatad metadata message or nullptr if the
              * metadata was not mutated
              */
-            virtual char * mutate (const char *pszOriginalMetadataId,
-                                   NodeIdSet &targetNodes,
-                                   RankByTargetMap &ranksByTarget,
-                                   Scheduler *pScheduler) = 0;  
+            virtual GenMetadataWrapper  * mutate (const char *pszOriginalMetadataId,
+                                                  IHMC_VOI::NodeIdSet &targetNodes,
+                                                  IHMC_VOI::RankByTargetMap &ranksByTarget,
+                                                  Scheduler *pScheduler) = 0;
     };
 
     class DefaultMutationPolicy : public MetadataMutationPolicy
@@ -131,12 +132,12 @@ namespace IHMC_ACI
             virtual ~DefaultMutationPolicy (void);
 
             /**
-             * Always returns NULL
+             * Always returns nullptr
              */
-            virtual char * mutate (const char *pszOriginalMetadataId,
-                                   NodeIdSet &targetNodes,
-                                   RankByTargetMap &ranksByTarget,
-                                   Scheduler *pScheduler);            
+            virtual GenMetadataWrapper * mutate (const char *pszOriginalMetadataId,
+                                                 IHMC_VOI::NodeIdSet &targetNodes,
+                                                 IHMC_VOI::RankByTargetMap &ranksByTarget,
+                                                 Scheduler *pScheduler);
     };
 
     class PrevMsgMutationPolicy : public MetadataMutationPolicy
@@ -151,10 +152,10 @@ namespace IHMC_ACI
              *
              * NOTE: the returned ID should be deallocated by the caller
              */
-            virtual char * mutate (const char *pszOriginalMetadataId,
-                                   NodeIdSet &targetNodes,
-                                   RankByTargetMap &ranksByTarget,
-                                   Scheduler *pScheduler);
+            virtual GenMetadataWrapper * mutate (const char *pszOriginalMetadataId,
+                                                 IHMC_VOI::NodeIdSet &targetNodes,
+                                                 IHMC_VOI::RankByTargetMap &ranksByTarget,
+                                                 Scheduler *pScheduler);
 
         private:
             MetadataGenerator *_pMutator;
@@ -174,5 +175,4 @@ namespace IHMC_ACI
 
 };
 
-#endif	// INLC_SCHEDULER_POLICIES_H
-
+#endif    // INLC_SCHEDULER_POLICIES_H

@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -39,7 +39,7 @@ extern "C" {
 #define PnmHdrSetMaxVal(hdr, val)   (hdr)->maxVal = val
 
 /*
- * Error codes 
+ * Error codes
  */
 #define DVM_PNM_OK 0
 #define DVM_PNM_INVALID_HDR -1

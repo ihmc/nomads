@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,7 +22,7 @@
 
 #include "FTypes.h"
 
-namespace IHMC_ACI 
+namespace IHMC_ACI
 {
     class DisseminationServiceListener
     {
@@ -60,10 +60,10 @@ namespace IHMC_ACI
             * ui16Tag - the tag that was specified for the message.
             *
             * ui8Priority - the priority value that was specified for the message
-            * 
+            *
             * pszQueryId - if the data was delivered as result of a query, this parameter will contain
             *              the ID of the query that matched the data.
-            *             
+            *
             */
             virtual bool dataArrived (uint16 ui16ClientId, const char *pszSender, const char *pszGroupName,
                                       uint32 ui32SeqId, const char *pszObjectId, const char *pszInstanceId,
@@ -104,7 +104,7 @@ namespace IHMC_ACI
             * ui16Tag - the tag that was specified for the message.
             *
             * ui8Priority - the priority value that was specified for the message.
-            * 
+            *
             * pszQueryId - if the metadata was delivered as result of a query, this parameter will contain
             *              the ID of the query that matched the matadata.
             */
@@ -154,7 +154,7 @@ namespace IHMC_ACI
     };
 
     inline DisseminationServiceListener::DisseminationServiceListener()
-    {        
+    {
     }
 
     inline DisseminationServiceListener::~DisseminationServiceListener()

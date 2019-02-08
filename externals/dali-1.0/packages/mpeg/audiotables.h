@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -108,10 +108,10 @@ double scale_factor_table[64] =
 };
 
 /*
- * The table below are taken from mpg123 
- * Layer 2 Alloc tables .. 
+ * The table below are taken from mpg123
+ * Layer 2 Alloc tables ..
  * most other tables are calculated on program start (which is (of course)
- * not ISO-conform) .. 
+ * not ISO-conform) ..
  * Layer-3 huffman table is in huffman.h
 
  struct al_table alloc_0[] =

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -95,6 +95,8 @@ namespace IHMC_ACI
             int addRequest (RequestInfo &reqInfo, NOMADSUtil::UInt32RangeDLList *pMsgSeqIDs);
             int addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
                             NOMADSUtil::UInt8RangeDLList *pChunkIDs);
+
+            void sendSessionSync (void);
 
             /**
              * Return true if the message - or the part of the message - is contained in
@@ -224,7 +226,7 @@ namespace IHMC_ACI
 
                 bool operator > (const FragmentedMessage &rhsMessage);
                 bool operator == (const FragmentedMessage &rhsMessage);
-                bool operator < (const FragmentedMessage &rhsMessage);                
+                bool operator < (const FragmentedMessage &rhsMessage);
 
                 MessageHeader *pMH;
                 uint32 ui32NextExpected;
@@ -248,7 +250,7 @@ namespace IHMC_ACI
 
                 private:
                     uint64 ui64CachedBytes;
-                    NOMADSUtil::SetUniquePtrLList<FragmentWrapper> fragments;                    
+                    NOMADSUtil::SetUniquePtrLList<FragmentWrapper> fragments;
             };
 
             typedef NOMADSUtil::PtrLList<FragmentedMessage> ChunkList;
@@ -351,6 +353,7 @@ namespace IHMC_ACI
             NOMADSUtil::StringHashtable<MessagesByGroup> _receivedMessages;
             NOMADSUtil::LoggingMutex _m;
             NOMADSUtil::LoggingMutex _newPeerMutex;
+            bool _bSendSessionSync;
             bool _bNewPeer;
             bool _bExpBackoff;
             bool _bReqFragmentsForOpporAcquiredMsgs; // Request missing fragments
@@ -485,7 +488,7 @@ namespace IHMC_ACI
     inline bool MessageReassembler::FragmentedMessage::operator == (const FragmentedMessage &rhsMessage)
     {
         return ((ui32MsgSeqId == rhsMessage.ui32MsgSeqId) && (ui8ChunkID == rhsMessage.ui8ChunkID));
-    }    
+    }
 }
 
 #endif   // #ifndef INCL_MESSAGE_REASSEMBLER_H

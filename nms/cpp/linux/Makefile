@@ -56,8 +56,10 @@ NMSLauncher: libnms.a ../$(EXECUTABLE).cpp
 	$(NORM_HOME)/lib/libnorm.a \
         $(NORM_HOME)/build/protolib/libprotolib.a \
         $(NORM_HOME)/protolib/lib/libprotokit.a \
+	$(NOMADS_HOME)/externals/openssl/1.0.2h/$(ARCH)/lib/libcrypto.a \
         $(LD_FLAGS) \
 	-o $(EXECUTABLE) 
+
 
 NMSProxyShell: libnms.a ../$(EXECUTABLE).cpp
 	$(cpp) $(cppflags) ../proxy/client/NMSProxyShell.cpp \
@@ -68,6 +70,7 @@ NMSProxyShell: libnms.a ../$(EXECUTABLE).cpp
 	$(NORM_HOME)/lib/libnorm.a \
         $(NORM_HOME)/build/protolib/libprotolib.a \
         $(NORM_HOME)/protolib/lib/libprotokit.a \
+	$(NOMADS_HOME)/externals/openssl/1.0.2h/$(ARCH)/lib/libcrypto.a \
 	$(LD_FLAGS) \
 	-o NMSProxyShell 
 

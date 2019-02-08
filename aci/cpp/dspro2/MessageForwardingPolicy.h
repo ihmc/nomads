@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_MESSAGE_FORWARDING_POLICY_H
-#define	INCL_MESSAGE_FORWARDING_POLICY_H
+#define INCL_MESSAGE_FORWARDING_POLICY_H
 
 #include "PeerNodeContext.h"
 #include "PtrLList.h"
@@ -52,5 +52,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	// INCL_MESSAGE_FORWARDING_POLICY_H
-
+#endif    // INCL_MESSAGE_FORWARDING_POLICY_H

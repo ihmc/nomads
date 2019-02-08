@@ -27,7 +27,7 @@ import java.util.List;
  * Date: May 30, 2008
  * Time: 3:24:57 PM
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.9 $
+ * @version $Revision$
  *
  */
 public class DisseminationService

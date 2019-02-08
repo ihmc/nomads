@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -34,7 +34,7 @@
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
-#define checkAndLogMsg if (pLogger) pLogger->logMsg 
+#define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 TopologyForwardingController::TopologyForwardingController (DisseminationService *pDisService)
     : ForwardingController (FC_Default, pDisService), _msgHistory (DEFAULT_MESSAGE_HISTORY_DURATION)
@@ -148,7 +148,7 @@ void TopologyForwardingController::newIncomingMessage (const void *, uint16, Dis
             return;
         }
     }
-    
+
     if (_ui16NumberOfActiveNeighbors < 2) {
         // No need to forward - there are no other neighbors besides the one that sent the message
         return;
@@ -157,23 +157,23 @@ void TopologyForwardingController::newIncomingMessage (const void *, uint16, Dis
     // Choose forwarding strategy
     TopologyWorldState *pWS = (TopologyWorldState *) lockAndGetWorldState(); // Retrieve TopologyWorldState
     switch (pWS->getForwardingStrategy (pDSMsg)) {
-        case ForwardingStrategy::TOPOLOGY_FORWARDING: 
+        case ForwardingStrategy::TOPOLOGY_FORWARDING:
             doTopologyForwarding (pDSMsg);
             break;
-        case ForwardingStrategy::STATEFUL_FORWARDING: 
+        case ForwardingStrategy::STATEFUL_FORWARDING:
             doStatefulForwarding (pDSMsg);
             break;
-        case ForwardingStrategy::FLOODING_FORWARDING: 
+        case ForwardingStrategy::FLOODING_FORWARDING:
             doFloodingForwarding (pDSMsg);
             break;
-        case ForwardingStrategy::PROBABILISTIC_FORWARDING: 
+        case ForwardingStrategy::PROBABILISTIC_FORWARDING:
             //TODO
             break;
     }
     releaseWorldState (pWS);
 }
 
-void TopologyForwardingController::doTopologyForwarding (DisServiceMsg *pDSMsg) 
+void TopologyForwardingController::doTopologyForwarding (DisServiceMsg *pDSMsg)
 {
     // Forwarding strategy that exploits TopologyWorldState information
     DisServiceDataMsg *pDSDMsg = (DisServiceDataMsg*) pDSMsg;
@@ -192,11 +192,11 @@ void TopologyForwardingController::doTopologyForwarding (DisServiceMsg *pDSMsg)
     if (0 != stricmp (pszPublisherNodeId, _pDisService->getNodeId())) { // I'm not the publisher
         if (_msgHistory.put (pszMsgId)) {
             if (pszTargetNodeId == NULL || isMsgTargetNode (_pDisService->getNodeId(), pszTargetNodeId)) {
-                PtrLList<String> *pTargetNodes = pWS->getTargetNodes (pDSDMsg); 
+                PtrLList<String> *pTargetNodes = pWS->getTargetNodes (pDSDMsg);
                 if (pTargetNodes) {
                     String pTarget;
                     for (String *pNodeId = pTargetNodes->getFirst(); pNodeId; pNodeId = pTargetNodes->getNext()) {
-                        if (0 != stricmp (pNodeId->c_str(), pszPublisherNodeId) && 0 != stricmp (pNodeId->c_str(), pszSenderNodeId) 
+                        if (0 != stricmp (pNodeId->c_str(), pszPublisherNodeId) && 0 != stricmp (pNodeId->c_str(), pszSenderNodeId)
                             && !isMsgTargetNode (pNodeId->c_str(), pszTargetNodeId)) {
                             // Don't forward to publisher node, sender node or other nodes that were targets of the msg
                             if (pTarget) {
@@ -219,7 +219,7 @@ void TopologyForwardingController::doTopologyForwarding (DisServiceMsg *pDSMsg)
     releaseWorldState (pWS);
 }
 
-bool TopologyForwardingController::isMsgTargetNode (const char *pszNodeId, const char *pszTargetNodeId) 
+bool TopologyForwardingController::isMsgTargetNode (const char *pszNodeId, const char *pszTargetNodeId)
 {
     // Returns true if pszNodeId is contained in pszTargetNodeId
     bool bFound = false;
@@ -282,7 +282,7 @@ void TopologyForwardingController::doStatefulForwarding (DisServiceMsg *pDSMsg)
     }
 }
 
-void TopologyForwardingController::doFloodingForwarding (DisServiceMsg *pDSMsg) 
+void TopologyForwardingController::doFloodingForwarding (DisServiceMsg *pDSMsg)
 {
     if (pDSMsg->getType() == DisServiceMsg::DSMT_Data) { // This is a data msg
         DisServiceDataMsg *pDSDMsg = (DisServiceDataMsg *) pDSMsg;

@@ -8,6 +8,9 @@ include Makefile.inc
 %.o : ../%.cpp
 	$(cpp) -c $(cppflags) $<
 
+%.o : ../proxy/%.cpp
+	$(cpp) -c $(cppflags) $<
+
 all: libchunking.a TestDriver 
 
 libutil.a:
@@ -28,8 +31,8 @@ libjasper.a:
 libmedia.a:
 	make -C ../../media/$(MAKEFILE_FOLDER)/ libmedia.a
 
-libchunking.a: libjpeg.a libpng.a libjasper.a libmedia.a libutil.a libsecurity.a $(objects)
-	ar -rcv libchunking.a $(objects)
+libchunking.a: libjpeg.a libpng.a libjasper.a libmedia.a libutil.a libsecurity.a $(objects) $(proxyobjects)
+	ar -rcv libchunking.a $(objects) $(proxyobjects)
 
 TestDriver: libchunking.a ../TestDriver.cpp
 	$(cpp) $(cppflags) \

@@ -12,8 +12,8 @@
 
 #define	 Eof            EOF             // char read on end of file
 #define	 Nil            0               // null pointer
-#define	 false          0 
-#define	 true           1 
+#define	 false          0
+#define	 true           1
 #define	 None           -1
 #define	 Epsilon        1E-3
 
@@ -24,8 +24,8 @@
     #define Random (((double)rand()) / RAND_MAX)
 #endif
 
-#define	 Max(a,b)       ((a)>(b) ? a : b) 
-#define	 Min(a,b)       ((a)<(b) ? a : b) 
+#define	 Max(a,b)       ((a)>(b) ? a : b)
+#define	 Min(a,b)       ((a)<(b) ? a : b)
 #define	 Round(x)       ((int) (x+0.5))
 #define	 Log2           0.69314718055994530942
 #define	 Log(x)         ((x) <= 0 ? 0.0 : log((float)x) / Log2)
@@ -34,7 +34,7 @@
 #define	 ClearBits(n,s)     memset(s,0,n)
 #define	 CopyBits(n,f,t)    memcpy(t,f,n)
 #define	 SetBit(b,s)        (s[(b) >> 3] |= Bit((b) & 07))
-#define	 ForEach(v,f,l)     for(v=f ; v<=l ; ++v) 
+#define	 ForEach(v,f,l)     for(v=f ; v<=l ; ++v)
 #define	 Verbosity(d)       if(VERBOSITY >= d)
 #define	 Check(v, l, h) ((v<l || v>h) ? false : true )
 

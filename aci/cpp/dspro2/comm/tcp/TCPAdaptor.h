@@ -22,7 +22,7 @@
  */
 
 #ifndef INCL_TCP_ADAPTOR_H
-#define	INCL_TCP_ADAPTOR_H
+#define INCL_TCP_ADAPTOR_H
 
 #include "ConnCommAdaptor.h"
 
@@ -35,7 +35,7 @@ namespace IHMC_ACI
         public:
             static const unsigned short DEFAULT_PORT;
 
-            TCPAdaptor (AdaptorId uiId, const char *pszNodeId, const char *pszSessionId,
+            TCPAdaptor (AdaptorId uiId, const char *pszNodeId,
                         CommAdaptorListener *pListener, uint16 ui16Port);
             virtual ~TCPAdaptor (void);
 
@@ -103,6 +103,9 @@ namespace IHMC_ACI
                                   const char *pszPublisherNodeId,
                                   const char **ppszRecipientNodeIds,
                                   const char **ppszInterfaces);
+            int notifyEvent (const void *pBuf, uint32 ui32Len,
+                             const char *pszPublisherNodeId,
+                             const char *pszTopic, const char **ppszInterfaces);
 
         protected:
             int connectToPeerInternal (const char *pszRemotePeerAddr, uint16 ui16Port);
@@ -116,5 +119,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_TCP_ADAPTOR_H */
-
+#endif    /* INCL_TCP_ADAPTOR_H */

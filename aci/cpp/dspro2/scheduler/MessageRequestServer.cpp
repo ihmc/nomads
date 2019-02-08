@@ -1,4 +1,4 @@
-/* 
+/*
  * MessageRequestServer.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -42,8 +42,8 @@ MessageRequestServer::~MessageRequestServer()
 Message * MessageRequestServer::getRequestReply (const char *pszRequestedMsgId, uint8 *pChunkIdFilters,
                                                  uint8 ui8ChunkIdFiltersLen)
 {
-    if (pszRequestedMsgId == NULL) {
-        return NULL;
+    if (pszRequestedMsgId == nullptr) {
+        return nullptr;
     }
     if (isAllChunksMessageID (pszRequestedMsgId) && isOnDemandDataID (pszRequestedMsgId)) {
         return getAnyMatchingChunk (pszRequestedMsgId, pChunkIdFilters, ui8ChunkIdFiltersLen);
@@ -57,23 +57,23 @@ Message * MessageRequestServer::getAnyMatchingChunk (const char *pszRequestedMsg
     // A chunked message was requested - send one of the chunks that have
     // not yet been received by the requestor
     PtrLList<Message> *pChunks = _pDataStore->getCompleteChunks (pszRequestedMsgId);
-    if (pChunks == NULL) {
-        return NULL;
+    if (pChunks == nullptr) {
+        return nullptr;
     }
 
-    if (pChunks->getFirst() == NULL) {
+    if (pChunks->getFirst() == nullptr) {
         _pDataStore->releaseChunks (pChunks);
-        return NULL;
+        return nullptr;
     }
 
-    if (pChunkIdFilters == NULL || ui8ChunkIdFiltersLen == 0) {
+    if (pChunkIdFilters == nullptr || ui8ChunkIdFiltersLen == 0) {
         Message *pMsg = pChunks->getFirst()->clone();
         _pDataStore->releaseChunks (pChunks);
         return pMsg;
     }
 
-    Message *pMsg = NULL;
-    for (Message *pTmp = pChunks->getFirst(); pTmp != NULL; pTmp = pChunks->getNext()) {
+    Message *pMsg = nullptr;
+    for (Message *pTmp = pChunks->getFirst(); pTmp != nullptr; pTmp = pChunks->getNext()) {
         bool bFound = false;
         for (uint8 i = 0; i < ui8ChunkIdFiltersLen && !bFound; i++) {
             if (pChunkIdFilters[i] == pTmp->getMessageHeader()->getChunkId()) {

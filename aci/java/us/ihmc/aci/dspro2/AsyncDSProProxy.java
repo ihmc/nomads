@@ -13,8 +13,10 @@ package us.ihmc.aci.dspro2;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import us.ihmc.aci.dspro2.util.LoggerInterface;
-import us.ihmc.aci.dspro2.util.LoggerWrapper;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.slf4j.Logger;
+import us.ihmc.aci.util.dspro.LogUtils;
 import us.ihmc.comm.CommException;
 
 import us.ihmc.util.StringUtil;
@@ -23,99 +25,85 @@ import us.ihmc.util.StringUtil;
  *
  * @author Giacomo Benincasa    (gbenincasa@ihmc.us)
  */
-public class AsyncDSProProxy extends QueuedDSProProxy implements Runnable
+public class AsyncDSProProxy extends AbstractDSProProxy implements Runnable
 {
+    private static AtomicBoolean _terminate = new AtomicBoolean(false);
     public static final long DEFAULT_POLLING_TIME = 5000;
 
-    public AsyncDSProProxy()
+    public AsyncDSProProxy (QueuedDSProProxy proxy)
     {
-        this (DEFAULT_POLLING_TIME);
+        this(proxy, DEFAULT_POLLING_TIME);
+    }
+    public AsyncDSProProxy (QueuedDSProProxy proxy, long pollingTime)
+    {
+        super(proxy);
     }
 
-    public AsyncDSProProxy (long pollingTime)
-    {
-        super();
-    }
-
-    public AsyncDSProProxy (short applicationId)
-    {
-        this (applicationId, DEFAULT_POLLING_TIME);
-    }
-
-    public AsyncDSProProxy (short applicationId, long pollingTime)
-    {
-        super (applicationId);
-    }
-
-    public AsyncDSProProxy (short applicationId, String host, int iPort)
-    {
-    	this (applicationId, host, iPort, DEFAULT_POLLING_TIME);
-    }
-
-    public AsyncDSProProxy (short applicationId, String host, int iPort, long pollingTime)
-    {
-    	super (applicationId, host, iPort);
-    }
-
+    @Override
     public void run()
     {
         Thread.currentThread().setName (AsyncDSProProxy.class.getSimpleName());
 
-        while (true) {
+        while (!_terminate.get()) {
             try {
                 // Using TimeUnit.SECONDS instead of TimeUnit.DAYS because some older versions
-                // of dalvikvm (android) do not seeem to support it! 
-                Callback cback = getDSProListenerCallback (Long.MAX_VALUE, TimeUnit.SECONDS);
+                // of dalvikvm (android) do not seeem to support it!
+                QueuedDSProProxy.Callback cback = ((QueuedDSProProxy) proxy).getDSProListenerCallback (Long.MAX_VALUE, TimeUnit.SECONDS);
                 if (cback != null) {
-                    if (cback instanceof QueuedArrivedData) {
-                        QueuedArrivedData ad = (QueuedArrivedData) cback;
+                    if (cback instanceof QueuedDSProProxy.QueuedArrivedData) {
+                        QueuedDSProProxy.QueuedArrivedData ad = (QueuedDSProProxy.QueuedArrivedData) cback;
                         DSProProxy.dataArrived (_dsProListeners, ad.id, ad.groupName, ad.objectId,
                                                 ad.instanceId, ad.annotatedObjMsgId, ad.mimeType,
                                                 ad.data, ad.chunkNumber, ad.totChunksNumber, ad.queryId);
                     }
-                    else if (cback instanceof QueuedArrivedMetadata) {
-                        QueuedArrivedMetadata am = (QueuedArrivedMetadata) cback;
-                        System.out.println ("NOMADS:AsynchDSProProxy: metadataArrived: " + am.id + " about to notify clients");
+                    else if (cback instanceof QueuedDSProProxy.QueuedArrivedMetadata) {
+                        QueuedDSProProxy.QueuedArrivedMetadata am = (QueuedDSProProxy.QueuedArrivedMetadata) cback;
                         LOG.info ("NOMADS:AsynchDSProProxy: metadataArrived: " + am.id + " about to notify clients");
                         DSProProxy.metadataArrived (_dsProListeners, am.id, am.groupName,
                                                   am.objectId, am.instanceId,
-                                                  am.XMLMetadata, am.referredDataId,
+                                                  am.jsonMetadata, am.referredDataId,
                                                   am.queryId);
-                        System.out.println ("NOMADS:AsynchDSProProxy: metadataArrived: " + am.id + "notified clients");
                         LOG.info ("NOMADS:AsynchDSProProxy: metadataArrived: " + am.id + "notified clients");
                     }
-                    else if (cback instanceof QueuedRegisteredPath) {
-                        QueuedRegisteredPath ap = (QueuedRegisteredPath) cback;
+                    else if (cback instanceof QueuedDSProProxy.QueuedAvailableData) {
+                        QueuedDSProProxy.QueuedAvailableData ad = (QueuedDSProProxy.QueuedAvailableData) cback;
+                        LOG.trace ("NOMADS:AsynchDSProProxy: dataAvailable: " + ad.id + " about to notify clients");
+                        DSProProxy.dataAvailable (_dsProListeners, ad.id, ad.groupName, ad.objectId, ad.instanceId,
+                                                  ad.referredDataId, ad.mimeType, ad.metadata, ad.queryId);
+                        LOG.trace ("NOMADS:AsynchDSProProxy: dataAvailable: " + ad.id + "notified clients");
+                    }
+                    else if (cback instanceof QueuedDSProProxy.QueuedRegisteredPath) {
+                        QueuedDSProProxy.QueuedRegisteredPath ap = (QueuedDSProProxy.QueuedRegisteredPath) cback;
                         DSProProxy.pathRegistered (_dsProListeners, ap._path, ap._nodeId,
                                                  ap._teamId, ap._mission);
                     }
-                    else if (cback instanceof QueuedUpdatedPosition) {
-                        QueuedUpdatedPosition rp = (QueuedUpdatedPosition) cback;
+                    else if (cback instanceof QueuedDSProProxy.QueuedUpdatedPosition) {
+                        QueuedDSProProxy.QueuedUpdatedPosition rp = (QueuedDSProProxy.QueuedUpdatedPosition) cback;
                         DSProProxy.positionUpdated (_dsProListeners, rp._latitude, rp._longitude,
                                                   rp._altitude, rp._nodeId);
                     }
-                    else if (cback instanceof QueuedArrivedPeer) {
-                        QueuedArrivedPeer ap = (QueuedArrivedPeer) cback;
+                    else if (cback instanceof QueuedDSProProxy.QueuedArrivedPeer) {
+                        QueuedDSProProxy.QueuedArrivedPeer ap = (QueuedDSProProxy.QueuedArrivedPeer) cback;
                         DSProProxy.newNeighbor (_dsProListeners, ap._nodeId);
                     }
-                    else if (cback instanceof QueuedDeadPeer) {
-                        QueuedDeadPeer dp = (QueuedDeadPeer) cback;
+                    else if (cback instanceof QueuedDSProProxy.QueuedDeadPeer) {
+                        QueuedDSProProxy.QueuedDeadPeer dp = (QueuedDSProProxy.QueuedDeadPeer) cback;
                         DSProProxy.deadNeighbor (_dsProListeners, dp._nodeId);
                     }
-                    else if (cback instanceof QueuedArrivedSearch) {
-                        QueuedArrivedSearch as = (QueuedArrivedSearch) cback;
+                    else if (cback instanceof QueuedDSProProxy.QueuedArrivedSearch) {
+                        QueuedDSProProxy.QueuedArrivedSearch as = (QueuedDSProProxy.QueuedArrivedSearch) cback;
                         DSProProxy.searchArrived (_searchListeners, as._queryId,
                                                 as._groupName, as._querier,
                                                 as._queryType, as._queryQualifiers,
                                                 as._query);
                     }
-                    else if (cback instanceof QueuedArrivedSearchReply) {
-                        QueuedArrivedSearchReply asr = (QueuedArrivedSearchReply) cback;
+                    else if (cback instanceof QueuedDSProProxy.QueuedArrivedSearchReply) {
+                        QueuedDSProProxy.QueuedArrivedSearchReply asr = (QueuedDSProProxy.QueuedArrivedSearchReply) cback;
                         DSProProxy.searchReplyArrived (_searchListeners, asr._queryId,
                                                 asr._matchingIds, asr._responderNodeId);
                     }
-                    else if (cback instanceof QueuedArrivedVolatileSearchReply) {
-                        QueuedArrivedVolatileSearchReply avsr = (QueuedArrivedVolatileSearchReply) cback;
+                    else if (cback instanceof QueuedDSProProxy.QueuedArrivedVolatileSearchReply) {
+                        QueuedDSProProxy.QueuedArrivedVolatileSearchReply avsr = (QueuedDSProProxy.QueuedArrivedVolatileSearchReply) cback;
                         DSProProxy.searchReplyArrived (_searchListeners, avsr._queryId,
                                                        avsr._reply, avsr._responderNodeId);
                     }
@@ -130,6 +118,11 @@ public class AsyncDSProProxy extends QueuedDSProProxy implements Runnable
         }
     }
 
+    public void requestTermination()
+    {
+        _terminate.set(true);
+    }
+
     @Override
     public synchronized int registerDSProProxyListener (DSProProxyListener listener)
         throws CommException
@@ -140,7 +133,7 @@ public class AsyncDSProProxy extends QueuedDSProProxy implements Runnable
         }
         LOG.info (AsyncDSProProxy.class.getSimpleName() + " _dsProListeners size: " + _dsProListeners.size());
         if (_dsProListeners.isEmpty()) {
-            super.registerDSProProxyListener(this);
+            proxy.registerDSProProxyListener(this);
         }
         _dsProListeners.add (listener);
         return _dsProListeners.size()-1;
@@ -157,7 +150,7 @@ public class AsyncDSProProxy extends QueuedDSProProxy implements Runnable
         }
         _dsProListeners.remove (listener);
         if (_dsProListeners.isEmpty()) {
-            super.deregisterDSProProxyListener(this);
+            proxy.deregisterDSProProxyListener(this);
         }
     }
 
@@ -170,7 +163,7 @@ public class AsyncDSProProxy extends QueuedDSProProxy implements Runnable
             return -1;
         }
         if (_searchListeners.isEmpty()) {
-            super.registerSearchListener (this);
+            proxy.registerSearchListener (this);
         }
         _searchListeners.add (listener);
         return _searchListeners.size()-1;
@@ -186,12 +179,12 @@ public class AsyncDSProProxy extends QueuedDSProProxy implements Runnable
         }
         _searchListeners.remove (listener);
         if (_searchListeners.isEmpty()) {
-            super.deregisterSearchListener (this);
+            proxy.deregisterSearchListener (this);
         }
     }
 
     private final List<DSProProxyListener> _dsProListeners = new ArrayList<DSProProxyListener>();
     private final List<SearchListener> _searchListeners = new ArrayList<SearchListener>();
 
-    protected final static LoggerInterface LOG = LoggerWrapper.getLogger (AsyncDSProProxy.class);
+    protected final static Logger LOG = LogUtils.getLogger (AsyncDSProProxy.class);
 }

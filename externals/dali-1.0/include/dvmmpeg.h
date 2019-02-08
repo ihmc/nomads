@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -97,8 +97,8 @@ extern "C" {
 #define DVM_STREAM_ID_PRIVATE_2 0xBF
 #define DVM_STREAM_ID_PADDING   0xBE
 
-/* 
- * Special DCT values 
+/*
+ * Special DCT values
  */
 #define EOB     62
 #define ESCAPE  61
@@ -129,7 +129,7 @@ extern "C" {
 /*
  *----------------------------------------------------------------------
  *
- * type MpegSeqHdr 
+ * type MpegSeqHdr
  *
  *     The MpegSeqHdr structure contains all the parameters
  *     contained in the sequence header of a mpeg stream
@@ -170,7 +170,7 @@ extern "C" {
 /*
  *----------------------------------------------------------------------
  *
- * type MpegGopHdr 
+ * type MpegGopHdr
  *
  *     The MpegGopHdr structure contains all the parameters
  *     contained in the GOP header of a mpeg stream
@@ -201,7 +201,7 @@ extern "C" {
 /*
  *----------------------------------------------------------------------
  *
- * type MpegPicHdr 
+ * type MpegPicHdr
  *
  *     The MpegPicHdr structure contains all the parameters
  *     contained in the picture header of a mpeg stream
@@ -230,7 +230,7 @@ extern "C" {
 /*
  *----------------------------------------------------------------------
  *
- * type MpegPktHdr 
+ * type MpegPktHdr
  *
  *----------------------------------------------------------------------
  */
@@ -258,7 +258,7 @@ extern "C" {
 /*
  *----------------------------------------------------------------------
  *
- * type MpegPckHdr 
+ * type MpegPckHdr
  *
  *----------------------------------------------------------------------
  */
@@ -277,7 +277,7 @@ extern "C" {
 /*
  *----------------------------------------------------------------------
  *
- * type MpegSysHdr 
+ * type MpegSysHdr
  *
  *----------------------------------------------------------------------
  */
@@ -330,7 +330,7 @@ extern "C" {
 /*
  *----------------------------------------------------------------------
  *
- * type MpegAudioHdr 
+ * type MpegAudioHdr
  *
  *     The MpegAudioHdr structure contains all the important fields
  *     in a MPEG audio hdr.
@@ -416,7 +416,7 @@ extern "C" {
  *
  * type MpegAudioSynData, MpegAudioGraData, MpegAudioBuffer
  *
- *     An auxillary data structure that contains information from 
+ *     An auxillary data structure that contains information from
  *     previous decoding, needs to be used in the decoding of next
  *     audio frame.
  *
@@ -462,14 +462,14 @@ extern "C" {
 
 /*
  *----------------------------------------------------------------------
- * 
+ *
  * type MpegVideoIndex
  *
  *    A data structure that contains information about
  *    MpegVideoIndexElements, the number of elements, and the maximum
  *    possible number of elements.
  *
- *---------------------------------------------------------------------- 
+ *----------------------------------------------------------------------
  */
 
     typedef struct MpegVideoIndex {

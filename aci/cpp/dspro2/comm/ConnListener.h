@@ -1,4 +1,4 @@
-/* 
+/*
  * ConnListener.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCLUDE_CONN_LISTENER_H
-#define	INCLUDE_CONN_LISTENER_H
+#define INCLUDE_CONN_LISTENER_H
 
 #include "ManageableThread.h"
 
@@ -57,9 +57,7 @@ namespace IHMC_ACI
 
         private:
             const NOMADSUtil::String _nodeId;
-            const NOMADSUtil::String _sessionId;
     };
 }
 
-#endif	/* INCLUDE_CONN_LISTENER_H */
-
+#endif    /* INCLUDE_CONN_LISTENER_H */

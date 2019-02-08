@@ -38,15 +38,15 @@ TCPEndPoint::TCPEndPoint (TCPSocket *pSocket, int64 i64Timeout)
 
 TCPEndPoint::~TCPEndPoint (void)
 {
-    _pSocket = NULL;
+    _pSocket = nullptr;
 }
 
 int TCPEndPoint::connect (const char *pszRemoteHost, uint16 ui16RemotePort)
 {
-    if (pszRemoteHost == NULL) {
+    if (pszRemoteHost == nullptr) {
         return -1;
     }
-    if (_pSocket == NULL) {
+    if (_pSocket == nullptr) {
         return -2;
     }
     return _pSocket->connect (pszRemoteHost, ui16RemotePort);
@@ -54,7 +54,7 @@ int TCPEndPoint::connect (const char *pszRemoteHost, uint16 ui16RemotePort)
 
 void TCPEndPoint::close (void)
 {
-    if (_pSocket != NULL) {
+    if (_pSocket != nullptr) {
         _pSocket->disconnect();
     }
 }
@@ -62,7 +62,7 @@ void TCPEndPoint::close (void)
 String TCPEndPoint::getRemoteAddress (void)
 {
     String addr;
-    if (_pSocket != NULL) {
+    if (_pSocket != nullptr) {
         addr = _pSocket->getRemoteHostAddr();
     }
     return addr;
@@ -70,7 +70,7 @@ String TCPEndPoint::getRemoteAddress (void)
 
 int TCPEndPoint::send (const void *pBuf, int iSize)
 {
-    if (_pSocket == NULL) {
+    if (_pSocket == nullptr) {
         return -1;
     }
     if (!_pSocket->isConnected()) {
@@ -81,7 +81,7 @@ int TCPEndPoint::send (const void *pBuf, int iSize)
 
 int TCPEndPoint::receive (void *pBuf, uint32 ui32BufSize, int64 i64Timeout)
 {
-    if (_pSocket == NULL) {
+    if (_pSocket == nullptr) {
         return -1;
     }
     if (!_pSocket->isConnected()) {

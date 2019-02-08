@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -82,7 +82,7 @@ MpegAudioHdrFind(bp)
 
 
 
-int 
+int
 MpegAudioHdrDump(inbp, outbp)
     BitParser *inbp, *outbp;
 {
@@ -103,7 +103,7 @@ MpegAudioHdrDump(inbp, outbp)
 }
 
 
-int 
+int
 MpegAudioHdrSkip(bp)
     BitParser *bp;
 {

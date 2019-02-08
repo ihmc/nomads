@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -40,17 +40,17 @@ namespace IHMC_ACI
     class DisServiceMsg;
     class DisseminationService;
     class SubscriptionAdvTable;
-        
+
     class SubscriptionForwardingController : public MessageListener, public PeerStateListener
     {
         public:
             SubscriptionForwardingController (DisseminationService *pDisService);
             ~SubscriptionForwardingController (void);
-            
+
             void newIncomingMessage (const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
                                      DisServiceMsg *pDisServiceMsg, uint32 ui32SourceIPAddress,
                                      const char *pszIncomingInterface);
-            
+
             void newNeighbor (const char *pszNodeUID, const char *pszPeerRemoteAddr,
                               const char *pszIncomingInterface);
             void deadNeighbor (const char *pszNodeUID);
@@ -61,21 +61,21 @@ namespace IHMC_ACI
             void setAdvertisementThreshold (uint16 ui16AdvThreshold);
             void setAdvertisementPeriod (int64 i64AdvPeriod);
             void advertiseSubscriptions (void);
-            void configureTable (int64 i64LifeTimeUpdateThreshold, int64 i64SeqNoLifetimeExpirationThreshold); 
-            
+            void configureTable (int64 i64LifeTimeUpdateThreshold, int64 i64SeqNoLifetimeExpirationThreshold);
+
         private:
-            
+
             int updateTable (const char *pszSenderNodeId, NOMADSUtil::PtrLList<NOMADSUtil::String> *pSubList,
                              NOMADSUtil::PtrLList<NOMADSUtil::String> *pNodeList);
-            
-            struct CtrlSeqNo 
+
+            struct CtrlSeqNo
             {
                 CtrlSeqNo (uint32 ui32SeqNo, int64 i64TimeStamp);
-                
+
                 uint32 _ui32SeqNo;
                 int64 _i64TimeStamp;
             };
-            
+
             static const uint16 DEFAULT_ADV_THRESHOLD = 3;
             uint16 _ui16AdvThreshold;
             int64 _i64AdvPeriod;

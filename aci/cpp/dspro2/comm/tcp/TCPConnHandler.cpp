@@ -22,30 +22,26 @@
 
 #include "TCPConnHandler.h"
 
+#include <assert.h>
+#include <stdlib.h>
+
 #include "BufferWriter.h"
 #include "NLFLib.h"
 #include "SocketReader.h"
 #include "TCPSocket.h"
 
-#include  <assert.h>
-#include <stdlib.h>
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
+
 TCPConnHandler::TCPConnHandler (const AdaptorProperties &adptProp, const char *pszRemotePeerId,
-                                CommAdaptorListener *pListener, TCPSocket *pSocket, const char *pszLocalPeerAdd)
-    : ConnHandler (adptProp, pszRemotePeerId, pSocket->getRemotePort(), pListener),
-      _pSocket (pSocket),
-      _localPeerAddr (pszLocalPeerAdd),
-      _remotePeerAddr (pSocket->getRemoteHostAddr())
+                                CommAdaptorListener *pListener, TCPSocket *pSocket, const char *pszLocalPeerAdd) :
+    ConnHandler (adptProp, pszRemotePeerId, pSocket->getRemotePort(), pListener), _pSocket (pSocket),
+    _localPeerAddr (pszLocalPeerAdd), _remotePeerAddr (pSocket->getRemoteHostAddr())
 {
     assert (Socket::checkIfStringIsIPAddr (_localPeerAddr));
     assert (Socket::checkIfStringIsIPAddr (_remotePeerAddr));
-}
-
-TCPConnHandler::~TCPConnHandler (void)
-{
 }
 
 int TCPConnHandler::init (void)
@@ -59,26 +55,40 @@ int TCPConnHandler::init (void)
 
 bool TCPConnHandler::isConnected (void)
 {
-    if (_pSocket != NULL) {
+    if (_pSocket != nullptr) {
         return _pSocket->isConnected() > 0;
     }
     return false;
 }
 
-const char * TCPConnHandler::getLocalPeerAddress (void) const
+void TCPConnHandler::requestTermination (void)
 {
-    return _localPeerAddr;
+    if (_pSocket->isConnected()) {
+        _pSocket->disconnect();
+    }
+    ManageableThread::requestTermination();
 }
 
-const char * TCPConnHandler::getRemotePeerAddress (void) const
+void TCPConnHandler::requestTerminationAndWait (void)
 {
-    return _remotePeerAddr;
+    if (_pSocket->isConnected()) {
+        _pSocket->disconnect();
+    }
+    ManageableThread::requestTerminationAndWait();
 }
 
-void TCPConnHandler::resetTransmissionCounters (void)
+void TCPConnHandler::abortConnHandler (void)
 {
+    if (_pSocket->isConnected()) {
+        _pSocket->shutdown (true, true);
+        _pSocket->disconnect();
+    }
+    ManageableThread::requestTerminationAndWait();
 }
 
+/* Note: do not move (and inline) this method to the header file,
+ * unless the #include of TCPSocket.h is substituted for the
+ * forward declarations of Socket and TCPSocket. */
 int TCPConnHandler::send (const void *pBuf, uint32 ui32Len, uint8 ui8Priority)
 {
     return send (_pSocket, pBuf, ui32Len, ui8Priority);
@@ -86,7 +96,7 @@ int TCPConnHandler::send (const void *pBuf, uint32 ui32Len, uint8 ui8Priority)
 
 int TCPConnHandler::send (Socket *pSocket, const void *pBuf, uint32 ui32Len, uint8 ui8Priority)
 {
-    if (pSocket == NULL) {
+    if (pSocket == nullptr) {
         return -1;
     }
     BufferWriter bw (1400, 1400);
@@ -97,14 +107,14 @@ int TCPConnHandler::send (Socket *pSocket, const void *pBuf, uint32 ui32Len, uin
 
 int TCPConnHandler::receive (BufferWrapper &bw, char **ppszRemotePeerAddr)
 {
-    if (ppszRemotePeerAddr == NULL || _pSocket == NULL) {
+    if (ppszRemotePeerAddr == nullptr || _pSocket == nullptr) {
         return -1;
     }
     if (!_pSocket->isConnected()) {
         return -2;
     }
 
-    uint32 ui32Len = 0;    
+    uint32 ui32Len = 0;
     SocketReader sr (_pSocket, false);
     if (sr.read32 (&ui32Len) < 0) {
         return -2;
@@ -114,7 +124,7 @@ int TCPConnHandler::receive (BufferWrapper &bw, char **ppszRemotePeerAddr)
     }
     if (ui32Len > MAX_MESSAGE_SIZE) {
         void *pBuf = malloc (ui32Len);
-        if (pBuf == NULL) {
+        if (pBuf == nullptr) {
             return -4;
         }
         else if (sr.readBytes (pBuf, ui32Len) < 0) {

@@ -4,7 +4,7 @@ SOURCES =$(filter-out $(NOWANTS),$(wildcard ../*.cpp))
 OBJECTS = $(SOURCES:../%.cpp=%.o)
 OBJECTSPROXY = $(SOURCESPROXY:../%.cpp=%.o)
 
-all: libsqlite.a libtinyxpath.a liblcppdc.a libnms.a libchunking.a libmsgpack.a libdisservice.a libDisServiceJNIWrapper.so DisServiceLauncher DisServiceMessageInjector
+all: libsqlite.a libz.a libtinyxpath.a liblcppdc.a libnms.a libchunking.a libmsgpack.a libdisservice.a libDisServiceJNIWrapper.so DisServiceLauncher DisServiceMessageInjector
 
 CPPFLAGS += -I$(MOCKETS_HOME)/cpp -I$(NOMADS_HOME)/externals/JDK \
 	-I$(NOMADS_HOME)/externals/JDK/$(LIB_FOLDER) -fPIC
@@ -17,6 +17,9 @@ listlibs:
 
 %.o : ../%.cpp
 	$(CPP) -c $(CPPFLAGS) $<
+
+libz.a :
+	make -C $(LIBZ_HOME)/$(MAKEFILE_FOLDER)/ libz.a
 
 libutil.a :
 	make -C $(NOMADS_HOME)/util/cpp/$(MAKEFILE_FOLDER)/ libutil.a
@@ -57,7 +60,7 @@ libDisServiceJNIWrapper.so : libdisservice.a ../DisServiceJNIWrapper.cpp \
 	$(LIB_LIST) $(LD_FLAGS) \
 	-o libDisServiceJNIWrapper.so
 
-DisServiceLauncher : libdisservice.a libdisserviceproxy.a libutil.a libsecurity.a libnms.a libsqlite.a libtinyxpath.a libchunking.a liblcppdc.a libmsgpack.a ../DisServiceLauncher.cpp
+DisServiceLauncher : libdisservice.a libdisserviceproxy.a libutil.a libsecurity.a libnms.a libsqlite.a libz.a libtinyxpath.a libchunking.a liblcppdc.a libmsgpack.a ../DisServiceLauncher.cpp
 	@echo "Compiling with $(MakefileArch) for $(ARCH) architecture"
 	@echo "MAKEFILE_FOLDER: $(MAKEFILE_FOLDER) ARCH_FLAGS: $(BUILD_FLAGS) EXTERNALS_LIB: $(EXTERNALS_LIB)"
 	$(CPP) $(CPPFLAGS) \
@@ -67,7 +70,7 @@ DisServiceLauncher : libdisservice.a libdisserviceproxy.a libutil.a libsecurity.
 	$(LIB_LIST) $(LD_FLAGS) \
 	-o DisServiceLauncher
 
-DisServiceMessageInjector : libdisservice.a libutil.a libnms.a libchunking.a liblcppdc.a ../DisServiceMessageInjector.cpp
+DisServiceMessageInjector : libdisservice.a libutil.a libnms.a libtinyxpath.a libchunking.a liblcppdc.a libmsgpack.a ../DisServiceMessageInjector.cpp
 	$(CPP) $(CPPFLAGS) \
 	../DisServiceMessageInjector.cpp \
 	libdisservice.a \

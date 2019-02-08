@@ -1,4 +1,4 @@
-/* 
+/*
  * MessageRequestServer.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -22,7 +22,7 @@
  */
 
 #ifndef INCL_MESSAGE_REQUEST_SERVER_H
-#define	INCL_MESSAGE_REQUEST_SERVER_H
+#define INCL_MESSAGE_REQUEST_SERVER_H
 
 #include "FTypes.h"
 
@@ -31,7 +31,7 @@ namespace IHMC_ACI
     class DataStore;
     class Message;
 
-    class MessageRequestServer 
+    class MessageRequestServer
     {
         public:
             MessageRequestServer (DataStore *pDataStore);
@@ -57,5 +57,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_MESSAGE_REQUEST_SERVER_H */
-
+#endif    /* INCL_MESSAGE_REQUEST_SERVER_H */

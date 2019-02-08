@@ -1,4 +1,4 @@
-/* 
+/*
  * Defs.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_DEFS_H
-#define	INCL_DEFS_H
+#define INCL_DEFS_H
     #include "FTypes.h"
 
     #define AdaptorId unsigned int
@@ -60,23 +60,22 @@
         static const uint16 Profiler_m                              = 105;
         static const uint16 Scheduler_m                             = 106;
         static const uint16 Scheduler_mQueues                       = 107;
-        static const uint16 SchedulerPeerQueue_m                    = 108;
-        static const uint16 SchedulerGeneratedMetadata_m            = 109;
-        static const uint16 Scheduler_mRequests                     = 110;
-        static const uint16 Scheduler_mMessageIdWrappers            = 111;
-        static const uint16 UserRequests_m                          = 112;
-        static const uint16 DSPro_m                                 = 113;
-        static const uint16 DataStore_m                             = 114;
-        static const uint16 DSProCback_m                            = 115;
-        static const uint16 CommAdaptoManager_m                     = 116;
+        static const uint16 Scheduler_mDiss                         = 108;
+        static const uint16 SchedulerPeerQueue_m                    = 109;
+        static const uint16 SchedulerGeneratedMetadata_m            = 110;
+        static const uint16 Scheduler_mRequests                     = 111;
+        static const uint16 Scheduler_mMessageIdWrappers            = 112;
+        static const uint16 UserRequests_m                          = 113;
+        static const uint16 DSPro_m                                 = 114;
+        static const uint16 DataStore_m                             = 115;
+        static const uint16 DSProCback_m                            = 116;
+        static const uint16 CommAdaptoManager_m                     = 117;
     };
 
     #ifdef WIN32
-        #define snprintf _snprintf
         #define stringcasecmp _stricmp
     #else
         #define stringcasecmp strcasecmp
     #endif
 
-#endif	// INCL_DEFS_H
-
+#endif    // INCL_DEFS_H

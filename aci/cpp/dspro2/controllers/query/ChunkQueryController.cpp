@@ -40,7 +40,7 @@ using namespace NOMADSUtil;
 
 namespace IHMC_ACI
 {
-    
+
 }
 
 ChunkQueryController::ChunkQueryController (DSProImpl *pDSPro, DataStore *pDataStore, InformationStore *pInfoStore)
@@ -63,13 +63,13 @@ void ChunkQueryController::searchArrived (const char *pszQueryId, const char *ps
     // A search arrived from the application
     const char *pszMethodName = "ChunkQueryController::searchArrived";
 
-    if (pQuery == NULL || pszQueryType == NULL) {
-        checkAndLogMsg(pszMethodName, Logger::L_Warning, "some of the needed parameters are null\n");
+    if (pQuery == nullptr || pszQueryType == nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "some of the needed parameters are null\n");
         return;
     }
 
     if (!supportsQueryType (pszQueryType)) {
-        checkAndLogMsg(pszMethodName, Logger::L_Warning, "query type %s not supported\n", pszQueryType);
+        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "query type %s not supported\n", pszQueryType);
         return;
     }
 
@@ -82,8 +82,8 @@ void ChunkQueryController::searchArrived (const char *pszQueryId, const char *ps
     }
 
     // Check whether the query can be served
-    char *ppszMatchingMsgIds[2] = { getMatchingId (query, getDSPro(), getDataStore()), NULL };
-    if (ppszMatchingMsgIds[0] != NULL) {
+    char *ppszMatchingMsgIds[2] = { getMatchingId (query, getDSPro(), getDataStore()), nullptr };
+    if (ppszMatchingMsgIds[0] != nullptr) {
         rc = notifySearchReply (pszQueryId, pszQuerier, const_cast<const char **>(ppszMatchingMsgIds), getDSPro()->getNodeId());
         if (rc < 0) {
             checkAndLogMsg (pszMethodName, Logger::L_Warning, "notifySearchReply() returned and error: %d\n", rc);
@@ -100,7 +100,7 @@ void ChunkQueryController::searchReplyArrived (const char *pszQueryId, const cha
 {
     /*const char *pszMethodName = "ChunkQueryController::searchReplyArrived";
     StringHashset *pMatchingPeers = _receivedHits.get (pszQueryId);
-    if (pMatchingPeers == NULL) {
+    if (pMatchingPeers == nullptr) {
         pMatchingPeers = new StringHashset();
         _receivedHits.put (pszQueryId, pMatchingPeers);
     }
@@ -123,40 +123,50 @@ char * ChunkQueryController::getMatchingId (ChunkQuery &query, DSProImpl *pDSPro
         && (ui8NumberOfChunks == ui8TotalNumberOfChunks)) {
         bool bHasMoreChunks = true;
         uint32 ui32DataLen = 0U;
-        void *pData = NULL;
-        int rc = pDSPro->getData (query._objectMsgId, NULL, &pData, ui32DataLen, bHasMoreChunks);
-        if ((rc == 0) && (pData != NULL) && (ui32DataLen > 0U) && (!bHasMoreChunks)) {
+        void *pData = nullptr;
+        int rc = pDSPro->getData (query._objectMsgId, nullptr, &pData, ui32DataLen, bHasMoreChunks);
+        if ((rc == 0) && (pData != nullptr) && (ui32DataLen > 0U) && (!bHasMoreChunks)) {
             Chunker::Interval **ppIntervals = query._chunkDescr.getIntervals();
-            if (ppIntervals != NULL) {
+            if (ppIntervals != nullptr) {
                 Chunker::Fragment *pFragment = Chunker::extractFromBuffer (pData, ui32DataLen, query._chunkDescr._inputType,
                                                                            query._chunkDescr._outputType,
                                                                            query._ui8CompressionQuality, ppIntervals);
                 CustomChunkDescription::deleteIntervals (ppIntervals);
-                if (pFragment == NULL) {
-                    return NULL;
+                if (pFragment == nullptr) {
+                    free (pData);
+                    return nullptr;
                 }
                 if (pFragment->ui64FragLen > 0xFFFFFFFF) {
-                    return NULL;
+                    free (pData);
+                    delete pFragment->pReader;
+                    delete pFragment;
+                    return nullptr;
                 }
                 const uint32 ui32FragLen = static_cast<uint32>(pFragment->ui64FragLen);
-                void *pFragmentData = malloc (pFragment->ui64FragLen);
+                void *pFragmentData = malloc (ui32FragLen);
                 if (pFragment->pReader->read (pFragmentData, ui32FragLen) < 0) {
-                    return NULL;
+                    free (pData);
+                    delete pFragment->pReader;
+                    delete pFragment;
+                    if (pFragmentData != nullptr) free (pFragmentData);
+                    return nullptr;
                 }
+                delete pFragment->pReader;
+                delete pFragment;
                 String sSubGrpName (MessageIdGenerator::extractSubgroupFromMsgId (query._objectMsgId));
                 if (isOnDemandGroupName (sSubGrpName)) {
                     // TODO: this is a hack! The "on demand" suffix is actually used to identify
                     // "chunked" messages in DSPro, while it should be only be used to indicate
-                    // that the message was "on-demand". Chunks are alway "on-demand", but it is
+                    // that the message was "on-demand". Chunks are always "on-demand", but it is
                     // not true that on-demand data is always chunked. Leaving the [od] suffix
                     // leads to requesting the object as a chunk, while in this case it is never
                     // chunked.
                     sSubGrpName = sSubGrpName.substring (0, sSubGrpName.lastIndexOf ('.'));
                     sSubGrpName += ".[cu]";
                 }
-                char *pszId = NULL;
-                const char *pszObjectId = NULL;
-                const char *pszInstanceId = NULL;
+                char *pszId = nullptr;
+                const char *pszObjectId = nullptr;
+                const char *pszInstanceId = nullptr;
                 const String mimeType (MimeUtils::toMimeType (query._chunkDescr._outputType));
                 const int64 i64ExpirationTime = 0;
                 BufferWriter bw (1024, 1024);
@@ -172,10 +182,19 @@ char * ChunkQueryController::getMatchingId (ChunkQuery &query, DSProImpl *pDSPro
                     checkAndLogMsg (pszMethodName, Logger::L_Info, "stored custum chunk "
                                     "%s on %s.\n", pszId, query._objectMsgId.c_str(), rc);
                 }
+                if (pFragmentData != nullptr) {
+                    free (pFragmentData);
+                }
+                if (pData != nullptr) {
+                    free (pData);
+                }
                 return pszId;
             }
         }
+        if (pData != nullptr) {
+            free (pData);
+        }
     }
-    return NULL;
+    return nullptr;
 }
 

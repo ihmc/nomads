@@ -23,7 +23,7 @@ LOCAL_SRC_FILES := Database.cpp \
     SQLiteFactory.cpp
     
 LOCAL_MODULE    := lcppdc
-LOCAL_CPPFLAGS	:= -fexceptions -DUNIX -DLINUX -DANDROID -DLITTLE_ENDIAN_SYSTEM
+LOCAL_CPPFLAGS	:= -fexceptions -DUNIX -DLINUX -DANDROID -DLITTLE_ENDIAN_SYSTEM -std=c++11
 LOCAL_CFLAGS := -fsigned-char
 LOCAL_LDLIBS := -lz -ldl
 LOCAL_SHARED_LIBRARIES := util \

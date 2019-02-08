@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -25,9 +25,9 @@
 using namespace IHMC_ACI;
 
 MessageId::MessageId (void)
+    : _ui32SeqId (0U),
+      _ui8ChunkId (0)
 {
-    _ui32SeqId = 0;
-    _ui8ChunkId = 0;
 }
 
 MessageId::MessageId (const char *pszMsgId)
@@ -160,7 +160,7 @@ int MessageId::parseAndInitFromString (const char *pszMsgId)
         return -5;
     }
     pszSep = strchr (pszTemp, ':');
-    if (pszSep == NULL) { 
+    if (pszSep == NULL) {
         _ui8ChunkId = (uint8) NOMADSUtil::atoui32 (pszTemp);
     }
     else {

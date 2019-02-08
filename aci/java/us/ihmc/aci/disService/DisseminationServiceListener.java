@@ -24,7 +24,7 @@ package us.ihmc.aci.disService;
  * Time: 5:26:58 PM
  *
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.5 $
+ * @version $Revision$
  */
 public interface DisseminationServiceListener
 {

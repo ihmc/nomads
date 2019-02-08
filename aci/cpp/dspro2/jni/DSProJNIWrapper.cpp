@@ -26,6 +26,7 @@
 
 #include "DSPro.h"
 #include "DSLib.h"
+#include "Voi.h"
 #include "DSProProxyServer.h"
 #include "StrClass.h"
 #include "ConfigManager.h"
@@ -38,6 +39,7 @@
 #include <time.h>
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 //#define checkAndLogMsg if (pLogger) pLogger->logMsg
@@ -81,7 +83,7 @@ ConfigManager * checkAndRetrieveCfgMgrPtr (JNIEnv *pEnv, jobject joThis)
     u.jlValue = jlCfgMgr;
     ConfigManager *pCfgMgr = (ConfigManager *) u.p;
     if (pCfgMgr == NULL) {
-        pEnv->ThrowNew (pEnv->FindClass ("us/ihmc/aci/dspro2/DSProLauncher/DSProInitException"), 
+        pEnv->ThrowNew (pEnv->FindClass ("us/ihmc/aci/dspro2/DSProLauncher/DSProInitException"),
             "ConfigManager not initialized - ConfigManager is null");
         return NULL;
     }
@@ -103,7 +105,7 @@ DSPro * checkAndRetrieveDSProPtr (JNIEnv *pEnv, jobject joThis)
     DSPro *pDSPro = (DSPro *) u.p;
     if (pDSPro == NULL) {
         //pEnv->ThrowNew (pEnv->FindClass ("java/lang/NullPointerException"), "DSProJNIWrapper not initialized - DSPro is null");
-        pEnv->ThrowNew (pEnv->FindClass ("us/ihmc/aci/dspro2/DSProLauncher/DSProInitException"), 
+        pEnv->ThrowNew (pEnv->FindClass ("us/ihmc/aci/dspro2/DSProLauncher/DSProInitException"),
             "DSProJNIWrapper not initialized - DSPro is null");
         return NULL;
     }
@@ -176,7 +178,7 @@ JNIEXPORT jint JNICALL Java_us_ihmc_aci_dspro2_DSProLauncher_initLoggers (JNIEnv
 	return 0;
 }
 
-JNIEXPORT jint JNICALL Java_us_ihmc_aci_dspro2_DSProLauncher_initConfigNative (JNIEnv *pEnv, jobject joThis, 
+JNIEXPORT jint JNICALL Java_us_ihmc_aci_dspro2_DSProLauncher_initConfigNative (JNIEnv *pEnv, jobject joThis,
 	jstring jsConfigFile)
 {
 	// Loading config file
@@ -346,7 +348,7 @@ JNIEXPORT jint JNICALL Java_us_ihmc_aci_dspro2_DSProLauncher_initDSProNative (JN
     const char *pcMetadataExtraAttrFile;
     pcMetadataExtraAttrFile = pEnv->GetStringUTFChars (jsMetadataExtraAttrFile, NULL);
     if (pcMetadataExtraAttrFile == NULL) {
-        pEnv->ThrowNew (pEnv->FindClass ("us/ihmc/aci/dspro2/DSProLauncher/DSProInitException"), 
+        pEnv->ThrowNew (pEnv->FindClass ("us/ihmc/aci/dspro2/DSProLauncher/DSProInitException"),
             "FAIL while copying string metadata extra attr file");
         pEnv->ReleaseStringUTFChars (jsMetadataExtraAttrFile, pcMetadataExtraAttrFile);
         return -31;
@@ -420,7 +422,7 @@ JNIEXPORT jint JNICALL Java_us_ihmc_aci_dspro2_DSProLauncher_startNative (JNIEnv
         return -2;
     }
 
-    DSProProxyServer proxySrv;
+    DSProProxyServer proxySrv (true);
     const char *pszProxyServerInterface = NULL;
     uint16 ui16ProxyServerPort = 56487; // DISPRO_SVC_PROXY_SERVER_PORT_NUMBER;
     if (pCfgMgr->hasValue ("aci.disservice.proxy.interface")) {

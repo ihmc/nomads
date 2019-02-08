@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -568,7 +568,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
                 whichFields = (String) whichFields + comma + SQLMessageHeaderStorage::FIELD_CHUNK_FRAGMENT_OFFSET;
                 whichFields = (String) whichFields + comma + SQLMessageHeaderStorage::FIELD_CHUNK_FRAGMENT_LENGTH;
                 break;
-            case StorageInterface::DEFAULT_TABLE:        
+            case StorageInterface::DEFAULT_TABLE:
                 whichFields = (String) whichFields + (bIsFirstField ? "" : comma) + SQLMessageHeaderStorage::FIELD_TOT_MSG_LENGTH;
                 bIsFirstField = false;
                 whichFields = (String) whichFields + comma + SQLMessageHeaderStorage::FIELD_FRAGMENT_OFFSET;
@@ -621,7 +621,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
 
     if (_bConstrSenderNodeId) {
         sql = (String) sql  + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_SENDER_ID + " = '" + _constrSenderNodeId + "'";
-        isFirstCond = false; 
+        isFirstCond = false;
     }
     char buf32[12];
 
@@ -637,21 +637,21 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
     if (_bConstrTag) {
         for (int i = 0; i < _ui8NumOfTags; i++) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_TAG + " = '" + itoa(buf32, _tags[i]) + "'";
-            isFirstCond = false; 
+            isFirstCond = false;
         }
     }
 
     if (_bConstrClientId) {
         for (int i = 0; i < _ui8NumOfClientIds; i++) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_CLIENT_ID + " = '" + itoa(buf32, _clientIds[i]) + "'";
-            isFirstCond = false; 
+            isFirstCond = false;
         }
     }
 
     if (_bConstrClientType) {
         for (int i = 0; i < _ui8NumOfClientType; i++) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_CLIENT_TYPE + " = '" + itoa(buf32, _clientTypes[i]) + "'";
-            isFirstCond = false; 
+            isFirstCond = false;
         }
     }
 
@@ -677,7 +677,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
 
     if (_bGrpPubSeqIdNotIn) {
         sql = (String) sql + (isFirstCond ? pszWhere : pszAnd);
-        
+
         sql = (String) sql + " rowid NOT IN (";
         sql = (String) sql + "SELECT rowid ";
         sql = (String) sql + "FROM " + tableName;
@@ -715,7 +715,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
                 }
                 sql = (String) sql + ") ";
                 bIsFirstInnerCond2 = false;
-            }          
+            }
             bIsFirstInnerCond1 = false;
         }
 
@@ -725,7 +725,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
     if (_bMsgId) {
         NOMADSUtil::DArray2<NOMADSUtil::String> msgFields;
         convertKeyToField(_constrMessageId, msgFields, 6, MSG_ID_GROUP, MSG_ID_SENDER, MSG_ID_SEQ_NUM, MSG_ID_CHUNK_ID, MSG_ID_OFFSET, MSG_ID_LENGTH);
-        sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) 
+        sql = (String) sql + (isFirstCond ? pszWhere : pszAnd)
             + SQLMessageHeaderStorage::FIELD_GROUP_NAME + " = '" + msgFields[0] + "' AND "
             + SQLMessageHeaderStorage::FIELD_SENDER_ID + " = '" + msgFields[1] + "' AND "
             + SQLMessageHeaderStorage::FIELD_MSG_SEQ_ID + " = '" + msgFields[2] + "' AND "
@@ -768,7 +768,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
         else if (_ui8PriorityFrom == _ui8PriorityTo) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_PRIORITY + " = '" + itoa(buf32, _ui8PriorityFrom) + "'";
         }
-        isFirstCond = false; 
+        isFirstCond = false;
     }
 
     if (_bNoFragments) {
@@ -818,7 +818,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
     if(_bExpirationUpperThreshold || _bExpirationLowerThreshold) {
         if(_bExpirationLowerThreshold) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_EXPIRATION + " > '" + i64toa(buf64, _i64ExpirationLowerThreshold) + "'";
-            isFirstCond = false; 
+            isFirstCond = false;
         }
         if(_bExpirationUpperThreshold) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_EXPIRATION + " < '" + i64toa(buf64, _i64ExpirationUpperThreshold) + "'";
@@ -829,7 +829,7 @@ const char * DisServiceDataCacheQuery::getSqlQuery()
     if(_bArrivalLowerThreshold || _bArrivalUpperThreshold) {
         if(_bArrivalLowerThreshold) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_ARRIVAL_TIMESTAMP + " > '" + i64toa(buf64, _i64ArrivalLowerThreshold) + "'";
-            isFirstCond = false; 
+            isFirstCond = false;
         }
         if(_bArrivalUpperThreshold) {
             sql = (String) sql + (isFirstCond ? pszWhere : pszAnd) + SQLMessageHeaderStorage::FIELD_ARRIVAL_TIMESTAMP + " < '" + i64toa(buf64, _i64ArrivalUpperThreshold) + "'";
@@ -995,7 +995,7 @@ int DisServiceDataCacheQuery::read (Reader *pReader, uint32 ui32MaxSize)
         for (uint8 ui8Index = 0; ui8Index < ui8Size; ui8Index++) {
             pReader->read8(&ui8Value);
             (*pTempArray)[ui8Index] = ui8Value;
-        }   
+        }
         _pChunkIDs = pTempArray;
     }
     if (_bConstrFragment) {
@@ -1064,7 +1064,7 @@ int DisServiceDataCacheQuery::write (Writer *pWriter, uint32 ui32MaxSize)
     pWriter->write8(&ui8SecondFlag);
     pWriter->write8(&ui8ThirdFlag);
     pWriter->write8(&ui8ForthFlag);
-    
+
     if(_bDeleteOperation) {pWriter->write8(&_ui8OperationType);}
     pWriter->write8(&_ui8TableType);
     if(_bAddCustomConstraint) {

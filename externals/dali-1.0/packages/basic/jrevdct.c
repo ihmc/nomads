@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -25,7 +25,7 @@
  * The advantage of this method is that no data path contains more than one
  * multiplication; this allows a very simple and accurate implementation in
  * scaled fixed-point arithmetic, with a minimal number of shifts.
- * 
+ *
  * I've made lots of modifications to attempt to take advantage of the
  * sparse nature of the DCT matrices we're getting.  Although the logic
  * is cumbersome, it's straightforward and the resulting code is much
@@ -425,7 +425,7 @@ DctToByteSparse(data, byte, w)
  *
  * j_rev_dct_sparse --
  *
- *  Performs the original inverse DCT on one block of 
+ *  Performs the original inverse DCT on one block of
  *  coefficients.
  *
  * Results:
@@ -1467,7 +1467,7 @@ j_rev_dct(data)
  *
  * DctToByte --
  *
- *  The inverse DCT function. Modified so that it output into 
+ *  The inverse DCT function. Modified so that it output into
  *  a ByteImage directory.
  *
  * Results:

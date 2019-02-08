@@ -280,7 +280,7 @@ AbstractNetworkInterface::AbstractNetworkInterface (bool bAsyncTransmission)
       _pNMSParent (NULL),
       _pReceiver (NULL),
       _asyncTx (this, bAsyncTransmission)
-{    
+{
 }
 
 AbstractNetworkInterface::~AbstractNetworkInterface (void)

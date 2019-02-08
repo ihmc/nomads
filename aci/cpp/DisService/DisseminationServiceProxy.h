@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -216,7 +216,7 @@ namespace IHMC_ACI
              * ui16Tag - the tag specifiying data the node wants to receive
              */
             int subscribe (const char *pszGroupName, uint16 ui16Tag, uint8 ui8Priority, bool bGroupReliable, bool MsgReliable, bool bSequenced);
-	
+
             int subscribeWithXPathPredicate (const char *pszGroupName, const char *pszXPathPredicate, uint8 ui8Priority, bool bGroupReliable, bool MsgReliable, bool bSequenced);
 
             /**
@@ -241,12 +241,12 @@ namespace IHMC_ACI
              * pListener - the listener that will be invoked upon arrival of data.
              */
             int registerDisseminationServiceProxyListener (DisseminationServiceProxyListener *pListener);
-            
+
             /**
              * Register a listener that is used to notify the application about the arrival/leave
              * of peers
              *
-             * @return 
+             * @return
              */
             int registerPeerStatusListener (PeerStatusListener *pListener);
 
@@ -254,7 +254,7 @@ namespace IHMC_ACI
              * Register a listener that is used to notify the application about the arrival
              * of search queries.
              *
-             * @return 
+             * @return
              */
             int registerSearchListener (SearchListener *pListener);
 
@@ -311,8 +311,8 @@ namespace IHMC_ACI
                         unsigned int uiQueryLen, char **pszQueryId);
             int searchReply (const char *pszQueryId, const char **ppszMatchingQueryIds);
 
-            /** 
-             * Returns true if we are currently connected to the DisService proxy server, false otherwise. 
+            /**
+             * Returns true if we are currently connected to the DisService proxy server, false otherwise.
              */
             bool isConnected();
 
@@ -361,7 +361,7 @@ namespace IHMC_ACI
             // used to store subscription info for later reconnect
             class SubscriptionInfo
             {
-                public: 
+                public:
                     const NOMADSUtil::String _sGroupName;
                     const uint16 _ui16Tag;
                     const uint8 ui8Priority;
@@ -387,7 +387,7 @@ namespace IHMC_ACI
             DisseminationServiceProxyListener *_pListener;
             PeerStatusListener *_pPeerStatusListener;
             SearchListener *_pSearchListener;
-            DisseminationServiceProxyCallbackHandler *_pHandler;                    
+            DisseminationServiceProxyCallbackHandler *_pHandler;
             NOMADSUtil::LoggingMutex _mutex;
             NOMADSUtil::LoggingMutex _mutexReconnect;
             uint16 _ui16ApplicationId;

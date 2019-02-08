@@ -54,7 +54,6 @@ public interface DisServiceProProxyInterface extends DisseminationServiceInterfa
     public NodePath getActualPath() throws CommException;
 
     public NodePath getPath();
-    public NodePath getPathForPeer (String peerNodeId) throws CommException;
 
     public boolean setActualPosition (float fLatitude, float fLongitude, float fAltitude,
                                       String location, String note)
@@ -74,9 +73,6 @@ public interface DisServiceProProxyInterface extends DisseminationServiceInterfa
         throws CommException;
 
     public List<String> getMatchingMetaDataAsXML (Map<String, String> attributeValueToMatch, long startTimestamp, long endTimestamp)
-        throws CommException;
-
-    public PeerNodeContext getPeerNodeContext (String peerNodeId)
         throws CommException;
 
     public byte[] getMetaDataAsXML (String messageID)

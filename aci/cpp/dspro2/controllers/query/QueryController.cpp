@@ -33,6 +33,7 @@
 #include "NLFLib.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 #define returnedErr(methodName,rc) Logger::L_Warning, "%s returned %d\n", methodName, rc
@@ -50,7 +51,7 @@ QueryController::QueryController (const char *pszDescription, const char *pszSup
       MessagingSvc (pDSPro), TopologySvc (pDSPro),
       _nodeId (pDSPro->getNodeId())
 {
-    if (pszSupportedQueryType != NULL) {
+    if (pszSupportedQueryType != nullptr) {
         _supportedQueryTypes[0] = pszSupportedQueryType; // String makes a copy of ppszSupportedQueryTypes[i]
     }
 }
@@ -62,8 +63,8 @@ QueryController::QueryController (const char *pszDescription, const char **ppszS
       MessagingSvc (pDSPro), TopologySvc (pDSPro),
       _nodeId (pDSPro->getNodeId())
 {
-    if (ppszSupportedQueryTypes != NULL) {
-        for (unsigned int i = 0; ppszSupportedQueryTypes[i] != NULL; i++) {
+    if (ppszSupportedQueryTypes != nullptr) {
+        for (unsigned int i = 0; ppszSupportedQueryTypes[i] != nullptr; i++) {
             _supportedQueryTypes[i] = ppszSupportedQueryTypes[i]; // String makes a copy of ppszSupportedQueryTypes[i]
         }
     }
@@ -74,7 +75,7 @@ QueryController::~QueryController()
     getDSPro()->getCallbackHandler()->deregisterSearchListener (_ui16SearchClientId, this);
 }
 
-int QueryController::init (MetadataConfiguration *pMetadataConf, CommAdaptorManager *pCommAdaptorMgr)
+int QueryController::init (MetadataConfigurationImpl *pMetadataConf, CommAdaptorManager *pCommAdaptorMgr)
 {
     _pMetadataConf = pMetadataConf;
     _pCommAdaptMgr = pCommAdaptorMgr;
@@ -96,8 +97,8 @@ void QueryController::searchArrived (const char *pszQueryId, const char *pszGrou
                                      const void *pszQuery, unsigned int uiQueryLen)
 {
     // The application issued a search query
-    if (pszQueryId == NULL || pszGroupName == NULL || pszQuerier == NULL || 
-        pszQueryType == NULL || pszQuery == NULL || uiQueryLen == 0) {
+    if (pszQueryId == nullptr || pszGroupName == nullptr || pszQuerier == nullptr ||
+        pszQueryType == nullptr || pszQuery == nullptr || uiQueryLen == 0) {
         return;
     }
 
@@ -122,7 +123,7 @@ void QueryController::searchArrived (const char *pszQueryId, const char *pszGrou
 void QueryController::searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds, const char *pszMatchingNodeId)
 {
     const char *pszMethodName = "QueryController::searchReplyArrived";
-    if (pszQueryId == NULL || ppszMatchingMessageIds == NULL || pszMatchingNodeId == NULL) {
+    if (pszQueryId == nullptr || ppszMatchingMessageIds == nullptr || pszMatchingNodeId == nullptr) {
         return;
     }
 
@@ -147,7 +148,7 @@ void QueryController::searchReplyArrived (const char *pszQueryId, const char **p
         const String dsproId (getDSPro()->getNodeId());
         if (((dsproId == querier) == 1) && ((dsproId != pszMatchingNodeId) == 1)) {
             // a remote application, connected to a different instance of DSPro,
-            for (unsigned int i = 0; ppszMatchingMessageIds[i] != NULL; i++) {
+            for (unsigned int i = 0; ppszMatchingMessageIds[i] != nullptr; i++) {
                 // Request the returned message
                 const String matchingMsgId (ppszMatchingMessageIds[i]);
                 if (getDataStore()->hasData (matchingMsgId)) {
@@ -155,7 +156,7 @@ void QueryController::searchReplyArrived (const char *pszQueryId, const char **p
                 }
                 else if ((rc = sendAsynchronousRequestMessage (matchingMsgId)) == 0) {
                     // TODO: consider whether making the addRequestedMessageToUserRequests() conditional
-                    // using the search group for the custum chunks 
+                    // using the search group for the custum chunks
                     if (queryType == "dsprochunkquery") {
                         addRequestedMessageToUserRequests (matchingMsgId, pszQueryId);
                     }
@@ -173,7 +174,7 @@ void QueryController::searchReplyArrived (const char *pszQueryId, const char **p
             checkAndLogMsg (pszMethodName, Logger::L_Warning, "notifySearchReply() notified %s\n", pszQueryId);
         }
         else {
-            checkAndLogMsg(pszMethodName, returnedErr ("notifySearchReply()", rc));
+            checkAndLogMsg (pszMethodName, returnedErr ("notifySearchReply()", rc));
         }
     }
 }
@@ -181,7 +182,7 @@ void QueryController::searchReplyArrived (const char *pszQueryId, const char **p
 void QueryController::volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId)
 {
     const char *pszMethodName = "QueryController::volatileSearchReplyArrived";
-    if (pszQueryId == NULL || pReply == NULL || ui162ReplyLen == 0 || pszMatchingNodeId == NULL) {
+    if (pszQueryId == nullptr || pReply == nullptr || ui162ReplyLen == 0 || pszMatchingNodeId == nullptr) {
         return;
     }
 
@@ -217,18 +218,18 @@ void QueryController::volatileSearchReplyArrived (const char *pszQueryId, const 
 MetadataList * QueryController::getAllMetadata (const char *pszQueryQualifier)
 {
     InformationStore *pInfoStore = getInformationStore();
-    if (pInfoStore == NULL) {
+    if (pInfoStore == nullptr) {
         checkAndLogMsg ("QueryController::getAllMetadata", Logger::L_Warning, "Could not get information store\n");
-        return NULL;
+        return nullptr;
     }
 
-    QueryQualifierBuilder *pQualifier = pszQueryQualifier != NULL ?
-        QueryQualifierBuilder::parse (pszQueryQualifier) : NULL;
+    QueryQualifierBuilder *pQualifier = pszQueryQualifier != nullptr ?
+        QueryQualifierBuilder::parse (pszQueryQualifier) : nullptr;
 
-    char **ppszMessageIdIn = NULL;
-    if (pQualifier != NULL && pQualifier->getGroupBy() != NULL &&
-        pQualifier->getOrder() != NULL && pQualifier->getLimit() != NULL) {
-        String table = getMetadataTableName();
+    char **ppszMessageIdIn = nullptr;
+    if (pQualifier != nullptr && pQualifier->getGroupBy() != nullptr &&
+        pQualifier->getOrder() != nullptr && pQualifier->getLimit() != nullptr) {
+        String table (getMetadataTableName());
 
         String innerSql = "SELECT COUNT (*) FROM ";
         innerSql       += table;
@@ -255,7 +256,7 @@ MetadataList * QueryController::getAllMetadata (const char *pszQueryQualifier)
 
     MetadataList *pMetadataList = pInfoStore->getAllMetadata ((const char **)ppszMessageIdIn, false);
 
-    if (ppszMessageIdIn != NULL) {
+    if (ppszMessageIdIn != nullptr) {
         deallocateNullTerminatedPtrArray (ppszMessageIdIn);
     }
 
@@ -264,7 +265,7 @@ MetadataList * QueryController::getAllMetadata (const char *pszQueryQualifier)
 
 int QueryController::notifySearchReply (const Reply &reply)
 {
-    if (reply._pszQueryId == NULL || reply._pszQuerier == NULL) {
+    if (reply._pszQueryId == nullptr || reply._pszQuerier == nullptr) {
         return -1;
     }
 
@@ -274,14 +275,14 @@ int QueryController::notifySearchReply (const Reply &reply)
         switch (reply._type) {
             case Reply::IDS: {
                 const MatchingIdReply *pReply = static_cast<const MatchingIdReply *>(&reply);
-                if (pReply->_ppszMatchingMsgIds == NULL) {
+                if (pReply->_ppszMatchingMsgIds == nullptr) {
                     return -2;
                 }
                 asynchronouslyNotifyMatchingMetadata (reply._pszQueryId, pReply->_ppszMatchingMsgIds);
             }
             case Reply::RAW: {
                 const RawDataReply *pReply = static_cast<const RawDataReply *>(&reply);
-                if (pReply->_pReply == NULL) {
+                if (pReply->_pReply == nullptr) {
                     return -3;
                 }
                 asynchronouslyNotifyMatchingSearch (reply._pszQueryId, pReply->_pReply, pReply->_ui162ReplyLen);
@@ -305,7 +306,7 @@ int QueryController::notifySearchReply (const char *pszQueryId, const char *pszQ
 
 bool QueryController::supportsQueryType (const char *pszQueryType)
 {
-    if (pszQueryType == NULL) {
+    if (pszQueryType == nullptr) {
         return false;
     }
 
@@ -321,20 +322,20 @@ bool QueryController::supportsQueryType (const char *pszQueryType)
 
 bool QueryController::isNewQueryReply (const char *pszQueryId, const char *pszMatchingNodeId)
 {
-    if (pszQueryId == NULL || pszMatchingNodeId == NULL) {
+    if (pszQueryId == nullptr || pszMatchingNodeId == nullptr) {
         return false;
     }
 
     bool bIsNew = false;
     StringHashset *pQueriers = _rcvdQueryReplies.get (pszQueryId);
-    if (pQueriers == NULL) {
+    if (pQueriers == nullptr) {
         bIsNew = true;
         pQueriers = new StringHashset();
-        if (pQueriers != NULL) {
+        if (pQueriers != nullptr) {
             _rcvdQueryReplies.put (pszQueryId, pQueriers);
         }
     }
-    if (pQueriers != NULL) {
+    if (pQueriers != nullptr) {
         bIsNew = pQueriers->put (pszMatchingNodeId);
     }
 
@@ -344,7 +345,7 @@ bool QueryController::isNewQueryReply (const char *pszQueryId, const char *pszMa
 int QueryController::sendSearch (SearchProperties *pSearchProperties)
 {
     Topology *pTopology = getTopology();
-    if (pTopology == NULL || pSearchProperties == NULL) {
+    if (pTopology == nullptr || pSearchProperties == nullptr) {
         return -1;
     }
     Targets **ppTargets = pTopology->getNeighborsAsTargets();
@@ -359,17 +360,17 @@ int QueryController::sendSearch (SearchProperties *pSearchProperties)
 int QueryController::sendSearchReply (const Reply &reply)
 {
     Topology *pTopology = getTopology();
-    if (pTopology == NULL || reply._pszQueryId == NULL || reply._pszQuerier == NULL) {
+    if (pTopology == nullptr || reply._pszQueryId == nullptr || reply._pszQuerier == nullptr) {
         return -1;
     }
 
-    TargetPtr targets[2] = { pTopology->getNextHopAsTarget (reply._pszQuerier), NULL };
+    TargetPtr targets[2] = { pTopology->getNextHopAsTarget (reply._pszQuerier), nullptr };
 
     int rc;
     switch (reply._type) {
         case Reply::IDS: {
             const MatchingIdReply *pReply = static_cast<const MatchingIdReply *>(&reply);
-            if (pReply->_ppszMatchingMsgIds == NULL) {
+            if (pReply->_ppszMatchingMsgIds == nullptr) {
                 return -2;
             }
             rc = sendSearchReplyMessage (reply._pszQueryId, pReply->_ppszMatchingMsgIds,
@@ -379,7 +380,7 @@ int QueryController::sendSearchReply (const Reply &reply)
 
         case Reply::RAW: {
             const RawDataReply *pReply = static_cast<const RawDataReply *>(&reply);
-            if (pReply->_pReply == NULL) {
+            if (pReply->_pReply == nullptr) {
                 return -3;
             }
             rc = sendSearchReplyMessage (reply._pszQueryId, pReply->_pReply, pReply->_ui162ReplyLen,

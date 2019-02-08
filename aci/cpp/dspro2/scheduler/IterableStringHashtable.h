@@ -93,8 +93,8 @@ namespace IHMC_ACI
     T * IterableStringHashtable<T>::put (const char *pszKey, T *pValue)
     {
         T *pOldValue = _hashtable.put (pszKey, pValue);
-        assert (pOldValue == NULL);
-        if (NULL == pOldValue) {
+        assert (pOldValue == nullptr);
+        if (nullptr == pOldValue) {
             _mList.lock();
             _list.prepend (new Entry (pszKey, pValue));
             _mList.unlock();
@@ -121,13 +121,13 @@ namespace IHMC_ACI
     {
         _mList.lock();
         Entry *pNext = _list.getNext();
-        if (pNext != NULL) {
+        if (pNext != nullptr) {
             key = pNext->_key;
             _mList.unlock();
             return pNext->_pVal;
         }
         _mList.unlock();
-        return NULL;
+        return nullptr;
     }
 
     template <class T>

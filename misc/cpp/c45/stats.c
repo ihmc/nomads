@@ -11,7 +11,7 @@
 
 // functions
 float AddErrs(ItemCount N, ItemCount e);
-						
+
 /*************************************************************************/
 /*									 */
 /*  Compute the additional errors if the error rate increases to the	 */

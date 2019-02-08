@@ -1,4 +1,4 @@
-/* 
+/*
  * SessionIdChecker.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -23,23 +23,14 @@
 #include "SessionIdChecker.h"
 
 #include "DisServiceMsgHelper.h"
+#include "SessionId.h"
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
-using namespace IHMC_ACI;
-
-SessionIdChecker::SessionIdChecker (String sessionId)
-    : _sessionId (sessionId)
+bool IHMC_ACI::checkSessionId (const char *pszSessionId)
 {
-}
-
-SessionIdChecker::~SessionIdChecker (void)
-{
-}
-
-bool SessionIdChecker::checkSessionId (const char *pszSessionId) const
-{
-    return DisServiceMsgHelper::isInSession (_sessionId.c_str(), pszSessionId);
+    const String sessionId (SessionId::getInstance()->getSessionId());
+    return DisServiceMsgHelper::isInSession (sessionId.c_str(), pszSessionId);
 }
 

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -70,14 +70,16 @@ namespace NOMADSUtil
              *
              */
             virtual int messageArrived (const char *pszIncomingInterface, uint32 ui32SourceIPAddress, uint8 ui8MsgType,
-                                        uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL,
+                                        uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, bool bUnicast,
                                         const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                        const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp) = 0;
+                                        const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp,
+                                        uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount) = 0;
 
             bool operator == (const NetworkMessageServiceListener &rhsCbackHandler) const;
 
         private:
-            const uint16 _ui16ApplicationId;
+	    friend class NetworkMessageServiceImpl;
+            uint16 _ui16ApplicationId;
     };
 
     inline NetworkMessageServiceListener::NetworkMessageServiceListener (uint16 ui16ApplicationId)

@@ -1,4 +1,4 @@
-/* 
+/*
  * Classification.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_CLASSIFICATION_H
-#define	INCL_CLASSIFICATION_H
+#define INCL_CLASSIFICATION_H
 
 namespace IHMC_ACI
 {
@@ -35,5 +35,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	// INCL_CLASSIFICATION_H
-
+#endif    // INCL_CLASSIFICATION_H

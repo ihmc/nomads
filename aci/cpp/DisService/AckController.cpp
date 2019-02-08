@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -88,7 +88,7 @@ void AckController::run()
                     // delete target
                     _messagesByTarget.remove (pTarget->c_str());
                     delete pMBT;
-                    delete pTarget; 
+                    delete pTarget;
                 }
                 _m.unlock();
             }
@@ -191,7 +191,7 @@ void AckController::newIncomingMessage (const void *, uint16, DisServiceMsg *pDi
             PtrLList<DisServiceDataReqMsg::FragmentRequest> *pRequests = pReqMsg->getRequests();
             DisServiceDataReqMsg::FragmentRequest *pRequest;
             DisServiceDataReqMsg::FragmentRequest *pRequestTmp = pRequests->getFirst();
-            // Call messageRequested() for each requested message 
+            // Call messageRequested() for each requested message
             while ((pRequest = pRequestTmp) != NULL) {
                 pRequestTmp = pRequests->getNext();
                 messageRequested (pRequest->pMsgHeader->getMsgId(),
@@ -246,7 +246,7 @@ void AckController::newLinkToNeighbor (const char *pszNodeUID, const char *pszPe
 }
 
 void AckController::droppedLinkToNeighbor (const char *pszNodeUID, const char *pszPeerRemoteAddr)
-{    
+{
 }
 
 void AckController::stateUpdateForPeer (const char *, PeerStateUpdateInterface *)
@@ -272,7 +272,7 @@ void AckController::ackRequest (const char *pszNodeUUID, MessageHeader *pMH)
 
     String *pNodeUUId = new String (pszNodeUUID);
     if (!_clientsToServe.find (pNodeUUId)) {
-        _clientsToServe.enqueue (pNodeUUId); 
+        _clientsToServe.enqueue (pNodeUUId);
     }
 
     if (!this->isRunning()) {
@@ -334,7 +334,7 @@ void AckController::messageRequested (const char *pszMessageAcknowledgedId, cons
     // of the existence of the message, thus, in compliance with Dissemination
     // Service design, the receiver is in charge to reassemble the message. thus
     // the replication for the message is disabled
-    pMBS->bReplicationEnabled = false; 
+    pMBS->bReplicationEnabled = false;
     checkAndLogMsg ("Acknowledgment::dataRequestMsgAck", Logger::L_Info, "Message <%s> for "
                     "target node <%s> it will not be replicated. Queue current size <%d>\n",
                     pszMessageAcknowledgedId, pszSenderNodeId, pMBT->unacknowledgedMessages.getCount());

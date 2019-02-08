@@ -21,11 +21,12 @@
  */
 
 #ifndef INCL_TARGETS_H
-#define	INCL_TARGETS_H
+#define INCL_TARGETS_H
 
 #include "Defs.h"
 
 #include "DArray.h"
+
 
 namespace IHMC_ACI
 {
@@ -34,8 +35,10 @@ namespace IHMC_ACI
         public:
             Targets (void);
             Targets (unsigned int uiSize);
-            Targets (Targets &targets);
+            Targets (const Targets & targets);
             ~Targets (void);
+
+            Targets & operator= (Targets targets);
 
             int firstFreeTargetNodeId (void);
             int firstFreeInterface (void);
@@ -47,33 +50,32 @@ namespace IHMC_ACI
              * Return true if the target passed as argument was subsumed, false
              * otherwise
              */
-            bool subsume (const Targets &target);
+            bool subsume (const Targets & target);
 
-            static void deallocateTarget (Targets *pTargets);
-            static void deallocateTargets (Targets **ppTargets);
+            static void deallocateTarget (Targets * pTargets);
+            static void deallocateTargets (Targets ** ppTargets);
 
             void log (void);
 
         private:
-            int firstFreeInternal (NOMADSUtil::DArray<char*> &array);
-            char ** toArray (NOMADSUtil::DArray<char*> &array);
+            int firstFreeInternal (NOMADSUtil::DArray<char *> & array);
+            char ** toArray (NOMADSUtil::DArray<char *> & array);
 
         public:
             AdaptorId adaptorId;
-            NOMADSUtil::DArray<char*> aTargetNodeIds;
-            NOMADSUtil::DArray<char*> aInterfaces;
+            NOMADSUtil::DArray<char *> aTargetNodeIds;
+            NOMADSUtil::DArray<char *> aInterfaces;
     };
+
 
     typedef Targets* TargetPtr;
 
-    inline Targets::Targets()
-    {
-    }
+    inline Targets::Targets() { }
 
-    inline Targets::Targets (unsigned int uiSize)
-        : aTargetNodeIds ((char*) NULL, uiSize), aInterfaces ((char*) NULL, uiSize)
-    {
-    }
+    inline Targets::Targets (unsigned int uiSize) :
+        aTargetNodeIds (static_cast<char *> (nullptr), uiSize),
+        aInterfaces (static_cast<char *> (nullptr), uiSize)
+    { }
 
     inline int Targets::firstFreeTargetNodeId (void)
     {
@@ -95,14 +97,13 @@ namespace IHMC_ACI
         return toArray (aInterfaces);
     }
 
-    inline char ** Targets::toArray (NOMADSUtil::DArray<char*> &array)
+    inline char ** Targets::toArray (NOMADSUtil::DArray<char *> & array)
     {
-        if (array[array.getHighestIndex()] != NULL) {
-            array[array.size()] = NULL;  // Makes sure that the last element is NULL
+        if (array[array.getHighestIndex()] != nullptr) {
+            array[array.size()] = nullptr;  // Makes sure that the last element is nullptr
         }
         return array.getData();
     }
 }
 
-#endif	/* INCL_TARGETS_H */
-
+#endif    /* INCL_TARGETS_H */

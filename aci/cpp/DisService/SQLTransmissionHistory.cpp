@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -25,6 +25,7 @@
 #include "Database.h"
 #include "PreparedStatement.h"
 #include "Result.h"
+#include "SessionId.h"
 
 #include "Logger.h"
 #include "StringHashset.h"
@@ -44,6 +45,30 @@ const NOMADSUtil::String SQLTransmissionHistory::MSG_ID = "MsgId";
 const NOMADSUtil::String SQLTransmissionHistory::TARGET_ID = "TargetID";
 const NOMADSUtil::String SQLTransmissionHistory::MSG_ROW_ID = "MsgRowId";
 const NOMADSUtil::String SQLTransmissionHistory::TARGET_ROW_ID = "TargetRowID";
+
+namespace SQL_TRANSMISSION_HISTORY
+{
+    class ClearTables : public SessionIdListener
+    {
+        public:
+            ClearTables (SQLTransmissionHistory *pTrHistory)
+                : _pTrHistory (pTrHistory)
+            {
+            }
+
+            ~ClearTables (void)
+            {
+            }
+
+            void sessionIdChanged (void)
+            {
+                _pTrHistory->reset();
+            }
+
+        private:
+            SQLTransmissionHistory *_pTrHistory;
+    };
+}
 
 SQLTransmissionHistory::SQLTransmissionHistory (const char *pszStorageFile)
 {
@@ -123,7 +148,7 @@ SQLTransmissionHistory::~SQLTransmissionHistory()
 }
 
 void SQLTransmissionHistory::construct()
-{   
+{
     _psqlInsertMessage = NULL;
     _psqlInsertTargets = NULL;
     _psqlInsertMessageTargetsRel = NULL;
@@ -147,13 +172,13 @@ void SQLTransmissionHistory::construct()
 int SQLTransmissionHistory::init()
 {
     const char *pszMethodName = "SQLTransmissionHistory::init";
-    Database *pDB = Database::getDatabase (Database::SQLite);
+    DatabasePtr *pDB = Database::getDatabase (Database::SQLite);
     if (pDB == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                         "Database::getDatabase returned NULL pointer.\n");
         return -1;
     }
-    if (pDB->open (_pszStorageFile) != 0) {
+    if ((*pDB)->open (_pszStorageFile) != 0) {
         return -2;
     }
 
@@ -165,11 +190,11 @@ int SQLTransmissionHistory::init()
     // If a table contains a column of type INTEGER PRIMARY KEY, then that column
     // becomes an alias for the ROWID.
     // Therefore MSG_ROW_ID is an alias for ROWID
-    
+
     String sql = (String) "CREATE TABLE IF NOT EXISTS " + TABLE_MESSAGE_IDS +  "("
                +           MSG_ROW_ID + " INTEGER PRIMARY KEY, "
                +           MSG_ID + " TEXT, UNIQUE (" + MSG_ID + "));";
-    if (pDB->execute (sql.c_str()) != 0) {
+    if ((*pDB)->execute (sql.c_str()) != 0) {
         _m.unlock();
         return -3;
     }
@@ -183,7 +208,7 @@ int SQLTransmissionHistory::init()
     sql = (String) "CREATE TABLE IF NOT EXISTS " + TABLE_TARGETS +  " ("
         +           TARGET_ROW_ID + " INTEGER PRIMARY KEY, "
         +           TARGET_ID + " TEXT, UNIQUE (" + TARGET_ID + "));";
-    if (pDB->execute (sql.c_str()) != 0) {
+    if ((*pDB)->execute (sql.c_str()) != 0) {
         _m.unlock();
         return -4;
     }
@@ -194,7 +219,7 @@ int SQLTransmissionHistory::init()
         +          TARGET_ROW_ID + " INT, "
         +          "FOREIGN KEY (" + MSG_ROW_ID + ") REFERENCES " + TABLE_MESSAGE_IDS + "(MSG_ROW_ID) "
         +          "FOREIGN KEY (" + TARGET_ROW_ID + ") REFERENCES " + TABLE_TARGETS + "(TARGET_ROW_ID));";
-    if (pDB->execute (sql.c_str()) != 0) {
+    if ((*pDB)->execute (sql.c_str()) != 0) {
         _m.unlock();
         return -5;
     }
@@ -205,7 +230,7 @@ int SQLTransmissionHistory::init()
          +         " WHERE " + TABLE_MESSAGE_IDS + "." + MSG_ID + " = ?1 "
          +         " AND " + TABLE_TARGETS + "." + TARGET_ROW_ID + " = " + TABLE_REL + "." + TARGET_ROW_ID
          +         " AND " + TABLE_MESSAGE_IDS + "." + MSG_ROW_ID + " = " + TABLE_REL + "." + MSG_ROW_ID +";";
-    _psqlSelectListMessageTargets = pDB->prepare (sql.c_str());
+    _psqlSelectListMessageTargets = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectListMessageTargets == NULL) {
         _m.unlock();
         return -6;
@@ -217,7 +242,7 @@ int SQLTransmissionHistory::init()
          +         " WHERE " + TABLE_TARGETS + "." + TARGET_ID + " = ?1 "
          +         " AND " + TABLE_TARGETS + "." + TARGET_ROW_ID + " = " + TABLE_REL + "." + TARGET_ROW_ID
          +         " AND " + TABLE_MESSAGE_IDS + "." + MSG_ROW_ID + " = " + TABLE_REL + "." + MSG_ROW_ID +";";
-    _psqlSelectListMessageByTarget = pDB->prepare (sql.c_str());
+    _psqlSelectListMessageByTarget = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectListMessageByTarget == NULL) {
         _m.unlock();
         return -7;
@@ -227,7 +252,7 @@ int SQLTransmissionHistory::init()
     sql  = (String) "SELECT " + TABLE_MESSAGE_IDS + "." + MSG_ROW_ID;
     sql = sql + " FROM " + TABLE_MESSAGE_IDS;
     sql = sql + " WHERE " + TABLE_MESSAGE_IDS + "." + MSG_ID + " = ?1;";
-    _psqlSelectMessageRow = pDB->prepare (sql.c_str());
+    _psqlSelectMessageRow = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectMessageRow == NULL) {
         _m.unlock();
         return -8;
@@ -236,7 +261,7 @@ int SQLTransmissionHistory::init()
     ///////////////////////// CREATE SELECT STATEMENT //////////////////////////
     sql  = (String) "SELECT " + TABLE_MESSAGE_IDS + "." + MSG_ID;
     sql = sql + " FROM " + TABLE_MESSAGE_IDS + ";";
-    _psqlSelectAllMessages = pDB->prepare (sql.c_str());
+    _psqlSelectAllMessages = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectAllMessages == NULL) {
         _m.unlock();
         return -8;
@@ -246,7 +271,7 @@ int SQLTransmissionHistory::init()
     sql  = (String) "SELECT " + TABLE_TARGETS + "." + TARGET_ROW_ID;
     sql = sql + " FROM " + TABLE_TARGETS;
     sql = sql + " WHERE " + TABLE_TARGETS + "." + TARGET_ID + " = ?;";
-    _psqlSelectTargetRow = pDB->prepare (sql.c_str());
+    _psqlSelectTargetRow = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectTargetRow == NULL) {
         _m.unlock();
         return -9;
@@ -259,7 +284,7 @@ int SQLTransmissionHistory::init()
     sql = sql + " AND " + TABLE_TARGETS + "." + TARGET_ID + " = ?2 ";
     sql = sql + " AND " + TABLE_TARGETS + "." + TARGET_ROW_ID + " = " + TABLE_REL + "." + TARGET_ROW_ID;
     sql = sql + " AND " + TABLE_MESSAGE_IDS + "." + MSG_ROW_ID + " = " + TABLE_REL + "." + MSG_ROW_ID +";";
-    _psqlSelectMessageTargets = pDB->prepare (sql.c_str());
+    _psqlSelectMessageTargets = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectMessageTargets == NULL) {
         _m.unlock();
         return -10;
@@ -267,7 +292,7 @@ int SQLTransmissionHistory::init()
 
     ///////////////////////// CREATE SELECT COUNT STATEMENT ////////////////////
     sql  = (String) "SELECT COUNT (*) FROM " + TABLE_MESSAGE_IDS + ";";
-    _psqlSelectCountMessage = pDB->prepare (sql.c_str());
+    _psqlSelectCountMessage = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectCountMessage == NULL) {
         _m.unlock();
         return -11;
@@ -275,7 +300,7 @@ int SQLTransmissionHistory::init()
 
     ///////////////////////// CREATE SELECT COUNT STATEMENT ////////////////////
     sql  = (String) "SELECT COUNT (*) FROM " + TABLE_TARGETS + ";";
-    _psqlSelectCountTargets = pDB->prepare (sql.c_str());
+    _psqlSelectCountTargets = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectCountTargets == NULL) {
         _m.unlock();
         return -12;
@@ -284,7 +309,7 @@ int SQLTransmissionHistory::init()
     ///////////////////////// CREATE INSERT STATEMENT //////////////////////////
     sql = (String) "INSERT INTO " + TABLE_MESSAGE_IDS
         +          " (" + MSG_ID + ") VALUES (?);";
-    _psqlInsertMessage = pDB->prepare (sql.c_str());
+    _psqlInsertMessage = (*pDB)->prepare (sql.c_str());
     if (_psqlInsertMessage == NULL) {
         _m.unlock();
         return -13;
@@ -293,7 +318,7 @@ int SQLTransmissionHistory::init()
     ///////////////////////// CREATE INSERT STATEMENT //////////////////////////
     sql = (String) "INSERT INTO " + TABLE_TARGETS
         +          " (" + TARGET_ID + ") VALUES (?);";
-    _psqlInsertTargets = pDB->prepare (sql.c_str());
+    _psqlInsertTargets = (*pDB)->prepare (sql.c_str());
     if (_psqlInsertTargets == NULL) {
         _m.unlock();
         return -14;
@@ -302,7 +327,7 @@ int SQLTransmissionHistory::init()
     ///////////////////////// CREATE INSERT STATEMENT //////////////////////////
     sql = (String) "INSERT INTO " + TABLE_REL
         +          " VALUES (?,?);";
-    _psqlInsertMessageTargetsRel = pDB->prepare (sql.c_str());
+    _psqlInsertMessageTargetsRel = (*pDB)->prepare (sql.c_str());
     if (_psqlInsertMessageTargetsRel == NULL) {
         _m.unlock();
         return -15;
@@ -310,8 +335,8 @@ int SQLTransmissionHistory::init()
 
     ///////////////////// CREATE RESET RELATIONS STATEMENT /////////////////////
 
-    sql = (String) "DELETE FROM " + TABLE_REL + ";";       
-    _psqlResetRelations = pDB->prepare (sql.c_str());
+    sql = (String) "DELETE FROM " + TABLE_REL + ";";
+    _psqlResetRelations = (*pDB)->prepare (sql.c_str());
     if (_psqlResetRelations == NULL) {
         _m.unlock();
         return -16;
@@ -320,7 +345,7 @@ int SQLTransmissionHistory::init()
     ///////////////////// CREATE RESET MESSAGES STATEMENT //////////////////////
 
     sql = (String) "DELETE FROM " + TABLE_MESSAGE_IDS + ";";
-    _psqlResetMessages = pDB->prepare (sql.c_str());
+    _psqlResetMessages = (*pDB)->prepare (sql.c_str());
     if (_psqlResetMessages == NULL) {
         _m.unlock();
         return -17;
@@ -329,7 +354,7 @@ int SQLTransmissionHistory::init()
     ////////////////////// CREATE RESET TARGETS STATEMENT //////////////////////
 
     sql = (String) "DELETE FROM " + TABLE_TARGETS + ";";
-    _psqlResetTargets = pDB->prepare (sql.c_str());
+    _psqlResetTargets = (*pDB)->prepare (sql.c_str());
     if (_psqlResetTargets == NULL) {
         _m.unlock();
         return -18;
@@ -339,7 +364,7 @@ int SQLTransmissionHistory::init()
 
     sql = (String) "DELETE FROM " + TABLE_REL
         + " WHERE " + TABLE_REL + "." + MSG_ROW_ID + " = ?;" ;
-    _psqlDeleteExpRelations = pDB->prepare (sql.c_str());
+    _psqlDeleteExpRelations = (*pDB)->prepare (sql.c_str());
     if (_psqlDeleteExpRelations == NULL) {
         _m.unlock();
         return -19;
@@ -349,13 +374,16 @@ int SQLTransmissionHistory::init()
 
     sql = (String) "DELETE FROM " + TABLE_MESSAGE_IDS
         + " WHERE " + TABLE_MESSAGE_IDS + "." + MSG_ROW_ID + " = ?;" ;
-    _psqlDeleteExpMessages = pDB->prepare (sql.c_str());
+    _psqlDeleteExpMessages = (*pDB)->prepare (sql.c_str());
     if (_psqlDeleteExpMessages == NULL) {
         _m.unlock();
         return -20;
     }
 
     _m.unlock();
+
+    SessionId::getInstance()->registerSessionIdListener (new SQL_TRANSMISSION_HISTORY::ClearTables (this));
+
     return 0;
 }
 
@@ -574,9 +602,9 @@ const char ** SQLTransmissionHistory::getList (PreparedStatement *pStmt, const c
                                   // the nodes's elements, thus _resultRows
                                   // can be safely deallocate and the elements
                                   // of ppszList will not be deallocated
-    unsigned int uiCount = 0;   
+    unsigned int uiCount = 0;
     for (char *pszTmp; pStmt->next (pRow); ) {
-        if (pRow->getValue (0, &pszTmp) == 0) { // pRow->getValue returns a copy 
+        if (pRow->getValue (0, &pszTmp) == 0) { // pRow->getValue returns a copy
             resultRows.append (pszTmp);         // of the value
             uiCount++;
         }
@@ -616,9 +644,9 @@ const char ** SQLTransmissionHistory::getAllMessageIds()
                                   // the nodes's elements, thus _resultRows
                                   // can be safely deallocate and the elements
                                   // of ppszList will not be deallocated
-    unsigned int uiCount = 0;   
+    unsigned int uiCount = 0;
     for (char *pszTmp; _psqlSelectAllMessages->next (pRow); ) {
-        if (pRow->getValue (0, &pszTmp) == 0) { // pRow->getValue returns a copy 
+        if (pRow->getValue (0, &pszTmp) == 0) { // pRow->getValue returns a copy
             resultRows.append (pszTmp);         // of the value
             uiCount++;
         }
@@ -787,18 +815,18 @@ bool SQLTransmissionHistory::hasTargets (const char *pszKey, const char **ppszTa
         return false;
     }
 
-    Database *pDB = Database::getDatabase (Database::SQLite);
+    DatabasePtr *pDB = Database::getDatabase (Database::SQLite);
     if (pDB == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                         "Database::getDatabase returned NULL pointer.\n");
         _m.unlock();
         return false;
     }
-    if (pDB->open (_pszStorageFile) != 0) {
+    if ((*pDB)->open (_pszStorageFile) != 0) {
         _m.unlock();
         return false;
     }
- 
+
     String sql = (String) "SELECT COUNT (*)";
     sql = sql + " FROM " + TABLE_MESSAGE_IDS + ", " + TABLE_REL + ", " + TABLE_TARGETS;
     sql = sql + " WHERE " + TABLE_TARGETS + ".rowid = " + TABLE_REL + "." + TARGET_ID;
@@ -815,7 +843,7 @@ bool SQLTransmissionHistory::hasTargets (const char *pszKey, const char **ppszTa
     }
     sql = sql +");";
 
-    PreparedStatement *psqlSelectAllTargets = pDB->prepare (sql.c_str());
+    PreparedStatement *psqlSelectAllTargets = (*pDB)->prepare (sql.c_str());
     if (psqlSelectAllTargets == NULL) {
         checkAndLogMsg ("SQLTransmissionHistory::hasTargets ", Logger::L_SevereError,
                         "Could not prepare statement,\n");

@@ -40,12 +40,12 @@ namespace IHMC_ACI
             /**
              * Given a group name, it returns a message id
              */
-            char * getMsgId (const char *pszGroupName);
+            char * getMsgId (const char *pszGroupName, bool bDisseminate);
 
             /**
              * Given a group name, it returns a chunk message id
              */
-            char * chunkId (const char *pszGroupName);
+            char * chunkId (const char *pszGroupName, bool bDisseminate);
 
             static NOMADSUtil::String extractSubgroupFromMsgId (const char *pszMsgId);
             static NOMADSUtil::String extractSubgroupFromMsgGroup (const char *pszMsgId);

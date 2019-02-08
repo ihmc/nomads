@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -100,7 +100,7 @@ namespace IHMC_ACI
             /**
              * Returns a pointer to a RemoteNodeInfo object that contains the state
              * information of the peer identified by pszNodeId.
-             * 
+             *
              * NOTE: lock and unlock before retrieving the RemoteNodeInfo.
              */
             virtual RemoteNodeInfo * getPeerNodeInfo (const char *pszNodeId) = 0;
@@ -119,7 +119,7 @@ namespace IHMC_ACI
 
             virtual NOMADSUtil::StringHashtable<RemoteNodeInfo> * getAllPeerNodeInfos (void) = 0;
             virtual void release (NOMADSUtil::StringHashtable<RemoteNodeInfo> *pPtrLList) = 0;
-            
+
             virtual char ** getAllNeighborNodeIds (void) = 0;
             virtual void release (char **ppszIDs) = 0;
 
@@ -136,18 +136,18 @@ namespace IHMC_ACI
             virtual bool isPeerUpToDate (const char *pszNeighborNodeId, uint16 ui16CurrentSubscriptionStateCRC) = 0;
 
             virtual bool wasNeighbor (const char *pszNeighborNodeId) = 0;
-            
+
             /*
              * Set/Get IP Address(es)
              */
             int setIPAddress (const char *pszSenderNodeId, const char *pszIPAddress);
             int setIPAddress (const char *pszSenderNodeId, uint32 ui32IPAddress);
-            
+
             uint32 getIPAddress (const char *pszSenderNodeId);
-            
+
             const char * getIPAddressAsString (const char *pszSenderNodeId);
             const char ** getIPAddressesAsStrings (const char *pszSenderNodeId);
-            
+
             virtual char ** getAllNeighborIPs (void) = 0;
             const char * getSenderNodeIdByIPddress (uint32 ui32Address);
 
@@ -166,7 +166,7 @@ namespace IHMC_ACI
             uint32 _ui32DeadPeerInterval;
             LocalNodeInfo *_pLocalNodeInfo;
             PeerStateListenerNotifier _notifier;
-            
+
         protected:
             Type _type;
     };

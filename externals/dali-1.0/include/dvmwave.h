@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -58,7 +58,7 @@ extern "C" {
         /*
          * extra - dynamically allocated space for extra information
          *         which is not anticipated in the primitive implementation.
-         *         This field meant to enable future addition support of 
+         *         This field meant to enable future addition support of
          *         other wave formats.
          */
         int extralen;           /* length of this data */

@@ -1,4 +1,4 @@
-/* 
+/*
  * DataRequestServer.cpp
  *
  * This file is part of the IHMC DisService Library/Component
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -160,7 +160,7 @@ int DataRequestServer::handleDataRequestMessage (DisServiceDataReqMsg *pDSDRMsg,
     }
 
     char **ppszOutgoingInterfaces = NULL;
-    bool bDeleteInterfaces = true;    
+    bool bDeleteInterfaces = true;
     if (pszIncomingInterface != NULL) {
         ppszOutgoingInterfaces = (char **)calloc (2, sizeof (char *));
         if (ppszOutgoingInterfaces != NULL) {
@@ -274,7 +274,7 @@ int DataRequestServer::handleDataRequest (const char *pszMsgId, PtrLList<DisServ
     }
 
     if (pCompleteMessage != NULL) {
-        _pDisService->_pDataCacheInterface->release (pCompleteMessage); 
+        _pDisService->_pDataCacheInterface->release (pCompleteMessage);
     }
     return 0;
 }
@@ -302,7 +302,7 @@ int DataRequestServer::handleDataRequestMessage (const char *pszMsgId, DisServic
         pNext = pPLL->getNext();
         filterAndSendMatchingFragment (msgId, pCurr, pRange, pszTarget, i64RequestArrivalTime, ppszOutgoingInterfaces);
         pPLL->remove (pCurr);
-        _pDisService->_pDataCacheInterface->release (pCurr); 
+        _pDisService->_pDataCacheInterface->release (pCurr);
     }
     delete pPLL;
 

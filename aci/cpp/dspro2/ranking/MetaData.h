@@ -1,4 +1,4 @@
-/* 
+/*
  * MetaData.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -20,7 +20,7 @@
 #ifndef INCL_METADATA_H
 #define INCL_METADATA_H
 
-#include "MetadataInterface.h"
+#include "MetadataImpl.h"
 
 namespace NOMADSUtil
 {
@@ -29,41 +29,26 @@ namespace NOMADSUtil
     class Writer;
 }
 
+namespace IHMC_VOI
+{
+    class Pedigree;
+}
+
 namespace IHMC_ACI
 {
+    class PreviousMessageIds;
     class MetaData;
     struct MetadataFieldInfo;
-    class Pedigree;
-    class SQLAVList;
 
-    class MetaData : public MetadataInterface
+    class MetaData : public IHMC_VOI::MetadataInterface
     {
         public:
-            MetaData (const MetadataFieldInfo ** const pMetadataFieldInfos,
-                      uint16 ui16MetadataFieldsNumber, uint16 i16MetadataNotWritten);
+            MetaData (void);
             virtual ~MetaData (void);
 
             MetaData * clone (void);
 
-            /**
-             * Returns a human-readable representation of the content of the
-             * metadata.
-             */
-            const char * toString (void);
-
-            const char * getFieldName (unsigned int uiIndex) const;
-            const char * getFieldType (unsigned int uiIndex) const;
-            const char * getFieldValueByIndex (unsigned int uiIndex) const;
-
-            MetadataInterface::MetadataWrapperType getMetadataType (void);
-
-            /**
-             * Returns the number of bytes that will be write when
-             * write() is called. Returns -1 if the MetaData instance is empty.
-             */
-            int64 getWriteLength (void) const;
-
-            bool isFieldAtIndexUnknown (unsigned int uiIndex) const;
+            NOMADSUtil::BoundingBox getLocation (float fRange = 0.000001f) const;
 
             /**
              * Set one or more fields values
@@ -71,10 +56,16 @@ namespace IHMC_ACI
              *
              * NOTE: it makes a copy of pszValue
              */
+            int setFieldValue (const char *pszAttribute, int64 i64Value);
             int setFieldValue (const char *pszAttribute, const char *pszValue);
-            int setFieldsValues (SQLAVList *pFieldsValues);
 
             int resetFieldValue (const char *pszFieldName);
+
+            int getReferredDataMsgId (NOMADSUtil::String &refersTo) const;
+
+            int fromString (const char *pszJson);
+            int fromJson (const NOMADSUtil::JsonObject *pJson);
+            NOMADSUtil::JsonObject * toJson (void) const;
 
             /**
              * Reads metadata fields with the given Reader.
@@ -84,7 +75,7 @@ namespace IHMC_ACI
              *
              * NOTE: read note in the write() comment.
              */
-            int64 read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
+            int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
 
             /**
              * Writes metadata fields with the given Writer.
@@ -96,48 +87,14 @@ namespace IHMC_ACI
              * NOTE: only the values are serialized. It is assumed that the order
              *       of the attribute is the same on every machine
              */
-            int64 write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
+            int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize, NOMADSUtil::StringHashset *pFilters);
 
         protected:
-            /**
-             * Stores the field value in "pszValue". If the given field name
-             * exists and the value is known the function returns 0.
-             * If the given field name exists and the value is unknown the
-             * function returns 1.
-             * If the given field name doesn't exist the function returns a
-             * negative number.
-             */
-            int findFieldValue (const char *pszFieldName, const char **ppszValue) const;
+            int findFieldValue (const char *pszFieldName, NOMADSUtil::String &value) const;
 
         private:
-            int setFieldValueInternal (char *&ppszMetaDataFieldOldValue,
-                                       const char *pszMetaDataFieldNewValue);
-
-        private:
-            const MetadataFieldInfo ** const _pMetadataFieldInfos;
-            const uint16 _ui16MetadataFieldsNumber;
-            const uint16 _ui16MetadataNotWritten; // the first "metadataNotWritten" fields
-                                             // are not written/read by write()/read()
-            char **_ppszMetaDataFieldsValues;
+            IHMC_VOI::MetadataImpl _impl;
     };
-
-    class MetadataUtils
-    {
-        public:
-            /**
-             * Returns true if the REFERS_TO property is set and the object
-             * pointed by this was published by pszSource.
-             *
-             * Return false if the REFERS_TO property is null or pszSource is
-             * null, or pszSource is not the publisher.
-             */
-            static bool refersToDataFromSource (MetaData *pMetadata, const char *pszSource);
-    };
-
-    inline MetadataInterface::MetadataWrapperType MetaData::getMetadataType()
-    {
-        return MetadataInterface::Meta;
-    }
 }
 
 #endif   // INCL_METADATA_H

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -76,11 +76,11 @@ bool Subscription::requireFullMessage (void)
 Subscription::Parameters::Parameters (uint8 ui8Priority, bool bReliable, bool bMsgReliable, bool bSequenced)
     : _ui8Priority (ui8Priority), _bGrpReliable (bReliable),
       _bMsgReliable (bMsgReliable), _bSequenced (bSequenced)
-{   
+{
 }
 
 Subscription::Parameters::~Parameters (void)
-{    
+{
 }
 
 int Subscription::Parameters::read (Reader *pReader, uint32 ui32MaxSize)
@@ -222,7 +222,7 @@ bool GroupSubscription::hasFilter (uint16 ui16Tag)
 }
 
 bool GroupSubscription::includes (Subscription *pSubscription)
-{   
+{
     switch (pSubscription->getSubscriptionType()) {
         case GROUP_SUBSCRIPTION:
             return false;
@@ -439,7 +439,7 @@ GroupPredicateSubscription::GroupPredicateSubscription (const char *pszPredicate
 }
 
 GroupPredicateSubscription::~GroupPredicateSubscription (void)
-{   
+{
 }
 
 int GroupPredicateSubscription::addHistory (History *pHistory, uint16 ui16Tag)
@@ -575,7 +575,7 @@ bool GroupPredicateSubscription::matches (const Message *pMessage)
         printf ("Received a fragment for a full message subscription (keeping the fragment)\n");
         return true;
     }
-    
+
     if (_ui8PredicateType == 0) {    //to change with the constant
 
         //simple subscriptions (group or group/tag) not found
@@ -583,7 +583,7 @@ bool GroupPredicateSubscription::matches (const Message *pMessage)
         TiXmlElement * XEp_main;
         TiXmlDocument * XDp_doc;
         XDp_doc = new TiXmlDocument ("Doc title");
-        const uint32 ui32Length = (const uint32 )pMessage->getMessageInfo()->getTotalMessageLength()+1;
+        const uint32 ui32Length = pMessage->getMessageInfo()->getTotalMessageLength() + 1U;
 
         char* pXmlDoc = (char*)malloc(ui32Length*sizeof(char));
 
@@ -595,7 +595,7 @@ bool GroupPredicateSubscription::matches (const Message *pMessage)
         printf("RECEIVED DATA: (%d/%d bytes)***********************************\n",pMessage->getMessageInfo()->getFragmentLength(), pMessage->getMessageInfo()->getTotalMessageLength());
         printf("%s\n",pXmlDoc);
         printf("END RECEIVED DATA: ***********************************\n");
-        
+
         //printf("Data: %s\n",(char*)pMessage->getData());
         if( (XDp_doc -> Parse (pXmlDoc)) == NULL) { //data parsed
             XEp_main = XDp_doc -> RootElement ();
@@ -605,7 +605,7 @@ bool GroupPredicateSubscription::matches (const Message *pMessage)
                 printf("xpath result: %s %d\n", out.c_str(), result);
 
                 free(XEp_main);
-                
+
                 if (result) {
                     free(XDp_doc);
                     return true;
@@ -641,7 +641,7 @@ bool GroupPredicateSubscription::merge (Subscription *pSubscription)
 */
 
 bool GroupPredicateSubscription::merge (Subscription *pSubscription)
-{ 
+{
     bool bRet = false;
     switch (pSubscription->getSubscriptionType()) {
         case GROUP_SUBSCRIPTION:
@@ -699,7 +699,7 @@ int GroupPredicateSubscription::read (Reader *pReader, uint32 ui32MaxSize)
     pReader->read8 (&_ui8PredicateType);
     pReader->read16 (&ui16lenght);
     pReader->readBytes (&_predicate, ui16lenght);
-    
+
     return 0;
 }
 */
@@ -755,7 +755,7 @@ int GroupPredicateSubscription::write (Writer *pWriter, uint32 ui32MaxSize)
     pWriter->write8 (&_ui8PredicateType);
     pWriter->write16 (&ui16lenght);
     pWriter->writeBytes (&_predicate, ui16lenght);
-    
+
     return 0;
 }
 */
@@ -860,7 +860,7 @@ int GroupTagSubscription::addTag (uint16 ui16Tag, uint8 ui8Priority, bool bRelia
 }
 */
 
-int GroupTagSubscription::addTag (uint16 ui16Tag, uint8 ui8Priority, bool bGrpReliable, bool bMsgReliable, bool bSequenced) 
+int GroupTagSubscription::addTag (uint16 ui16Tag, uint8 ui8Priority, bool bGrpReliable, bool bMsgReliable, bool bSequenced)
 {
     if (_ui16Tags.contains (ui16Tag)) {
         return -1;
@@ -1078,7 +1078,7 @@ bool GroupTagSubscription::merge (Subscription *pSubscription)
                 }
             }
             break;
-        }            
+        }
         case GROUP_TAG_SUBSCRIPTION:
         {
             GroupTagSubscription *pGTS = (GroupTagSubscription *) pSubscription;
@@ -1126,12 +1126,12 @@ bool GroupTagSubscription::merge (Subscription *pSubscription)
                 }
             }
             break;
-        }          
+        }
         case GROUP_PREDICATE_SUBSCRIPTION:
         {
             //TODO
             break;
-        }  
+        }
         case GROUP_TAG_SUBSCRIPTION:
         {
             GroupTagSubscription *pGTS = (GroupTagSubscription *) pSubscription;

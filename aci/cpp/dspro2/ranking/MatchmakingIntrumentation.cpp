@@ -1,4 +1,4 @@
-/* 
+/*
  * MatchmakingIntrumentation.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 const char * MatchmakingIntrumentation::PUSH_TYPE = "Push";
@@ -57,9 +58,8 @@ MatchmakingIntrumentation::MatchmakingIntrumentation (bool bSkipped, const char 
 
 MatchmakingIntrumentation::~MatchmakingIntrumentation()
 {
-    if (_pRank != NULL) {
+    if (_pRank != nullptr) {
         delete _pRank;
-        _pRank = NULL;
     }
 }
 
@@ -70,8 +70,8 @@ void MatchmakingIntrumentation::setNextHopNodeId (const char *pszNextHopNodeId)
 
 const char * MatchmakingIntrumentation::getType (void)
 {
-    if (_pRank == NULL) {
-        return NULL;
+    if (_pRank == nullptr) {
+        return nullptr;
     }
     if (_localNodeId == _pRank->_targetId) {
         return PULL_TYPE;

@@ -17,6 +17,8 @@
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  */
 
+#include <algorithm>
+
 #include "Targets.h"
 
 #include "Defs.h"
@@ -27,10 +29,22 @@
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
-Targets::Targets (Targets &targets)
+
+void swap (Targets & first, Targets & second)
+{
+    // enable ADL
+    using std::swap;
+
+    // Swap each member
+    swap (first.adaptorId, second.adaptorId);
+    swap (first.aInterfaces, second.aInterfaces);
+    swap (first.aTargetNodeIds, second.aTargetNodeIds);
+}
+
+Targets::Targets (const Targets & targets)
     : adaptorId (targets.adaptorId),
-      aTargetNodeIds ((char*) NULL, targets.aTargetNodeIds.size()),
-      aInterfaces ((char*) NULL, targets.aInterfaces.size())
+      aTargetNodeIds ((char*) nullptr, targets.aTargetNodeIds.size()),
+      aInterfaces ((char*) nullptr, targets.aInterfaces.size())
 {
     for (unsigned int i = 0; i < targets.aTargetNodeIds.size(); i++) {
         aTargetNodeIds[i] = strDup (targets.aTargetNodeIds.get (i));
@@ -46,7 +60,7 @@ Targets::~Targets (void)
         for (unsigned int ui = 0; ui < aTargetNodeIds.getSize(); ui++) {
             if (aTargetNodeIds[ui]) {
                 free (aTargetNodeIds[ui]);
-                aTargetNodeIds[ui] = NULL;
+                aTargetNodeIds[ui] = nullptr;
             }
         }
         aTargetNodeIds.trimSize (0);
@@ -55,14 +69,21 @@ Targets::~Targets (void)
         for (unsigned int ui = 0; ui < aInterfaces.getSize(); ui++) {
             if (aInterfaces[ui]) {
                 free (aInterfaces[ui]);
-                aInterfaces[ui] = NULL;
+                aInterfaces[ui] = nullptr;
             }
         }
         aInterfaces.trimSize (0);
     }
 }
 
-bool Targets::subsume (const Targets &target)
+Targets & Targets::operator= (Targets targets)
+{
+    swap (*this, targets);
+
+    return *this;
+}
+
+bool Targets::subsume (const Targets & target)
 {
     if (aInterfaces.size() != target.aInterfaces.size()) {
         return false;
@@ -80,7 +101,7 @@ bool Targets::subsume (const Targets &target)
     for (unsigned int i = 0; i < aTargetNodeIds.size(); i++) {
         hs.put (aTargetNodeIds.get (i));
     }
-    for (unsigned int i = 0; i < target.aInterfaces.size(); i++) {
+    for (unsigned int i = 0; i < target.aTargetNodeIds.size(); i++) {
         if (!hs.containsKey (target.aTargetNodeIds.get (i))) {
             const unsigned int uiIndex = firstFreeTargetNodeId();
             aTargetNodeIds[uiIndex] = strDup (target.aTargetNodeIds.get (i));
@@ -92,17 +113,17 @@ bool Targets::subsume (const Targets &target)
 void Targets::log (void)
 {
     for (unsigned int i = 0; i < aTargetNodeIds.size(); i++) {
-        if (aTargetNodeIds[i] != NULL && aInterfaces[i] != NULL) {
+        if (aTargetNodeIds[i] != nullptr && aInterfaces[i] != nullptr) {
             logTopology ("Targets::display", Logger::L_Info,
                          "target node %u: <%s>\tinterface: <%s>\n",
                          i, aTargetNodeIds[i], aInterfaces[i]);
         }
         else {
-            if (aTargetNodeIds[i] == NULL) {
+            if (aTargetNodeIds[i] == nullptr) {
                 logTopology ("Targets::display", Logger::L_Info,
                              "aTargetNodeIds[%u] not used\n", i);
             }
-            if (aInterfaces[i] == NULL) {
+            if (aInterfaces[i] == nullptr) {
                 logTopology ("Targets::display", Logger::L_Info,
                              "aInterfaces[%u] not used\n", i);
             }
@@ -110,30 +131,29 @@ void Targets::log (void)
     }
 }
 
-void Targets::deallocateTarget (Targets *pTargets)
+void Targets::deallocateTarget (Targets * pTargets)
 {
-    delete pTargets;   
+    delete pTargets;
 }
 
-void Targets::deallocateTargets (Targets **ppTargets)
+void Targets::deallocateTargets (Targets ** ppTargets)
 {
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return;
     }
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         deallocateTarget (ppTargets[i]);
     }
-    free (ppTargets);    
+    free (ppTargets);
 }
 
-int Targets::firstFreeInternal (NOMADSUtil::DArray<char*> &array)
+int Targets::firstFreeInternal (NOMADSUtil::DArray<char *> & array)
 {
     int j = (int) array.size();
     for (int i = 0; i < j; i++) {
-        if (array[i] == NULL) {
+        if (array[i] == nullptr) {
             return i;
         }
     }
     return j;
 }
-

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,6 +27,7 @@
 #include "ListenerNotifier.h"
 #include "SubscriptionList.h"
 
+#include "CircularPtrLList.h"
 #include "DArray.h"
 #include "StringHashtable.h"
 #include "StringHashthing.h"
@@ -76,14 +77,14 @@ namespace IHMC_ACI
             uint32 getDefaultIPAddress (void);
 
             /**
-             * NOTE: the returned string MUST NOT be deallocated. 
+             * NOTE: the returned string MUST NOT be deallocated.
              */
             const char * getDefaultIPAddressAsString (void);
 
             /**
              * Returns a null-terminated array of strings the are the ip adresses
              * associated with the peer in dotted form.
-             * 
+             *
              * NOTE: the array contains references to the ip addresses; they
              *       MUST NOT be deallocated
              */
@@ -223,16 +224,16 @@ namespace IHMC_ACI
             SubscriptionList * getRemoteSubscriptionsCopy (void);
             bool isNodeInterested (DisServiceDataMsg *pDSDMsg);
             void printRemoteNodeInfo (void);
-            
+
             /**
-             * Topology 
+             * Topology
              */
             NOMADSUtil::StringFloatHashtable * getIndirectProbabilities (void);
             void setIndirectProbabilities (NOMADSUtil::StringFloatHashtable * pIndirectProbabilities);
             void ageIndirectProbabilities (float fAgeParam, float fProbThreshold, int iTimeSinceLastAging);
             void printIndirectProbabilities (void);
             void addIndirectProbability (const char *pszNeighborNodeId, float fIndProb, float fAddParam, float fProbThreshold);
-                   
+
         protected:
             friend class WorldState;
             friend class TopologyWorldState;
@@ -249,7 +250,7 @@ namespace IHMC_ACI
 
             NOMADSUtil::StringHashtable<uint32> *_pSubscriptionStateTable;
             SubscriptionList *_pRemoteSubscriptions;
-            
+
             NOMADSUtil::StringFloatHashtable * _pIndirectProbabilities;
     };
 
@@ -301,6 +302,9 @@ namespace IHMC_ACI
             // Returns the next sequence number that will be assigned for a message pushed to this group by this node
             /*!!*/ // Bad name - rename this method to reflect the semantics of this method.
             uint32 getGroupPubState (const char *pszGroupName);
+
+            // Return true whether the publication state should be advertised
+            bool getGroupPubStateToAdvertise (NOMADSUtil::String &group, uint32 ui32SeqId);
 
             /**
              * It returns a DArray with the IDs of the clients interested in
@@ -357,7 +361,7 @@ namespace IHMC_ACI
             uint8 getConnectivityHistoryNodesCount (void);
 
             uint32 getSubscriptionStateSequenceID (void) const;
-            
+
             SubscriptionList * getConsolidatedSubscriptions (void);
             SubscriptionList * getConsolidatedSubscriptionsCopy (void);
             void printAllSubscribedGroups (void);
@@ -365,6 +369,7 @@ namespace IHMC_ACI
         private:
             int addHistoryInternal (uint16 ui16ClientId, const char *pszGroupName, History *pHistory);
             Subscription * getSubscriptionForClient (uint16 ui16ClientId, const char *pszGroupName);
+            uint32 getGroupPubStateInternal (const char *pszGroupName);
             void updateConsolidateSubsciptionList (const char *pszGroupName, Subscription *pSubscription);
             void recomputeConsolidateSubsciptionList (void);
 
@@ -387,6 +392,8 @@ namespace IHMC_ACI
             SubscriptionList _consolidatedSubscriptions; // Aggregate list that contains all the
                                                          // subscription for each client on the node
             NOMADSUtil::LoggingMutex _m;
+            NOMADSUtil::PtrLList<NOMADSUtil::String> _subscriptionAdvertisementInner;
+            NOMADSUtil::CircularPtrLList<NOMADSUtil::String> _subscriptionAdvertisement;
             NOMADSUtil::UInt32Hashtable<SubscriptionList> _localSubscriptions;
             NOMADSUtil::StringHashtable<GroupPubState> _pubState;    // Stores information about local node's publications on a per-group basis
             GroupMembershipListenerNotifier _notifier;
@@ -491,7 +498,7 @@ namespace IHMC_ACI
     inline LocalNodeInfo::GroupPubState::GroupPubState (void)
     {
         ui32NextSeqNum = 0;
-    } 
+    }
 }
 
 #endif   // #ifndef INCL_NODE_INFO_H

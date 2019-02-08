@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -48,6 +48,7 @@
 #include "PropertyStoreInterface.h"
 #include "ReceivedMessagesInterface.h"
 #include "RequestsState.h"
+#include "SessionId.h"
 #include "SQLMessageHeaderStorage.h"
 #include "Subscription.h"
 #include "SubscriptionFactory.h"
@@ -93,8 +94,7 @@ using namespace IHMC_ACI;
 using namespace IHMC_MISC;
 using namespace NOMADSUtil;
 
-#define bBandwidthSharingEnabled (_pBandwidthSharing != NULL)
-#define bNetworkStateNotifierEnabled ((_pNetworkStateNotifier != NULL) && (_pNetworkStateNotifier->getListenerCount() > 0))
+#define bNetworkStateNotifierEnabled ((_pNetworkStateNotifier != nullptr) && (_pNetworkStateNotifier->getListenerCount() > 0))
 
 const float DisseminationService::DEFAULT_PROB_CONTACT = 1.0f;
 const float DisseminationService::DEFAULT_PROB_THRESHOLD = 0.1f;
@@ -103,66 +103,105 @@ const float DisseminationService::DEFAULT_AGE_PARAM = 0.999f;
 
 int strcpyAndFill (char *pszDst, uint32 ui32DestLen, const char *pszSrc, uint32 ui32SrcLen);
 
-DisseminationService::DisseminationService (ConfigManager *pCfgMgr)
-    : _m (8), _mBrcast (9), _mKeepAlive (10), _mGetData (11),
-      _mControllers (12), _mToListeners (13), _mToPeerListeners (14),
-      _mAsynchronousNotify (30)
+// Decide if trasmit a message in plaintext, even in presence of encryption
+bool doPlainText (const char *pszGroupName, const char *pszSessionId)
 {
-    construct (pCfgMgr);
-}
-
-DisseminationService::DisseminationService (const char *pszNodeUID)
-    : _m (8), _mBrcast (9), _mKeepAlive (10), _mGetData (11),
-      _mControllers (12), _mToListeners (13), _mToPeerListeners (14),
-      _mAsynchronousNotify (30)
-{
-    ConfigManager *pCfgMgr = new ConfigManager();
-    if (pszNodeUID != NULL) {
-        pCfgMgr->setValue ("aci.disService.nodeUUID", pszNodeUID);
+    if ((pszGroupName == nullptr) || (pszSessionId == nullptr)) {
+        return false;
     }
-    construct (pCfgMgr);
+    return (0 == strcmp (pszGroupName, pszSessionId));
 }
 
-DisseminationService::DisseminationService (uint16 ui16Port, const char *pszSenderId)
-    : _m (8), _mBrcast (9), _mKeepAlive (10), _mGetData (11),
-      _mControllers (12), _mToListeners (13), _mToPeerListeners (14),
-      _mAsynchronousNotify (30)
+DisseminationService::DisseminationService (ConfigManager * pCfgMgr) :
+    _pNetworkStateNotifier (nullptr), _pCfgMgr (pCfgMgr), _bDeleteConfigManager (false),
+    _pStats (nullptr), _pStatusNotifier (nullptr), _pChunkingConf (nullptr), _pPeerState (nullptr),
+    _pSubscriptionState (nullptr),_pDataReqSvr (nullptr),_pDataCacheInterface (nullptr),
+    _pDCRepCtlr (nullptr), _pDefaultDCRepCtlr (nullptr), _pFwdCtlr (nullptr),
+    _pDefaultFwdCtlr (nullptr), _pDCExpCtlr (nullptr), _pDefaultDCExpCtlr (nullptr),
+    _pSubFwdCtlr (nullptr), _pNetTrafficMemory (nullptr), _pTrSvc (nullptr),
+    _pTrSvcListener (nullptr),_pTransmissionHistoryInterface (nullptr),
+    _pReceivedMessagesInterface (nullptr), _pDataRequestHandler (nullptr),
+    _pBandwidthSharing (nullptr), _pDiscoveryCtrl (nullptr), _pChunkRetrCtrl (nullptr),
+    _pSearchCtrl (nullptr), _pMessagesToNotify (new PtrLList<MessageToNotifyToClient>()),
+    _m (8), _mBrcast (9), _mKeepAlive (10), _mGetData (11), _mControllers (12),
+    _mToListeners (13), _mToPeerListeners (14), _mAsynchronousNotify (30)
 {
-    ConfigManager *pCfgMgr = new ConfigManager();
-    if (pszSenderId != NULL) {
-        pCfgMgr->setValue ("aci.disService.nodeUUID", pszSenderId);
+    construct();
+}
+
+DisseminationService::DisseminationService (const char * pszNodeUID) :
+    _pNetworkStateNotifier (nullptr), _pCfgMgr (new ConfigManager()), _bDeleteConfigManager (true),
+    _pStats (nullptr), _pStatusNotifier (nullptr), _pChunkingConf (nullptr), _pPeerState (nullptr),
+    _pSubscriptionState (nullptr),_pDataReqSvr (nullptr),_pDataCacheInterface (nullptr),
+    _pDCRepCtlr (nullptr), _pDefaultDCRepCtlr (nullptr), _pFwdCtlr (nullptr),
+    _pDefaultFwdCtlr (nullptr), _pDCExpCtlr (nullptr), _pDefaultDCExpCtlr (nullptr),
+    _pSubFwdCtlr (nullptr), _pNetTrafficMemory (nullptr), _pTrSvc (nullptr),
+    _pTrSvcListener (nullptr),_pTransmissionHistoryInterface (nullptr),
+    _pReceivedMessagesInterface (nullptr), _pDataRequestHandler (nullptr),
+    _pBandwidthSharing (nullptr), _pDiscoveryCtrl (nullptr), _pChunkRetrCtrl (nullptr),
+    _pSearchCtrl (nullptr), _pMessagesToNotify (new PtrLList<MessageToNotifyToClient>()),
+    _m (8), _mBrcast (9), _mKeepAlive (10), _mGetData (11), _mControllers (12),
+    _mToListeners (13), _mToPeerListeners (14), _mAsynchronousNotify (30)
+{
+    if (pszNodeUID != nullptr) {
+        _pCfgMgr->setValue ("aci.disService.nodeUUID", pszNodeUID);
+    }
+    construct();
+}
+
+DisseminationService::DisseminationService (uint16 ui16Port, const char * pszSenderId) :
+    _pNetworkStateNotifier (nullptr), _pCfgMgr (new ConfigManager()), _bDeleteConfigManager (true),
+    _pStats (nullptr), _pStatusNotifier (nullptr), _pChunkingConf (nullptr), _pPeerState (nullptr),
+    _pSubscriptionState (nullptr),_pDataReqSvr (nullptr),_pDataCacheInterface (nullptr),
+    _pDCRepCtlr (nullptr), _pDefaultDCRepCtlr (nullptr), _pFwdCtlr (nullptr), _pDefaultFwdCtlr (nullptr),
+    _pDCExpCtlr (nullptr), _pDefaultDCExpCtlr (nullptr), _pSubFwdCtlr (nullptr), _pNetTrafficMemory (nullptr),
+    _pTrSvc (nullptr), _pTrSvcListener (nullptr), _pTransmissionHistoryInterface (nullptr),
+    _pReceivedMessagesInterface (nullptr), _pDataRequestHandler (nullptr),
+    _pBandwidthSharing (nullptr), _pDiscoveryCtrl (nullptr), _pChunkRetrCtrl (nullptr),
+    _pSearchCtrl (nullptr), _pMessagesToNotify (new PtrLList<MessageToNotifyToClient>()),
+    _m (8), _mBrcast (9), _mKeepAlive (10), _mGetData (11), _mControllers (12),
+    _mToListeners (13), _mToPeerListeners (14), _mAsynchronousNotify (30)
+{
+    if (pszSenderId != nullptr) {
+        _pCfgMgr->setValue ("aci.disService.nodeUUID", pszSenderId);
     }
     if (ui16Port != 0) {
-        pCfgMgr->setValue ("aci.disservice.networkMessageService.port", ui16Port);
+        _pCfgMgr->setValue ("aci.disservice.networkMessageService.port", ui16Port);
     }
-    construct (pCfgMgr);
+    construct();
 }
 
 DisseminationService::~DisseminationService (void)
 {
-    delete _pChunkingConf;              _pChunkingConf          = NULL;
-    delete _pNetworkStateNotifier;      _pNetworkStateNotifier  = NULL;
-    delete _pDCRepCtlr;                 _pDCRepCtlr             = NULL;
-    delete _pDefaultDCRepCtlr;          _pDefaultDCRepCtlr      = NULL;
-    delete _pDCExpCtlr;                 _pDCExpCtlr             = NULL;
-    delete _pDefaultDCExpCtlr;          _pDefaultDCExpCtlr      = NULL;
-    delete _pFwdCtlr;                   _pFwdCtlr               = NULL;
-    delete _pDefaultFwdCtlr;            _pDefaultFwdCtlr        = NULL;
-    delete _pSubFwdCtlr;                 _pSubFwdCtlr           = NULL;
-    delete _pDataReqSvr;            _pDataReqSvr        = NULL;
-    delete _pNetTrafficMemory;          _pNetTrafficMemory      = NULL;
-    delete _pTrSvc;                     _pTrSvc                 = NULL;
-    delete _pTrSvcListener;             _pTrSvcListener         = NULL;
-    delete _pStats;                     _pStats                 = NULL;
-    delete _pStatusNotifier;            _pStatusNotifier        = NULL;
-    delete _pSubscriptionState;         _pSubscriptionState     = NULL;
-    delete _pPeerState;                 _pPeerState             = NULL;
-    delete _pDataCacheInterface;        _pDataCacheInterface    = NULL;
-    delete _pDataRequestHandler;        _pDataRequestHandler    = NULL;
-    delete _pBandwidthSharing;          _pBandwidthSharing      = NULL;
-    delete _pChunkRetrCtrl;             _pChunkRetrCtrl         = NULL;
-    delete _pDiscoveryCtrl;             _pDiscoveryCtrl         = NULL;
-    delete _pSearchCtrl;                _pSearchCtrl            = NULL;
+    delete _pChunkingConf;
+    delete _pNetworkStateNotifier;
+    delete _pDCRepCtlr;
+    delete _pDefaultDCRepCtlr;
+    delete _pDCExpCtlr;
+    delete _pDefaultDCExpCtlr;
+    delete _pFwdCtlr;
+    delete _pDefaultFwdCtlr;
+    delete _pSubFwdCtlr;
+    delete _pDataReqSvr;
+    delete _pNetTrafficMemory;
+    delete _pTrSvc;
+    delete _pTrSvcListener;
+    delete _pStats;
+    delete _pStatusNotifier;
+    delete _pSubscriptionState;
+    delete _pPeerState;
+    delete _pDataCacheInterface;
+    delete _pDataRequestHandler;
+    delete _pBandwidthSharing;
+    delete _pChunkRetrCtrl;
+    delete _pDiscoveryCtrl;
+    delete _pMessagesToNotify;
+    delete _pSearchCtrl;
+    delete _pReceivedMessagesInterface;
+    delete _pTransmissionHistoryInterface;
+    if (_bDeleteConfigManager) {
+        delete _pCfgMgr;
+    }
 }
 
 int DisseminationService::init (void)
@@ -172,12 +211,13 @@ int DisseminationService::init (void)
 
     _m.lock (32);
 
+    SessionId::getInstance()->setSessionId (_pCfgMgr->getValue ("aci.disService.sessionKey"), (int64)0);
+
     // Instantiate data storage
     _pDataCacheInterface = DataCacheFactory::getDataCache (_pCfgMgr);
 
     NodeId nodeIdGen (_pDataCacheInterface->getStorageInterface()->getPropertyStore());
     _nodeId = nodeIdGen.generateNodeId (_pCfgMgr);
-    _sessionId = _pCfgMgr->getValue ("aci.disService.sessionKey");
     checkAndLogMsg (pszMethodName, Logger::L_Info, "Node ID set to: %s\n", getNodeId());
 
     int ret;
@@ -211,6 +251,13 @@ int DisseminationService::init (void)
 
     _pPeerState->setDeadPeerInterval(_ui32DeadPeerInterval);
     _pNetTrafficMemory = new NetworkTrafficMemory (_ignoreMissingFragReqTime);
+    // Instantiate Network State Notifier
+    _pNetworkStateNotifier = new NetworkStateListenerNotifier();
+    if (_pNetworkStateNotifier == nullptr) {
+        checkAndLogMsg (pszMethodName, memoryExhausted);
+        _m.unlock (32);
+        return -4;
+    }
 
     // Initialize the LocalNodeInfo
     uint32 ui32DefaultKbpsBandwidthLimit = cfgReader.getBandwidth();
@@ -219,8 +266,8 @@ int DisseminationService::init (void)
                                          i64WindowSize);
 
     // Instantiate the MessagePropagationService
-    _pTrSvc = TransmissionService::getInstance (_pCfgMgr, getNodeId(), getSessionId());
-    if (_pTrSvc == NULL) {
+    _pTrSvc = TransmissionService::getInstance (_pCfgMgr, getNodeId());
+    if (_pTrSvc == nullptr) {
         return -1;
     }
     setMaxFragmentSize (DEFAULT_MAX_FRAGMENT_SIZE);
@@ -246,7 +293,7 @@ int DisseminationService::init (void)
     }
 
     bool bUseExpBackOff = _pCfgMgr->getValueAsBool ("aci.disService.reassembler.ExpBackoff.enabled",
-                                                           MessageReassembler::DEFAULT_ENABLE_EXPONENTIAL_BACKOFF);
+                                                    MessageReassembler::DEFAULT_ENABLE_EXPONENTIAL_BACKOFF);
     checkAndLogMsg (pszMethodName, Logger::L_Info, "Exponential Backoff is %s\n",
                     (bUseExpBackOff ? "enabled" : "disabled"));
 
@@ -270,10 +317,10 @@ int DisseminationService::init (void)
     // and - if the data cache contains any message - load the most recent state
     PtrLList<StorageInterface::RetrievedSubscription> *pRetrievedSubs = _pDataCacheInterface->getSubscriptions (getNodeId());
     StorageInterface::RetrievedSubscription *pNextSubscription;
-    if (pRetrievedSubs != NULL) {
+    if (pRetrievedSubs != nullptr) {
         StorageInterface::RetrievedSubscription *pCurrSubscription = pRetrievedSubs->getFirst();
         uint32 ui32NextExpectedSeqId;
-        while (pCurrSubscription != NULL) {
+        while (pCurrSubscription != nullptr) {
             // The sequence ID is incremented across the "tags", therefore the
             // tag does not have to be specified, otherwise the method will
             // return the last sequence ID for published with the specific tag,
@@ -285,13 +332,13 @@ int DisseminationService::init (void)
             pNextSubscription = pRetrievedSubs->getNext();
             pRetrievedSubs->remove (pCurrSubscription);
             free ((char*)pCurrSubscription->pszGroupName);
-            pCurrSubscription->pszGroupName = NULL;
+            pCurrSubscription->pszGroupName = nullptr;
             delete pCurrSubscription;
-            pCurrSubscription = NULL;
+            pCurrSubscription = nullptr;
             pCurrSubscription = pNextSubscription;
         }
         delete pRetrievedSubs;
-        pRetrievedSubs = NULL;
+        pRetrievedSubs = nullptr;
     }
 
     // Set Controllers
@@ -312,19 +359,19 @@ int DisseminationService::init (void)
         ((TopologyWorldState *) _pPeerState)->setParameters (cfgReader.getProbContact(),
                                                              cfgReader.getProbThreshold(),
                                                              cfgReader.getAddParam(),
-                                                             cfgReader.getAgeParam()); 
+                                                             cfgReader.getAgeParam());
     }
 
     // Transmission History
     _pTransmissionHistoryInterface = TransmissionHistoryInterface::getTransmissionHistory();
-    if (_pTransmissionHistoryInterface == NULL) {
+    if (_pTransmissionHistoryInterface == nullptr) {
         _m.unlock (32);
         return -1;
     }
 
     // Received Messages
     _pReceivedMessagesInterface = ReceivedMessagesInterface::getReceivedMessagesInterface();
-    if (_pReceivedMessagesInterface == NULL) {
+    if (_pReceivedMessagesInterface == nullptr) {
         _m.unlock (32);
         return -2;
     }
@@ -342,7 +389,7 @@ int DisseminationService::init (void)
                                                             DataRequestHandler::DEFAULT_RECEIVE_RATE_THRESHOLD,
                                                             bUseDataRequestHandlerForRequests);
 
-    if (_pTrSvc != NULL) {
+    if (_pTrSvc != nullptr) {
         // Init Transmission Service
         ret = _pTrSvc->init (_pCfgMgr, (const char **) ppszOutgoingInterfaces,
                              (const char **) ppszIgnoredInterfaces, (const char **) ppszAddedInterfaces);
@@ -350,8 +397,8 @@ int DisseminationService::init (void)
         // Instantiate the MessagePropagationServiceListener and register it
         const bool bUseTrafficMem = _pCfgMgr->getValueAsBool ("aci.disService.transmissionService.listener.trafficHistory.enable", false);
         _pTrSvcListener = new TransmissionServiceListener (this, _pDataRequestHandler, _pLocalNodeInfo, _pMessageReassembler,
-                                                           _pSubscriptionState, (bUseTrafficMem ? _pNetTrafficMemory : NULL),
-                                                           _bOppListeningEnabled, _bTargetFilteringEnabled);
+                                                           _pSubscriptionState, (bUseTrafficMem ? _pNetTrafficMemory : nullptr),
+                                                           _pNetworkStateNotifier, _bOppListeningEnabled, _bTargetFilteringEnabled);
         _pTrSvc->registerHandlerCallback (MPSMT_DisService, _pTrSvcListener);
 
         // Set Default Transmission Rate if any
@@ -361,30 +408,30 @@ int DisseminationService::init (void)
         }
         // Set Default Transmission Rate for a specific interface
         char **ppszInterfaces = _pTrSvc->getActiveInterfacesAddress();
-        if (ppszInterfaces != NULL) {
+        if (ppszInterfaces != nullptr) {
             String rateLimitByInterfaceBase = "aci.disService.nodeConfiguration.bandwidthByInterface.";
             String rateLimitByInterface;
             for (int i = 0; ppszInterfaces[i]; i++) {
                 rateLimitByInterface = rateLimitByInterfaceBase + ppszInterfaces[i];
                 if (_pCfgMgr->hasValue (rateLimitByInterface)) {
                     uint32 ui32RateLimit = _pCfgMgr->getValueAsUInt32 (rateLimitByInterface);
-                    _pTrSvc->setTransmitRateLimit (ppszInterfaces[i], (uint32) 0, ui32RateLimit * (1024/8));
+                    _pTrSvc->setTransmitRateLimit (ppszInterfaces[i], nullptr, ui32RateLimit * (1024/8));
                 }
                 free (ppszInterfaces[i]);
-                ppszInterfaces[i] = NULL;
+                ppszInterfaces[i] = nullptr;
             }
             free (ppszInterfaces);
-            ppszInterfaces = NULL;
+            ppszInterfaces = nullptr;
         }
         //Set Default Transmission Rate for a certain destination
         if (_pCfgMgr->hasValue ("aci.disService.nodeConfiguration.bandwidthByDestination")) {
             StringTokenizer tokenizer (_pCfgMgr->getValue ("aci.disService.nodeConfiguration.bandwidthByDestination"), ';', ';');
             const char *pszToken;
             const char *pszInnerToken;
-            while ((pszToken = tokenizer.getNextToken()) != NULL) {
+            while ((pszToken = tokenizer.getNextToken()) != nullptr) {
                 StringTokenizer innerTokenizer (pszToken, ',', ',');
                 DArray2<char*> tokens;
-                for (int i = 0; (pszInnerToken = innerTokenizer.getNextToken()) != NULL; i++) {
+                for (int i = 0; (pszInnerToken = innerTokenizer.getNextToken()) != nullptr; i++) {
                     tokens[i] = (char *) pszInnerToken;
                 }
                 switch (tokens.size()) {
@@ -424,25 +471,17 @@ int DisseminationService::init (void)
     checkAndLogMsg (pszMethodName, Logger::L_Info,
                             "Node importance set to %u.\n", _ui8NodeImportance);
     //Enable BandwidthSharing
-    if (_pCfgMgr->getValueAsBool("aci.disService.nodeConfiguration.bandwidthSharing.enabled", false)) {
+    if (_pCfgMgr->getValueAsBool ("aci.disService.nodeConfiguration.bandwidthSharing.enabled", false)) {
         _pBandwidthSharing = new BandwidthSharing (_pPeerState, _pTrSvc);
         int iSharingRule = _pCfgMgr->getValueAsInt ("aci.disService.nodeConfiguration.bandwidthSharing.sharingRule", 0);
         _pBandwidthSharing->setSharingRule (iSharingRule);
     }
     else {
-        _pBandwidthSharing = NULL;
-    }
-
-    // Instantiate Network State Notifier
-    _pNetworkStateNotifier = new NetworkStateListenerNotifier();
-    if (_pNetworkStateNotifier == NULL) {
-        checkAndLogMsg (pszMethodName, memoryExhausted);
-        _m.unlock (32);
-        return -4;
+        _pBandwidthSharing = nullptr;
     }
 
     // Instantiate the Chunking Configuration
-    _pChunkingConf = new ChunkingConfiguration ();
+    _pChunkingConf = new ChunkingConfiguration();
     if (_pChunkingConf->init (_pCfgMgr) < 0) {
         _m.unlock (32);
         return -5;
@@ -459,7 +498,7 @@ int DisseminationService::init (void)
     _pDefaultDCRepCtlr = ControllerFactory::getRepControllerAndRegisterListeners();
     _pDefaultFwdCtlr = ControllerFactory::getForwControllerAndRegisterListeners();
     _pDefaultDCExpCtlr = ControllerFactory::getExpControllerAndRegisterListeners();
-    _pSubFwdCtlr = ControllerFactory::getSubForwControllerAndRegisterListeners();    
+    _pSubFwdCtlr = ControllerFactory::getSubForwControllerAndRegisterListeners();
     if (registerMessageListener (_pStats, uiIndex) < 0) {
         checkAndLogMsg (pszMethodName, listerRegistrationFailed, "_pStats", "MessageListener");
     }
@@ -469,7 +508,7 @@ int DisseminationService::init (void)
     // TODO: relying on the registration order is dangerous though, consider refactoring!
     unsigned int uiListenerIndex;
     _pDiscoveryCtrl = new ChunkDiscoveryController (this, _pDataCacheInterface);
-    _pChunkRetrCtrl = new ChunkRetrievalController (this, _pDiscoveryCtrl, _pDataCacheInterface);
+    _pChunkRetrCtrl = new ChunkRetrievalController (this, _pMessageReassembler, _pDiscoveryCtrl, _pDataCacheInterface);
     if (registerMessageListener (_pChunkRetrCtrl, uiListenerIndex) < 0) {
         checkAndLogMsg (pszMethodName, listerRegistrationFailed, "_pChunkretrCtrl", "MessageListener");
         _m.unlock (32);
@@ -491,7 +530,7 @@ int DisseminationService::init (void)
             }
         }
         else {
-            _pSearchCtrl = NULL; 
+            _pSearchCtrl = nullptr;
         }
     }
 
@@ -521,10 +560,10 @@ int DisseminationService::start (void)
 
 void DisseminationService::requestTermination (void)
 {
-    if (_pTrSvc != NULL) {
+    if (_pTrSvc != nullptr) {
         _pTrSvc->requestTermination();
     }
-    if (_pMessageReassembler != NULL) {
+    if (_pMessageReassembler != nullptr) {
         _pMessageReassembler->requestTerminationAndWait();
     }
     DataRequestHandler::halt (_pDataRequestHandler);
@@ -533,13 +572,18 @@ void DisseminationService::requestTermination (void)
 
 void DisseminationService::requestTerminationAndWait (void)
 {
-    if (_pTrSvc != NULL) {
+    if (_pTrSvc != nullptr) {
         _pTrSvc->stop();
     }
-    if (_pMessageReassembler != NULL) {
+    if (_pMessageReassembler != nullptr) {
         _pMessageReassembler->requestTerminationAndWait();
     }
     ManageableThread::requestTerminationAndWait();
+}
+
+int DisseminationService::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    return _pTrSvc->changeEncryptionKey (pchKey, ui32Len);
 }
 
 const char * DisseminationService::getNodeId (void)
@@ -547,17 +591,12 @@ const char * DisseminationService::getNodeId (void)
     return _nodeId.c_str();
 }
 
-const char * DisseminationService::getSessionId (void)
-{
-    return _sessionId.c_str();
-}
-
 int DisseminationService::setMaxFragmentSize (uint16 ui16MaxFragmentSize)
 {
     int rc = -1;
     if (ui16MaxFragmentSize > 0) {
         _m.lock (45);
-        if (_pTrSvc != NULL) {
+        if (_pTrSvc != nullptr) {
             _pTrSvc->setMaxFragmentSize (ui16MaxFragmentSize);
             rc = 0;
         }
@@ -614,15 +653,15 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
                                                  uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority, char *pszIdBuf, uint32 ui32IdBufLen,
                                                  const char *pszRefObj, unsigned int uiListener)
 {
-    if (_pTrSvc == NULL) {
+    if (_pTrSvc == nullptr) {
         return -1;
     }
 
     // Concatenate Data and MetaData
     uint32 ui32DataAndMetaDataSize = ui32MetadataLength + ui32DataLength;
-    void *pDataAndMeta = NULL;
+    void *pDataAndMeta = nullptr;
     bool bDeleteDataAndMeta = false;
-    if (pMetadata != NULL) {
+    if (pMetadata != nullptr) {
         pDataAndMeta = malloc (ui32DataAndMetaDataSize);
         memcpy (pDataAndMeta, pMetadata, ui32MetadataLength);
         memcpy (((char *)pDataAndMeta)+ui32MetadataLength, pData, ui32DataLength);
@@ -632,14 +671,14 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
         pDataAndMeta = (void*)pData;
     }
 
-    const char *pszMsgId = NULL;
+    const char *pszMsgId = nullptr;
     uint32 ui32MsgIdLen = 0;
     int rc = 0;
     if (bChunkData) {
-        assert (pMetadata == NULL && ui32MetadataLength == 0);
-        assert (pszRefObj == NULL);
+        assert (pMetadata == nullptr && ui32MetadataLength == 0);
+        assert (pszRefObj == nullptr);
 
-        PtrLList<Chunker::Fragment> *pChunks = NULL;
+        PtrLList<Chunker::Fragment> *pChunks = nullptr;
         if (MimeUtils::mimeTypeToFragmentType (pszDataMimeType) == Chunker::UNSUPPORTED) {
             pChunks = new PtrLList<Chunker::Fragment> (ChunkingAdaptor::getChunkerFragment (pDataAndMeta, ui32DataLength));
         }
@@ -648,28 +687,28 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
             pChunks = Chunker::fragmentBuffer (pDataAndMeta, ui32DataAndMetaDataSize,
                                                MimeUtils::mimeTypeToFragmentType (pszDataMimeType), ui8NChunks, Chunker::JPEG, 90);
         }
-        if (pChunks == NULL) {
+        if (pChunks == nullptr) {
             return -2;
         }
 
         char *pszBaseGroupName = removeOnDemandSuffixFromGroupName (pszGroupName);
-        if (pszBaseGroupName == NULL) {
+        if (pszBaseGroupName == nullptr) {
             return -3;
         }
         uint32 ui32SeqId = _pLocalNodeInfo->getGroupPubState (pszBaseGroupName);
         free (pszBaseGroupName);
         Chunker::Fragment *pChunk = pChunks->getFirst();
         ui32MsgIdLen = 0;
-        for (bool bFirst = true; pChunk != NULL;) {
+        for (bool bFirst = true; pChunk != nullptr;) {
 
             void *pBuf = malloc (pChunk->ui64FragLen);
-            if (pBuf == NULL) {
+            if (pBuf == nullptr) {
                 checkAndLogMsg ("DisseminationService::storeInternalNoNotify", memoryExhausted);
                 return -4;
             }
-            if (pChunk->pReader == NULL) {
+            if (pChunk->pReader == nullptr) {
                 checkAndLogMsg ("DisseminationService::storeInternalNoNotify", Logger::L_SevereError,
-                                "pChunk->pReader is NULL\n");
+                                "pChunk->pReader is nullptr\n");
                 return -5;
             }
             if (pChunk->pReader->readBytes (pBuf, (uint32) pChunk->ui64FragLen) < 0) {
@@ -685,14 +724,14 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
                                                                   pszChecksum, ui16HistoryWindow,
                                                                   ui8Priority, i64ExpirationTime,
                                                                   pChunk);
-            if (pszChecksum != NULL) {
+            if (pszChecksum != nullptr) {
                 free (pszChecksum);
-                pszChecksum = NULL;
+                pszChecksum = nullptr;
             }
             if (bFirst) {
                 pszMsgId = pCMI->getLargeObjectId();
                 ui32MsgIdLen = (uint32) strlen (pszMsgId);
-                if ((pszIdBuf == NULL) || (ui32IdBufLen < ui32MsgIdLen)) {
+                if ((pszIdBuf == nullptr) || (ui32IdBufLen < ui32MsgIdLen)) {
                     // The ID of the message can not be returned to the application, and the
                     // message could not be retrieved by the application to push it.
                     // Therefore adding the message to the cache is likely to be useless,
@@ -704,7 +743,7 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
 
             rc = storeInternalNoNotify (pCMI, pBuf, uiListener);
             if (rc < 0) {
-               break; 
+               break;
             }
 
             delete pCMI;
@@ -718,23 +757,21 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
     }
     else {
         char *pszChecksum = MD5Utils::getMD5Checksum (pDataAndMeta, ui32DataAndMetaDataSize);
-        MessageInfo *pMI = new MessageInfo (pszGroupName, getNodeId(), _pLocalNodeInfo->getGroupPubState (pszGroupName),
-                                            pszObjectId, pszInstanceId, ui16Tag, ui16ClientId, 0, pszDataMimeType,
-                                            pszChecksum, ui32DataAndMetaDataSize, ui32DataAndMetaDataSize, 0,
-                                            ui32MetadataLength, ui16HistoryWindow, ui8Priority, i64ExpirationTime);
-        if (pszChecksum != NULL) {
+        MessageInfo mi (pszGroupName, getNodeId(), _pLocalNodeInfo->getGroupPubState (pszGroupName),
+                        pszObjectId, pszInstanceId, ui16Tag, ui16ClientId, 0, pszDataMimeType,
+                        pszChecksum, ui32DataAndMetaDataSize, ui32DataAndMetaDataSize, 0,
+                        ui32MetadataLength, ui16HistoryWindow, ui8Priority, i64ExpirationTime);
+        if (pszChecksum != nullptr) {
             free (pszChecksum);
-            pszChecksum = NULL;
+            pszChecksum = nullptr;
         }
-        if (pMI == NULL) {
-            return -3;
-        }
-        if (pszRefObj != NULL) {
-            pMI->setReferredObject (pszRefObj);
+        if (pszRefObj != nullptr) {
+            mi.setReferredObject (pszRefObj);
         }
 
-        ui32MsgIdLen = (uint32) strlen (pMI->getMsgId());
-        if ((pszIdBuf == NULL) || (ui32IdBufLen < ui32MsgIdLen)) {
+        String msgId (mi.getMsgId());
+        ui32MsgIdLen = (uint32) msgId.length();
+        if ((pszIdBuf == nullptr) || (ui32IdBufLen < ui32MsgIdLen)) {
             // The ID of the message can not be returned to the application, and the
             // message could not be retrieved by the application to push it.
             // Therefore adding the message to the cache is likely to be useless,
@@ -742,20 +779,19 @@ int DisseminationService::storeInternalNoNotify (uint16 ui16ClientId, const char
             return -2;
         }
 
-        rc = storeInternalNoNotify (pMI, pDataAndMeta, uiListener);
+        rc = storeInternalNoNotify (&mi, pDataAndMeta, uiListener);
         if (rc < 0) {
-           
+
         }
 
-        pszMsgId = strDup (pMI->getMsgId());
-        delete pMI;
+        pszMsgId = msgId.r_str();
     }
 
     if (rc == 0) {
         // Increment the seq id for the group
         _pLocalNodeInfo->incrementGroupPubState (pszGroupName);
         // It was already verified that the message ID can fit in pszIdBuf and
-        // that pszIdBuf is not NULL
+        // that pszIdBuf is not nullptr
         rc = strcpyAndFill (pszIdBuf, ui32IdBufLen, pszMsgId, ui32MsgIdLen);
     }
 
@@ -783,7 +819,7 @@ int DisseminationService::push (uint16 ui16ClientId, char *pszMsgId)
 
 int DisseminationService::pushInternal (uint16 ui16ClientId, char *pszMsgId)
 {
-    if (_pTrSvc == NULL) {
+    if (_pTrSvc == nullptr) {
         return -1;
     }
     if (_ui8TransmissionMode != PUSH_ENABLED) {
@@ -794,14 +830,14 @@ int DisseminationService::pushInternal (uint16 ui16ClientId, char *pszMsgId)
     assert (!pMH->isChunk());
 
     const void *pData = _pDataCacheInterface->getData (pszMsgId);
-    if (pMH == NULL || pData == NULL) {
+    if (pMH == nullptr || pData == nullptr) {
         return -3;
     }
 
     void *pDataCopy = malloc (pMH->getTotalMessageLength());
     memcpy (pDataCopy, pData, pMH->getTotalMessageLength());
     Message *pMsgCopy = new Message (pMH->clone(), pDataCopy);
-    _pSubscriptionState->messageArrived (pMsgCopy, NULL); // send to other applications
+    _pSubscriptionState->messageArrived (pMsgCopy, nullptr); // send to other applications
                                                           // running on the same instance
                                                           // of DisService.
                                                           // SubscriptionState deallocates it!
@@ -818,8 +854,8 @@ bool DisseminationService::doBroadcastDataMsg (DisServiceDataMsg *pDDMsg)
 {
     //TODO CHECK AND FIX
     _pPeerState->lock();
-    if (_pCfgMgr->getValueAsInt ("aci.disService.forwarding.mode") == 3 
-        && _pPeerState->getType() == PeerState::IMPROVED_TOPOLOGY_STATE 
+    if (_pCfgMgr->getValueAsInt ("aci.disService.forwarding.mode") == 3
+        && _pPeerState->getType() == PeerState::IMPROVED_TOPOLOGY_STATE
         && _bSubscriptionsExchangeEnabled && _bTopologyExchangeEnabled) {
         if (((TopologyWorldState *) _pPeerState)->getForwardingStrategy ((DisServiceMsg *) pDDMsg) == ForwardingStrategy::TOPOLOGY_FORWARDING) {
             PtrLList<String> *pTargetNodes = ((TopologyWorldState *) _pPeerState)->getTargetNodes (pDDMsg);
@@ -853,7 +889,7 @@ int DisseminationService::pushInternal (uint16 ui16ClientId, Message *pMsg)
         if (rc == 0) {
             // Update statistics
             MessageHeader *pMH = pMsg->getMessageHeader();
-            if (pMH != NULL) {
+            if (pMH != nullptr) {
                 _pStats->messagePushedByClient (ui16ClientId, pMH->getGroupName(),
                                                 pMH->getTag(), pMH->getTotalMessageLength());
             }
@@ -898,7 +934,7 @@ int DisseminationService::makeAvailable (uint16 ui16ClientId, const char *pszGro
                                          uint32 ui32IdBufLen)
 {
     return makeAvailable (ui16ClientId, pszGroupName, pszObjectId, pszInstanceId,
-                          pMetadata, ui32MetadataLength, pData, ui32Length, NULL,
+                          pMetadata, ui32MetadataLength, pData, ui32Length, nullptr,
                           i64Expiration, ui16HistoryWindow, ui16Tag, ui8Priority,
                           pszIdBuf, ui32IdBufLen);
 }
@@ -917,12 +953,12 @@ int DisseminationService::makeAvailable (uint16 ui16ClientId, const char *pszGro
     // Store data
     char *pszOnDemandGroupName = getOnDemandDataGroupName (pszGroupName);
     int rc = storeInternal (ui16ClientId, pszOnDemandGroupName, pszObjectId, pszInstanceId,
-                            NULL, (uint32) 0, pData, ui32Length, pszDataMimeType, true,
+                            nullptr, (uint32) 0, pData, ui32Length, pszDataMimeType, true,
                             i64Expiration, ui16HistoryWindow, ui16Tag, ui8Priority,
                             pszIdBuf, ui32IdBufLen);
     if (rc < 0) {
         free (pszOnDemandGroupName);
-        pszOnDemandGroupName = NULL;
+        pszOnDemandGroupName = nullptr;
         _m.unlock (49);
         return rc;
     }
@@ -935,14 +971,14 @@ int DisseminationService::makeAvailable (uint16 ui16ClientId, const char *pszGro
                     ui32MetadataLength, 0, ui32MetadataLength, ui16HistoryWindow, ui8Priority,
                     i64Expiration, false, true);
     mi.setReferredObject (pszIdBuf);
-    if (pszChecksum != NULL) {
+    if (pszChecksum != nullptr) {
         free (pszChecksum);
-        pszChecksum = NULL;
+        pszChecksum = nullptr;
     }
     rc = _pDataCacheInterface->addData (&mi, pMetadata);
     if (rc < 0) {
         free (pszOnDemandGroupName);
-        pszOnDemandGroupName = NULL;
+        pszOnDemandGroupName = nullptr;
         _m.unlock (50);
         return rc;
     }
@@ -952,7 +988,7 @@ int DisseminationService::makeAvailable (uint16 ui16ClientId, const char *pszGro
     _pLocalNodeInfo->incrementGroupPubState (pszOnDemandGroupName);
 
     free (pszOnDemandGroupName);
-    pszOnDemandGroupName = NULL;
+    pszOnDemandGroupName = nullptr;
 
     if (_ui8TransmissionMode == PUSH_ENABLED) {
         // Push only metadata
@@ -973,7 +1009,7 @@ int DisseminationService::makeAvailable (uint16 ui16ClientId, const char *pszGro
                                          uint8 ui8Priority, char *pszIdBuf, uint32 ui32IdBufLen)
 {
     return makeAvailable (ui16ClientId, pszGroupName, pszObjectId, pszInstanceId, pMetadata,
-                          ui32MetadataLength, pszFilePath, NULL, i64Expiration, ui16HistoryWindow,
+                          ui32MetadataLength, pszFilePath, nullptr, i64Expiration, ui16HistoryWindow,
                           ui16Tag, ui8Priority, pszIdBuf, ui32IdBufLen);
 }
 
@@ -999,9 +1035,9 @@ int DisseminationService::makeAvailable (uint16 ui16ClientId, const char *pszGro
                             pszObjectId, pszInstanceId, ui16Tag, ui16ClientId, 0, MessageHeader::DEFAULT_MIME_TYPE,
                             pszChecksum, ui32MetadataLength, ui32MetadataLength, 0, 0, ui16HistoryWindow, ui8Priority,
                             i64Expiration, false, true);
-    if (pszChecksum != NULL) {
+    if (pszChecksum != nullptr) {
         free (pszChecksum);
-        pszChecksum = NULL;
+        pszChecksum = nullptr;
     }
     // Cache the message
     _pDataCacheInterface->addData (&miMetadata, pMetadata);
@@ -1016,11 +1052,11 @@ int DisseminationService::makeAvailable (uint16 ui16ClientId, const char *pszGro
     }
 
     _pLocalNodeInfo->incrementGroupPubState (pszGroupName);
-    if ((pszIdBuf != NULL) && (ui32IdBufLen > strlen (miMetadata.getMsgId()))) {
+    if ((pszIdBuf != nullptr) && (ui32IdBufLen > strlen (miMetadata.getMsgId()))) {
         strcpy (pszIdBuf, miMetadata.getMsgId());
     }
 
-    _pStats->messagePushedByClient (ui16ClientId, pszGroupName, ui16Tag, ui32MetadataLength); 
+    _pStats->messagePushedByClient (ui16ClientId, pszGroupName, ui16Tag, ui32MetadataLength);
 
     _m.unlock (51);
     return 0;
@@ -1065,14 +1101,14 @@ int DisseminationService::cancelAll (uint16 ui16ClientId)
 int DisseminationService::subscribe (uint16 ui16ClientId, const char *pszGroupName, uint8 ui8Priority,
                                      bool bGroupReliable, bool bMsgReliable, bool bSequenced)
 {
-    if (pszGroupName == NULL) {
+    if (pszGroupName == nullptr) {
         checkAndLogMsg ("DisseminationService::subscribe (1)", Logger::L_Warning,
-                        "pszGroupName is NULL\n");
+                        "pszGroupName is nullptr\n");
         return -1;
     }
 
     Subscription *pSub = SubscriptionFactory::getSubsctiption (ui8Priority, bGroupReliable, bMsgReliable, bSequenced);
-    if (pSub == NULL) {
+    if (pSub == nullptr) {
         checkAndLogMsg ("DisseminationService::subscribe (1)", memoryExhausted);
     }
     int rc = _pLocalNodeInfo->subscribe (ui16ClientId, pszGroupName, pSub);
@@ -1115,14 +1151,14 @@ int DisseminationService::unsubscribe (uint16 ui16ClientId, const char *pszGroup
 int DisseminationService::subscribe (uint16 ui16ClientId, const char *pszGroupName, uint16 ui16Tag, uint8 ui8Priority,
                                      bool bGroupReliable, bool bMsgReliable, bool bSequenced)
 {
-    if (pszGroupName == NULL) {
+    if (pszGroupName == nullptr) {
         checkAndLogMsg ("DisseminationService::subscribe (2)", Logger::L_Warning,
-                        "pszGroupName is NULL\n");
+                        "pszGroupName is nullptr\n");
         return -1;
     }
 
     Subscription *pSub = SubscriptionFactory::getSubsctiption (ui16Tag, ui8Priority, bGroupReliable, bMsgReliable, bSequenced);
-    if (pSub == NULL) {
+    if (pSub == nullptr) {
         checkAndLogMsg ("DisseminationService::subscribe (2)", memoryExhausted);
     }
 
@@ -1146,9 +1182,9 @@ int DisseminationService::subscribe (uint16 ui16ClientId, const char *pszGroupNa
 int DisseminationService::subscribe (uint16 ui16ClientId, const char *pszGroupName, uint8 ui8PredicateType, const char *pszPredicate,
                                      uint8 ui8Priority, bool bGroupReliable, bool bMsgReliable, bool bSequenced)
 {
-    if ((pszGroupName == NULL) || (pszPredicate == NULL)) {
+    if ((pszGroupName == nullptr) || (pszPredicate == nullptr)) {
         checkAndLogMsg ("DisseminationService::subscribe (3)", Logger::L_Warning,
-                        "pszGroupName and/or pszPredicate is/are NULL\n");
+                        "pszGroupName and/or pszPredicate is/are nullptr\n");
         return -1;
     }
     if (bSequenced) {
@@ -1163,7 +1199,7 @@ int DisseminationService::subscribe (uint16 ui16ClientId, const char *pszGroupNa
 
     Subscription *pSub = SubscriptionFactory::getSubsctiption (pszPredicate, ui8PredicateType, ui8Priority,
                                                                bGroupReliable, bMsgReliable, bSequenced);
-    if (pSub == NULL) {
+    if (pSub == nullptr) {
         checkAndLogMsg ("DisseminationService::subscribe (3)", memoryExhausted);
     }
 
@@ -1195,7 +1231,7 @@ void DisseminationService::setInitialSubscriptionStatus (const char *pszGroupNam
 {
     // Check in cache if I have already received some message with this subscription
     DArray2<String> *pQueryResult = _pDataCacheInterface->getSenderNodeIds (pszGroupName);
-    if (pQueryResult != NULL) {
+    if (pQueryResult != nullptr) {
         const char *pszSenderNodeId;
         uint32 ui32NextExpectedSeqId;
         for (uint8 i = 0; i <= pQueryResult->getHighestIndex(); i++) {
@@ -1206,7 +1242,7 @@ void DisseminationService::setInitialSubscriptionStatus (const char *pszGroupNam
             }
         }
         delete pQueryResult;
-        pQueryResult = NULL;
+        pQueryResult = nullptr;
     }
 }
 
@@ -1295,7 +1331,7 @@ int DisseminationService::deregisterPeerStatusListener (uint16 ui16ClientId, Pee
 
 int DisseminationService::deregisterAllDataCacheListeners()
 {
-    if (_pDataCacheInterface == NULL) {
+    if (_pDataCacheInterface == nullptr) {
         return -1;
     }
     return _pDataCacheInterface->deregisterAllDataCacheListeners();
@@ -1303,7 +1339,7 @@ int DisseminationService::deregisterAllDataCacheListeners()
 
 int DisseminationService::deregisterDataCacheListener (unsigned int uiIndex)
 {
-    if (_pDataCacheInterface == NULL) {
+    if (_pDataCacheInterface == nullptr) {
         return -1;
     }
     return _pDataCacheInterface->deregisterDataCacheListener (uiIndex);
@@ -1311,7 +1347,7 @@ int DisseminationService::deregisterDataCacheListener (unsigned int uiIndex)
 
 int DisseminationService::registerDataCacheListener (DataCacheListener *pListener, unsigned int &uiIndex)
 {
-    if (_pDataCacheInterface == NULL) {
+    if (_pDataCacheInterface == nullptr) {
         return -1;
     }
     int rc = _pDataCacheInterface->registerDataCacheListener (pListener);
@@ -1328,7 +1364,7 @@ int DisseminationService::registerDataCacheListener (DataCacheListener *pListene
 
 int DisseminationService::deregisterAllMessageListeners()
 {
-    if (_pTrSvcListener == NULL) {
+    if (_pTrSvcListener == nullptr) {
         return -1;
     }
     return _pTrSvcListener->deregisterAllMessageListeners();
@@ -1336,7 +1372,7 @@ int DisseminationService::deregisterAllMessageListeners()
 
 int DisseminationService::deregisterMessageListener (unsigned int uiIndex)
 {
-    if (_pTrSvcListener == NULL) {
+    if (_pTrSvcListener == nullptr) {
         return -1;
     }
     return _pTrSvcListener->deregisterMessageListener (uiIndex);
@@ -1344,7 +1380,7 @@ int DisseminationService::deregisterMessageListener (unsigned int uiIndex)
 
 int DisseminationService::registerMessageListener (MessageListener *pListener, unsigned int &uiIndex)
 {
-    if (_pTrSvcListener == NULL) {
+    if (_pTrSvcListener == nullptr) {
         return -1;
     }
     int rc = _pTrSvcListener->registerMessageListener (pListener);
@@ -1361,7 +1397,7 @@ int DisseminationService::registerMessageListener (MessageListener *pListener, u
 
 int DisseminationService::deregisterAllGroupMembershipListeners()
 {
-    if (_pLocalNodeInfo == NULL) {
+    if (_pLocalNodeInfo == nullptr) {
         return -1;
     }
     return _pLocalNodeInfo->deregisterAllGroupMembershipListeners();
@@ -1369,7 +1405,7 @@ int DisseminationService::deregisterAllGroupMembershipListeners()
 
 int DisseminationService::deregisterGroupMembershipListener (unsigned int uiIndex)
 {
-    if (_pLocalNodeInfo == NULL) {
+    if (_pLocalNodeInfo == nullptr) {
         return -1;
     }
     return _pLocalNodeInfo->deregisterGroupMembershipListener (uiIndex);
@@ -1377,7 +1413,7 @@ int DisseminationService::deregisterGroupMembershipListener (unsigned int uiInde
 
 int DisseminationService::registerGroupMembershiListener (GroupMembershipListener *pListener, unsigned int &uiIndex)
 {
-    if (_pLocalNodeInfo == NULL) {
+    if (_pLocalNodeInfo == nullptr) {
         return -1;
     }
     int rc = _pLocalNodeInfo->registerGroupMembershipListener (pListener);
@@ -1394,7 +1430,7 @@ int DisseminationService::registerGroupMembershiListener (GroupMembershipListene
 
 int DisseminationService::deregisterAllNetworkStateListeners()
 {
-    if (_pNetworkStateNotifier == NULL) {
+    if (_pNetworkStateNotifier == nullptr) {
         return -1;
     }
     return _pNetworkStateNotifier->deregisterAllListeners();
@@ -1402,7 +1438,7 @@ int DisseminationService::deregisterAllNetworkStateListeners()
 
 int DisseminationService::deregisterNetworkStateListener (unsigned int uiIndex)
 {
-    if (_pNetworkStateNotifier == NULL) {
+    if (_pNetworkStateNotifier == nullptr) {
         return -1;
     }
     return _pNetworkStateNotifier->deregisterListener (uiIndex);
@@ -1410,7 +1446,7 @@ int DisseminationService::deregisterNetworkStateListener (unsigned int uiIndex)
 
 int DisseminationService::registerNetworkStateListener (NetworkStateListener *pListener, unsigned int &uiIndex)
 {
-    if (_pNetworkStateNotifier == NULL) {
+    if (_pNetworkStateNotifier == nullptr) {
         return -1;
     }
     int rc = _pNetworkStateNotifier->registerListener (pListener);
@@ -1427,7 +1463,7 @@ int DisseminationService::registerNetworkStateListener (NetworkStateListener *pL
 
 int DisseminationService::deregisterAllPeerStateListeners()
 {
-    if (_pPeerState == NULL) {
+    if (_pPeerState == nullptr) {
         return -1;
     }
     return _pPeerState->deregisterAllPeerStateListeners();
@@ -1435,7 +1471,7 @@ int DisseminationService::deregisterAllPeerStateListeners()
 
 int DisseminationService::deregisterPeerStateListener (unsigned int uiIndex)
 {
-    if (_pPeerState == NULL) {
+    if (_pPeerState == nullptr) {
         return -1;
     }
     return _pPeerState->deregisterPeerStateListener (uiIndex);
@@ -1443,7 +1479,7 @@ int DisseminationService::deregisterPeerStateListener (unsigned int uiIndex)
 
 int DisseminationService::registerPeerStateListener (PeerStateListener *pListener, unsigned int &uiIndex)
 {
-    if (_pPeerState == NULL) {
+    if (_pPeerState == nullptr) {
         return -1;
     }
     int rc = _pPeerState->registerPeerStateListener (pListener);
@@ -1460,7 +1496,7 @@ int DisseminationService::registerPeerStateListener (PeerStateListener *pListene
 
 int DisseminationService::deregisterSearchListeners (void)
 {
-    if (_pSearchNotifier == NULL) {
+    if (_pSearchNotifier == nullptr) {
         return -1;
     }
     return _pSearchNotifier->deregisterAllListeners();
@@ -1468,7 +1504,7 @@ int DisseminationService::deregisterSearchListeners (void)
 
 int DisseminationService::deregisterSearchListener (unsigned int uiIndex)
 {
-    if (_pSearchNotifier == NULL) {
+    if (_pSearchNotifier == nullptr) {
         return -1;
     }
     return _pSearchNotifier->deregisterListener (uiIndex);
@@ -1476,7 +1512,7 @@ int DisseminationService::deregisterSearchListener (unsigned int uiIndex)
 
 int DisseminationService::registerSearchListener (SearchListener *pListener, unsigned int &uiIndex)
 {
-    if (_pSearchNotifier == NULL) {
+    if (_pSearchNotifier == nullptr) {
         return -1;
     }
     int rc = _pSearchNotifier->registerListener (pListener);
@@ -1489,13 +1525,13 @@ int DisseminationService::registerSearchListener (SearchListener *pListener, uns
 
 int DisseminationService::retrieve (const char *pszId, void **ppBuf, uint32 *pui32BufSize, int64 i64Timeout)
 {
-    if (pszId == NULL || ppBuf == NULL || pui32BufSize == NULL) {
+    if (pszId == nullptr || ppBuf == nullptr || pui32BufSize == nullptr) {
         return -1;
     }
-    *ppBuf = NULL;
+    *ppBuf = nullptr;
     *pui32BufSize = 0;
 
-    char *pszIdToRetrieve;    
+    char *pszIdToRetrieve;
     if (!isOnDemandDataID (pszId)) {
         pszIdToRetrieve = addOnDemandSuffixToId (pszId);
     }
@@ -1504,35 +1540,33 @@ int DisseminationService::retrieve (const char *pszId, void **ppBuf, uint32 *pui
     }
 
     _m.lock (57);
-    // Search locally first,        
-    uint32 ui32MsgLength = 0;     
+    // Search locally first,
+    uint32 ui32MsgLength = 0;
     Reader *pReader = getData (pszIdToRetrieve, ui32MsgLength);
-    if (pReader != NULL) {
+    if (pReader != nullptr) {
         (*ppBuf) = malloc (ui32MsgLength);
-        if ((*ppBuf) != NULL) {
+        if ((*ppBuf) != nullptr) {
             pReader->readBytes (*ppBuf, ui32MsgLength);
             *pui32BufSize = ui32MsgLength;
             delete pReader;
-            pReader = NULL;
+            pReader = nullptr;
             free (pszIdToRetrieve);
             _m.unlock (57);
             return ui32MsgLength;
         }
-        else {
-            checkAndLogMsg ("DisseminationService::retrieve", memoryExhausted);
-            (*ppBuf) = NULL;
-            *pui32BufSize = 0;
-            free (pszIdToRetrieve);
-             _m.unlock (57);
-            return -2;
-        }
+        checkAndLogMsg ("DisseminationService::retrieve", memoryExhausted);
+        (*ppBuf) = nullptr;
+        *pui32BufSize = 0;
+        free (pszIdToRetrieve);
+        _m.unlock (57);
+        return -2;
     }
-    else {
-        // If not found, search on remote nodes
-        _pDiscoveryCtrl->retrieve (pszIdToRetrieve, i64Timeout);
-        checkAndLogMsg ("DisseminationService::retrieve", Logger::L_Info,
-                        "object %s not found on local cache. Started discovery.\n", pszIdToRetrieve);
-    }
+
+    // If not found, search on remote nodes
+    _pDiscoveryCtrl->retrieve (pszIdToRetrieve, i64Timeout);
+    checkAndLogMsg ("DisseminationService::retrieve", Logger::L_Info,
+                    "object %s not found on local cache. Started discovery.\n", pszIdToRetrieve);
+
     free (pszIdToRetrieve);
     _m.unlock (57);
     return 0;
@@ -1554,7 +1588,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
     // Retrieve the publishers of the last ui16HistoryLength messages belonging the group
     // For each of them request the last ui16HistoryLength / (#publishers) messages
     History *pHistory = HistoryFactory::getHistory (ui16HistoryLength, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -1;
     }
     int rc = _pLocalNodeInfo->addHistory (ui16ClientId, pszGroupName, ui16Tag, pHistory);
@@ -1565,7 +1599,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
     // A history request on a group implicitly implies a history request on the on-demand group if it exists
     char *pszOnDemandGroupName = getOnDemandDataGroupName (pszGroupName);
     pHistory = HistoryFactory::getHistory (ui16HistoryLength, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -3;
     }
     rc = _pLocalNodeInfo->addHistory (ui16ClientId, pszOnDemandGroupName, ui16Tag, pHistory);
@@ -1576,25 +1610,25 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
     apszGroupNames[0] = pszGroupName;
     apszGroupNames[1] = pszOnDemandGroupName;
 
-    const char *pszSenderNodeId = NULL;
+    const char *pszSenderNodeId = nullptr;
 
     // Get all the senders that published message into group pszGroupName
     DArray2<String> *pDAGrpSenders = _pDataCacheInterface->getSenderNodeIds (pszGroupName);
-    if (pDAGrpSenders == NULL) {
+    if (pDAGrpSenders == nullptr) {
         // Nothing in the DB for the base group name - try the on-demand group name just in case
         // This is a fix to handle cases where data is made available with empty metadata, which
         // after replication, results in entries for the on-demand group but nothing for the
         // base group
         pDAGrpSenders = _pDataCacheInterface->getSenderNodeIds (pszOnDemandGroupName);
     }
-    DisServiceHistoryRequest hmsg (getNodeId(), NULL,
+    DisServiceHistoryRequest hmsg (getNodeId(), nullptr,
                                    new DisServiceHistoryRequest::HWinReq (pszGroupName, ui16Tag, i64RequestTimeout,
                                                                           ui16HistoryLength));
 
     // For each sender, get the next expected sequence id (if any)
-    DisServiceHistoryRequest::SenderState **ppSendersState = NULL;
+    DisServiceHistoryRequest::SenderState **ppSendersState = nullptr;
 
-    if (pDAGrpSenders != NULL) {
+    if (pDAGrpSenders != nullptr) {
         ppSendersState = new DisServiceHistoryRequest::SenderState*[pDAGrpSenders->getSize()];
         for (uint8 i = 0; i < pDAGrpSenders->size(); i++) {
             uint32 ui32NextExpectedSeqNo;
@@ -1618,9 +1652,9 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
             for (uint32 ui32SeqNo = ui16From; ui32SeqNo < ui32NextExpectedSeqNo; ui32SeqNo++) {
                 for (uint32 ui32GroupNameIdx = 0; ui32GroupNameIdx < 2; ui32GroupNameIdx++) {
                     PtrLList<Message> *pMessages = _pDataCacheInterface->getCompleteMessages (apszGroupNames[ui32GroupNameIdx], pszSenderNodeId, ui32SeqNo);
-                    if ((pMessages == NULL) || (pMessages->getFirst() == NULL)) {
+                    if ((pMessages == nullptr) || (pMessages->getFirst() == nullptr)) {
                         checkAndLogMsg ("DisseminationService::historyRequest", Logger::L_MildError,
-                                        "getCompleteMessages() returned NULL for %s:%s:%lu\n",
+                                        "getCompleteMessages() returned nullptr for %s:%s:%lu\n",
                                         apszGroupNames[ui32GroupNameIdx], pszSenderNodeId, ui32SeqNo);
                     }
                     else if (pMessages->getCount() == 1) {
@@ -1630,7 +1664,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                         clients[0] = ui16ClientId;
                         notifyDisseminationServiceListeners (&clients, pMsg, pMsg->getMessageInfo()->isMetaData(),
                                                              pMsg->getMessageInfo()->isMetaDataWrappedInData(),
-                                                             NULL);
+                                                             nullptr);
                         _pDataCacheInterface->release (pMessages);
                     }
                     else {
@@ -1638,12 +1672,12 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                         // For now, call the listener for each chunk
                         Message *pMsg;
                         pMessages->resetGet();
-                        while (NULL != (pMsg = pMessages->getNext())) {
+                        while (nullptr != (pMsg = pMessages->getNext())) {
                             DArray<uint16> clients;
                             clients[0] = ui16ClientId;
                             notifyDisseminationServiceListeners (&clients, pMsg, pMsg->getMessageInfo()->isMetaData(),
                                                                  pMsg->getMessageInfo()->isMetaDataWrappedInData(),
-                                                                 NULL);
+                                                                 nullptr);
                         }
                         _pDataCacheInterface->release (pMessages);
                     }
@@ -1659,19 +1693,18 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
             hmsg.setSenderState (ppSendersState, (uint8) highestIndex);
         }
         delete pDAGrpSenders;
-        pDAGrpSenders = NULL;
+        pDAGrpSenders = nullptr;
     }
-
     // Now send the request out on the network
-    if (0 != (rc = broadcastDisServiceCntrlMsg (&hmsg, NULL, "Sending DisServiceHistoryRequest"))) {
+    if (0 != (rc = broadcastDisServiceCntrlMsg (&hmsg, nullptr, "Sending DisServiceHistoryRequest"))) {
         checkAndLogMsg ("DisseminationService::historyRequest", Logger::L_Warning,
                         "failed to send history request message over the network; rc = %d\n", rc);
     }
 
     free (pszOnDemandGroupName);
-    pszOnDemandGroupName = NULL;
+    pszOnDemandGroupName = nullptr;
 
-    return 0;        
+    return 0;
 }
 
 int DisseminationService::historyRequest (uint16 ui16ClientId, HistoryRequest *pRequest)
@@ -1679,20 +1712,20 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, HistoryRequest *p
     HistoryRequestGroupTag *pGTReq = (HistoryRequestGroupTag*) pRequest;   // For now only HistoryRequestGroupTag
     ShiftHistory *pShiftHistory = (ShiftHistory*)(pGTReq->_pHistory);      // For now only shift history
 
-    const char *pszSenderNodeId = NULL;
+    const char *pszSenderNodeId = nullptr;
     char *pszGroupNameCopy = strDup (pGTReq->_pszGroupName);
     uint16 ui16Tag = pGTReq->_ui16Tag;
     uint16 ui16HistoryLength = pShiftHistory->_ui16HistoryLength;
 
     // Get all the senders that published messages into pszGroupName group
     DArray2<String> *pDAGrpSenders = _pDataCacheInterface->getSenderNodeIds (pszGroupNameCopy);
-    DisServiceHistoryRequest hmsg (getNodeId(), NULL,
+    DisServiceHistoryRequest hmsg (getNodeId(), nullptr,
                                    new DisServiceHistoryRequest::HWinReq (pszGroupNameCopy, ui16Tag, 0, ui16HistoryLength));
 
     // For eache sender, get the next expected sequence id (if any)
-    DisServiceHistoryRequest::SenderState **ppSendersState = NULL;
+    DisServiceHistoryRequest::SenderState **ppSendersState = nullptr;
 
-    if (pDAGrpSenders != NULL) {
+    if (pDAGrpSenders != nullptr) {
         ppSendersState = new DisServiceHistoryRequest::SenderState*[pDAGrpSenders->size()];
         for (uint8 i = 0; i < pDAGrpSenders->size(); i++) {
             uint32 ui32State;
@@ -1702,7 +1735,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, HistoryRequest *p
             uint16 ui16From = ((ui32State - ui16HistoryLength -1 > 0) ? (ui32State - ui16HistoryLength - 1) : 0);
             PtrLList<Message> *pMessages = _pDataCacheInterface->getMessages (pszGroupNameCopy, pszSenderNodeId, ui16Tag, ui16From, ui32State);
             Message *pMsg;
-            if (pMessages != NULL && (pMsg = pMessages->getFirst()) != NULL) {
+            if (pMessages != nullptr && (pMsg = pMessages->getFirst()) != nullptr) {
                 // Only the client that requested the history request must receive
                 // the history messages
                 DArray<uint16> clients;
@@ -1710,23 +1743,23 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, HistoryRequest *p
                 do {
                     notifyDisseminationServiceListeners (&clients, pMsg, pMsg->getMessageInfo()->isMetaData(),
                                                          pMsg->getMessageInfo()->isMetaDataWrappedInData(),
-                                                         NULL);
-                } while ((pMsg = pMessages->getNext()) != NULL);
+                                                         nullptr);
+                } while ((pMsg = pMessages->getNext()) != nullptr);
             }
             _pDataCacheInterface->release (pMessages);
         }
         hmsg.setSenderState (ppSendersState, pDAGrpSenders->size());
         delete pDAGrpSenders;
-        pDAGrpSenders = NULL;
+        pDAGrpSenders = nullptr;
     }
-    return broadcastDisServiceCntrlMsg (&hmsg, NULL, "Sending DisServiceHistoryRequest");
+    return broadcastDisServiceCntrlMsg (&hmsg, nullptr, "Sending DisServiceHistoryRequest");
 }
 
 int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGroupName, uint16 ui16Tag,
                                           uint32 ui32StartSeqNo, uint32 ui32EndSeqNo, int64 i64RequestTimeout)
 {
     History *pHistory = HistoryFactory::getHistory (ui32StartSeqNo, ui32EndSeqNo, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -1;
     }
     int rc;
@@ -1741,7 +1774,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
 
 int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszMsgId, int64 i64RequestTimeout)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
 
@@ -1779,7 +1812,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszMs
 int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGroupName, const char *pszSenderNodeId,
                                           uint32 ui32StartSeqNo, uint32 ui32EndSeqNo, int64 i64RequestTimeout)
 {
-    if (pszGroupName == NULL || pszSenderNodeId == NULL) {
+    if (pszGroupName == nullptr || pszSenderNodeId == nullptr) {
         return -1;
     }
     if (i64RequestTimeout < 0) {
@@ -1796,15 +1829,15 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
         _mAsynchronousNotify.lock (270);
 
         PtrLList<Message> *pMessages = _pDataCacheInterface->getCompleteMessages (pszGroupName, pszSenderNodeId, ui32CurrSeqId);
-        if (pMessages != NULL) {
+        if (pMessages != nullptr) {
             uint32 ui32MsgSeqIdTmp;
             Message *pMsg;
             Message *pTmpMsg = pMessages->getFirst();
-            while ((pMsg = pTmpMsg) != NULL) {
+            while ((pMsg = pTmpMsg) != nullptr) {
                 pTmpMsg = pMessages->getNext();
                 ui32MsgSeqIdTmp = pMsg->getMessageHeader()->getMsgSeqId();
                 MessageToNotifyToClient *pMsgToNotif = new MessageToNotifyToClient;
-                if (pMsgToNotif != NULL) {
+                if (pMsgToNotif != nullptr) {
                     pMsgToNotif->msgId = pMsg->getMessageHeader()->getMsgId();
                     pMsgToNotif->ui16ClientId = ui16ClientId;
                     _pMessagesToNotify->prepend (pMsgToNotif);
@@ -1829,7 +1862,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
         if (reqInfo._ui64ExpirationTime > 0) {
             reqInfo._ui64ExpirationTime += getTimeInMilliseconds();
         }
-        reqInfo._pszQueryId = NULL;
+        reqInfo._pszQueryId = nullptr;
 
         // Force sending a request message right away, if the message has not
         // already been requested
@@ -1839,13 +1872,13 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                  rc == 0; rc = ranges.getNext (ui32BeginEl, ui32EndEl)) {
             for (uint32 ui32SeqId = ui32BeginEl; ui32SeqId <= ui32EndEl; ui32SeqId++) {
                 PtrLList<Message> *pMsgs = _pDataCacheInterface->getMatchingFragments (reqInfo._pszGroupName, reqInfo._pszSenderNodeId, ui32SeqId);
-                if (pMsgs == NULL) {
+                if (pMsgs == nullptr) {
                     UInt32RangeDLList tmpRanges (true);
                     tmpRanges.addTSN (ui32SeqId, ui32SeqId);
                     _pMessageReassembler->sendRequest (reqInfo, &tmpRanges);
                 }
                 else {
-                    for (Message *pCurr, *pNext = pMsgs->getFirst(); (pCurr = pNext) != NULL; pNext = pMsgs->getNext()) {
+                    for (Message *pCurr, *pNext = pMsgs->getFirst(); (pCurr = pNext) != nullptr; pNext = pMsgs->getNext()) {
                         pNext = pMsgs->getNext();
                         delete pMsgs->remove (pCurr);
                     }
@@ -1863,7 +1896,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                                           uint32 ui32MsgSeqId, uint8 ui8ChunkStart, uint8 ui8ChunkEnd,
                                           int64 i64RequestTimeout)
 {
-    if (pszGroupName == NULL || pszSenderNodeId == NULL) {
+    if (pszGroupName == nullptr || pszSenderNodeId == nullptr) {
         return -1;
     }
     if (i64RequestTimeout < 0) {
@@ -1875,16 +1908,16 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
     UInt8RangeDLList ranges (false);
     PtrLList<Message> *pMessages = _pDataCacheInterface->getCompleteMessages (pszGroupName, pszSenderNodeId, ui32MsgSeqId);
     ranges.addTSN (ui8ChunkStart, ui8ChunkEnd);
-    if (pMessages != NULL) {
+    if (pMessages != nullptr) {
         Message *pMsg;
         Message *pTmpMsg = pMessages->getFirst();
-        while ((pMsg = pTmpMsg) != NULL) {
+        while ((pMsg = pTmpMsg) != nullptr) {
             pTmpMsg = pMessages->getNext();
             MessageHeader *pMH = pMsg->getMessageHeader();
             uint8 ui8ChunkIdTmp = pMH->getChunkId();
             if (ui8ChunkIdTmp >= ui8ChunkStart && ui8ChunkIdTmp <= ui8ChunkEnd) {
                 MessageToNotifyToClient *pMsgToNotif = new MessageToNotifyToClient;
-                if (pMsgToNotif != NULL) {
+                if (pMsgToNotif != nullptr) {
                     pMsgToNotif->msgId = pMH->getMsgId();
                     pMsgToNotif->ui16ClientId = ui16ClientId;
 
@@ -1902,7 +1935,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
 
     _pMessageReassembler->lock();
     _pDataCacheInterface->lock();
-    
+
     RequestInfo reqInfo (ui16ClientId);
     reqInfo._pszGroupName = pszGroupName;
     reqInfo._pszSenderNodeId = pszSenderNodeId;
@@ -1910,7 +1943,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
     if (reqInfo._ui64ExpirationTime > 0) {
         reqInfo._ui64ExpirationTime += getTimeInMilliseconds();
     }
-    reqInfo._pszQueryId = NULL;
+    reqInfo._pszQueryId = nullptr;
 
     // Force sending a request message right away, if the message has not
     // already been requested
@@ -1920,13 +1953,13 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
              rc == 0; rc = ranges.getNext (ui8BeginEl, ui8EndEl)) {
         for (uint8 ui8ChunkId = ui8BeginEl; ui8ChunkId <= ui8EndEl; ui8ChunkId++) {
             PtrLList<Message> *pMsgs = _pDataCacheInterface->getMatchingFragments (reqInfo._pszGroupName, reqInfo._pszSenderNodeId, ui32MsgSeqId, ui8ChunkId);
-            if (pMsgs == NULL) {
+            if (pMsgs == nullptr) {
                 UInt8RangeDLList tmpRanges (false);
                 tmpRanges.addTSN (ui8ChunkId, ui8ChunkId);
                 _pMessageReassembler->sendRequest (reqInfo, ui32MsgSeqId, &tmpRanges);
             }
             else {
-                for (Message *pCurr, *pNext = pMsgs->getFirst(); (pCurr = pNext) != NULL; pNext = pMsgs->getNext()) {
+                for (Message *pCurr, *pNext = pMsgs->getFirst(); (pCurr = pNext) != nullptr; pNext = pMsgs->getNext()) {
                     pNext = pMsgs->getNext();
                     delete pMsgs->remove (pCurr);
                 }
@@ -1946,7 +1979,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                                           uint16 ui16Tag, uint32 ui32StartSeqNo, uint32 ui32EndSeqNo, int64 i64RequestTimeout)
 {
     History *pHistory = HistoryFactory::getHistory (ui32StartSeqNo, ui32EndSeqNo, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -1;
     }
     int rc;
@@ -1964,20 +1997,20 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
     UInt32RangeDLList ranges (true);
     PtrLList<Message> *pMessages = _pDataCacheInterface->getMessages (pszGroupName, pszSenderNodeId, ui16Tag,
                                                                       ui32StartSeqNo, ui32EndSeqNo);
-    if (pMessages != NULL) {
+    if (pMessages != nullptr) {
         Message *pMsg;
         Message *pTmpMsg = pMessages->getFirst();
-        while ((pMsg = pTmpMsg) != NULL) {
+        while ((pMsg = pTmpMsg) != nullptr) {
             pTmpMsg = pMessages->getNext();
             notifyDisseminationServiceListener (ui16ClientId, pMsg, pMsg->getMessageInfo()->isMetaData(),
                                                 pMsg->getMessageInfo()->isMetaDataWrappedInData(),
-                                                NULL);
+                                                nullptr);
             ranges.addTSN (pMsg->getMessageHeader()->getMsgSeqId());
         }
         _pDataCacheInterface->release (pMessages);
     }
 
-    DisServiceHistoryRequest hmsg (getNodeId(), NULL,
+    DisServiceHistoryRequest hmsg (getNodeId(), nullptr,
                                    new DisServiceHistoryRequest::HRangeReq (pszGroupName, pszSenderNodeId, ui16Tag, i64RequestTimeout,
                                                                             ui32StartSeqNo, ui32EndSeqNo, &ranges));
 
@@ -1988,7 +2021,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                                           int64 i64PublishTimeEnd, int64 i64RequestTimeout)
 {
     History *pHistory = HistoryFactory::getHistory (i64PublishTimeStart, i64PublishTimeEnd, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -1;
     }
     int rc;
@@ -2005,7 +2038,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                                           uint16 ui16HistoryLength, int64 i64RequestTimeout)
 {
     History *pHistory = HistoryFactory::getHistory (ui16HistoryLength, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -1;
     }
     return _pLocalNodeInfo->addHistory (ui16ClientId, pszGroupName, ui8PredicateType, pszPredicate, pHistory);
@@ -2015,7 +2048,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                                           int32 ui32StartSeqNo, uint32 ui32EndSeqNo, int64 i64RequestTimeout)
 {
     History *pHistory = HistoryFactory::getHistory (ui32StartSeqNo, ui32EndSeqNo, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -1;
     }
     return _pLocalNodeInfo->addHistory (ui16ClientId, pszGroupName, ui8PredicateType, pszPredicate, pHistory);
@@ -2025,7 +2058,7 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
                                           int64 i64PublishTimeStart, int64 i64PublishTimeEnd, int64 i64RequestTimeout)
 {
     History *pHistory = HistoryFactory::getHistory (i64PublishTimeStart, i64PublishTimeEnd, i64RequestTimeout);
-    if (pHistory == NULL) {
+    if (pHistory == nullptr) {
         return -1;
     }
     return _pLocalNodeInfo->addHistory (ui16ClientId, pszGroupName, ui8PredicateType, pszPredicate, pHistory);
@@ -2033,15 +2066,14 @@ int DisseminationService::historyRequest (uint16 ui16ClientId, const char *pszGr
 
 int DisseminationService::requestMoreChunks (uint16 ui16ClientId, const char *pszMsgId, int64 i64Timeout)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
-    DArray2<NOMADSUtil::String> tokenizedKey;
+    DArray2<String> tokenizedKey;
     if (convertKeyToField (pszMsgId, tokenizedKey, 3, MSG_ID_GROUP, MSG_ID_SENDER, MSG_ID_SEQ_NUM) < 0) {
         return -2;
     }
-    return requestMoreChunks (ui16ClientId, (const char *) tokenizedKey[MSG_ID_GROUP],
-                              (const char *) tokenizedKey[MSG_ID_SENDER],
+    return requestMoreChunks (ui16ClientId, tokenizedKey[MSG_ID_GROUP], tokenizedKey[MSG_ID_SENDER],
                               (uint32) atoi (tokenizedKey[MSG_ID_SEQ_NUM]), i64Timeout);
 }
 
@@ -2049,7 +2081,7 @@ int DisseminationService::requestMoreChunks (uint16, const char *pszGroupName,
                                              const char *pszSenderNodeId, uint32 ui32MsgSeqId,
                                              int64 i64Timeout)
 {
-    if (pszGroupName == NULL || pszSenderNodeId == NULL) {
+    if (pszGroupName == nullptr || pszSenderNodeId == nullptr) {
         return -1;
     }
     char *pszOnDemandGrpName = isOnDemandGroupName (pszGroupName) ? strDup (pszGroupName) : getOnDemandDataGroupName (pszGroupName);
@@ -2085,7 +2117,7 @@ int DisseminationService::release (const char *pszGroupName, const char *pszSend
     // TODO: implement this
     return 0;
 }
-            
+
 void DisseminationService::run (void)
 {
     setName ("DisseminationService::run");
@@ -2093,14 +2125,14 @@ void DisseminationService::run (void)
     started();
     uint16 ui16Cycle = 0;
     int64 i64KeepAliveTime = getTimeInMilliseconds();
-    char **ppszOldQuiscentInterfaces = NULL;
+    char **ppszOldQuiscentInterfaces = nullptr;
     char **ppszNewQuiscentInterfaces;
     while (!terminationRequested()) {
         // if bandwidth sharing is active, update the bandwidth very often
         // instead of just sleeping for seconds before the next keep alive
-        if (bBandwidthSharingEnabled || bNetworkStateNotifierEnabled) {
+        if ((_pBandwidthSharing != nullptr) || bNetworkStateNotifierEnabled) {
             while (i64KeepAliveTime + _ui16KeepAliveInterval > getTimeInMilliseconds()) {
-                if (bBandwidthSharingEnabled) {
+                if (_pBandwidthSharing != nullptr) {
                     _pBandwidthSharing->adjustBandwidthShare (_ui8NodeImportance);
                 }
                 if (bNetworkStateNotifierEnabled) {
@@ -2114,10 +2146,15 @@ void DisseminationService::run (void)
                             bFirstTime = false;
                         }
                     }
+                    else {
+                        deallocateNullTerminatedPtrArray (ppszNewQuiscentInterfaces);
+                    }
                 }
                 sleepForMilliseconds (500);
             }
-            _pBandwidthSharing->adjustBandwidthShare (_ui8NodeImportance);
+            if (_pBandwidthSharing != nullptr) {
+                _pBandwidthSharing->adjustBandwidthShare (_ui8NodeImportance);
+            }
             i64KeepAliveTime = getTimeInMilliseconds();
         }
         else {
@@ -2126,7 +2163,7 @@ void DisseminationService::run (void)
 
         // Data cache cleaning cycle
         if (((ui16Cycle++) % _ui16CacheCleanCycle == 0) &&
-             (_pDataCacheInterface != NULL)) {
+             (_pDataCacheInterface != nullptr)) {
             _pDataCacheInterface->cacheCleanCycle();
         }
 
@@ -2162,23 +2199,23 @@ void DisseminationService::run (void)
             ForwardingController *pFwdCtrl = (_pFwdCtlr ? _pFwdCtlr : _pDefaultFwdCtlr);
              // Send keep alive message
             char **ppszSilentInterfaces = _pTrSvc->getSilentInterfaces (_ui16KeepAliveInterval);
-            if (ppszSilentInterfaces != NULL && ppszSilentInterfaces[0] != NULL) {
-                DisServiceCtrlMsg *pWSSIMsg = _pPeerState->getKeepAliveMsg (pRepCtrl->getType(), pFwdCtrl->getType(), _ui8NodeImportance);
-                if (pWSSIMsg != NULL) {
-                    const String sessionId (getSessionId());
-                    if (sessionId.length() > 0) {
-                        pWSSIMsg->setSessionId (getSessionId());
+            if (ppszSilentInterfaces != nullptr) {
+                if (ppszSilentInterfaces[0] != nullptr) {
+                    DisServiceCtrlMsg *pWSSIMsg = _pPeerState->getKeepAliveMsg (pRepCtrl->getType(), pFwdCtrl->getType(), _ui8NodeImportance);
+                    if (pWSSIMsg != nullptr) {
+                        const String sessionId (SessionId::getInstance()->getSessionId());
+                        if (sessionId.length() > 0) {
+                            pWSSIMsg->setSessionId (sessionId);
+                        }
+
+                        _pTrSvc->broadcast (pWSSIMsg, (const char **) ppszSilentInterfaces, "Sending Keep Alive Msg", nullptr, nullptr);
+                        delete pWSSIMsg;
+                        pWSSIMsg = nullptr;
                     }
-                    _pTrSvc->broadcast (pWSSIMsg, (const char **) ppszSilentInterfaces, "Sending Keep Alive Msg", NULL, NULL);
-                    delete pWSSIMsg;
-                    pWSSIMsg = NULL;
                 }
-                for (unsigned int i = 0; ppszSilentInterfaces[i] != NULL; i++) {
-                    free (ppszSilentInterfaces[i]);
-                }
-                free (ppszSilentInterfaces);
+                deallocateNullTerminatedPtrArray (ppszSilentInterfaces);
             }
-            //_pStats->keepAliveMessageSent();
+            _pStats->keepAliveMessageSent();
         }
 
         _pPeerState->updateNeighbors();
@@ -2186,28 +2223,28 @@ void DisseminationService::run (void)
 
         _pDiscoveryCtrl->sendDiscoveryMessage();
         // Advertise Subscriptions if the Subscription Advertise Mechanism has been activated.
-        if (_pSubFwdCtlr != NULL) {
+        if (_pSubFwdCtlr != nullptr) {
             _pSubFwdCtlr->advertiseSubscriptions();
         }
 
         // Notify clients
-        PtrLList<MessageToNotifyToClient> *pMessagesToNotify = NULL;
+        PtrLList<MessageToNotifyToClient> *pMessagesToNotify = nullptr;
 
         _mAsynchronousNotify.lock (269);
-        if (_pMessagesToNotify->getFirst() != NULL) {
+        if (_pMessagesToNotify->getFirst() != nullptr) {
             pMessagesToNotify = _pMessagesToNotify;
             _pMessagesToNotify = new PtrLList<MessageToNotifyToClient>();
         }
         _mAsynchronousNotify.unlock (269);
 
-        if (pMessagesToNotify != NULL) {
+        if (pMessagesToNotify != nullptr) {
             MessageToNotifyToClient *pCurr, *pNext;
             pNext = pMessagesToNotify->getFirst();
-            while ((pCurr = pNext) != NULL) {
+            while ((pCurr = pNext) != nullptr) {
                 pNext = pMessagesToNotify->getNext();
                 MessageHeader *pMH = _pDataCacheInterface->getMessageInfo (pCurr->msgId.c_str());
                 const void *pData = _pDataCacheInterface->getData (pCurr->msgId.c_str());
-                if (pMH != NULL && pData != NULL) {
+                if (pMH != nullptr && pData != nullptr) {
                     bool bIsMetadata;
                     bool bIsMetadataWrappedInData;
                     if (pMH->isChunk()) {
@@ -2261,7 +2298,7 @@ uint16 DisseminationService::getActualMTU (const char *pszGroupName, const char 
                      0,                          // ui32FragmentLength
                      0                           // ui32FragmentOffest
     );
-    Message m (&mi, NULL);
+    Message m (&mi, nullptr);
 
     DisServiceDataMsg dsMsg (getNodeId(), &m, pszTargetNode);
     dsMsg.write (&bw, 0);
@@ -2279,7 +2316,7 @@ char ** DisseminationService::getPeerList()
     return _pPeerState->getAllNeighborNodeIds();
 }
 
-bool DisseminationService::isActiveNeighbor (const char *pszNodeId) 
+bool DisseminationService::isActiveNeighbor (const char *pszNodeId)
 {
     return _pPeerState->isActiveNeighbor (pszNodeId);
 }
@@ -2299,7 +2336,7 @@ int DisseminationService::reloadTransmissionService (void)
                     "suspending DisseminationService::run\n");
     int rc = 0;
     _m.lock (65);
-    if (_pTrSvc != NULL) {
+    if (_pTrSvc != nullptr) {
         requestTerminationAndWait();
         checkAndLogMsg ("DisseminationService::reloadTransmissionService", Logger::L_Info,
                         "reloading transmission service\n");
@@ -2316,20 +2353,20 @@ int DisseminationService::search (uint16 ui16ClientId, const char *pszGroupName,
                                   const char *pszQueryQualifiers, const void *pQuery,
                                   unsigned int uiQueryLen, char **ppszQueryId)
 {
-    if (ppszQueryId == NULL) {
+    if (ppszQueryId == nullptr) {
         return -1;
     }
 
     *ppszQueryId = SearchService::getSearchId (pszGroupName, getNodeId(),
                                                _pDataCacheInterface->getStorageInterface()->getPropertyStore());
-    if (*ppszQueryId == NULL) {
+    if (*ppszQueryId == nullptr) {
         return -2;
     }
 
     //_pSearchNotifier->searchArrived (*ppszQueryId, pszGroupName, pszQueryType, pszQueryQualifiers,
     //                                 pQuery, uiQueryLen);
 
-    SearchMsg searchMsg (getNodeId(), NULL);
+    SearchMsg searchMsg (getNodeId(), nullptr);
     searchMsg.setQuery (pQuery, uiQueryLen);
     searchMsg.setQuerier (getNodeId());
     searchMsg.setQueryId (*ppszQueryId);
@@ -2337,7 +2374,7 @@ int DisseminationService::search (uint16 ui16ClientId, const char *pszGroupName,
     searchMsg.setQueryType (pszQueryType);
     searchMsg.setQueryQualifier (pszQueryQualifiers);
 
-    int rc = broadcastDisServiceCntrlMsg (&searchMsg, NULL, "sending search message", NULL, NULL);
+    int rc = broadcastDisServiceCntrlMsg (&searchMsg, nullptr, "sending search message", nullptr, nullptr);
     if (rc < 0) {
         return -3;
     }
@@ -2349,7 +2386,7 @@ int DisseminationService::search (uint16 ui16ClientId, const char *pszGroupName,
 
 int DisseminationService::searchReply (const char *pszQueryId, const char **ppszMatchingMsgIds)
 {
-    if (pszQueryId == NULL || ppszMatchingMsgIds == NULL) {
+    if (pszQueryId == nullptr || ppszMatchingMsgIds == nullptr) {
         return -1;
     }
     uint16 ui16ClientId = 0;
@@ -2383,7 +2420,7 @@ int DisseminationService::searchReply (const char *pszQueryId, const char **ppsz
 
 uint16 DisseminationService::getMaxFragmentSize (void)
 {
-    if (_pTrSvc == NULL) {
+    if (_pTrSvc == nullptr) {
         return 0;
     }
     return _pTrSvc->getMaxFragmentSize();
@@ -2391,10 +2428,10 @@ uint16 DisseminationService::getMaxFragmentSize (void)
 
 int DisseminationService::getNextPushId (const char *pszGroupName, char *pszIdBuf, uint32 ui32IdBufLen)
 {
-    if (pszGroupName == NULL) {
+    if (pszGroupName == nullptr) {
         return -1;
     }
-    if (pszIdBuf == NULL) {
+    if (pszIdBuf == nullptr) {
         return -2;
     }
     const char *pszNodeId = getNodeId();
@@ -2406,37 +2443,24 @@ int DisseminationService::getNextPushId (const char *pszGroupName, char *pszIdBu
     return 0;
 }
 
-void DisseminationService::construct (ConfigManager *pCfgMgr)
+void DisseminationService::construct (void)
 {
     _m.lock (9);
 
     const char *pszMethodName = "DisseminationService::construct";
-    _pTrSvc = NULL;
-    _pTrSvcListener = NULL;
-    _pDCExpCtlr = NULL;
-    _pDefaultDCExpCtlr = NULL;
-    _pDCRepCtlr = NULL;
-    _pFwdCtlr = NULL;
-    _pSearchCtrl = NULL;
-    _pNetTrafficMemory = NULL;
-    _pTransmissionHistoryInterface = NULL;
-    _pReceivedMessagesInterface = NULL;
-    _pSearchCtrl = NULL;
-    _pMessagesToNotify = new PtrLList<MessageToNotifyToClient>();
-    _pCfgMgr = pCfgMgr;
 
     // Initialize rand seed
-    srand ((uint32)getTimeInMilliseconds());
+    srand ((uint32) getTimeInMilliseconds());
 
     _ui16CacheCleanCycle = DataCacheInterface::DEFAULT_CACHE_CLEAN_CYCLE;
-    setMissingFragmentTimeout ((uint32) pCfgMgr->getValueAsInt64 ("aci.disService.reassembler.request.time",
+    setMissingFragmentTimeout ((uint32) _pCfgMgr->getValueAsInt64 ("aci.disService.reassembler.request.time",
                                                                   DEFAULT_FRAGMENT_REQUEST_TIMEOUT));
     checkAndLogMsg (pszMethodName, Logger::L_Info,
                     "Missing Fragment (and Message) request timeout set to %lu\n",
                     (uint32) getMissingFragmentTimeout());
 
-    if (pCfgMgr->hasValue ("aci.disService.clientIdFiltering")) {
-        _bClientIdFilteringEnabled = pCfgMgr->getValueAsBool ("aci.disService.clientIdFiltering");
+    if (_pCfgMgr->hasValue ("aci.disService.clientIdFiltering")) {
+        _bClientIdFilteringEnabled = _pCfgMgr->getValueAsBool ("aci.disService.clientIdFiltering");
     }
     else {
         _bClientIdFilteringEnabled = true;
@@ -2446,10 +2470,10 @@ void DisseminationService::construct (ConfigManager *pCfgMgr)
     _pStats = new DisServiceStats();
     _pSearchNotifier = new SearchNotifier();
 
-    _bSubscriptionsExchangeEnabled = pCfgMgr->getValueAsBool ("aci.disService.worldstate.subscriptionsExchange.enabled", false);
-    _bTopologyExchangeEnabled = pCfgMgr->getValueAsBool ("aci.disService.worldstate.topologyExchange.enabled", false);    
+    _bSubscriptionsExchangeEnabled = _pCfgMgr->getValueAsBool ("aci.disService.worldstate.subscriptionsExchange.enabled", false);
+    _bTopologyExchangeEnabled = _pCfgMgr->getValueAsBool ("aci.disService.worldstate.topologyExchange.enabled", false);
     // Create world state or topology world state
-    if (_bSubscriptionsExchangeEnabled || _bTopologyExchangeEnabled) {   
+    if (_bSubscriptionsExchangeEnabled || _bTopologyExchangeEnabled) {
         _pPeerState = PeerState::getInstance (this, PeerState::IMPROVED_TOPOLOGY_STATE);
     }
     else {
@@ -2486,7 +2510,7 @@ DArray<uint16> * DisseminationService::getAllClients()
     int i, j;
     for (i = j = 0; i <= _clients.getHighestIndex(); i++) {
         if (_clients.used(i)) {
-            if (pClients == NULL) {
+            if (pClients == nullptr) {
                 pClients = new DArray<uint16>();
             }
             if (pClients) {
@@ -2567,11 +2591,11 @@ int DisseminationService::handleDataCacheQueryMessage (DisServiceDataCacheQueryM
     if (_ui8QueryDataCacheReplyType != DISABLED) {
         DArray2<String> queryMatches;
         for (uint16 i = 0; i < pDSDCQMsg->getQueryCount(); i++) {
-            if (NULL == pDSDCQMsg->getQuery (i)) {
+            if (nullptr == pDSDCQMsg->getQuery (i)) {
                 continue;
             }
             DArray2<String> *pIDs = _pDataCacheInterface->getMessageIDs (pDSDCQMsg->getQuery (i));
-            if (pIDs == NULL) {
+            if (pIDs == nullptr) {
                 // no matches for query "i"
                 continue;
             }
@@ -2601,7 +2625,7 @@ int DisseminationService::handleDataCacheQueryMessage (DisServiceDataCacheQueryM
                     pszMsgId = (const char *) queryMatches[i];
                     pMI = _pDataCacheInterface->getMessageInfo (pszMsgId);
 
-                    if (pMI != NULL) {      // NOTE: This is temporary to avoid
+                    if (pMI != nullptr) {      // NOTE: This is temporary to avoid
                                             // lock where entries may have
                                             // been expired while in this method
                                             // TODO: investigate!
@@ -2623,18 +2647,18 @@ int DisseminationService::handleDataCacheQueryMessage (DisServiceDataCacheQueryM
                     // TODO: The following two lines are temporary - to be
                     // replaced by calling release on _pDataCacheInterface
                     delete pMITmp;
-                    pMITmp = NULL;
+                    pMITmp = nullptr;
                 }
                 return 0;
             }
 
             delete pMsgInfos;
-            pMsgInfos = NULL;
+            pMsgInfos = nullptr;
         }
         else if (_ui8QueryDataCacheReplyType == REPLY_MSGID) {
             // Sends the content of the cache
             DisServiceDataCacheQueryReplyMsg dcqrMsg (getNodeId(), &queryMatches);
-            broadcastDisServiceCntrlMsg (&dcqrMsg, NULL, "Sending DisServiceDataCacheQueryReplyMsg");
+            broadcastDisServiceCntrlMsg (&dcqrMsg, nullptr, "Sending DisServiceDataCacheQueryReplyMsg");
            _pStats->dataCacheQueryMessageReplySent(dcqrMsg.getSize());
            return 0;
         }
@@ -2642,7 +2666,7 @@ int DisseminationService::handleDataCacheQueryMessage (DisServiceDataCacheQueryM
     // The cache is empty or the replyQueryDataCache is disabled
     // sends the CacheEmptyMsg
     DisServiceCacheEmptyMsg emptyMsg (getNodeId());
-    broadcastDisServiceCntrlMsg (&emptyMsg, NULL, "Sending DisServiceCacheEmptyMsg");
+    broadcastDisServiceCntrlMsg (&emptyMsg, nullptr, "Sending DisServiceCacheEmptyMsg");
     return 0;
 }
 
@@ -2666,7 +2690,7 @@ int DisseminationService::handleDataCacheMessagesRequestMessage (DisServiceDataC
 
 int DisseminationService::handleAcknowledgmentMessage (DisServiceAcknowledgmentMessage *pDSAM, uint32 ui32SourceIPAddress)
 {
-    if (_pTransmissionHistoryInterface != NULL) {
+    if (_pTransmissionHistoryInterface != nullptr) {
         _pTransmissionHistoryInterface->addMessageTarget (pDSAM->getAckedMsgId(), pDSAM->getSenderNodeId());
     }
 
@@ -2674,11 +2698,11 @@ int DisseminationService::handleAcknowledgmentMessage (DisServiceAcknowledgmentM
 }
 
 int DisseminationService::handleCompleteMessageRequestMessage (DisServiceCompleteMessageReqMsg *pDSCMRMsg, uint32 ui32SourceIPAddress)
-{ 
+{
     const char *pszMsgId = pDSCMRMsg->getMsgId();
     if (_pDataCacheInterface->hasCompleteMessage (pszMsgId)) {  //TODO : CHECK THIS OUT
         MessageHeader *pMH = _pDataCacheInterface->getMessageInfo (pszMsgId);
-        broadcastDisServiceCntrlMsg (new DisServiceAcknowledgmentMessage (getNodeId(), pMH->getMsgId()), NULL, "Sending DisServiceAcknowledgmentMessage");
+        broadcastDisServiceCntrlMsg (new DisServiceAcknowledgmentMessage (getNodeId(), pMH->getMsgId()), nullptr, "Sending DisServiceAcknowledgmentMessage");
         checkAndLogMsg ("DisseminationService::handleCompleteMessageRequestMessage",
                          Logger::L_Info, " Sended the acknowledge for the MsgId <%s>\n",
                          pMH->getMsgId());
@@ -2709,16 +2733,16 @@ int DisseminationService::handleHistoryRequestMessage (DisServiceHistoryRequest 
             const char *apszGroupNames[2];
             apszGroupNames[0] = pszGroupName;
             apszGroupNames[1] = pszOnDemandGroupName;
-            const char *pszSenderNodeId = NULL;
+            const char *pszSenderNodeId = nullptr;
             DArray2<String> *pQueryResult = _pDataCacheInterface->getSenderNodeIds (pszGroupName);
-            if (pQueryResult == NULL) {
+            if (pQueryResult == nullptr) {
                 // Nothing in the DB for the base group name - try the on-demand group name just in case
                 // This is a fix to handle cases where data is made available with empty metadata, which
                 // after replication, results in entries for the on-demand group but nothing for the
                 // base group
                 pQueryResult = _pDataCacheInterface->getSenderNodeIds (pszOnDemandGroupName);
             }
-            if (pQueryResult != NULL) {
+            if (pQueryResult != nullptr) {
                 for (uint8 i = 0; i < pQueryResult->size(); i++) {
                     uint32 ui32NextExpectedSeqNo;
                     pszSenderNodeId = (*pQueryResult)[i].c_str();
@@ -2736,7 +2760,7 @@ int DisseminationService::handleHistoryRequestMessage (DisServiceHistoryRequest 
                     if (ui32NextExpectedSeqNo > ui16HistoryLength) {
                         ui16From = ui32NextExpectedSeqNo - ui16HistoryLength;
                     }
-                    
+
                     for (uint32 ui32GroupNameIdx = 0; ui32GroupNameIdx < 2; ui32GroupNameIdx++) {
                         DisServiceDataCacheQuery *pQuery = new DisServiceDataCacheQuery();
                         pQuery->selectPrimaryKey();
@@ -2749,7 +2773,7 @@ int DisseminationService::handleHistoryRequestMessage (DisServiceHistoryRequest 
                         }
 
                         PtrLList<MessageHeader> *pMHs = _pDataCacheInterface->getMessageInfos (pQuery);
-                        if (pMHs != NULL) {
+                        if (pMHs != nullptr) {
                             // I want the message with greater seq id first.
                             // TODO: implement ORDER BY in DisServiceDataCacheQuery
                             /*String tmp;
@@ -2761,15 +2785,15 @@ int DisseminationService::handleHistoryRequestMessage (DisServiceHistoryRequest 
                                 x++; y--;
                             }*/
 
-                            for (MessageHeader *pMH = pMHs->getFirst(); pMH != NULL; pMH = pMHs->getNext()) {
+                            for (MessageHeader *pMH = pMHs->getFirst(); pMH != nullptr; pMH = pMHs->getNext()) {
                                 const void *pData = _pDataCacheInterface->getData (pMH->getMsgId());
                                 Message *pMsg = new Message (pMH, pData);
                                 DisServiceDataMsg *pDataMsg = new DisServiceDataMsg (getNodeId(), pMsg);
                                 broadcastDisServiceDataMsg (pDataMsg, "Handling History Request");
                                 delete pDataMsg;
                                 delete pMsg;
-                                pDataMsg = NULL;
-                                pMsg = NULL;
+                                pDataMsg = nullptr;
+                                pMsg = nullptr;
                             }
                             //DisServiceHistoryRequestReplyMsg dhrr (getNodeId(), pMID);
                             //broadcastDisServiceCntrlMsg (&dhrr);
@@ -2779,7 +2803,7 @@ int DisseminationService::handleHistoryRequestMessage (DisServiceHistoryRequest 
                     }
                 }
                 delete pQueryResult;
-                pQueryResult = NULL;
+                pQueryResult = nullptr;
             }
             free (pszOnDemandGroupName);
             break;
@@ -2790,7 +2814,7 @@ int DisseminationService::handleHistoryRequestMessage (DisServiceHistoryRequest 
                                                                                pReq->_ui32Begin, pReq->_ui32End);
             Message *pMsg;
             Message *pTmp= pMessages->getFirst();
-            while ((pMsg = pTmp) != NULL) {
+            while ((pMsg = pTmp) != nullptr) {
                 pTmp= pMessages->getNext();
                 DisServiceDataMsg *pDataMsg = new DisServiceDataMsg (getNodeId(), pMsg);
                 broadcastDisServiceDataMsg(pDataMsg, "Handling History Request");
@@ -2814,7 +2838,7 @@ int DisseminationService::handleHistoryRequestReplyMessage (DisServiceHistoryReq
 
 int DisseminationService::handleSearchMessage (SearchMsg *pSearchMsg, uint32)
 {
-    if (pSearchMsg == NULL || _pSearchNotifier == NULL) {
+    if (pSearchMsg == nullptr || _pSearchNotifier == nullptr) {
         return -1;
     }
     unsigned int uiQueryLen = 0;
@@ -2828,7 +2852,7 @@ int DisseminationService::handleSearchMessage (SearchMsg *pSearchMsg, uint32)
 
 int DisseminationService::handleSearchReplyMessage (SearchReplyMsg *pSearchReplyMsg, uint32)
 {
-    if (pSearchReplyMsg == NULL || _pSearchNotifier == NULL) {
+    if (pSearchReplyMsg == nullptr || _pSearchNotifier == nullptr) {
         return -1;
     }
 
@@ -2843,8 +2867,8 @@ int DisseminationService::selectMsgIDsToRequest (const char *pszSenderNodeId, DA
     DArray2<String> *pIDs = pMsgIDs;
     bool bAtLeastOneID = false;
     for (uint16 i = 0; i <= pIDs->getHighestIndex(); i++) {
-        if (_pDataCacheInterface->getMessageInfo ((*pIDs)[i]) != NULL) {
-            (*pIDs)[i] = NULL;
+        if (_pDataCacheInterface->getMessageInfo ((*pIDs)[i]) != nullptr) {
+            (*pIDs)[i] = nullptr;
         }
         else {
             bAtLeastOneID = true;
@@ -2853,8 +2877,8 @@ int DisseminationService::selectMsgIDsToRequest (const char *pszSenderNodeId, DA
 
     // TODO: should I add a new method in stats????
     if (bAtLeastOneID) {
-        DisServiceDataCacheMessagesRequestMsg dcmrMsg (getNodeId(), NULL, pIDs);
-        broadcastDisServiceCntrlMsg (&dcmrMsg, NULL, "Sending DisServiceDataCacheMessagesRequestMsg");
+        DisServiceDataCacheMessagesRequestMsg dcmrMsg (getNodeId(), nullptr, pIDs);
+        broadcastDisServiceCntrlMsg (&dcmrMsg, nullptr, "Sending DisServiceDataCacheMessagesRequestMsg");
     }
     return 0;
 }
@@ -2873,10 +2897,12 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
                                                       const char **ppszOutgoingInterfaces, const char *pszTargetAddr,
                                                       const char *pszHints)
 {
-    _mBrcast.lock (60);
+    const String sessionId (SessionId::getInstance()->getSessionId());
     const char *pszMethodName = "DisseminationService::broadcastDisServiceDataMsg";
+
+    _mBrcast.lock (60);
     uint32 ui32HeaderSize = _pTrSvcHelper->computeMessageHeaderSize (getNodeId(), pDDMsg->getTargetNodeId(),
-                                                                     getSessionId(), pDDMsg->getMessageHeader());
+                                                                     sessionId, pDDMsg->getMessageHeader());
     pDDMsg->flush();
 
     const MessageHeader *pMH = pDDMsg->getMessage()->getMessageHeader();  // !! // DO NOT MODIFY the MessageInfo in pDDMsg
@@ -2897,6 +2923,17 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
         return -2;
     }
 
+    String hints (pszHints);
+    const String group (pDDMsg->getMessage()->getMessageInfo()->getGroupName());
+    String lowercaseGroup (group);
+    lowercaseGroup.convertToLowerCase();
+    if (((sessionId.length() > 0) && (sessionId == group)) || wildcardStringCompare (lowercaseGroup, "*reset")) {
+        if (hints.length() > 0) {
+            hints += ';';
+        }
+        hints += "no-encrypt";
+    }
+
     int rc = 0;
     if (pMH->getFragmentLength() <=  (ui16FragSize - ui32HeaderSize)) {
 
@@ -2909,7 +2946,7 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
         }
 
         _pDataReqSvr->startedPublishingMessage (msgId.getId());
-        TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pDDMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, pszHints);
+        TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pDDMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, hints);
         _pDataReqSvr->endedPublishingMessage (msgId.getId());
         rc = res.rc;
         res.reset();
@@ -2921,10 +2958,10 @@ int DisseminationService::broadcastDisServiceDataMsg (DisServiceDataMsg *pDDMsg,
 
         DisServiceDataMsgFragmenter fragmenter (getNodeId());
         fragmenter.init (pDDMsg, ui16FragSize, ui32HeaderSize);
-        
-        _pDataReqSvr->startedPublishingMessage (msgId.getId ());
-        for (DisServiceDataMsg *pFragDDMsg = NULL; (pFragDDMsg = fragmenter.getNextFragment()) != NULL;) {
-            TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pFragDDMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, pszHints);
+
+        _pDataReqSvr->startedPublishingMessage (msgId.getId());
+        for (DisServiceDataMsg *pFragDDMsg = nullptr; (pFragDDMsg = fragmenter.getNextFragment()) != nullptr;) {
+            TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pFragDDMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, hints);
             delete pFragDDMsg;
             if (res.rc != 0) {
                 rc = res.rc;
@@ -2942,7 +2979,44 @@ int DisseminationService::broadcastDisServiceCntrlMsg (DisServiceCtrlMsg *pDDCtr
                                                        const char *pszPurpose, const char *pszTargetAddr, const char *pszHints)
 {
     _mBrcast.lock (61);
-    TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pDDCtrlMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, pszHints);
+    DisServiceMsg::Type type = pDDCtrlMsg->getType();
+    String hints (pszHints);
+    if (hints.length() > 0) {
+        hints += ';';
+    }
+    const String sessionId (SessionId::getInstance()->getSessionId());
+    switch (type) {
+        case DisServiceMsg::DSMT_DataReq: {
+            //todo specify the update key encryption group
+            hints += "no-encrypt";
+            break;
+        }
+        case DisServiceMsg::DSMT_SearchMsg: {
+            SearchMsg *searchMsg = static_cast<SearchMsg*>(pDDCtrlMsg);
+            if (doPlainText (searchMsg->getGroupName(), sessionId)) {
+                hints += "no-encrypt";
+            }
+            break;
+        }
+        case DisServiceMsg::DSMT_SearchMsgReply: {
+            BaseSearchReplyMsg *searchMsgReply = static_cast<BaseSearchReplyMsg*>(pDDCtrlMsg);
+            String queryId (searchMsgReply->getQueryId ());
+            StringTokenizer tokenizer (queryId, ':', ':');
+            String groupName;
+            //get the third token (the groupName)
+            for (int i = 0; i < 3; i++) {
+                groupName = tokenizer.getNextToken ();
+            }
+            if (doPlainText (groupName.c_str(), sessionId)) {
+                hints += "no-encrypt";
+            }
+            break;
+        }
+        default:
+            break;
+            //TODO expand this to HistoryRequest and Reply
+    }
+    TransmissionService::TransmissionResults res = _pTrSvc->broadcast (pDDCtrlMsg, ppszOutgoingInterfaces, pszPurpose, pszTargetAddr, hints);
     int rc = res.rc;
     res.reset();
     _mBrcast.unlock (61);
@@ -2951,16 +3025,16 @@ int DisseminationService::broadcastDisServiceCntrlMsg (DisServiceCtrlMsg *pDDCtr
 
 uint32 DisseminationService::getMinOutputQueueSizeForPeer (const char *pszTargetNodeId)
 {
-    if (pszTargetNodeId == NULL) {
+    if (pszTargetNodeId == nullptr) {
         return 0;
     }
     uint32 ui32OutputQueueSize = 0;
     _pPeerState->lock();
     const char **ppszInterfaces = _pPeerState->getIPAddressesAsStrings (pszTargetNodeId);
-    if (ppszInterfaces != NULL) {
+    if (ppszInterfaces != nullptr) {
         bool bOutputQueueSizeInitialized = false;
         uint32 ui32;
-        for (uint8 i = 0; ppszInterfaces[i] != NULL; i++) {
+        for (uint8 i = 0; ppszInterfaces[i] != nullptr; i++) {
             if (!bOutputQueueSizeInitialized) {
                 ui32OutputQueueSize = _pTrSvc->getTransmissionQueueSize (ppszInterfaces[i]);
                 bOutputQueueSizeInitialized = true;
@@ -2978,7 +3052,7 @@ uint32 DisseminationService::getMinOutputQueueSizeForPeer (const char *pszTarget
 int DisseminationService::transmitDisServiceControllerMsg (DisServiceCtrlMsg *pCtrlMsg, bool bReliable,
                                                            const char *pszPurpose)
 {
-    if (pCtrlMsg == NULL) {
+    if (pCtrlMsg == nullptr) {
         return -1;
     }
     _mControllers.lock (63);
@@ -2990,7 +3064,7 @@ int DisseminationService::transmitDisServiceControllerMsg (DisServiceCtrlMsg *pC
 int DisseminationService::transmitDisServiceControllerMsg (ControllerToControllerMsg *pCtrlMsg, bool bReliable,
                                                            const char *pszPurpose)
 {
-    if (pCtrlMsg == NULL) {
+    if (pCtrlMsg == nullptr) {
         return -1;
     }
     _mControllers.lock (63);
@@ -3002,27 +3076,58 @@ int DisseminationService::transmitDisServiceControllerMsg (ControllerToControlle
 int DisseminationService::transmitDisServiceControllerMsgInternal (DisServiceMsg *pCtrlMsg, const char *pszRecepientNodeId,
                                                                    bool bReliable, const char *pszPurpose)
 {
-    if (_pTrSvc == NULL) {
+    if (_pTrSvc == nullptr) {
         // Not initialized
         return -1;
+    }
+    const String sessionId (SessionId::getInstance()->getSessionId());
+    DisServiceMsg::Type type = pCtrlMsg->getType();
+    String hints;
+    switch (type) {
+        case DisServiceMsg::DSMT_SearchMsg:
+        {
+            SearchMsg *pSearchMsg = static_cast<SearchMsg*>(pCtrlMsg);
+            if (doPlainText (pSearchMsg->getGroupName(), sessionId)) {
+                hints += "no-encrypt";
+            }
+            break;
+        }
+        case DisServiceMsg::DSMT_SearchMsgReply:
+        {
+            BaseSearchReplyMsg *searchMsgReply = static_cast<BaseSearchReplyMsg*>(pCtrlMsg);
+            String queryId(searchMsgReply->getQueryId());
+            StringTokenizer tokenizer (queryId, ':', ':');
+            String groupName;
+            //get the third token (the groupName)
+            for (int i = 0; i < 3; i++) {
+                groupName = tokenizer.getNextToken();
+            }
+            if (doPlainText (groupName.c_str(), sessionId)) {
+                hints += "no-encrypt";
+            }
+            break;
+        }
+        default:
+            break;
+            //TODO expand this to HistoryRequest and Reply
     }
 
     int rc = 0;
     _pPeerState->lock();
     const char **ppszPeerAddresses = _pPeerState->getIPAddressesAsStrings (pszRecepientNodeId);
-    if (ppszPeerAddresses != NULL) {
-        for (unsigned int i = 0; ppszPeerAddresses[i] != NULL; i++) {
+    if (ppszPeerAddresses != nullptr) {
+        for (unsigned int i = 0; ppszPeerAddresses[i] != nullptr; i++) {
             const char **ppszOutgoingInterfaces = (const char **) _pTrSvc->getInterfacesByDestinationAddress (ppszPeerAddresses[i]);
             TransmissionService::TransmissionResults rcTmp = _pTrSvc->unicast (pCtrlMsg, ppszOutgoingInterfaces, pszPurpose,
-                                                                               ppszPeerAddresses[i], NULL, bReliable);
+                                                                               ppszPeerAddresses[i], hints, bReliable);
             if (rcTmp.rc != 0) {
                 rc = rcTmp.rc;
             }
             rcTmp.reset();
-            if (ppszOutgoingInterfaces != NULL) {
+            if (ppszOutgoingInterfaces != nullptr) {
                 for (uint8 ui8 = 0; ppszOutgoingInterfaces[ui8]; ui8++) {
                     free ((char*)ppszOutgoingInterfaces[ui8]);
-                    ppszOutgoingInterfaces[ui8] = NULL;
+                    ppszOutgoingInterfaces[ui8] = nullptr;
                 }
                 free (ppszOutgoingInterfaces);
             }
@@ -3047,7 +3152,7 @@ void DisseminationService::messageArrived (Message *pMsg, RequestDetails *pDetai
     if (pMH->getAcknowledgment() && pMH->isCompleteMessage()) {
         // Send Acknowledgment
         DisServiceAcknowledgmentMessage ack (getNodeId(), pMH->getMsgId());
-        if (0 == broadcastDisServiceCntrlMsg (&ack, NULL, "Sending DisServiceAcknowledgmentMessage")) {
+        if (0 == broadcastDisServiceCntrlMsg (&ack, nullptr, "Sending DisServiceAcknowledgmentMessage")) {
             checkAndLogMsg ("DisseminationService::messageArrived", Logger::L_Info,
                             "Sent acknowledgment for MsgId <%s>\n", pMH->getMsgId());
         }
@@ -3058,14 +3163,14 @@ void DisseminationService::messageArrived (Message *pMsg, RequestDetails *pDetai
     }
 
     DArray<uint16> *pSubscribingClients = getSubscribingClients (pMsg);
-    if (pSubscribingClients != NULL && pSubscribingClients->size() > 0) {
+    if (pSubscribingClients != nullptr && pSubscribingClients->size() > 0) {
         notifyDisseminationServiceListeners (pSubscribingClients, pMsg,
                                              bIsMetadata, bIsMetadataWrappedInData,
                                              pDetails);
     }
 
     delete pSubscribingClients;
-    pSubscribingClients = NULL;
+    pSubscribingClients = nullptr;
 }
 
 void DisseminationService::notifyDisseminationServiceListeners (DArray<uint16> *pClientIdList, Message *pMsg,
@@ -3076,8 +3181,8 @@ void DisseminationService::notifyDisseminationServiceListeners (DArray<uint16> *
     for (unsigned int i = 0; i < pClientIdList->size(); i++) {
         const uint16 ui16ClientId = pClientIdList->get (i);
         bool bFound = false;
-        if (pDetails != NULL) {
-            for (RequestDetails::QueryDetails *pQD = pDetails->_details.getFirst(); pQD != NULL; pQD = pDetails->_details.getNext()) {
+        if (pDetails != nullptr) {
+            for (RequestDetails::QueryDetails *pQD = pDetails->_details.getFirst(); pQD != nullptr; pQD = pDetails->_details.getNext()) {
                 if (ui16ClientId == pQD->_ui16ClientId) {
                     bFound = true;
                     notifyDisseminationServiceListener (ui16ClientId, pMsg, bMetaData,
@@ -3088,9 +3193,9 @@ void DisseminationService::notifyDisseminationServiceListeners (DArray<uint16> *
         }
         if (!bFound) {
             notifyDisseminationServiceListener (ui16ClientId, pMsg, bMetaData,
-                                                bMetaDataWrappedInData, NULL);
+                                                bMetaDataWrappedInData, nullptr);
         }
-        
+
     }
     _mToListeners.unlock (64);
 }
@@ -3100,15 +3205,15 @@ void DisseminationService::notifyDisseminationServiceListener (uint16 ui16Client
 {
     const char *pszMethodName = "DisseminationService::notifyDisseminationServiceListener";
     MessageHeader *pMH = pMsg->getMessageHeader();
-    if (pMH == NULL) {
+    if (pMH == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "null message header.\n");
         return;
     }
 
     const char *pszMyself = getNodeId();
     const char *pszSender = pMH->getPublisherNodeId();
-    
-    if (_bClientIdFilteringEnabled && (pszQueryId == NULL)) {
+
+    if (_bClientIdFilteringEnabled && (pszQueryId == nullptr)) {
         // If I am the sender of the message I do not want to notify it to the
         // application, unless it matched a search of mine, in which case
         // pszQueryId is set
@@ -3119,7 +3224,7 @@ void DisseminationService::notifyDisseminationServiceListener (uint16 ui16Client
             return;
         }
     }
-    if ((!_clients.used (ui16ClientId)) || _clients[ui16ClientId].pListener == NULL) {
+    if ((!_clients.used (ui16ClientId)) || _clients[ui16ClientId].pListener == nullptr) {
         // After pClientIdList was retrieved, clients may have de-registered, so
         // I have to check whether the client identified by ui16ClientId is still
         // registered. registration/de-registration are assumed to be rare events,
@@ -3131,20 +3236,20 @@ void DisseminationService::notifyDisseminationServiceListener (uint16 ui16Client
         return;
     }
 
-    if ((pszQueryId == NULL) && (!_pLocalNodeInfo->hasSubscription (ui16ClientId, pMsg))) {
+    if ((pszQueryId == nullptr) && (!_pLocalNodeInfo->hasSubscription (ui16ClientId, pMsg))) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "not notifying client %d of the arrival "
                         "of message %s because the client does not subscribe to the message's group\n",
                         (int) ui16ClientId, pMH->getMsgId());
         return;
     }
-    else if ((pszQueryId != NULL) && _pSearchCtrl->messageNotified (pMH->getMsgId(), ui16ClientId, pszQueryId)) {
+    else if ((pszQueryId != nullptr) && _pSearchCtrl->messageNotified (pMH->getMsgId(), ui16ClientId, pszQueryId)) {
         // The query ID is set, but the match was already notified
         checkAndLogMsg (pszMethodName, Logger::L_Info, "not notifying client %d of the arrival "
                         "of message %s because the client has already been notified as a result of the search %s\n",
                         (int) ui16ClientId, pMH->getMsgId(), pszQueryId);
         return;
     }
-    else if (pszQueryId != NULL) {
+    else if (pszQueryId != nullptr) {
         uint16 ui16SearchingClientId = 0;
         Searches::getSearches()->getSearchQueryId (pszQueryId, ui16SearchingClientId);
         if (ui16ClientId != ui16SearchingClientId) {
@@ -3185,9 +3290,9 @@ void DisseminationService::notifyDisseminationServiceListener (uint16 ui16Client
         MessageInfo *pMI = pMsg->getMessageInfo();
         if (bMetaData) {
             const char *pszReferrebObjectId = removeOnDemandSuffixFromId (pMI->getReferredObject());
-            if (pszReferrebObjectId == NULL) {
+            if (pszReferrebObjectId == nullptr) {
                 checkAndLogMsg ("DisseminationService::notifyDisseminationServiceListeners", Logger::L_Warning,
-                                "pszReferrebObjectId is NULL\n");
+                                "pszReferrebObjectId is nullptr\n");
             }
             _clients[ui16ClientId].pListener->dataAvailable (pMI->getClientId(), pMI->getPublisherNodeId(), pMI->getGroupName(), pMI->getMsgSeqId(),
                                                              pMI->getObjectId(), pMI->getInstanceId(), pMI->getMimeType(), pszReferrebObjectId,
@@ -3207,7 +3312,7 @@ void DisseminationService::notifyDisseminationServiceListener (uint16 ui16Client
         }
     }
 
-    if (pszQueryId != NULL) {
+    if (pszQueryId != nullptr) {
         _pSearchCtrl->setNotifiedClients (pMH->getMsgId(), pszQueryId, ui16ClientId);
         checkAndLogMsg ("DisseminationService::notifyDisseminationServiceListeners",
                         Logger::L_Warning, "notified client %d of the arrival of message %s (searchId %s).\n",
@@ -3241,7 +3346,7 @@ Reader * DisseminationService::getData (const char *pszId, uint32 &ui32MessageLe
     _mGetData.lock (67);
     DataCache::Result result;
     _pDataCacheInterface->getData (pszId, result);
-    if (result.pData != NULL) {
+    if (result.pData != nullptr) {
         ui32MessageLength = result.ui32Length;
         switch (result.ui8StorageType) {
             case DataCacheInterface::MEMORY: {
@@ -3250,19 +3355,19 @@ Reader * DisseminationService::getData (const char *pszId, uint32 &ui32MessageLe
             }
             case DataCacheInterface::FILE: {
                 FILE *pFile = fopen ((const char *)result.pData , "r");
-                if (pFile != NULL) {
+                if (pFile != nullptr) {
                     _mGetData.unlock (67);
                     return (new FileReader(pFile, true));
                 }
             }
             case DataCacheInterface::NOSTORAGETYPE: {
                 _mGetData.unlock (67);
-                return NULL;
+                return nullptr;
             }
         }
     }
     _mGetData.unlock (67);
-    return NULL;
+    return nullptr;
 }
 
 int DisseminationService::getData (const char *pszGroupName, const char *pszSender,
@@ -3274,12 +3379,12 @@ int DisseminationService::getData (const char *pszGroupName, const char *pszSend
 
 int DisseminationService::getData (const char *pszMsgId, uint32 *ui32DataLength, void **pData)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
     _mGetData.lock (68);
     const void *pBuffer = _pDataCacheInterface->getData (pszMsgId, *ui32DataLength);
-    if (pBuffer == NULL) {
+    if (pBuffer == nullptr) {
          checkAndLogMsg ("DisseminationService::getData", Logger::L_Info,
                          "no data has been found in the cache %s\n", pszMsgId);
          (*ui32DataLength) = 0;
@@ -3301,16 +3406,16 @@ int DisseminationService::getData (const char *pszMsgId, uint32 *ui32DataLength,
 
 char ** DisseminationService::getDisseminationServiceIds (const char *pszObjectId)
 {
-    if (pszObjectId == NULL) {
-        return NULL;
+    if (pszObjectId == nullptr) {
+        return nullptr;
     }
-    return getDisseminationServiceIds (pszObjectId, NULL);
+    return getDisseminationServiceIds (pszObjectId, nullptr);
 }
 
 char ** DisseminationService::getDisseminationServiceIds (const char *pszObjectId, const char *pszInstanceId)
 {
-    if (pszObjectId == NULL || _pDataCacheInterface == NULL) {
-        return NULL;
+    if (pszObjectId == nullptr || _pDataCacheInterface == nullptr) {
+        return nullptr;
     }
 
     return _pDataCacheInterface->getDisseminationServiceIds (pszObjectId, pszInstanceId);
@@ -3323,7 +3428,7 @@ int strcpyAndFill (char *pszDst, uint32 ui32DestLen, const char *pszSrc, uint32 
     }
     strncpy (pszDst, pszSrc, ui32SrcLen);
     if (ui32DestLen > ui32SrcLen) {
-        // fill the rest with NULL
+        // fill the rest with nullptr
         memset (pszDst+ui32SrcLen, 0, ui32DestLen-ui32SrcLen);
     }
     return 0;

@@ -1,4 +1,4 @@
-/* 
+/*
  * MessageProperties.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_MESSAGE_PROPERTIES_H
-#define	INCL_MESSAGE_PROPERTIES_H
+#define INCL_MESSAGE_PROPERTIES_H
 
 #include "StrClass.h"
 
@@ -90,13 +90,12 @@ namespace IHMC_ACI
     {
         NOMADSUtil::String s (_pszMsgId);
         s += " (objectId <";
-        s += (_pszObjectId == NULL ? "null" : _pszObjectId);
+        s += (_pszObjectId == nullptr ? "null" : _pszObjectId);
         s += "> instanceId <";
-        s += (_pszInstanceId == NULL ? "null" : _pszInstanceId);
+        s += (_pszInstanceId == nullptr ? "null" : _pszInstanceId);
         s += ">)";
         return s;
     }
 }
 
-#endif	/* INCL_MESSAGE_PROPERTIES_H */
-
+#endif    /* INCL_MESSAGE_PROPERTIES_H */

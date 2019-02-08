@@ -23,8 +23,8 @@ float GreatestValueBelow(Attribute Att, float t);
 /*************************************************************************/
 
 void EvalContinuousAtt(Attribute Att, ItemNo Fp, ItemNo Lp)
-/*  -----------------  */ 
-{ 
+/*  -----------------  */
+{
 	ItemCount CountItems(ItemNo Fp, ItemNo Lp);
 	float ComputeGain(float BaseInfo, float UnknFrac, DiscrValue MaxVal, ItemCount TotalItems);
 	float TotalInfo(ItemCount V[], DiscrValue MinVal, DiscrValue MaxVal);

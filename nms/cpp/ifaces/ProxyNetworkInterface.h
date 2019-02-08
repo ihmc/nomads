@@ -20,7 +20,7 @@
  */
 
 #ifndef INCL_PROXY_NETWORK_INTERFACE_H
-#define	INCL_PROXY_NETWORK_INTERFACE_H
+#define INCL_PROXY_NETWORK_INTERFACE_H
 
 #include "DatagramBasedAbstractNetworkInterface.h"
 
@@ -37,5 +37,5 @@ namespace NOMADSUtil
     };
 }
 
-#endif  /* INCL_PROXY_NETWORK_INTERFACE_H s*/
+#endif  /* INCL_PROXY_NETWORK_INTERFACE_H */
 

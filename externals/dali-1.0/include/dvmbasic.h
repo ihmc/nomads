@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1999 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -50,13 +50,13 @@ extern int default_mpeg_non_intra_quant[];
  *
  * type ByteImage
  *
- *     An abstraction of a 2D array of bytes. 
+ *     An abstraction of a 2D array of bytes.
  *     There are two types of ByteImages: physical and virtual.
- *     For physical ByteImages, the data buffer is contiguous.  
- *     In virtual ByteImages, the data belongs to a "parent" 
- *     byte image.  In other words, a virtual ByteImage is a 
- *     portion of a parent ByteImage, and shares its memory. 
- *     The VM should never write outside the bounds of the 
+ *     For physical ByteImages, the data buffer is contiguous.
+ *     In virtual ByteImages, the data belongs to a "parent"
+ *     byte image.  In other words, a virtual ByteImage is a
+ *     portion of a parent ByteImage, and shares its memory.
+ *     The VM should never write outside the bounds of the
  *     virtual buffer.
  *
  *     Note : Wei Tsang removed parentHeight, parentName, buffer on 30/1/98
@@ -115,7 +115,7 @@ typedef struct BitImage {
     unsigned char isVirtual;/* 0 iff buffer is physical, 1 indicates virtual */
     unsigned char firstBit; /* Offset 0-7 within the first byte on every row */
     unsigned char lastBit;  /* Offset 1-7,0 within the last byte on every row */
-    unsigned char *firstByte;/* pointer to the first byte for this buffer 
+    unsigned char *firstByte;/* pointer to the first byte for this buffer
                               * in the buffer array */
 } BitImage;
 
@@ -143,12 +143,12 @@ typedef struct BitImage {
 
 typedef struct BitImageScan {
     unsigned char *currByte;/* curr byte to start scan on next get extent call */
-    int currBit;            /* cutt bit (0 - 7) in curr byte to start scan on 
+    int currBit;            /* cutt bit (0 - 7) in curr byte to start scan on
                              * the next get extent call */
     BitImage *region;       /* bitmap region to be used to scan the buffer */
-    int x, y;               /* x and y coordinates of the currXXXByte in their 
+    int x, y;               /* x and y coordinates of the currXXXByte in their
                              * respective buffers. */
-    int regionSkip;         /* precomputed values for offset to add when 
+    int regionSkip;         /* precomputed values for offset to add when
                              * skipping to the next row */
     int unitWidth;
     int byteWidth;
@@ -162,7 +162,7 @@ typedef struct BitImageScan {
  * type ScBlock
  *
  *     An ScBlock stores an block of semi-compress (huffman decoded
- *     but not idct) data and is used in JPEG and MPEG package.  
+ *     but not idct) data and is used in JPEG and MPEG package.
  *
  *----------------------------------------------------------------------
  */
@@ -371,7 +371,7 @@ typedef struct BitStreamFilter {
 
 /*
  * 8-bit and 16-bit audio buffer
- * to use as 16-bit audio buffer, just type-cast the 
+ * to use as 16-bit audio buffer, just type-cast the
  * (unsigned char *) to (short *)
  */
 typedef struct Audio {

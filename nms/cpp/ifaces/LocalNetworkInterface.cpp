@@ -64,10 +64,12 @@ int LocalNetworkInterface::postBind (MulticastUDPDatagramSocket *pDatagramSocket
     const char *pszMethodName = "LocalNetworkInterface::postBind";
     if (_mode == MULTICAST) {
         if (!_bSendOnly) {
-            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
-                            "interface %s joining group %s\n",
+            const uint32 ui32MulticastGroup = inet_addr (_defaultPropagationAddr);
+            const uint32 ui32ListenAddr = inet_addr (_bindingInterfaceSpec.c_str());
+            pDatagramSocket->leaveGroup (ui32MulticastGroup, ui32ListenAddr);
+            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "interface %s joining group %s\n",
                             _bindingInterfaceSpec.c_str(), _defaultPropagationAddr.c_str());
-            pDatagramSocket->joinGroup (inet_addr (_defaultPropagationAddr), inet_addr (_bindingInterfaceSpec.c_str()));
+            pDatagramSocket->joinGroup (ui32MulticastGroup, ui32ListenAddr);
         }
         checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
                         "interface %s setting TTL to %d\n",

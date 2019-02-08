@@ -31,7 +31,6 @@ namespace IHMC_ACI
     class InformationStore;
     class MetaData;
     class MetadataConfiguration;
-    class SQLAVList;
 
     class ApplicationQueryController : public QueryController
     {

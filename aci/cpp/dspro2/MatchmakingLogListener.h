@@ -21,7 +21,7 @@
  */
 
 #ifndef MATCHMAKING_LOG_LISTENER_H
-#define	MATCHMAKING_LOG_LISTENER_H
+#define MATCHMAKING_LOG_LISTENER_H
 
 namespace IHMC_ACI
 {
@@ -51,5 +51,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	// MATCHMAKING_LOG_LISTENER_H
-
+#endif    // MATCHMAKING_LOG_LISTENER_H

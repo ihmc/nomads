@@ -22,13 +22,22 @@
 #ifndef INCL_DISSERVICE_PRO_PROXY_H
 #define INCL_DISSERVICE_PRO_PROXY_H
 
-#include "CommAdaptor.h"
+
+#include"DSProInterface.h"
+
 #include "Defs.h"
-#include "PtrLList.h"
+
+#include "Stub.h"
+#include "UInt32Hashtable.h"
 
 namespace NOMADSUtil
 {
     class ConfigManager;
+}
+
+namespace IHMC_VOI
+{
+    class NodePath;
 }
 
 namespace IHMC_ACI
@@ -36,26 +45,27 @@ namespace IHMC_ACI
     class DSProListener;
     class MatchmakingLogListener;
     class MetaData;
-    class NodePath;
 
-    class DSProProxy
+    class DSProProxy : public NOMADSUtil::Stub, public DSProInterface
     {
         public:
-            DSProProxy (uint16 ui16ApplicationId = 0);
+            explicit DSProProxy (uint16 ui16DesiredApplicationId, bool bUseBackgroundReconnect = false);
             virtual ~DSProProxy (void);
 
-            int init (const char *pszHost, uint16 ui16Port);
+            int subscribe (const char *pszGroupName, uint8 ui8Priority, bool bGroupReliable, bool bMsgReliable, bool bSequenced);
 
-            int setRankingWeigths (float coordRankWeight, float timeRankWeight,
-                                   float expirationRankWeight, float impRankWeight,
-                                   float predRankWeight, float targetWeight,
-                                   bool bStrictTarget,
-                                   bool bConsiderFuturePathSegmentForMatchmacking);
+            //int init (const char *pszHost, uint16 ui16Port);
+
+            int addUserId (const char *pszUserId);
+
+            int addAreaOfInterest (const char *pszAreaName, float fUpperLeftLat, float fUpperLeftLon,
+                                   float fLowerRightLat, float fLowerRightLon,
+                                   int64 i64StatTime, int64 i64EndTime);
 
             /**
              * Add a new path to the node context.
              */
-            int registerPath (NodePath *pPath);
+            int registerPath (IHMC_VOI::NodePath *pPath);
 
             /**
              * Choose what path the node is following now.
@@ -75,7 +85,7 @@ namespace IHMC_ACI
                          const char *pszRemoteAddress, uint16 ui16Port);
 
             int getAdaptorType (AdaptorId adaptorId, AdaptorType &adaptorType);
-            int getData (const char *pszId, void **pData, uint32 &ui32DataLen);
+           // int getData (const char *pszId, void **pData, uint32 &ui32DataLen);
 
             /**
              * Method that lets the application explicitly give a feedback about
@@ -87,46 +97,90 @@ namespace IHMC_ACI
              * Search data based on the given groupName and a query on the
              * metadata fields. The data is searched both in the local cache,
              * and on the ones of neighboring nodes.
-             */
-            NOMADSUtil::PtrLList<const char> * search (const char *pszGroupName,
-                                                       const char *pszQuery);
 
-            /**
-             * The message is stored and sent to the nodes which node context
-             * matches the metadata (in  pszXmlMedatada) describing the data.
-             *
-             * - pszXmlMedatada: null-terminated string that contains and XML
-             *                   document describing the data
-             * - pData: the actual data to be sent
-             * - ui32DataLen: the length of the actual data to be sent
-             */
-            int addMessage (const char *pszGroupName, const char *pszXmlMedatada,
-                            const void *pData, uint32 ui32DataLen,
-                            int64 i64ExpirationTime, char **ppszId);
-            int chunkAndAddMessage (const char *pszGroupName, const char *pszXmlMedatada,
-                                    const void *pData, uint32 ui32DataLen,
-                                    const char *pszDataMimeType,
-                                    int64 i64ExpirationTime, char **ppszId);
-            int addAnnotation (const char *pszGroupName, const char *pszXmlMedatada,
-                               const char *pszReferredObject,
-                               int64 i64ExpirationTime, char **ppszId);
-            int addAnnotation (const char *pszGroupName, MetaData *pMetadata,
-                               int64 i64ExpirationTime, char **ppszId);
+            NOMADSUtil::PtrLList<const char> * search (const char *pszGroupName, const char *pszQueryType,
+                const char *pszQueryQualifiers, const void *pQuery,
+                unsigned int uiQueryLen, int64 i64TimeoutInMilliseconds,
+                char **ppszQueryId);*/
 
-            const char * getNodeId (void);
+            void resetTransmissionCounters (void);
 
-            // DSPro Listener
-
-            int registerDSProListener (uint16 ui16ClientId, DSProListener *pListener);
+            const char * getVersion (void) const;
+            int configureProperties (NOMADSUtil::ConfigManager* pCfgMgr);
+            int setRankingWeigths (float coordRankWeight, float timeRankWeight, float expirationRankWeight, float impRankWeight,
+                                   float sourceReliabilityRankWeigth, float informationContentRankWeigth, float predRankWeight,
+                                   float targetWeight, bool bStrictTarget, bool bConsiderFuturePathSegmentForMatchmacking);
+            int setSelectivity (float matchingThreshold);
+            int setRangeOfInfluence (const char *pszMilStd2525Symbol, uint32 ui32RangeInMeters);
+            int setDefaultUsefulDistance (uint32 ui32UsefulDistanceInMeters);
+            int setUsefulDistance (const char* pszDataMIMEType, uint32 ui32UsefulDistanceInMeters);
+            int addCustumPoliciesAsXML (const char **ppszCustomPoliciesXML);
+            int setMissionId (const char* pszMissionName);
+            int setRole (const char* pszRole);
+            IHMC_VOI::NodePath * getCurrentPath (void);
+            char** getPeerList (void);
+            int getData (const char* pszId, const char* pszCallbackParameter, void** ppData, uint32& ui32DataLen, bool& bHasMoreChunks);
+            int release (const char* pszMessageID, void* pData);
+            char** getDSProIds (const char* pszObjectId, const char* pszInstanceId);
+            char ** getMatchingMetadata (NOMADSUtil::AVList *pAVQueryList, int64 i64BeginArrivalTimestamp, int64 i64EndArrivalTimestamp);
+            int requestCustomAreaChunk (const char* pszChunkedObjMsgId, const char* pszMIMEType, uint32 ui32StartXPixel, uint32 ui32EndXPixel, uint32 ui32StartYPixel, uint32 ui32EndYPixel, uint8 ui8CompressionQuality, int64 i64TimeoutInMilliseconds);
+            int requestCustomTimeChunk (const char* pszChunkedObjMsgId, const char* pszMIMEType, int64 i64StartTimeInMillisec, int64 i64EndTimeInMillisec, uint8 ui8CompressionQuality, int64 i64TimeoutInMilliseconds);
+            int requestMoreChunks (const char* pszChunkedMsgId, const char* pszCallbackParameter);
+            int search (const char* pszGroupName, const char* pszQueryType, const char* pszQueryQualifiers, const void* pszQuery, unsigned uiQueryLen, int64 i64TimeoutInMilliseconds, char** ppszQueryId);
+            int searchReply (const char* pszQueryId, const char** ppszMatchingMsgIds);
+            int volatileSearchReply (const char* pszQueryId, const void* pReply, uint16 ui162ReplyLen);
+            int addMessage (const char* pszGroupName, const char* pszObjectId, const char* pszInstanceId, const char* pszJsonMetadata, const void* pData, uint32 ui32DataLen, int64 i64ExpirationTime, char** ppszId);
+            int addMessage (const char* pszGroupName, const char* pszObjectId, const char* pszInstanceId, NOMADSUtil::AVList* pMetadataAttrList, const void* pData, uint32 ui32DataLen, int64 i64ExpirationTime, char** ppszId);
+            int chunkAndAddMessage (const char* pszGroupName, const char* pszObjectId, const char* pszInstanceId, const char* pszJsonMetadata, const void* pData, uint32 ui32DataLen, const char* pszDataMimeType, int64 i64ExpirationTime, char** ppszId);
+            int chunkAndAddMessage (const char* pszGroupName, const char* pszObjectId, const char* pszInstanceId, NOMADSUtil::AVList *pMetadataAttrList, const void* pData, uint32 ui32DataLen, const char* pszDataMimeType, int64 i64ExpirationTime, char** ppszId);
+            int disseminateMessage (const char* pszGroupName, const char* pszObjectId, const char* pszInstanceId, const void *pData, uint32 ui32DataLen, int64 i64ExpirationTime, char **ppszId);
+            int addAnnotation (const char* pszGroupName, const char* pszObjectId, const char* pszInstanceId, const char* pszJsonMetadata, const char* pszReferredObject, int64 i64ExpirationTime, char** ppszId);
+            int addAnnotation (const char* pszGroupName, const char* pszObjectId, const char* pszInstanceId, NOMADSUtil::AVList* pszMetadata, const char* pszReferredObject, int64 i64ExpirationTime, char** ppszId);
+            int cancel (const char* pszId);
+            int cancelByObjectAndInstanceId (const char *pszObjectId, const char *pszInstanceId);
+            NOMADSUtil::String getNodeId (void);
+            NOMADSUtil::String getSessionId (void) const;
+            NOMADSUtil::String getNodeContext (const char *pszNodeId) const;
+            //TO-DO implement this method
+            int addAreaOfInterest (const char *pszAreaName, float fUpperLeftLat, float fUpperLeftLon,
+                float fLowerRightLat, int fLowerRightLon,
+                int64 i64StatTime, int64 i64EndTime);
+            int registerDSProListener (uint16 ui16ClientId, DSProListener *pListener, uint16& ui16AssignedClientId);
             int deregisterDSProListener (uint16 ui16ClientId, DSProListener *pListener);
+            int registerMatchmakingLogListener (uint16 ui16ClientId, MatchmakingLogListener* pListener, uint16& ui16AssignedClientId);
+            int deregisterMatchmakingLogListener (uint16 ui16ClientId, MatchmakingLogListener* pListener);
+            int registerSearchListener (uint16 ui16ClientId, SearchListener* pListener, uint16& ui16AssignedClientId);
+            int deregisterSearchListener (uint16 ui16ClientId, SearchListener* pListener);
+           // int reloadCommAdaptors (void);
+            void resetTransmissionHistory (void);
 
-            // Matchmaking Log Listener
+            //begin ---- methods regarding the encryption
+            int push (const char* pszGroupName, const void* pData, uint32 ui32DataLen, int64 i64ExpirationTime);
+            int changeEncryptionKey (const void* pEncrtionKey);
+            //end --- methods regarding encryption
+            // Callbacks
+            int dataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
+                             const char *pszInstanceId, const char *pszAnnotatedObjMsgId, const char *pszMimeType,
+                             const void *pBuf, uint32 ui32Len, uint8 ui8NChunks, uint8 ui8TotNChunks,
+                             const char *pszCallbackParameter);
+            int metadataArrived (const char *pszId, const char *pszGroupName, const char *pszReferredDataObjectId,
+                                 const char *pszReferredDataInstanceId, const char *pszXMLMetadada,
+                                 const char *pszReferredDataId, const char *pszQueryId);
+            int searchArrived (const char *pszQueryId, const char *pszGroupName,
+                               const char *pszQuerier, const char *pszQueryType,
+                               const char *pszQueryQualifiers,
+                               const void *pszQuery, unsigned int uiQueryLen);
+            int searchReplyArrived (const char *pszQueryId, const char **ppszMatchingMessageIds,
+                                    const char *pszMatchingNodeId);
+            int volatileSearchReplyArrived (const char *pszQueryId, const void *pReply,
+                                            uint16 ui162ReplyLen, const char *pszMatchingNodeId);
 
-            int registerMatchmakingLogListener (uint16 ui16ClientId, MatchmakingLogListener *pListener);
-            int deregisterMatchmakingLogListener (uint16 ui16ClientId, MatchmakingLogListener *pListener);
-
-            int resetTransmissionCounters (void);
+        private:
+            NOMADSUtil::UInt32Hashtable<DSProListener> _dSProListeners;
+            NOMADSUtil::UInt32Hashtable<MatchmakingLogListener> _matchmakingLogListeners;
+            NOMADSUtil::UInt32Hashtable<SearchListener> _searchListeners;
     };
 }
 
 #endif // INCL_DISSERVICE_PRO_PROXY_H
+

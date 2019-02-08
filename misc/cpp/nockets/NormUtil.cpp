@@ -25,6 +25,7 @@
 
 using namespace IHMC_MISC;
 
+#ifdef USE_NORM
 const char * IHMC_MISC::getNormEventAsString (NormEventType e)
 {
     switch (e) {
@@ -61,4 +62,5 @@ const char * IHMC_MISC::getNormEventAsString (NormEventType e)
             return "UNKNOWN";
     }
 }
+#endif
 

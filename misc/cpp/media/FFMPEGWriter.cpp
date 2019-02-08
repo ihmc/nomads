@@ -837,7 +837,7 @@ bool FFMPEGWriterImpl::convertImage_sws (const RGBImage &img)
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "Wrong image size!\n");
         return false;
     }
-    
+
     const uint32 ui32LineSize = img.getLineSize();
     if (ui32LineSize > INT_MAX) {
         return false;

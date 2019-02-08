@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_DSPRO_FACTORY_H
-#define	INCL_DSPRO_FACTORY_H
+#define INCL_DSPRO_FACTORY_H
 
 #include "ConfigManager.h"
 
@@ -42,4 +42,3 @@ namespace IHMC_ACI
 }
 
 #endif  /* INCL_DSPRO_FACTORY_H */
-

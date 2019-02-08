@@ -30,7 +30,7 @@ import java.net.SocketException;
 /**
  * Date: 5/22/13
  * @author  Maggie Breedy <mbreedy@ihmc.us>
- * $Revision: 1.11 $
+ * $Revision$
  */
 public class DisServiceMonitor extends Thread
 {

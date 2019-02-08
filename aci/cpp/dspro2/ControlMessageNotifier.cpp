@@ -49,7 +49,7 @@ ControlMessageNotifier::~ControlMessageNotifier (void)
 int ControlMessageNotifier::registerAndEnableControllerMessageListener (uint16 ui16ClientId, ControlMessageListener *pControllerMessageListener, uint16 &ui16AssignedClientId)
 {
     const char *pszMethodName = "ControlMessageNotifier::registerAndEnableMatchmakingLogListener";
-    if (_ctrlMsgClients.used (ui16ClientId) && _ctrlMsgClients[ui16ClientId].pControllerMessageListener != NULL) {
+    if (_ctrlMsgClients.used (ui16ClientId) && _ctrlMsgClients[ui16ClientId].pControllerMessageListener != nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Client ID %d in use.  Register client using a "
                         "different ui16ClientId.\n",  ui16ClientId);
         ui16ClientId = _ctrlMsgClients.firstFree();
@@ -71,7 +71,7 @@ int ControlMessageNotifier::deregisterAndDisableControllerMessageListener (uint1
 bool ControlMessageNotifier::contextUpdateMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->contextUpdateMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -81,7 +81,7 @@ bool ControlMessageNotifier::contextUpdateMessageArrived (const char *pszSenderN
 bool ControlMessageNotifier::contextVersionMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->contextVersionMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -91,7 +91,7 @@ bool ControlMessageNotifier::contextVersionMessageArrived (const char *pszSender
 bool ControlMessageNotifier::messageRequestMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->messageRequestMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -101,7 +101,7 @@ bool ControlMessageNotifier::messageRequestMessageArrived (const char *pszSender
 bool ControlMessageNotifier::chunkRequestMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->chunkRequestMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -111,7 +111,7 @@ bool ControlMessageNotifier::chunkRequestMessageArrived (const char *pszSenderNo
 bool ControlMessageNotifier::positionMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->positionMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -121,7 +121,7 @@ bool ControlMessageNotifier::positionMessageArrived (const char *pszSenderNodeId
 bool ControlMessageNotifier::searchMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->searchMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -131,7 +131,7 @@ bool ControlMessageNotifier::searchMessageArrived (const char *pszSenderNodeId, 
 bool ControlMessageNotifier::topologyReplyMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->topologyReplyMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -141,7 +141,7 @@ bool ControlMessageNotifier::topologyReplyMessageArrived (const char *pszSenderN
 bool ControlMessageNotifier::topologyRequestMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->topologyRequestMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -151,7 +151,7 @@ bool ControlMessageNotifier::topologyRequestMessageArrived (const char *pszSende
 bool ControlMessageNotifier::updateMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->updateMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -161,7 +161,7 @@ bool ControlMessageNotifier::updateMessageArrived (const char *pszSenderNodeId, 
 bool ControlMessageNotifier::versionMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->versionMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -171,7 +171,7 @@ bool ControlMessageNotifier::versionMessageArrived (const char *pszSenderNodeId,
 bool ControlMessageNotifier::waypointMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->waypointMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -181,7 +181,7 @@ bool ControlMessageNotifier::waypointMessageArrived (const char *pszSenderNodeId
 bool ControlMessageNotifier::wholeMessageArrived (const char *pszSenderNodeId, const char *pszPublisherNodeId)
 {
     for (unsigned int i = 0; i < _ctrlMsgClients.size(); i++) {
-        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != NULL) {
+        if (_ctrlMsgClients.used (i) && _ctrlMsgClients[i].pControllerMessageListener != nullptr) {
             _ctrlMsgClients[i].pControllerMessageListener->wholeMessageArrived (pszSenderNodeId, pszPublisherNodeId);
         }
     }
@@ -193,11 +193,11 @@ bool ControlMessageNotifier::wholeMessageArrived (const char *pszSenderNodeId, c
 //==============================================================================
 ControlMessageNotifier::ControlMessageClientInfoPro::ControlMessageClientInfoPro()
 {
-    pControllerMessageListener = NULL;
+    pControllerMessageListener = nullptr;
 }
 
 ControlMessageNotifier::ControlMessageClientInfoPro::~ControlMessageClientInfoPro()
 {
-    pControllerMessageListener = NULL;
+    pControllerMessageListener = nullptr;
 }
 

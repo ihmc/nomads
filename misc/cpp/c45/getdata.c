@@ -62,13 +62,13 @@ CError * GetDataFromString(const char * data)
 			if ( SpecialStatus[xax] == IGNORE )
 			printf("for attribute %d IGNORE, Description = :%d:\n", xax, Item[i][xax]._discr_val);
 			else {
-				if ( MaxAttVal[xax] || SpecialStatus[xax] == DISCRETE ) 
+				if ( MaxAttVal[xax] || SpecialStatus[xax] == DISCRETE )
 				printf("for attribute %d DISCRETE, Description = :%d:\n", xax, Item[i][xax]._discr_val);
-				else 
+				else
 				printf("for attribute %d CONTINUOUS, Description = :%f:\n", xax, Item[i][xax]._cont_val);
 				}
 			}
-			printf("classe di Item[%d] = %d\n", i, Item[i][MaxAtt+1]._discr_val); 
+			printf("classe di Item[%d] = %d\n", i, Item[i][MaxAtt+1]._discr_val);
 		}*/
     } while ( Item[i] != Nil && ++i );
     MaxItem = i - 1;

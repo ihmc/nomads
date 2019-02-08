@@ -1,4 +1,4 @@
-/* 
+/*
  * StorageController.h
  *
  * This class should be extended by external components,
@@ -25,7 +25,9 @@
  */
 
 #ifndef INCL_STORAGE_CONTROLLER_H
-#define	INCL_STORAGE_CONTROLLER_H
+#define INCL_STORAGE_CONTROLLER_H
+
+#include "StrClass.h"
 
 namespace IHMC_ACI
 {
@@ -43,8 +45,7 @@ namespace IHMC_ACI
             DSProImpl * getDSPro (void) const;
             DataStore * getDataStore (void);
             InformationStore * getInformationStore (void);
-            const char * getMetadataTableName (void);
-            const char * getMetadataTableAllColumns (void);
+            NOMADSUtil::String getMetadataTableName (void);
 
         private:
             DSProImpl * const _pDSPro;
@@ -53,5 +54,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_STORAGE_CONTROLLER_H */
-
+#endif    /* INCL_STORAGE_CONTROLLER_H */

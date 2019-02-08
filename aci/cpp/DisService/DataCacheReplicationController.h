@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -59,7 +59,7 @@ namespace IHMC_ACI
                                             bool bRequireAck=DEFAULT_REQUIRE_ACK);
             DataCacheReplicationController (Type type, DisseminationServiceProxyServer *pDisServiceProxy,
                                             bool bRequireAck=DEFAULT_REQUIRE_ACK);
-            virtual ~DataCacheReplicationController (void); 
+            virtual ~DataCacheReplicationController (void);
 
             // DisService -> Cache Controller
 
@@ -87,7 +87,7 @@ namespace IHMC_ACI
 
             void releaseQueryResults (void);
             void releaseQueryResults (NOMADSUtil::PtrLList<MessageHeader> *pMessageList);
-		
+
             void lockDataCache (void);
             void releaseDataCache (void);
 
@@ -104,8 +104,8 @@ namespace IHMC_ACI
 
             /**
              * Replicate one message on different receivers. The message has different priorities
-             * for each receiver. 
-             */               
+             * for each receiver.
+             */
             int replicateMessage (const char *pszMessageID, const char **pReplicateOnNodeIds,
                                   int64 i64TimeOut, uint8 *ui8Priority);
 
@@ -131,7 +131,7 @@ namespace IHMC_ACI
             NOMADSUtil::LoggingMutex _mx;
     };
 
-    inline bool DataCacheReplicationController::getAck (void) 
+    inline bool DataCacheReplicationController::getAck (void)
     {
         return _bRequireAck;
     }

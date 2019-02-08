@@ -1,4 +1,4 @@
-/* 
+/*
  * MessageHeaders.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -97,7 +97,7 @@ namespace IHMC_ACI
 
             static const char * getMetadataAsString (const uint8 *puiType);
     };
-        
+
 }
 
 #endif // INLC_MESSAGE_HEADERS_H

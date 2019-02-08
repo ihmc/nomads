@@ -1,4 +1,4 @@
-/* 
+/*
  * ControlMessageListener.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_CONTROL_MESSAGE_LISTENER_H
-#define	INCL_CONTROL_MESSAGE_LISTENER_H
+#define INCL_CONTROL_MESSAGE_LISTENER_H
 
 namespace IHMC_ACI
 {
@@ -54,5 +54,4 @@ namespace IHMC_ACI
     }
 };
 
-#endif	/* INCL_CONTROL_MESSAGE_LISTENER_H */
-
+#endif    /* INCL_CONTROL_MESSAGE_LISTENER_H */

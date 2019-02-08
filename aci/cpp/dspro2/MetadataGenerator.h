@@ -26,16 +26,29 @@
  */
 
 #ifndef INCL_METADATA_MUTATOR_H
-#define	INCL_METADATA_MUTATOR_H
+#define INCL_METADATA_MUTATOR_H
 
 #include "PreviousMessageIds.h"
 #include "RankByTargetMap.h"
+
+namespace IHMC_VOI
+{
+    class MetadataInterface;
+}
 
 namespace IHMC_ACI
 {
     class DSProImpl;
     class InformationStore;
-    class MetadataInterface;
+
+    struct GenMetadataWrapper
+    {
+        GenMetadataWrapper (void);
+        ~GenMetadataWrapper (void);
+
+        NOMADSUtil::String msgId;
+        IHMC_VOI::MetadataInterface *pMetadata;
+    };
 
     class MetadataGenerator
     {
@@ -49,20 +62,20 @@ namespace IHMC_ACI
              * It returns the ID of the newly created message.
              *
              * NOTE: it makes a copy of pszPreviousMsgID
-             * NOTE: the caller should deallcate the returned 
+             * NOTE: the caller should deallcate the returned
              */
-            char * addPreviousMessageValue (const char *pszBaseMetadataMsgID,
-                                            PreviousMessageIds &prevMsgIds, RankByTargetMap &ranksByTarget);
+            GenMetadataWrapper * addPreviousMessageValue (const char *pszBaseMetadataMsgID,
+                                                          PreviousMessageIds &prevMsgIds,
+                                                          IHMC_VOI::RankByTargetMap &ranksByTarget);
 
         private:
-            char * addPreviousMessageValueInternal (MetadataInterface *pBaseMetadata,
-                                                    const char *pszBaseMetadataMsgID,
-                                                    PreviousMessageIds &prevMsgIds,
-                                                    RankByTargetMap &ranksByTarget);
+            GenMetadataWrapper * addPreviousMessageValueInternal (IHMC_VOI::MetadataInterface *pBaseMetadata,
+                                                                  const char *pszBaseMetadataMsgID,
+                                                                  PreviousMessageIds &prevMsgIds,
+                                                                  IHMC_VOI::RankByTargetMap &ranksByTarget);
             DSProImpl *_pDSPro;
             InformationStore *_pInfoStore;
     };
 }
 
-#endif	// INCL_METADATA_MUTATOR_H
-
+#endif    // INCL_METADATA_MUTATOR_H

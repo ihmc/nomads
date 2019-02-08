@@ -1,4 +1,4 @@
-/* 
+/*
  * AdaptorProperties.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -16,12 +16,12 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * Author: Giacomo Benincasa    (gbenincasa@ihmc.us) 
+ * Author: Giacomo Benincasa    (gbenincasa@ihmc.us)
  * Created on April 24, 2013, 2:56 AM
  */
 
 #ifndef INCL_ADAPTOR_PROPERTIES_H
-#define	INCL_ADAPTOR_PROPERTIES_H
+#define INCL_ADAPTOR_PROPERTIES_H
 
 #include "Defs.h"
 
@@ -33,7 +33,9 @@ namespace IHMC_ACI
 
         DISSERVICE = 0x01,
         MOCKETS    = 0x02,
-        TCP        = 0x03
+        TCP        = 0x03,
+        UDP        = 0x04,
+        NATS       = 0x05
     };
 
     const char *getAdaptorTypeAsString (AdaptorType type);
@@ -73,5 +75,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_ADAPTOR_PROPERTIES_H */
-
+#endif    /* INCL_ADAPTOR_PROPERTIES_H */

@@ -37,15 +37,15 @@ MocketEndPoint::MocketEndPoint (Mocket *pMocket, int64 i64Timeout)
 
 MocketEndPoint::~MocketEndPoint (void)
 {
-    _pMocket = NULL;
+    _pMocket = nullptr;
 }
 
 int MocketEndPoint::connect (const char *pszRemoteHost, uint16 ui16RemotePort)
 {
-    if (pszRemoteHost == NULL) {
+    if (pszRemoteHost == nullptr) {
         return -1;
     }
-    if (_pMocket == NULL) {
+    if (_pMocket == nullptr) {
         return -2;
     }
     return _pMocket->connect (pszRemoteHost, ui16RemotePort);
@@ -53,7 +53,7 @@ int MocketEndPoint::connect (const char *pszRemoteHost, uint16 ui16RemotePort)
 
 void MocketEndPoint::close (void)
 {
-    if (_pMocket != NULL) {
+    if (_pMocket != nullptr) {
         _pMocket->close();
     }
 }
@@ -61,9 +61,9 @@ void MocketEndPoint::close (void)
 String MocketEndPoint::getRemoteAddress (void)
 {
     String addr;
-    if (_pMocket != NULL) {
+    if (_pMocket != nullptr) {
         char *pszTmp = NetUtils::ui32Inetoa (_pMocket->getRemoteAddress());
-        if (pszTmp != NULL) {
+        if (pszTmp != nullptr) {
             addr = pszTmp; // String makes a copy
             free (pszTmp);
         }
@@ -73,7 +73,7 @@ String MocketEndPoint::getRemoteAddress (void)
 
 int MocketEndPoint::send (const void *pBuf, int iSize)
 {
-    if (_pMocket == NULL) {
+    if (_pMocket == nullptr) {
         return -1;
     }
     return _pMocket->send (true, // reliable transmission
@@ -87,7 +87,7 @@ int MocketEndPoint::send (const void *pBuf, int iSize)
 
 int MocketEndPoint::receive (void *pBuf, uint32 ui32BufSize, int64 i64Timeout)
 {
-    if (_pMocket == NULL) {
+    if (_pMocket == nullptr) {
         return -1;
     }
     return _pMocket->receive (pBuf, ui32BufSize, i64Timeout);

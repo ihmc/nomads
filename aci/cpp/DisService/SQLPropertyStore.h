@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -47,6 +47,8 @@ namespace IHMC_ACI
             virtual int remove (const char *pszNodeID, const char *pszAttr);
             virtual int update (const char *pszNodeID, const char *pszAttr, const char *pszNewValue);
 
+            virtual void clear (void);
+
         public:
             static const NOMADSUtil::String TABLE_NAME;
             static const NOMADSUtil::String NODE_ID_COL;
@@ -64,6 +66,7 @@ namespace IHMC_ACI
             IHMC_MISC::PreparedStatement *_ppsGetProperty;
             IHMC_MISC::PreparedStatement *_ppsRemoveProperty;
             IHMC_MISC::PreparedStatement *_ppsUpdateProperty;
+            IHMC_MISC::PreparedStatement *_ppsDeleteAll;
     };
 }
 

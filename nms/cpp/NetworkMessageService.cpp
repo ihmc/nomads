@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -32,12 +32,14 @@
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 using namespace NOMADSUtil;
+using namespace CryptoUtils;
 
 NetworkMessageService::NetworkMessageService (PROPAGATION_MODE mode, bool bAsyncDelivery,
                                               bool bAsyncTransmission, uint8 ui8MessageVersion,
-                                              bool bReplyViaUnicast)
+                                              bool bReplyViaUnicast, const char *pszSessionKey, const char * pszGroupKeyFilename)
+
     : _pNetIntMgr (new NetworkInterfaceManager (mode, bReplyViaUnicast, bAsyncTransmission)),
-      _Impl (new NetworkMessageServiceImpl (mode, bAsyncDelivery, ui8MessageVersion, _pNetIntMgr)),
+      _Impl (new NetworkMessageServiceImpl (mode, bAsyncDelivery, ui8MessageVersion, _pNetIntMgr, pszSessionKey, pszGroupKeyFilename)),
       _pCmdProc (NULL)
 {
 }
@@ -49,7 +51,7 @@ NetworkMessageService::~NetworkMessageService (void)
     }
 }
 
-NetworkMessageService * NetworkMessageService::getInstance (ConfigManager *pCfgMgr)
+NetworkMessageService * NetworkMessageService::getInstance (ConfigManager *pCfgMgr, const char * pszSessionKey)
 {
     const char *pszMethodName = "NetworkMessageService::getInstance";
     if (pCfgMgr == NULL) {
@@ -58,6 +60,7 @@ NetworkMessageService * NetworkMessageService::getInstance (ConfigManager *pCfgM
 
     PROPAGATION_MODE mode = MULTICAST;
     uint32 ui32PropagationMode = pCfgMgr->getValueAsUInt32 (NMSProperties::NMS_TRANSMISSION_MODE, MULTICAST);
+
     switch (ui32PropagationMode) {
         case BROADCAST:
             mode = BROADCAST;
@@ -68,6 +71,7 @@ NetworkMessageService * NetworkMessageService::getInstance (ConfigManager *pCfgM
         case NORM:
             mode = NORM;
             break;
+
         default:
             return NULL;
     }
@@ -77,16 +81,21 @@ NetworkMessageService * NetworkMessageService::getInstance (ConfigManager *pCfgM
     const bool bReplyViaUnicast = pCfgMgr->getValueAsBool (NMSProperties::NMS_TRANSMISSION_UNICAST_REPLY, false);
     const uint32 ui32MsgVersion = pCfgMgr->getValueAsUInt32 (NMSProperties::NMS_MSG_VERSION, 2);
     const bool bUseManagedIfaces = pCfgMgr->getValueAsBool (NMSProperties::NMS_USE_MANAGED_INTERFACES, false);
+	const char *pszGroupKeyFilename = pCfgMgr->getValue(NMSProperties::NMS_GROUP_KEY_FILE, NULL);
+
     switch (ui32MsgVersion) {
         case 1:
         case 2:
             break;
+
         default:
             checkAndLogMsg (pszMethodName, Logger::L_SevereError, "message version number not supported: %u", ui32MsgVersion);
             return NULL;
     }
+
     NetworkMessageService *pNMS = new NetworkMessageService (mode, bAsyncDelivery, bAsyncTransmission,
-                                                             static_cast<uint8>(ui32MsgVersion), bReplyViaUnicast);
+                                                             static_cast<uint8>(ui32MsgVersion), bReplyViaUnicast, pszSessionKey, pszGroupKeyFilename);
+
     if ((pNMS != NULL) && bUseManagedIfaces) {
         pNMS->_pMgblSockMgr = new ManageableDatagramSocketManager();
     }
@@ -96,8 +105,8 @@ NetworkMessageService * NetworkMessageService::getInstance (ConfigManager *pCfgM
 NetworkMessageServiceProxyServer * NetworkMessageService::getProxySvrInstance (ConfigManager *pCfgMgr)
 {
     const char *pszMethodName = "NetworkMessageService::getProxySvrInstance";
-
     ConfigManager dummyCfgMgr;
+
     if (pCfgMgr == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "null config manager.\n");
         pCfgMgr = &dummyCfgMgr;
@@ -107,6 +116,7 @@ NetworkMessageServiceProxyServer * NetworkMessageService::getProxySvrInstance (C
     if (pNMS == NULL) {
         return NULL;
     }
+
     int rc = pNMS->init (pCfgMgr);
     if (rc < 0) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "network message service init returned an error: %d.\n", rc);
@@ -119,6 +129,7 @@ NetworkMessageServiceProxyServer * NetworkMessageService::getProxySvrInstance (C
         delete pNMS;
         return NULL;
     }
+
     const uint32 ui32NMSProxyPort = pCfgMgr->getValueAsUInt32 (NMSProperties::NMS_PROXY_PORT, NMSProperties::DEFAULT_NMS_PROXY_PORT);
     if (ui32NMSProxyPort > 0xFFFF) {
         delete pNMSProxySrv; // no need to deallocated pNMS, pNMSProxySrv will
@@ -158,12 +169,16 @@ int NetworkMessageService::init (ConfigManager *pCfgMgr)
     }
     _pCmdProc = new NMSCommandProcessor (this);
     _pCmdProc->setPrompt ("NMS");
+
+    _pNetIntMgr->start();
+
     return 0;
 }
 
 int NetworkMessageService::init (uint16 ui16Port, const char **ppszBindingInterfaces,
                                  const char **ppszIgnoredInterfaces, const char **ppszAddedInterfaces,
                                  const char *pszDestAddr, uint8 ui8McastTTL)
+
 {
     MutexUnlocker unlocker (&_m);
     _pNetIntMgr->registerListener (_Impl);
@@ -177,6 +192,16 @@ int NetworkMessageService::init (uint16 ui16Port, const char **ppszBindingInterf
         return -2;
     }
     return 0;
+}
+
+String NetworkMessageService::getEncryptionKeyHash (void)
+{
+    return _Impl->getEncryptionKeyHash();
+}
+
+int NetworkMessageService::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    return _Impl->changeEncryptionKey (pchKey, ui32Len);
 }
 
 int NetworkMessageService::setRetransmissionTimeout (uint32 ui32Timeout)
@@ -226,7 +251,6 @@ int NetworkMessageService::broadcastMessage (uint8 ui8MsgType, const char **ppsz
                                              const char *pszHints)
 {
     MutexUnlocker unlocker (&_m);
-
     TransmissionInfo ti;
     ti.bReliable = false;
     ti.bExpedited = bExpedited;
@@ -237,13 +261,12 @@ int NetworkMessageService::broadcastMessage (uint8 ui8MsgType, const char **ppsz
     ti.ui32DestinationAddress = ui32BroadcastAddress;
     ti.ppszOutgoingInterfaces = ppszOutgoingInterfaces;
     ti.pszHints = pszHints;
-
     MessageInfo mi;
     mi.ui16MsgMetaDataLen = ui16MsgMetaDataLen;
     mi.pMsgMetaData = pMsgMetaData;
-    mi.ui16MsgLen = ui16MsgLen;
+    // If bSecure the encryption of the payload will be performed
     mi.pMsg = pMsg;
-
+    mi.ui16MsgLen = ui16MsgLen;
     return _Impl->broadcastMessage (ti, mi);
 }
 
@@ -251,11 +274,14 @@ int NetworkMessageService::transmitMessage (uint8 ui8MsgType, const char **ppszO
                                             uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, uint16 ui16DelayTolerance,
                                             const void *pMsgMetaData, uint16 ui16MsgMetaDataLen, const void *pMsg,
                                             uint16 ui16MsgLen, const char *pszHints)
+
 {
     MutexUnlocker unlocker (&_m);
-
     TransmissionInfo ti;
-    ti.bReliable = false;
+    // !!!
+    // !!! NOTE: unreliable transmission is still not supported, set bReliable on true for now!
+    // !!!
+    ti.bReliable = true;
     ti.bExpedited = false;
     ti.ui8HopCount = ui8HopCount;
     ti.ui8TTL = ui8TTL;
@@ -264,23 +290,20 @@ int NetworkMessageService::transmitMessage (uint8 ui8MsgType, const char **ppszO
     ti.ui32DestinationAddress = ui32TargetAddress;
     ti.ppszOutgoingInterfaces = ppszOutgoingInterfaces;
     ti.pszHints = pszHints;
-
     MessageInfo mi;
     mi.ui16MsgMetaDataLen = ui16MsgMetaDataLen;
     mi.pMsgMetaData = pMsgMetaData;
-    mi.ui16MsgLen = ui16MsgLen;
     mi.pMsg = pMsg;
-
+    mi.ui16MsgLen = ui16MsgLen;
     return _Impl->transmitMessage (ti, mi);
 }
 
 int NetworkMessageService::transmitReliableMessage (uint8 ui8MsgType, const char **ppszOutgoingInterfaces, uint32 ui32TargetAddress,
-                                                   uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, uint16 ui16DelayTolerance,
-                                                   const void *pMsgMetaData, uint16 ui16MsgMetaDataLen, const void *pMsg, uint16 ui16MsgLen,
-                                                   const char *pszHints)
+                                                    uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, uint16 ui16DelayTolerance,
+                                                    const void *pMsgMetaData, uint16 ui16MsgMetaDataLen, const void *pMsg, uint16 ui16MsgLen,
+                                                    const char *pszHints)
 {
     MutexUnlocker unlocker (&_m);
-
     TransmissionInfo ti;
     ti.bReliable = true;
     ti.bExpedited = true;   // expedite reliable messages to minimize the risk of unnecessary re-transmissions
@@ -291,14 +314,12 @@ int NetworkMessageService::transmitReliableMessage (uint8 ui8MsgType, const char
     ti.ui32DestinationAddress = ui32TargetAddress;
     ti.ppszOutgoingInterfaces = ppszOutgoingInterfaces;
     ti.pszHints = pszHints;
-
     MessageInfo mi;
     mi.ui16MsgMetaDataLen = ui16MsgMetaDataLen;
     mi.pMsgMetaData = pMsgMetaData;
-    mi.ui16MsgLen = ui16MsgLen;
     mi.pMsg = pMsg;
-
-    return _Impl->transmitReliableMessage (ti, mi);
+    mi.ui16MsgLen = ui16MsgLen;
+    return _Impl->transmitMessage (ti, mi);
 }
 
 uint16 NetworkMessageService::getMinMTU()

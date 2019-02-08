@@ -3,7 +3,7 @@
  *
  * This file is part of the IHMC Chunking Library
  * Copyright (c) IHMC. All Rights Reserved.
- * 
+ *
  * Usage restricted to not-for-profit use only.
  * Contact IHMC for other types of licenses.
  */
@@ -63,14 +63,14 @@ NOMADSUtil::BMPImage * ChunkingUtils::toBMPImage (BufferReader *pReader)
 
 BufferReader * ChunkingUtils::toReader (const BMPImage *pBMPImage)
 {
-    BufferWriter bw (pBMPImage->getTotalSize (), 1024);
+    BufferWriter bw (pBMPImage->getTotalSize(), 1024);
     int rc = pBMPImage->writeHeaderAndImage (&bw);
     if (0 != rc) {
         checkAndLogMsg ("ChunkingUtils::toReader", Logger::L_MildError, "failed to write chunk BMP into buffer; rc = %d\n", rc);
         return NULL;
     }
-    const uint32 ui32ChunkLen = bw.getBufferLength ();
-    return new BufferReader (bw.relinquishBuffer (), ui32ChunkLen, true);
+    const uint32 ui32ChunkLen = bw.getBufferLength();
+    return new BufferReader (bw.relinquishBuffer(), ui32ChunkLen, true);
 }
 
 NOMADSUtil::BufferReader * ChunkingUtils::toReader (const char *pszFileName)
@@ -108,7 +108,7 @@ unsigned int ChunkingUtils::getPadding (unsigned int uiLength, uint8 ui8NChunks)
     }
     return padding;
 }
-        
+
 char * ChunkingUtils::getMD5Checksum (Reader *pReader)
 {
     uint32 ui32Len = pReader->getBytesAvailable();

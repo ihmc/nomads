@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -35,8 +35,12 @@
 namespace NOMADSUtil
 {
     class ConfigManager;
-    class String;
     class Writer;
+}
+
+namespace IHMC_MISC
+{
+    class ChunkingManager;
 }
 
 namespace IHMC_ACI
@@ -83,14 +87,18 @@ namespace IHMC_ACI
              *   details)
              * - pData is either the data of the message or the filename of the file containing the actual
              *   data of the message, depending of the value of ui8Type.
-             * - 
+             * -
              */
             struct Result {
                 Result (void);
                 virtual ~Result (void);
 
                 StorageType ui8StorageType;
+                uint8 ui8NChunks;
+                uint8 ui8TotalNChunks;
                 uint32 ui32Length;
+                NOMADSUtil::String objectId;
+                NOMADSUtil::String instanceId;
                 void *pData;
             };
 
@@ -191,7 +199,7 @@ namespace IHMC_ACI
              *       of them is returned in the PtrLList. If the caller needs
              *       the large object, it can use the obtained ChunkMessageInfo
              *       to retrieve the other chunks.
-             * 
+             *
              * NOTE: in the second version, the one that accept pQuery as a
              *       parameter, the caller MUST select the PRIMARY KEY of the
              *       table with the method selectPrimaryKey()
@@ -270,7 +278,7 @@ namespace IHMC_ACI
              *       of them is returned in the PtrLList. If the caller needs
              *       the large object, it can use the obtained ChunkMessageInfo
              *       to retrieve the other chunks.
-             */ 
+             */
             virtual NOMADSUtil::PtrLList<Message> * getMessages (const char *pszGroupName, const char *pszSenderNodeId,
                                                                  uint16 ui16Tag, uint32 ui32StartSeqNo, uint32 ui32EndSeqNo)=0;
             virtual int release (NOMADSUtil::PtrLList<Message> *pMessages)=0;
@@ -283,7 +291,7 @@ namespace IHMC_ACI
             virtual NOMADSUtil::DArray2<NOMADSUtil::String> * getMessageIDs (const char *pszSQLStatement);
 
             /**
-             * Return the ui16HistoryLength most recent cached message's publishers ordered by 
+             * Return the ui16HistoryLength most recent cached message's publishers ordered by
              * DESCENDING order.
              * pszGroupName, ui16Tag can be set to limit the history to a certain groupName/Tag
              *
@@ -292,6 +300,10 @@ namespace IHMC_ACI
             virtual NOMADSUtil::DArray2<NOMADSUtil::String> * getRecentPublishers (uint16 ui16HistoryLength, const char *pszGroupName,
                                                                                    uint16 ui16Tag)=0;
             void * getAnnotationMetadata (const char *pszGroupName, const char *pszSenderNodeId, uint32 ui32MsgSeqId, uint32 &ui32Len);
+
+            IHMC_MISC::ChunkingManager * getChunkingMgr (void);
+
+            virtual void clear (void) = 0;
 
         protected:
             static const bool DEFAULT_IS_NOT_TARGET;
@@ -315,6 +327,7 @@ namespace IHMC_ACI
             uint32 _ui32CacheLimit;
             uint32 _secRange;
             uint32 _ui32CurrentCacheSize;
+            IHMC_MISC::ChunkingManager *_pChunkingMgr;
             StorageInterface *_pDB;
             DataCacheListenerNotifier _notifier;
 

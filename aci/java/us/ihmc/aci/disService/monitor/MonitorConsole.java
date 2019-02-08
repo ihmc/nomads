@@ -32,7 +32,7 @@ import java.util.Vector;
  * Monitor Console GUI
  * Date: 5/21/13
  * @author  Maggie Breedy <mbreedy@ihmc.us>
- * $Revision: 1.10 $
+ * $Revision$
  *
  */
 public final class MonitorConsole extends JFrame implements DisServiceStatusListener
@@ -76,6 +76,7 @@ public final class MonitorConsole extends JFrame implements DisServiceStatusList
         _statsByPeer = new HashMap<String, StatWrapper>();
     }
 
+    @Override
     public void basicStatisticsInfoUpdateArrived (DisServiceStatus.DisServiceBasicStatisticsInfo dsbsi)
     {
         StatWrapper wr = _statsByPeer.get (dsbsi.peerId);
@@ -90,6 +91,7 @@ public final class MonitorConsole extends JFrame implements DisServiceStatusList
         }
         if (_currentSelection != null && dsbsi.peerId.compareToIgnoreCase(_currentSelection) == 0) {
             EventQueue.invokeLater (new Runnable() {
+                @Override
                 public void run() {
                     updateForPeer(_currentSelection);
                 }
@@ -97,6 +99,7 @@ public final class MonitorConsole extends JFrame implements DisServiceStatusList
         }
     }
 
+    @Override
     public void overallStatsInfoUpdateArrived (DisServiceStatus.DisServiceStatsInfo dssi)
     {
         StatWrapper wr = _statsByPeer.get (dssi.peerId);
@@ -111,6 +114,7 @@ public final class MonitorConsole extends JFrame implements DisServiceStatusList
         }
         if (_currentSelection != null && dssi.peerId.compareToIgnoreCase(_currentSelection) == 0) {
             EventQueue.invokeLater (new Runnable() {
+                @Override
                 public void run() {
                     updateForPeer(_currentSelection);
                 }
@@ -118,6 +122,7 @@ public final class MonitorConsole extends JFrame implements DisServiceStatusList
         }
     }
 
+    @Override
     public void duplicateTrafficStatisticInfoUpdateArrived (DisServiceStatus.DisServiceDuplicateTrafficInfo dsdti)
     {
         StatWrapper wr = _statsByPeer.get (dsdti.peerId);
@@ -139,6 +144,7 @@ public final class MonitorConsole extends JFrame implements DisServiceStatusList
         }
     }
 
+    @Override
     public void peerGroupStatisticInfoUpdateArrived (DisServiceStatus.DisServiceBasicStatisticsInfoByPeer dsbsip)
     {
         StatWrapper wr = _statsByPeer.get (dsbsip.peerId);

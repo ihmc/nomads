@@ -1,16 +1,16 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
  *------------------------------------------------------------------------
  */
-/* 
+/*
  * audio.c --
  *
- *        This file contains the tcl hook to the audio allocations 
+ *        This file contains the tcl hook to the audio allocations
  *      (new, free) and basic manupulation routines (copy, clip).
  *      For I/O see audioio.c
  *

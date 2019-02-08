@@ -20,7 +20,8 @@ options=-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable
 INCLUDES=-I.. -I../.. \
         -I$(NOMADS_HOME)/externals/JDK \
         -I$(NOMADS_HOME)/externals/JDK/$(LIB_FOLDER) \
-	-isystem $(NOMADS_HOME)/util/cpp
+	-isystem $(NOMADS_HOME)/util/cpp \
+	-isystem $(NOMADS_HOME)/util/cpp/security
 
 cppflags= -g -fPIC $(ARCH_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
 

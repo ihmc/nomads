@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -138,6 +138,8 @@ namespace IHMC_ACI
             virtual NOMADSUtil::DArray2<NOMADSUtil::String> * getSenders (const char *pszGroupName, uint16 ui16Limit);
 
             virtual NOMADSUtil::DArray2<NOMADSUtil::String> * execSelectID (const char *pszSQLStatement, uint16 ui16Limit=0);
+
+            void clear (void);
 
         public:
             static const NOMADSUtil::String TABLE_NAME;
@@ -294,9 +296,9 @@ namespace IHMC_ACI
             NOMADSUtil::DArray2<NOMADSUtil::String> * getResourceOrderedByUtility (void);
 
             /**
-             * GENERAL METHOD WHICH ALLOWS TO EXEC A QUERY AND RETURN THE ID IN 
-             * FORM OF STRING. If the key is multi-column the different values are 
-             * concatenated in compliance with the standard described in MessageInfo 
+             * GENERAL METHOD WHICH ALLOWS TO EXEC A QUERY AND RETURN THE ID IN
+             * FORM OF STRING. If the key is multi-column the different values are
+             * concatenated in compliance with the standard described in MessageInfo
              * (look at MessageInfo::getMsgId)
              *  for further detail about the way to concatenate them.
              */
@@ -313,7 +315,7 @@ namespace IHMC_ACI
              */
             NOMADSUtil::DArray2<NOMADSUtil::String> * execQueryAndReturnKey (const char *pszSQLStmt, uint16 ui16Limit=65535);
 
-            /* 
+            /*
              * Insert the MessageInfo fields into the default data cache
              */
             virtual int insertIntoDataCacheBind (IHMC_MISC::PreparedStatement *pStmt, Message *pMsg);
@@ -330,7 +332,7 @@ namespace IHMC_ACI
 
             SQLPropertyStore *_pPropStore;
 
-            IHMC_MISC::Database *_pDB;     // DB connection
+            IHMC_MISC::DatabasePtr *_pDB;     // DB connection
             IHMC_MISC::PreparedStatement *_pCountChunksPrepStmt;
             IHMC_MISC::PreparedStatement *_pInsertByteCode;
             IHMC_MISC::PreparedStatement *_pHasCompleteMsgPrepStmt;

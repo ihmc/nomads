@@ -16,7 +16,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,31 +23,39 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.naming.LimitExceededException;
+
+import org.slf4j.Logger;
 import us.ihmc.aci.disServiceProProxy.MatchmakingLogListener;
 import us.ihmc.aci.disServiceProProxy.PeerNodeContext;
 import us.ihmc.aci.disServiceProxy.ConnectionStatusListener;
 import us.ihmc.aci.disServiceProxy.DisseminationServiceProxy;
-import us.ihmc.aci.dspro2.util.LoggerInterface;
-import us.ihmc.aci.dspro2.util.LoggerWrapper;
+import us.ihmc.aci.util.dspro.LogUtils;
+import us.ihmc.chunking.Fragmenter;
+import us.ihmc.chunking.Reassembler;
 import us.ihmc.aci.util.dspro.NodePath;
 import us.ihmc.comm.CommException;
 import us.ihmc.comm.CommHelper;
 import us.ihmc.comm.ProtocolException;
 import us.ihmc.sync.ConcurrentProxy;
 import us.ihmc.util.StringUtil;
+import us.ihmc.chunking.AnnotationWrapper;
+import us.ihmc.chunking.ChunkWrapper;
+import us.ihmc.chunking.Interval;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * DS Pro Proxy
  *
  * @author Giacomo Benincasa and Maggie Breedy
- * @version $Revision: 1.114 $
+ * @version $Revision$
  */
-public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, MatchmakingLogListener,
-        DSProProxyListener, SearchListener
+public class DSProProxy extends ConcurrentProxy implements DSProProxyInterface, CtrlMsgListener
 {
+
     static class DSProProxyNotInitializedException extends RuntimeException {
 
-        DSProProxyNotInitializedException(String msg) {
+        public DSProProxyNotInitializedException(String msg) {
             super(msg);
         }
 
@@ -60,45 +67,8 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
     }
 
     private static final String PROTOCOL = "dspro";
-    private static final String VERSION = "20160120";
+    private static final String VERSION = "20170206";
     public static final String NO_REFERRED_OBJECT_ID = "NO_REF_OBJ";
-
-    public DSProProxy()
-    {
-        super();
-        _reinitializationAttemptInterval = 5000;
-    }
-
-    public DSProProxy (short applicationId)
-    {
-        _applicationId = applicationId;
-        _reinitializationAttemptInterval = 5000;
-    }
-
-    /**
-     * @param applicationId
-     * @param reinitializationAttemptInterval: the time to wait before trying to
-     *                                         reconnect to the DSPro service upon
-     *                                         disconnection.
-     */
-    public DSProProxy (short applicationId, long reinitializationAttemptInterval)
-    {
-        _applicationId = applicationId;
-        _reinitializationAttemptInterval = reinitializationAttemptInterval;
-    }
-
-    /**
-     * @param applicationId
-     * @param host: the IP of the disservicepro proxy server in dot-decimal
-     *              notation
-     * @param iPort
-     */
-    public DSProProxy (short applicationId, String host, int iPort)
-    {
-        _host = host;
-        _port = iPort;
-        _applicationId = applicationId;
-    }
 
     /**
      * 
@@ -110,17 +80,14 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      *                                         reconnect to the DSPro service upon
      *                                         disconnection.
      */
-    public DSProProxy (short applicationId, String host, int port, long reinitializationAttemptInterval)
+    public DSProProxy (short applicationId, String applicationDescription, String host, int port, long reinitializationAttemptInterval)
     {
+        super();
         _applicationId = applicationId;
+        _applicationDescription = applicationDescription;
         _reinitializationAttemptInterval = reinitializationAttemptInterval;
         _host = host;
         _port = port;
-    }
-
-    public void configLogger (String loggerConfig)
-    {
-        LOG.configure(loggerConfig);
     }
 
     public DisseminationServiceProxy getDisServiceProxy (String ip, int port) throws CommException
@@ -146,7 +113,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
 
@@ -172,7 +139,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -197,7 +164,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -222,7 +189,32 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
+            }
+        }
+    }
+
+    public void setNodeType (String nodeType) throws CommException
+    {
+        checkConcurrentModification("setNodeType");
+        DSProProxyNotInitializedException.check(_commHelper);
+
+        if (nodeType == null) {
+            return;
+        }
+
+        synchronized (this) {
+            try {
+                _commHelper.sendLine ("setNodeType");
+                _commHelper.sendStringBlock (nodeType);
+                _commHelper.receiveMatch ("OK");
+            }
+            catch (Exception e) {
+                if (e instanceof CommException) {
+                    _isInitialized.set (false);
+                    throw (CommException) e;
+                }
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -247,7 +239,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -276,7 +268,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -305,7 +297,31 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
+            }
+        }
+    }
+
+    public void setSelectivity (float fThreshold) throws CommException {
+        checkConcurrentModification("setSelectivity");
+        DSProProxyNotInitializedException.check(_commHelper);
+
+        if ((fThreshold < 0.0f) || (fThreshold > 10.0f)){
+            throw new IllegalArgumentException("selectivity must be in the [0.0, 10.0] range.");
+        }
+
+        synchronized (this) {
+            try {
+                _commHelper.sendLine ("setSelectivity");
+                _commHelper.write32(fThreshold);
+                _commHelper.receiveMatch ("OK");
+            }
+            catch (Exception e) {
+                if (e instanceof CommException) {
+                    _isInitialized.set (false);
+                    throw (CommException) e;
+                }
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -363,7 +379,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -395,7 +411,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set (false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
     }
@@ -421,7 +437,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                         _commHelper.sendLine("OK");
                     }
 
-                    return new String(buf);
+                    return new String(buf, UTF_8);
                 }
                 else {
                     _commHelper.sendLine("OK");
@@ -433,7 +449,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set(false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
 
@@ -455,6 +471,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
         LOG.info ("Getting server  host: " + _host + "   port: " + _port);
         try {
+            disconnect();  // disconnect before re-connecting
             CommHelper ch = connectToServer(_host, _port);
             CommHelper chCallback = connectToServer(_host, _port);
             if (ch != null || chCallback != null) {
@@ -470,6 +487,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 }
                 _commHelper = ch;
                 _handler = new DSProProxyCallbackHandler(this, chCallback);
+		        _handler.setDaemon (true);
                 _handler.start();
             }
         }
@@ -484,6 +502,41 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
         _isInitialized.set (true);
         return 0;
+    }
+
+    public void changeEncryptionKey (byte[] key)
+            throws CommException
+    {
+        checkConcurrentModification("changeEncryptionKey");
+        DSProProxyNotInitializedException.check(_commHelper);
+
+        try {
+                _commHelper.sendLine("changeEncryptionKey");
+                _commHelper.write32(key.length);
+                _commHelper.sendBlob(key);
+
+                _commHelper.receiveMatch("OK");
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+        }
+    }
+
+    public synchronized void disconnect()
+    {
+        try {
+            if (_handler != null) {
+                _handler.terminate();
+            }
+            if (_commHelper != null) {
+                _commHelper.closeConnection();
+            }
+        }
+        catch (Exception e){}
     }
 
     /**
@@ -504,7 +557,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @param groupName: analogous to addMessage()
      * @param objectId: analogous to addMessage()
      * @param instanceId: analogous to addMessage()
-     * @param xmlMedatada: analogous to addMessage()
+     * @param jsonMetadata: analogous to addMessage()
      * @param referredObject: analogous to addMessage()
      * @param expirationTime: analogous to addMessage()
      * @return
@@ -512,7 +565,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @throws us.ihmc.aci.dspro2.DSProProxy.DSProProxyNotInitializedException 
      */
     public String addAnnotation (String groupName, String objectId, String instanceId,
-                                 String xmlMedatada, String referredObject,
+                                 String jsonMetadata, String referredObject,
                                  long expirationTime)
             throws CommException
     {
@@ -526,17 +579,17 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 _commHelper.sendLine(groupName);
                 _commHelper.sendStringBlock(objectId);
                 _commHelper.sendStringBlock(instanceId);
-                _commHelper.write32(xmlMedatada.length());
-                _commHelper.sendBlob(xmlMedatada.getBytes());
+                _commHelper.write32(jsonMetadata.length());
+                _commHelper.sendBlob(jsonMetadata.getBytes(UTF_8));
                 _commHelper.write32(referredObject.length());
-                _commHelper.sendBlob(referredObject.getBytes());
+                _commHelper.sendBlob(referredObject.getBytes(UTF_8));
                 _commHelper.write64(expirationTime);
 
                 _commHelper.sendLine("OK");
 
                 byte[] bId = _commHelper.receiveBlock();
                 if (bId != null) {
-                    id = new String (bId);
+                    id = new String (bId, UTF_8);
                 }
                 else {
                     id = null;
@@ -564,13 +617,13 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @param groupName
      * @param objectId
      * @param instanceId
-     * @param xmlMetadata
+     * @param jsonMetadata
      * @param expirationTime
      * @return
      * @throws CommException 
      */
     public String addAnnotation (String groupName, String objectId, String instanceId,
-                                 String xmlMetadata, long expirationTime)
+                                 String jsonMetadata, long expirationTime)
             throws CommException
     {
         checkConcurrentModification("addAnnotation");
@@ -583,13 +636,13 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 _commHelper.sendLine(groupName);
                 _commHelper.sendStringBlock(objectId);
                 _commHelper.sendStringBlock(instanceId);
-                _commHelper.write32(xmlMetadata.length());
-                _commHelper.sendBlob(xmlMetadata.getBytes());
+                _commHelper.write32(jsonMetadata.length());
+                _commHelper.sendBlob(jsonMetadata.getBytes(UTF_8));
                 _commHelper.write64(expirationTime);
 
                 _commHelper.sendLine("OK");
 
-                id = new String(_commHelper.receiveBlock());
+                id = new String(_commHelper.receiveBlock(), UTF_8);
                 _commHelper.sendLine("OK");
 
                 return id;
@@ -612,8 +665,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @param groupName: the group of the message.
      * @param objectId
      * @param instanceId
-     * @param xmlMedatada: string that containing and XML document describing
-     *                     the data
+     * @param jsonMetadata: string that containing and JSON document describing the data
      * @param data: the actual data of the message.
      * @param expirationTime: the expiration time of the message.
      *                        (if set to 0, the message never expires)
@@ -621,7 +673,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @throws CommException 
      */
     public synchronized String addMessage (String groupName, String objectId, String instanceId,
-                                           String xmlMedatada, byte[] data, long expirationTime)
+                                           String jsonMetadata, byte[] data, long expirationTime)
             throws CommException
     {
         checkConcurrentModification("addMessage");
@@ -634,8 +686,8 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             _commHelper.sendStringBlock(objectId);
             _commHelper.sendStringBlock(instanceId);
 
-            _commHelper.write32(xmlMedatada.length());
-            _commHelper.sendBlob(xmlMedatada.getBytes());
+            _commHelper.write32(jsonMetadata.length());
+            _commHelper.sendBlob(jsonMetadata.getBytes(UTF_8));
             if (data == null) {
                 _commHelper.write32(0);
             }
@@ -649,7 +701,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
             byte[] bId = _commHelper.receiveBlock();
             if (bId != null) {
-                id = new String (bId);
+                id = new String (bId, UTF_8);
             }
             else {
                 id = null;
@@ -686,17 +738,21 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             for (Entry<Object, Object> entry : entries) {
                 String attribute = entry.getKey().toString();
                 _commHelper.write32(attribute.length());
-                _commHelper.sendBlob(attribute.getBytes());
+                _commHelper.sendBlob(attribute.getBytes(UTF_8));
 
-                String value = entry.getValue().toString();
-                if (value == null || value.equals("")) {
-                    // Sanity Check
-                    // If no value is set, it has to be specified that the value
-                    // is unknown
-                    value = _UNKNOWN;
+                String value = "";
+                Object o = entry.getValue();
+                if (o != null) {
+                    value = o.toString();
+                    if (value == null || value.equals("")) {
+                        // Sanity Check
+                        // If no value is set, it has to be specified that the value
+                        // is unknown
+                        value = _UNKNOWN;
+                    }
                 }
                 _commHelper.write32(value.length());
-                _commHelper.sendBlob(value.getBytes());
+                _commHelper.sendBlob(value.getBytes(UTF_8));
             }
 
             if (data == null) {
@@ -712,7 +768,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
             byte[] bId = _commHelper.receiveBlock();
             if (bId != null) {
-                id = new String (bId);
+                id = new String (bId, UTF_8);
             }
             else {
                 id = null;
@@ -754,50 +810,52 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                                            byte[] data, long expirationTime)
             throws CommException
     {
-        checkConcurrentModification("addMessage_AVList");
+        Map metadata = new HashMap();
+        for (int i = 0; i < metaDataAttributes.length; i++) {
+           metadata.put (metaDataAttributes[i], metaDataValues[i]); 
+        }
+        return addMessage (groupName, objectId, instanceId, metadata, data, expirationTime);
+    }
+
+    public synchronized String addChunk (String groupName, String objectId, String instanceId,
+                                         String jsonMetadata, ChunkWrapper chunk, long expirationTime)
+            throws CommException
+    {
+        checkConcurrentModification("addChunk");
         DSProProxyNotInitializedException.check(_commHelper);
         String id = null;
         try {
-            _commHelper.sendLine("addMessage_AVList");
+            _commHelper.sendLine("addChunk");
             _commHelper.sendLine(groupName);
             _commHelper.sendStringBlock(objectId);
             _commHelper.sendStringBlock(instanceId);
 
-            _commHelper.write32(metaDataAttributes.length);
-            for (int i = 0; i < metaDataAttributes.length; i++) {
-                _commHelper.write32(metaDataAttributes[i].length());
-                _commHelper.sendBlob(metaDataAttributes[i].getBytes());
+            _commHelper.write32(jsonMetadata.length());
+            _commHelper.sendBlob(jsonMetadata.getBytes(UTF_8));
 
-                if (metaDataValues[i] == null || metaDataValues[i].equals("")) {
-                    // Sanity Check
-                    // If no value is set, it has to be specified that the value
-                    // is unknown
-                    metaDataValues[i] = _UNKNOWN;
-                }
-                _commHelper.write32(metaDataValues[i].length());
-                _commHelper.sendBlob(metaDataValues[i].getBytes());
+            _commHelper.write8(chunk.getChunkId());
+            _commHelper.write8(chunk.getTotalNumberOfChunks());
+            _commHelper.write32(chunk.getData().length);
+            if (chunk.getData().length > 0) {
+                _commHelper.sendBlob(chunk.getData());
             }
-            if (data == null) {
-                _commHelper.write32(0);
+
+            String dataMimeType = chunk.getMimeType();
+            if (dataMimeType == null) {
+                throw new RuntimeException("MIME type must be set");
             }
-            else {
-                _commHelper.write32(data.length);
-                _commHelper.sendBlob(data);
-            }
+            _commHelper.write32(dataMimeType.length());
+            _commHelper.sendBlob(dataMimeType.getBytes(UTF_8));
             _commHelper.write64(expirationTime);
 
-            try {
-                _commHelper.receiveMatch("OK");
-                byte[] bId = _commHelper.receiveBlock();
-                if (bId != null) {
-                    id = new String (bId);
-                }
-                else {
-                    id = null;
-                }
+            _commHelper.receiveMatch("OK");
+
+            byte[] bId = _commHelper.receiveBlock();
+            if (bId != null) {
+                id = new String (bId, UTF_8);
             }
-            catch (ProtocolException pe) {
-                LOG.warn(StringUtil.getStackTraceAsString(pe));
+            else {
+                id = null;
             }
 
             return id;
@@ -809,6 +867,404 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             }
             LOG.warn(StringUtil.getStackTraceAsString(e));
             return id;
+        }
+    }
+
+    public synchronized String addChunk (String groupName, String objectId, String instanceId,
+                                         Map<Object, Object> metadata, ChunkWrapper chunk, long expirationTime)
+            throws CommException
+    {
+        checkConcurrentModification("addChunk_AVList");
+        DSProProxyNotInitializedException.check(_commHelper);
+        String id = null;
+        try {
+            _commHelper.sendLine("addChunk_AVList");
+            _commHelper.sendLine(groupName);
+            _commHelper.sendStringBlock(objectId);
+            _commHelper.sendStringBlock(instanceId);
+
+            Set<Entry<Object, Object>> entries = metadata.entrySet();
+            _commHelper.write32(entries.size());
+            for (Entry<Object, Object> entry : entries) {
+                String attribute = entry.getKey().toString();
+                _commHelper.write32(attribute.length());
+                _commHelper.sendBlob(attribute.getBytes(UTF_8));
+
+                String value = "";
+                Object o = entry.getValue();
+                if (o != null) {
+                    value = o.toString();
+                    if (value == null || value.equals("")) {
+                        // Sanity Check
+                        // If no value is set, it has to be specified that the value
+                        // is unknown
+                        value = _UNKNOWN;
+                    }
+                }
+                _commHelper.write32(value.length());
+                _commHelper.sendBlob(value.getBytes(UTF_8));
+            }
+
+            _commHelper.write8(chunk.getChunkId());
+            _commHelper.write8(chunk.getTotalNumberOfChunks());
+            _commHelper.write32(chunk.getData().length);
+            if (chunk.getData().length > 0) {
+                _commHelper.sendBlob(chunk.getData());
+            }
+
+            String dataMimeType = chunk.getMimeType();
+            if (dataMimeType == null) {
+                throw new RuntimeException("MIME type must be set");
+            }
+            _commHelper.write32(dataMimeType.length());
+            _commHelper.sendBlob(dataMimeType.getBytes(UTF_8));
+            _commHelper.write64(expirationTime);
+
+            _commHelper.receiveMatch("OK");
+
+            byte[] bId = _commHelper.receiveBlock();
+            if (bId != null) {
+                id = new String (bId, UTF_8);
+            }
+            else {
+                id = null;
+            }
+
+            return id;
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+            return id;
+        }
+    }
+
+    public synchronized void addAdditionalChunk (String messageId, ChunkWrapper chunk)
+            throws CommException
+    {
+        checkConcurrentModification("addAdditionalChunk");
+        DSProProxyNotInitializedException.check(_commHelper);
+        try {
+            _commHelper.sendLine("addAdditionalChunk");
+            _commHelper.sendStringBlock(messageId);
+            _commHelper.write8(chunk.getChunkId());
+
+            String dataMimeType = chunk.getMimeType();
+            if (dataMimeType == null) {
+                throw new RuntimeException("MIME type must be set");
+            }
+            _commHelper.write32(dataMimeType.length());
+            _commHelper.sendBlob(dataMimeType.getBytes(UTF_8));
+
+            _commHelper.write32(chunk.getData().length);
+            if (chunk.getData().length > 0) {
+                _commHelper.sendBlob(chunk.getData());
+            }
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+        }
+    }
+
+    public synchronized String addChunkedMessage (String groupName, String objectId, String instanceId,
+                                                  String jsonMetadata, List<ChunkWrapper> chunks,
+                                                  String dataMimeType, long expirationTime)
+            throws CommException
+    {
+        checkConcurrentModification("addChunkedMessage");
+        DSProProxyNotInitializedException.check(_commHelper);
+        String id = null;
+        try {
+            _commHelper.sendLine("addChunkedMessage");
+            _commHelper.sendLine(groupName);
+            _commHelper.sendStringBlock(objectId);
+            _commHelper.sendStringBlock(instanceId);
+
+            _commHelper.write32(jsonMetadata.length());
+            _commHelper.sendBlob(jsonMetadata.getBytes(UTF_8));
+
+            byte nChunks = (byte) chunks.size();
+            _commHelper.write8(nChunks);
+            for (ChunkWrapper chunk : chunks) {
+                _commHelper.write32(chunk.getData().length);
+                if (chunk.getData().length > 0) {
+                    _commHelper.sendBlob(chunk.getData());
+                }
+            }
+
+            _commHelper.write32(dataMimeType.length());
+            _commHelper.sendBlob(dataMimeType.getBytes(UTF_8));
+            _commHelper.write64(expirationTime);
+
+            _commHelper.receiveMatch("OK");
+
+            byte[] bId = _commHelper.receiveBlock();
+            if (bId != null) {
+                id = new String (bId, UTF_8);
+            }
+            else {
+                id = null;
+            }
+
+            return id;
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+            return id;
+        }
+    }
+
+    public synchronized String addChunkedMessage (String groupName, String objectId, String instanceId,
+                                                  Map<Object, Object> metadata, List<ChunkWrapper> chunks,
+                                                  String dataMimeType, long expirationTime)
+            throws CommException
+    {
+        checkConcurrentModification("addChunkedMessage_AVList");
+        DSProProxyNotInitializedException.check(_commHelper);
+        String id = null;
+        try {
+            _commHelper.sendLine("addChunkedMessage_AVList");
+            _commHelper.sendLine(groupName);
+            _commHelper.sendStringBlock(objectId);
+            _commHelper.sendStringBlock(instanceId);
+
+            Set<Entry<Object, Object>> entries = metadata.entrySet();
+            _commHelper.write32(entries.size());
+            for (Entry<Object, Object> entry : entries) {
+                String attribute = entry.getKey().toString();
+                _commHelper.write32(attribute.length());
+                _commHelper.sendBlob(attribute.getBytes(UTF_8));
+
+                String value = "";
+                Object o = entry.getValue();
+                if (o != null) {
+                    value = o.toString();
+                    if (value == null || value.equals("")) {
+                        // Sanity Check
+                        // If no value is set, it has to be specified that the value
+                        // is unknown
+                        value = _UNKNOWN;
+                    }
+                }
+                _commHelper.write32(value.length());
+                _commHelper.sendBlob(value.getBytes(UTF_8));
+            }
+
+            byte nChunks = (byte) chunks.size();
+            _commHelper.write8(nChunks);
+            for (ChunkWrapper chunk : chunks) {
+                _commHelper.write32(chunk.getData().length);
+                if (chunk.getData().length > 0) {
+                    _commHelper.sendBlob(chunk.getData());
+                }
+            }
+
+            _commHelper.write32(dataMimeType.length());
+            _commHelper.sendBlob(dataMimeType.getBytes(UTF_8));
+            _commHelper.write64(expirationTime);
+
+            _commHelper.receiveMatch("OK");
+
+            byte[] bId = _commHelper.receiveBlock();
+            if (bId != null) {
+                id = new String (bId, UTF_8);
+            }
+            else {
+                id = null;
+            }
+
+            return id;
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+            return id;
+        }
+    }
+
+    public synchronized String disseminateMessage (String groupName, String objectId, String instanceId,
+                                                   byte[] data, long expirationTime)
+            throws CommException
+    {
+        checkConcurrentModification("disseminateMessage");
+        DSProProxyNotInitializedException.check(_commHelper);
+        String id = null;
+
+        try {
+            _commHelper.sendLine("disseminateMessage");
+            _commHelper.sendLine(groupName);
+            _commHelper.sendStringBlock(objectId);
+            _commHelper.sendStringBlock(instanceId);
+
+            if (data == null) {
+                _commHelper.write32(0);
+            }
+            else {
+                _commHelper.write32(data.length);
+                _commHelper.sendBlob(data);
+            }
+            _commHelper.write64(expirationTime);
+
+            _commHelper.receiveMatch("OK");
+
+            byte[] bId = _commHelper.receiveBlock();
+            if (bId != null) {
+                id = new String (bId, UTF_8);
+            }
+            else {
+                id = null;
+            }
+            _commHelper.sendLine("OK");
+
+            return id;
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+            return id;
+        }
+    }
+
+    public synchronized String disseminateMessageMetadata (String groupName, String objectId, String instanceId,
+                                                           String metadata, byte[] data, String mimeType, long expirationTime)
+            throws CommException {
+        return disseminateMessageMetadata(groupName, objectId, instanceId, metadata.getBytes(UTF_8), data, mimeType,
+                expirationTime);
+    }
+
+    public synchronized String disseminateMessageMetadata (String groupName, String objectId, String instanceId,
+                                                           byte[] metadata, byte[] data, String mimeType, long expirationTime)
+            throws CommException
+    {
+        checkConcurrentModification("disseminateMessageMetadata");
+        DSProProxyNotInitializedException.check(_commHelper);
+        String id = null;
+
+        try {
+            _commHelper.sendLine("disseminateMessageMetadata");
+            _commHelper.sendLine(groupName);
+            _commHelper.sendStringBlock(objectId);
+            _commHelper.sendStringBlock(instanceId);
+
+            if (metadata == null) {
+                _commHelper.write32(0);
+            }
+            else {
+                _commHelper.write32(metadata.length);
+                _commHelper.sendBlob(metadata);
+            }
+
+            if (data == null) {
+                _commHelper.write32(0);
+            }
+            else {
+                _commHelper.write32(data.length);
+                _commHelper.sendBlob(data);
+            }
+            _commHelper.sendStringBlock(mimeType);
+            _commHelper.write64(expirationTime);
+
+            _commHelper.receiveMatch("OK");
+
+            byte[] bId = _commHelper.receiveBlock();
+            if (bId != null) {
+                id = new String (bId, UTF_8);
+            }
+            else {
+                id = null;
+            }
+            _commHelper.sendLine("OK");
+
+            return id;
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+            return id;
+        }
+    }
+
+    /**
+     *
+     * @param groupName
+     * @param priority
+     * @param groupReliable
+     * @param msgReliable
+     * @param sequenced
+     * @return
+     * @throws CommException
+     */
+    public synchronized boolean subscribe (String groupName, byte priority, boolean groupReliable,
+                                           boolean msgReliable, boolean sequenced)
+            throws CommException
+    {
+        checkConcurrentModification ("subscribe");
+
+        try {
+            _commHelper.sendLine ("subscribe");
+            _commHelper.sendStringBlock(groupName);
+            _commHelper.write8 (priority);
+            _commHelper.writeBool(groupReliable);
+            _commHelper.writeBool (msgReliable);
+            _commHelper.writeBool (sequenced);
+
+            _commHelper.receiveMatch ("OK");
+
+            return true;
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set (false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+            return false;
+        }
+    }
+
+    synchronized public long getReceivedBytes (String msgId) throws CommException {
+        if ((msgId == null) || msgId.isEmpty()) {
+            throw new NullPointerException("The msgId can't be empty");
+        }
+
+        checkConcurrentModification("getReceivedBytes");
+        DSProProxyNotInitializedException.check(_commHelper);
+
+        try {
+            _commHelper.sendLine("getReceivedBytes");
+            _commHelper.write32(msgId.length());
+            _commHelper.sendBlob(msgId.getBytes(UTF_8));
+
+            _commHelper.receiveMatch("OK");
+            return _commHelper.readI64();
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            LOG.warn(StringUtil.getStackTraceAsString(e));
+            return 0;
         }
     }
 
@@ -837,10 +1293,10 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 _commHelper.write16(adaptorType);
             }
             _commHelper.write32(networkInterface.length());
-            _commHelper.sendBlob(networkInterface.getBytes());
+            _commHelper.sendBlob(networkInterface.getBytes(UTF_8));
 
             _commHelper.write32(remoteAddress.length());
-            _commHelper.sendBlob(remoteAddress.getBytes());
+            _commHelper.sendBlob(remoteAddress.getBytes(UTF_8));
             _commHelper.write16(port);
 
             _commHelper.receiveMatch("OK");
@@ -863,15 +1319,15 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @throws CommException
      * @throws ProtocolException 
      */
-    public synchronized void cancel (String id)
+    public synchronized void cancel (String dsproId)
             throws CommException, ProtocolException
     {
-        checkConcurrentModification("cancel - 0");
+        checkConcurrentModification("cancel");
         DSProProxyNotInitializedException.check(_commHelper);
 
         try {
             _commHelper.sendLine("cancel_str");
-            _commHelper.sendLine(id);
+            _commHelper.sendLine(dsproId);
 
             _commHelper.receiveMatch("OK");
         }
@@ -883,7 +1339,32 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             if (e instanceof ProtocolException) {
                 throw (ProtocolException) e;
             }
-            LOG.error(e);
+            LOG.error(StringUtil.getStackTraceAsString(e));
+        }
+    }
+
+    public synchronized void cancel (String objectId, String instanceId)
+            throws CommException, ProtocolException
+    {
+        checkConcurrentModification("cancel_obj_inst");
+        DSProProxyNotInitializedException.check(_commHelper);
+
+        try {
+            _commHelper.sendLine("cancel_strs");
+            _commHelper.sendStringBlock(objectId);
+            _commHelper.sendStringBlock(instanceId == null ? "" : instanceId);
+
+            _commHelper.receiveMatch("OK");
+        }
+        catch (Exception e) {
+            if (e instanceof CommException) {
+                _isInitialized.set(false);
+                throw (CommException) e;
+            }
+            if (e instanceof ProtocolException) {
+                throw (ProtocolException) e;
+            }
+            LOG.error(StringUtil.getStackTraceAsString(e));
         }
     }
 
@@ -900,8 +1381,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @param groupName: the group of the message.
      * @param objectId
      * @param instanceId
-     * @param xmlMedatada: string that containing and XML document describing
-     *                     the data
+     * @param jsonMetadata: string that containing and JSON document describing the data
      * @param data: the actual data of the message.
      * @param dataMimeType: the MIME type of the data.
      * @param expirationTime: the expiration time of the message.
@@ -910,10 +1390,15 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @throws CommException
      */
     public synchronized String chunkAndAddMessage (String groupName, String objectId, String instanceId,
-                                                   String xmlMedatada, byte[] data, String dataMimeType,
+                                                   String jsonMetadata, byte[] data, String dataMimeType,
                                                    long expirationTime)
             throws CommException
     {
+        if (_mimeTypeToFragmenter.containsKey(dataMimeType)) {
+            List<ChunkWrapper> chunks = _mimeTypeToFragmenter.get(dataMimeType).fragment(data, dataMimeType, (byte) 4, (byte) 100);
+            return addChunkedMessage(groupName, objectId, instanceId, jsonMetadata, chunks, dataMimeType, expirationTime);
+        }
+
         checkConcurrentModification("chunkAndAddMessage");
         DSProProxyNotInitializedException.check(_commHelper);
 
@@ -923,24 +1408,23 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             _commHelper.sendLine(groupName);
             _commHelper.sendStringBlock(objectId);
             _commHelper.sendStringBlock(instanceId);
-            _commHelper.write32(xmlMedatada.length());
-            _commHelper.sendBlob(xmlMedatada.getBytes());
+            _commHelper.write32(jsonMetadata.length());
+            _commHelper.sendBlob(jsonMetadata.getBytes(UTF_8));
             _commHelper.write32(data.length);
             _commHelper.sendBlob(data);
             _commHelper.write32(dataMimeType.length());
-            _commHelper.sendBlob(dataMimeType.getBytes());
+            _commHelper.sendBlob(dataMimeType.getBytes(UTF_8));
             _commHelper.write64(expirationTime);
 
             _commHelper.receiveMatch("OK");
 
             byte[] bId = _commHelper.receiveBlock();
             if (bId != null) {
-                id = new String (bId);
+                id = new String (bId, UTF_8);
             }
             else {
                 id = null;
             }
-            _commHelper.sendLine("OK");
 
             return id;
         }
@@ -984,6 +1468,22 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                                                    byte[] data, String dataMimeType,
                                                    long expirationTime) throws CommException
     {
+        Map metadata = new HashMap();
+        for (int i = 0; i < metaDataAttributes.length; i++) {
+           metadata.put (metaDataAttributes[i], metaDataValues[i]); 
+        }
+        return chunkAndAddMessage (groupName, objectId, instanceId, metadata, data, dataMimeType, expirationTime);
+    }
+   
+    public synchronized String chunkAndAddMessage (String groupName, String objectId, String instanceId,
+                                                   Map metadata, byte[] data, String dataMimeType,
+                                                   long expirationTime) throws CommException
+    {
+        if (_mimeTypeToFragmenter.containsKey(dataMimeType)) {
+            List<ChunkWrapper> chunks = _mimeTypeToFragmenter.get(dataMimeType).fragment(data, dataMimeType, (byte) 4, (byte) 100);
+            return addChunkedMessage(groupName, objectId, instanceId, metadata, chunks, dataMimeType, expirationTime);
+        }
+
         checkConcurrentModification ("chunkAndAddMessage_AVList");
         DSProProxyNotInitializedException.check(_commHelper);
         String id = null;
@@ -992,33 +1492,39 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             _commHelper.sendLine(groupName);
             _commHelper.sendStringBlock(objectId);
             _commHelper.sendStringBlock(instanceId);
-            _commHelper.write32(metaDataAttributes.length);
-            for (int i = 0; i < metaDataAttributes.length; i++) {
-                if (metaDataAttributes != null) {
-                    _commHelper.write32(metaDataAttributes[i].length());
-                    _commHelper.sendBlob(metaDataAttributes[i].getBytes());
+            Set<Entry<Object, Object>> entries = metadata.entrySet();
+            _commHelper.write32(entries.size());
+            for (Entry<Object, Object> entry : entries) {
+                String attribute = entry.getKey().toString();
+                _commHelper.write32(attribute.length());
+                _commHelper.sendBlob(attribute.getBytes(UTF_8));
 
-                    if (metaDataValues[i] == null || metaDataValues[i].equals("")) {
+                String value = "";
+		        Object o = entry.getValue();
+		        if (o != null) {
+                    value = o.toString();
+                    if (value == null || value.equals("")) {
                         // Sanity Check
                         // If no value is set, it has to be specified that the value
+
                         // is unknown
-                        metaDataValues[i] = _UNKNOWN;
+                        value = _UNKNOWN;
                     }
-                    _commHelper.write32(metaDataValues[i].length());
-                    _commHelper.sendBlob(metaDataValues[i].getBytes());
                 }
+                _commHelper.write32(value.length());
+                _commHelper.sendBlob(value.getBytes(UTF_8));
             }
             _commHelper.write32(data.length);
             _commHelper.sendBlob(data);
             _commHelper.write32(dataMimeType.length());
-            _commHelper.sendBlob(dataMimeType.getBytes());
+            _commHelper.sendBlob(dataMimeType.getBytes(UTF_8));
             _commHelper.write64(expirationTime);
 
             _commHelper.receiveMatch ("OK");
 
             byte[] bId = _commHelper.receiveBlock();
             if (bId != null) {
-                id = new String (bId);
+                id = new String (bId, UTF_8);
             }
             else {
                 id = null;
@@ -1107,12 +1613,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
         try {
             _commHelper.sendLine("registerPath");
-
-            if (!path.write(_commHelper)) {
-                LOG.warn("DisseminationServiceProProxy-registerPath: Failed to send the path");
-                return false;
-            }
-
+            path.write (_commHelper);
             _commHelper.receiveMatch("OK");
             return true;
         }
@@ -1130,10 +1631,10 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @return all the cached metadata messages
      * @throws CommException 
      */
-    public synchronized List<String> getAllCachedMetaDataAsXML()
+    public synchronized List<String> getAllCachedMetadata()
             throws CommException
     {
-        return getAllCachedMetaDataAsXML(0, 0);
+        return getAllCachedMetadata(0, 0);
     }
 
     /**
@@ -1143,10 +1644,10 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * within i64BeginArrivalTimestamp and i64EndArrivalTimestamp.
      * @throws CommException 
      */
-    public synchronized List<String> getAllCachedMetaDataAsXML (long startTimestamp, long endTimestamp)
+    public synchronized List<String> getAllCachedMetadata (long startTimestamp, long endTimestamp)
             throws CommException
     {
-        return getMatchingMetaDataAsXML(new HashMap<String, String>(), 0, 0);
+        return getMatchingMetadata(new HashMap<String, String>(), 0, 0);
     }
 
     /**
@@ -1159,10 +1660,18 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         DSProProxyNotInitializedException.check(_commHelper);
 
         try {
+            NodePath newPath = null;
             _commHelper.sendLine("getCurrentPath");
-            _commHelper.receiveMatch("OK");
-
-            NodePath newPath = NodePath.read(_commHelper);
+            String match = _commHelper.receiveLine();
+            if (match.equalsIgnoreCase("NOPATH")) {
+                return null;
+            }
+            else if (match.equalsIgnoreCase("OK")) {
+                newPath = NodePath.read(_commHelper);
+            }
+            else {
+                throw new ProtocolException("no match found: looked for OK or NOPATH in {" + match + "}");
+            }
 
             _commHelper.sendLine("OK");
             return newPath;
@@ -1186,19 +1695,18 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             throws CommException
     {
         if (peerNodeId == null || peerNodeId.length() == 0) {
-
+            return null;
         }
         checkConcurrentModification("getPathForPeer");
         DSProProxyNotInitializedException.check(_commHelper);
 
         try {
+            NodePath newPath = null;
             _commHelper.sendLine("getPathForPeer");
-
             _commHelper.sendLine(peerNodeId);
             String match = _commHelper.receiveLine();
-            NodePath newPath = null;
             if (match.equalsIgnoreCase("NOPATH")) {
-                return null;
+                newPath = null;
             }
             else if (match.equalsIgnoreCase("OK")) {
                 newPath = NodePath.read(_commHelper);
@@ -1226,13 +1734,13 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      *
      * @param attributeValueToMatch: the set of attributes to match, and the
      *                               corresponding values
-     * @return a list of XML documents containing the metadata message
+     * @return a list of JSON documents containing the metadata message
      * @throws CommException 
      */
-    public synchronized List<String> getMatchingMetaDataAsXML (Map<String, String> attributeValueToMatch)
+    public synchronized List<String> getMatchingMetadata (Map<String, String> attributeValueToMatch)
             throws CommException
     {
-        return getMatchingMetaDataAsXML(attributeValueToMatch, 0, 0);
+        return getMatchingMetadata(attributeValueToMatch, 0, 0);
     }
 
     /**
@@ -1246,19 +1754,19 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      *                               corresponding values
      * @param startTimestamp
      * @param endTimestamp
-     * @return a list of XML documents containing the metadata message
+     * @return a list of JSON documents containing the metadata message
      * @throws CommException 
      */
-    public synchronized List<String> getMatchingMetaDataAsXML (Map<String, String> attributeValueToMatch,
-                                                               long startTimestamp, long endTimestamp)
+    public synchronized List<String> getMatchingMetadata (Map<String, String> attributeValueToMatch, long startTimestamp,
+                                                          long endTimestamp)
             throws CommException
     {
-        checkConcurrentModification("getMatchingMetaDataAsXML");
+        checkConcurrentModification("getMatchingMetadata");
         DSProProxyNotInitializedException.check(_commHelper);
 
-        List<String> metadata = new LinkedList<String>();
+        List<String> metadata = new ArrayList<>();
         try {
-            _commHelper.sendLine("getMatchingMetaDataAsXML");
+            _commHelper.sendLine("getMatchingMetadata");
             _commHelper.write32(attributeValueToMatch.size());
             for (Map.Entry<String, String> av : attributeValueToMatch.entrySet()) {
                 _commHelper.sendStringBlock(av.getKey());
@@ -1270,7 +1778,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
             int metadataLen = _commHelper.read32();
             while (metadataLen > 0) {
-                metadata.add(new String(_commHelper.receiveBlob(metadataLen)));
+                metadata.add(new String(_commHelper.receiveBlob(metadataLen), UTF_8));
                 metadataLen = _commHelper.read32();
             }
 
@@ -1347,8 +1855,8 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             _commHelper.sendLine(Float.toString(fLatitude));
             _commHelper.sendLine(Float.toString(fLongitude));
             _commHelper.sendLine(Float.toString(fAltitude));
-            _commHelper.sendBlock(location.getBytes());
-            _commHelper.sendBlock(note.getBytes());
+            _commHelper.sendBlock(location.getBytes(UTF_8));
+            _commHelper.sendBlock(note.getBytes(UTF_8));
 
             _commHelper.receiveMatch("OK");
             return true;
@@ -1486,7 +1994,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 _isInitialized.set(false);
                 throw (CommException) e;
             }
-            LOG.error(e);
+            LOG.error(StringUtil.getStackTraceAsString(e));
         }
 
         return true;
@@ -1604,10 +2112,10 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
             _commHelper.receiveMatch("OK");
 
-            List<String> list = new LinkedList<String>();
+            List<String> list = new ArrayList<>();
             byte[] b;
             while ((b = _commHelper.receiveBlock()) != null) {
-                list.add (new String (b));
+                list.add (new String (b, UTF_8));
             }
 
             _commHelper.receiveMatch("OK");
@@ -1632,13 +2140,13 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      * @return 
      * @throws us.ihmc.comm.CommException
      */
-    public synchronized DataWrapper getData (String messageID)
+    public synchronized DSProProxyInterface.DataWrapper getData (String messageID)
             throws CommException
     {
         return getData (messageID, null);
     }
 
-    public synchronized DataWrapper getData (String messageID, String callbackParameters)
+    public synchronized DSProProxyInterface.DataWrapper getData (String messageID, String callbackParameters)
             throws CommException
     {
         checkConcurrentModification("getData");
@@ -1669,7 +2177,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
             if (data == null) {
                 return null;
             }
-            return new DataWrapper(data, (hasMoreChunks == 1), callbackParameters);
+            return new DSProProxyInterface.DataWrapper(data, (hasMoreChunks == 1), callbackParameters);
         }
         catch (Exception e) {
             if (e instanceof CommException) {
@@ -1752,7 +2260,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
             // read the ID assigned to the query
             byte[] b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String(b) : null;
+            String queryId = b != null ? new String(b , UTF_8) : null;
 
             return queryId;
         }
@@ -1862,9 +2370,61 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 _isInitialized.set(false);
                 throw (CommException) e;
             }
-            LOG.error(e);
+            LOG.error(StringUtil.getStackTraceAsString(e));
             return false;
         }
+    }
+
+    /***
+     *
+     * @return: the node id of the node
+     * @throws CommException 
+     */
+    public String getNodeContext() throws CommException
+    {
+        return getNodeContext(null);
+    }
+
+    public String getNodeContext(String nodeId) throws CommException
+    {
+        checkConcurrentModification("getNodeContext");
+        DSProProxyNotInitializedException.check(_commHelper);
+
+        synchronized (this) {
+            try {
+                _commHelper.sendLine("getNodeContext");
+                byte[] b = nodeId == null ? "".getBytes(UTF_8) : nodeId.getBytes(UTF_8);
+                _commHelper.sendBlock(b);
+                _commHelper.receiveMatch("OK");
+
+                int idLen = _commHelper.read32();
+                if (idLen > 0) {
+                    byte[] buf = new byte[idLen];
+                    _commHelper.receiveBlob(buf, 0, idLen);
+                    if (buf == null || buf.length == 0) {
+                        _commHelper.sendLine("ERROR");
+                    }
+                    else {
+                        _commHelper.sendLine("OK");
+                    }
+
+                    return new String(buf, UTF_8);
+                }
+                else {
+                    _commHelper.sendLine("OK");
+                }
+                return null;
+            }
+            catch (Exception e) {
+                if (e instanceof CommException) {
+                    _isInitialized.set(false);
+                    throw (CommException) e;
+                }
+                LOG.error(StringUtil.getStackTraceAsString(e));
+            }
+        }
+
+        return null;
     }
 
     /***
@@ -1896,7 +2456,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                         _commHelper.sendLine("OK");
                     }
 
-                    return new String(buf);
+                    return new String(buf, UTF_8);
                 }
                 else {
                     _commHelper.sendLine("OK");
@@ -1908,7 +2468,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                     _isInitialized.set(false);
                     throw (CommException) e;
                 }
-                LOG.error(e);
+                LOG.error(StringUtil.getStackTraceAsString(e));
             }
         }
 
@@ -1919,41 +2479,35 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
      *
      * @return the list of the current reachable peers
      */
-    public synchronized List<String> getPeerList()
-    {
+    public synchronized List<String> getPeerList() throws CommException {
         checkConcurrentModification("getPeerList");
         DSProProxyNotInitializedException.check(_commHelper);
 
-        List<String> peerList = null;
+        final List<String> peerList = new ArrayList<>();
         try {
             _commHelper.sendLine("getPeerList");
             _commHelper.receiveMatch("OK");
 
             int nPeers = _commHelper.read32();
             if (nPeers > 0) {
-                peerList = new LinkedList<String>();
                 for (int i = 0; i < nPeers; i++) {
                     int idLen = _commHelper.read32();
                     if (idLen > 0) {
                         byte[] buf = new byte[idLen];
                         _commHelper.receiveBlob(buf, 0, idLen);
-                        peerList.add(new String(buf));
+                        peerList.add(new String(buf, UTF_8));
                     }
                 }
-                return peerList;
             }
-            return null;
         }
         catch (Exception e) {
             if (e instanceof CommException) {
                 _isInitialized.set(false);
                 throw (CommException) e;
             }
-            LOG.error(e);
+            LOG.error(StringUtil.getStackTraceAsString(e));
         }
-        finally {
-            return peerList;
-        }
+        return peerList;
     }
 
     /**
@@ -1969,7 +2523,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
 
         try {
             _commHelper.sendLine("getPeerNodeContext");
-            _commHelper.sendBlock(peerNodeId.getBytes());
+            _commHelper.sendBlock(peerNodeId.getBytes(UTF_8));
             String hasNodeContextMsg = _commHelper.receiveLine();
 
             PeerNodeContext peerNodeContext;
@@ -2099,6 +2653,45 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 }
             }
         }
+    }
+
+    public synchronized int registerLocalChunkFragmenter (String mimeType, Fragmenter fragmenter)
+            throws CommException, ProtocolException
+    {
+        _mimeTypeToFragmenter.put (mimeType, fragmenter);
+        return 0;
+    }
+
+    public synchronized int registerChunkFragmenter (String mimeType, Fragmenter fragmenter)
+            throws CommException, ProtocolException
+    {
+        checkConcurrentModification("registerChunkFragmenter");
+        DSProProxyNotInitializedException.check(_commHelper);
+        _commHelper.sendLine("registerChunkFragmenter");
+        _commHelper.sendStringBlock(mimeType);
+        _mimeTypeToFragmenter.put (mimeType, fragmenter);
+        _commHelper.receiveMatch("OK");
+
+        return 0;
+    }
+
+    public synchronized int registerChunkReassembler (String mimeType, Reassembler reassembler)
+            throws CommException, ProtocolException
+    {
+        checkConcurrentModification("registerChunkReassembler");
+        DSProProxyNotInitializedException.check(_commHelper);
+        _commHelper.sendLine("registerChunkReassembler");
+        _commHelper.sendStringBlock(mimeType);
+        _mimeTypeToReassembler.put (mimeType, reassembler);
+        _commHelper.receiveMatch("OK");
+
+        return 0;
+    }
+
+    public synchronized int registerLocalChunkReassembler (String mimeType, Reassembler reassembler)
+    {
+        _mimeTypeToReassembler.put (mimeType, reassembler);
+        return 0;
     }
 
     public synchronized void reinitialize()
@@ -2250,6 +2843,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
     // Callbacks
     //--------------------------------------------------------------------------
 
+    @Override
     public boolean dataArrived (String id, String groupName, String objectId,
                                 String instanceId, String annotatedObjMsgId, String mimeType,
                                 byte[] data, short chunkNumber, short totChunksNumber,
@@ -2289,22 +2883,23 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public boolean metadataArrived (String id, String groupName, String objectId, String instanceId,
-                                    String XMLMetadata, String referredDataId, String queryId)
+                                    String jsonMetadata, String referredDataId, String queryId)
     {
-        return metadataArrived(_listenerPro, id, groupName, objectId, instanceId, XMLMetadata, referredDataId, queryId);
+        return metadataArrived(_listenerPro, id, groupName, objectId, instanceId, jsonMetadata, referredDataId, queryId);
     }
 
     public static boolean metadataArrived (Collection<DSProProxyListener> listeners,
                                            String id, String groupName, String objectId,
-                                           String instanceId, String XMLMetadata,
+                                           String instanceId, String jsonMetadata,
                                            String referredDataId, String queryId)
     {
-        if (id == null || XMLMetadata == null || XMLMetadata.length() == 0 || referredDataId == null) {
+        if (id == null || jsonMetadata == null || jsonMetadata.length() == 0 || referredDataId == null) {
             throw new NullPointerException("Null paramenters");
         }
 
-        System.out.println("DSProProxy: metadataArrived: " + id + " about to notify listeners: before synchronized");
+        LOG.trace("DSProProxy: metadataArrived: " + id + " about to notify listeners: before synchronized");
 
         synchronized (listeners) {
             if (listeners.isEmpty()) {
@@ -2312,22 +2907,63 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                 return false;
             }
 
-            System.out.println("NOMADS:DSProProxy: metadataArrived: " + id + " about to notify listeners");
+            LOG.trace("NOMADS:DSProProxy: metadataArrived: " + id + " about to notify listeners");
 
             boolean returnValue = false;
             for (DSProProxyListener listener : listeners) {
                 if (listener.metadataArrived(id, groupName, objectId, instanceId,
-                        XMLMetadata, referredDataId, queryId)) {
+                        jsonMetadata, referredDataId, queryId)) {
                     returnValue = true;
                 }
             }
 
-            System.out.println("NOMADS:DSProProxy: metadataArrived: " + id + " notified listeners");
+            LOG.trace("NOMADS:DSProProxy: metadataArrived: " + id + " notified listeners");
 
             return returnValue;
         }
     }
 
+    @Override
+    public boolean dataAvailable (String id, String groupName, String objectId, String instanceId, String referredDataId,
+                                  String mimeType, byte[] metadata, String queryId)
+    {
+        return dataAvailable (_listenerPro, id, groupName, objectId, instanceId, referredDataId, mimeType, metadata,
+                              queryId);
+    }
+
+    public static boolean dataAvailable (Collection<DSProProxyListener> listeners, String id, String groupName,
+                                         String objectId, String instanceId, String referredDataId, String mimeType,
+                                         byte[] metadata, String queryId)
+    {
+        if (id == null || metadata == null || metadata.length == 0 || referredDataId == null) {
+            throw new NullPointerException("Null paramenters");
+        }
+
+        LOG.trace("DSProProxy: dataAvailable: " + id + " about to notify listeners: before synchronized");
+
+        synchronized (listeners) {
+            if (listeners.isEmpty()) {
+                LOG.warn("NOMADS:DSProProxy::dataAvailable: error:DisseminationServiceProxyListener is null");
+                return false;
+            }
+
+            LOG.trace("NOMADS:DSProProxy: dataAvailable: " + id + " about to notify listeners");
+
+            boolean returnValue = false;
+            for (DSProProxyListener listener : listeners) {
+                if (listener.dataAvailable (id, groupName, objectId, instanceId, referredDataId, mimeType,
+                                            metadata, queryId)) {
+                    returnValue = true;
+                }
+            }
+
+            LOG.trace("NOMADS:DSProProxy: dataAvailable: " + id + " notified listeners");
+
+            return returnValue;
+        }
+    }
+
+    @Override
     public void newNeighbor (String peerID)
     {
         newNeighbor(_listenerPro, peerID);
@@ -2345,6 +2981,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void deadNeighbor (String peerID)
     {
         deadNeighbor(_listenerPro, peerID);
@@ -2362,6 +2999,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public boolean pathRegistered (NodePath path, String nodeId, String team, String mission)
     {
         return pathRegistered(_listenerPro, path, nodeId, team, mission);
@@ -2387,6 +3025,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public boolean positionUpdated (float latitude, float longitude, float altitude, String nodeId)
     {
         return positionUpdated (_listenerPro, latitude, longitude, altitude, nodeId);
@@ -2412,6 +3051,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void searchArrived (String queryId, String groupName, String querier,
                                   String queryType, String queryQualifiers, byte[] query)
     {
@@ -2430,6 +3070,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void searchReplyArrived (String queryId, Collection<String> matchingIds,
                                     String responderNodeId)
     {
@@ -2448,6 +3089,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void searchReplyArrived (String queryId, byte[] reply, String responderNodeId)
     {
         searchReplyArrived (_searchMsgListeners, queryId, reply, responderNodeId);
@@ -2465,6 +3107,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void informationMatched (String localNodeID, String peerNodeID,
                                     String skippedObjectID, String skippedObjectName,
                                     String[] rankDescriptors,
@@ -2485,6 +3128,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void informationSkipped (String localNodeID, String peerNodeID,
                                     String skippedObjectID, String skippedObjectName,
                                     String[] rankDescriptors,
@@ -2502,6 +3146,41 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
                         partialRanks, weights, comment, operation);
             }
         }
+    }
+
+    @Override
+    public List<ChunkWrapper> fragment (byte[] data, String inputMimeType,
+                                        byte nChunks, byte compressionQuality) {
+        synchronized (_mimeTypeToFragmenter) {
+            if (_mimeTypeToFragmenter.containsKey(inputMimeType)) {
+                return _mimeTypeToFragmenter.get(inputMimeType).fragment(data, inputMimeType, nChunks,
+                                                                         compressionQuality);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public byte[] extract (byte[] data, String inputMimeType, byte nChunks, 
+                           byte compressionQuality, Collection<Interval> intervals) {
+        synchronized (_mimeTypeToFragmenter) {
+            if (_mimeTypeToFragmenter.containsKey(inputMimeType)) {
+                return _mimeTypeToFragmenter.get(inputMimeType).extract(data, inputMimeType, nChunks, compressionQuality, intervals);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public byte[] reassemble (Collection<ChunkWrapper> chunks, Collection<AnnotationWrapper> annotations,
+                              String mimeType, byte totalNumberOfChunks, byte compressionQuality) {
+        synchronized (_mimeTypeToReassembler) {
+            if (_mimeTypeToReassembler.containsKey(mimeType)) {
+                return _mimeTypeToReassembler.get(mimeType).reassemble(chunks, annotations, mimeType,
+                                                                       totalNumberOfChunks, compressionQuality);
+            }
+        }
+        return null;
     }
 
     public void notifyConnectionLoss()
@@ -2528,7 +3207,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
          throws CommException, ProtocolException
     {
         String handshake = new StringBuilder(PROTOCOL).append(" ").append(VERSION).toString();
-        System.out.println("Sending handshake:" + handshake);
+        LOG.info("Sending handshake:" + handshake);
         ch.sendLine (handshake);
         String[] tokens = ch.receiveParsed();
         if (tokens == null) {
@@ -2539,9 +3218,9 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
         if ((PROTOCOL.compareToIgnoreCase (tokens[0]) != 0) || (VERSION.compareToIgnoreCase (tokens[1]) != 0)) {
             throw new ProtocolException ("could not complete handshake: received the following " + tokens[0] + " " + tokens[1]
-                    + " service and version while expecting " + PROTOCOL + " and " + VERSION);
+                    + " DSPro proxy service and version while expecting " + PROTOCOL + " and " + VERSION);
         }
-        System.out.println("Handshake successful");
+        LOG.info("Handshake successful");
     }
 
     private int registerProxy (CommHelper ch, CommHelper chCallback, int desiredApplicationId) throws CommException
@@ -2569,6 +3248,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void contextUpdateMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2576,6 +3256,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void contextVersionMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2583,6 +3264,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void messageRequestMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2590,6 +3272,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void chunkRequestMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2597,6 +3280,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void positionMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2604,6 +3288,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void searchMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2611,6 +3296,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void topologyReplyMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2618,6 +3304,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void topologyRequestMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2625,6 +3312,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void updateMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2632,6 +3320,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void versionMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2639,6 +3328,7 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void waypointMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
@@ -2646,25 +3336,12 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
         }
     }
 
+    @Override
     public void wholeMessageArrived (String senderNodeId, String publisherNodeId)
     {
         for (CtrlMsgListener listener : _ctrlMsgListeners) {
             listener.wholeMessageArrived(senderNodeId, publisherNodeId);
         }
-    }
-
-    public class DataWrapper
-    {
-        public DataWrapper (byte[] data, boolean hasMoreChunks, String queryId)
-        {
-            _data = data;
-            _hasMoreChunks = hasMoreChunks;
-            _queryId = queryId;
-        }
-
-        public final byte[] _data;
-        public final boolean _hasMoreChunks;
-        public final String _queryId;
     }
 
     // Constant for the SQLAVList
@@ -2691,17 +3368,22 @@ public class DSProProxy extends ConcurrentProxy implements CtrlMsgListener, Matc
     protected String _nodeId;
     protected DSProProxyCallbackHandler _handler;
     protected final AtomicBoolean _isInitialized = new AtomicBoolean(false);
-    protected final ArrayList<ConnectionStatusListener> _connectionStatusListeners = new
-            ArrayList<ConnectionStatusListener>();
+    protected final ArrayList<ConnectionStatusListener> _connectionStatusListeners = new ArrayList<>();
 
-    private short _applicationId;
+    protected short _applicationId;
+    private final String _applicationDescription;
     private int _port;
     private String _host;
     private long _reinitializationAttemptInterval;
     private CommHelper _commHelper;
-    private final List<DSProProxyListener> _listenerPro = new ArrayList<DSProProxyListener>();
-    private final List<MatchmakingLogListener> _matchmakerListeners = new ArrayList<MatchmakingLogListener>();
-    private final List<CtrlMsgListener> _ctrlMsgListeners = new ArrayList<CtrlMsgListener>();
-    private final List<SearchListener> _searchMsgListeners = new ArrayList<SearchListener>();
-    private final static LoggerInterface LOG = LoggerWrapper.getLogger(DSProProxy.class);
+    private final List<DSProProxyListener> _listenerPro = new ArrayList<>();
+    private final List<MatchmakingLogListener> _matchmakerListeners = new ArrayList<>();
+    private final List<CtrlMsgListener> _ctrlMsgListeners = new ArrayList<>();
+    private final List<SearchListener> _searchMsgListeners = new ArrayList<>();
+    
+    protected final Map<String, Fragmenter> _mimeTypeToFragmenter = new HashMap<>();
+    protected final Map<String, Reassembler> _mimeTypeToReassembler = new HashMap<>();
+
+    private final static Logger LOG = LogUtils.getLogger(DSProProxy.class);
 }
+

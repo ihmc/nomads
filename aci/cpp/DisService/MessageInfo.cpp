@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -35,7 +35,7 @@ const String MessageHeader::MSG_ID_SEPARATOR = ":";
 const int64 MessageHeader::NO_EXPIRATION = 0;
 const uint8 MessageHeader::UNDEFINED_CHUNK_ID = 0x00;
 const uint8 MessageHeader::MIN_CHUNK_ID = 0x01;
-const uint8 MessageHeader::MAX_CHUNK_ID = 0xFF; 
+const uint8 MessageHeader::MAX_CHUNK_ID = 0xFF;
 const String MessageHeader::DEFAULT_MIME_TYPE = "application/octet-stream";
 
 //------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ MessageHeader::MessageHeader (Type type, const char *pszGroupName, const char *p
       _mimeType (pszMimeType),                  // StrClass makes a copy of pszMimeType
       _checksum (pszChecksum)                   // StrClass makes a copy of pszChecksum
 {
-    _type = type; 
+    _type = type;
     _ui32SeqId = ui32SeqId;
     _ui8ChunkId = ui8ChunkId;
     _ui16Tag = ui16Tag;
@@ -204,7 +204,7 @@ int MessageHeader::setAnnotationMetadata (const void *pBuf, uint32 ui32BufLen)
         return -1;
     }
     memcpy (pBufCpy, pBuf, ui32BufLen);
-    _annotationMetadata.init (pBuf, ui32BufLen, true);
+    _annotationMetadata.init (pBufCpy, ui32BufLen, true);
     return 0;
 }
 
@@ -478,7 +478,7 @@ MessageInfo::MessageInfo (bool bMetaData)
 }
 
 MessageInfo::MessageInfo (const char *pszGroupName, const char *pszPublisherNodeId, uint32 ui32SeqId,
-                          const char *pszObjectId, const char *pszInstanceId, uint16 ui16Tag, 
+                          const char *pszObjectId, const char *pszInstanceId, uint16 ui16Tag,
                           uint16 ui16ClientId, uint8 ui8ClientType, const char *pszMimeType, const char *pszChecksum,
                           uint32 ui32TotalMessageLength, uint32 ui32FragmentLength, uint32 ui32FragmentOffset,
                           uint32 ui32MetaDataLength, uint16 ui16HistoryWindow, uint8 ui8Priority, int64 i64Expiration,
@@ -528,7 +528,7 @@ int MessageInfo::read (Reader *pReader, uint32 ui32MaxSize)
     _bMetaData = (ui8 == 1 ? true : false);
 
     generateMsgId();
-    
+
     return 0;
 }
 
@@ -733,15 +733,12 @@ MessageHeader * MessageHeaderHelper::getMessageHeader (const char *pszGroupName,
                                 ui32FragmentOffset, ui32MetaDataLength, ui16HistoryWindow,
                                 ui8Priority, i64Expiration, bAcknowledgment, bMetaData, pszReferredObjectId);
     }
-    else {
-        assert (MessageHeader::MIN_CHUNK_ID <= ui8ChunkId);
 
-        return new ChunkMsgInfo (pszGroupName, pszPublisherNodeId, ui32MsgSeqId, ui8ChunkId,
-                                 pszObjectId, pszInstanceId, ui16Tag, ui16ClientId, ui8ClientType,
-                                 pszMimeType, pszChecksum, ui32FragmentOffset, ui32FragmentLength,
-                                 ui32TotalMessageLength, ui8TotalNumOfChunks, ui16HistoryWindow,
-                                 ui8Priority, i64Expiration, bAcknowledgment);
-    }
-    return NULL;
+    assert (MessageHeader::MIN_CHUNK_ID <= ui8ChunkId);
+    return new ChunkMsgInfo (pszGroupName, pszPublisherNodeId, ui32MsgSeqId, ui8ChunkId,
+                             pszObjectId, pszInstanceId, ui16Tag, ui16ClientId, ui8ClientType,
+                             pszMimeType, pszChecksum, ui32FragmentOffset, ui32FragmentLength,
+                             ui32TotalMessageLength, ui8TotalNumOfChunks, ui16HistoryWindow,
+                             ui8Priority, i64Expiration, bAcknowledgment);
 }
 

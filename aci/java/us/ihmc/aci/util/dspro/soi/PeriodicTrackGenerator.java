@@ -2,7 +2,10 @@ package us.ihmc.aci.util.dspro.soi;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import us.ihmc.aci.util.dspro.LogUtils;
 import us.ihmc.comm.CommException;
+import us.ihmc.util.StringUtil;
 
 /**
  *
@@ -33,6 +36,7 @@ public class PeriodicTrackGenerator implements Runnable
         }
     }
 
+    private static org.slf4j.Logger LOGGER = LogUtils.getLogger(PeriodicTrackGenerator.class);
     private final TrackHandler _handler;
     private final long _positionRefreshTimeout;
     private Position _latestPosition;
@@ -65,7 +69,7 @@ public class PeriodicTrackGenerator implements Runnable
                             
                         }
                         catch (CommException ex) {
-                            Logger.getLogger(PeriodicTrackGenerator.class.getName()).log(Level.SEVERE, null, ex);
+                            LOGGER.error(StringUtil.getStackTraceAsString(ex));
                         }
                     }
                 }
@@ -75,7 +79,7 @@ public class PeriodicTrackGenerator implements Runnable
                 Thread.sleep(sleepTime);
             }
             catch (InterruptedException ex) {
-                Logger.getLogger(PeriodicTrackGenerator.class.getName()).log(Level.SEVERE, null, ex);
+                LOGGER.warn(ex.getMessage());
             }
         }
     }

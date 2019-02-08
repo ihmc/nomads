@@ -1,4 +1,4 @@
-/* 
+/*
  * MocketsConnHandler.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -16,12 +16,12 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * Author: Giacomo Benincasa	(gbenincasa@ihmc.us)
+ * Author: Giacomo Benincasa    (gbenincasa@ihmc.us)
  * Created on August 19, 2012, 4:14 PM
  */
 
 #ifndef INCL_MOCKETS_CONNECTON_HANDLER_H
-#define	INCL_MOCKETS_CONNECTON_HANDLER_H
+#define INCL_MOCKETS_CONNECTON_HANDLER_H
 
 #include "ConnHandler.h"
 
@@ -29,53 +29,57 @@
 
 class Mocket;
 
+
 namespace IHMC_ACI
 {
     class MocketConnHandler : public ConnHandler
     {
         public:
-            MocketConnHandler (const AdaptorProperties &adptProp, const char *pszRemotePeerId,
-                               CommAdaptorListener *pListener, Mocket *pMocket);
+            MocketConnHandler (const AdaptorProperties & adptProp, const char * pszRemotePeerId,
+                               CommAdaptorListener * pListener, Mocket * pMocket);
             ~MocketConnHandler (void);
 
             int init (void);
             bool isConnected (void);
 
+            void requestTermination (void);
+            void requestTerminationAndWait (void);
+            void abortConnHandler (void);
+
+            bool isRemotePeerActive (void) const;
+            void setActiveRemotePeer (void);
+            void setInactiveRemotePeer (void);
             const char * getLocalPeerAddress (void) const;
             const char * getRemotePeerAddress (void) const;
 
             void resetTransmissionCounters (void);
 
-            int send (const void *pBuf, uint32 ui32BufSize, uint8 ui8Priority);
+            int send (const void * pBuf, uint32 ui32BufSize, uint8 ui8Priority);
 
-            int sendDataMessage (const void *pBuf, uint32 ui32BufSize, uint8 ui8Priority);
-            int sendVersionMessage (const void *pBuf, uint32 ui32BufSize, uint8 ui8Priority);
-            int sendWaypointMessage (const void *pBuf, uint32 ui32BufSize, uint8 ui8Priority, const char *pszPublisherNodeId);
+            int sendDataMessage (const void * pBuf, uint32 ui32BufSize, uint8 ui8Priority);
+            int sendVersionMessage (const void * pBuf, uint32 ui32BufSize, uint8 ui8Priority);
+            int sendWaypointMessage (const void * pBuf, uint32 ui32BufSize, uint8 ui8Priority,
+                                     const char * pszPublisherNodeId);
 
-            bool isRemotePeerActive (void);
-
-            void requestTermination (void);
-            void requestTerminationAndWait (void);
-
-            void setActiveRemotePeer (void);
-            void setInactiveRemotePeer (void);
 
        protected:
-            static bool callNewPeer (void *pArg, unsigned long ulTimeSinceLastContact);
-            static bool callDeadPeer (void *pArg, unsigned long ulTimeSinceLastContact);
-
-            int receive (BufferWrapper &bw, char **ppszRemotePeerAddr);
+            int receive (BufferWrapper & bw, char ** ppszRemotePeerAddr);
             int cancelPreviousAndSend (bool bReliableTransmission, bool bSequencedTransmission,
-                                       const void *pBuf, uint32 ui32BufSize, uint16 ui16Tag,
+                                       const void * pBuf, uint32 ui32BufSize, uint16 ui16Tag,
                                        uint8 ui8Priority);
             int replace (bool bReliableTransmission, bool bSequencedTransmission,
-                         const void *pBuf, uint32 ui32Len, uint16 ui16Tag,
-                         uint8 ui8Priority);
+                         const void * pBuf, uint32 ui32Len, uint16 ui16Tag, uint8 ui8Priority);
             int send (bool bReliableTransmission, bool bSequencedTransmission,
-                      const void *pBuf, uint32 ui32Len, uint16 ui16Tag,
-                      uint8 ui8Priority);
+                      const void * pBuf, uint32 ui32Len, uint16 ui16Tag, uint8 ui8Priority);
+
+
+            static bool callNewPeer (void * pArg, unsigned long ulTimeSinceLastContact);
+            static bool callDeadPeer (void * pArg, unsigned long ulTimeSinceLastContact);
+
 
         private:
+            static const uint16 MAX_MESSAGE_SIZE = 65000U;
+
             const bool _bReliableTransmission;
             const bool _bSequencedTransmission;
             bool _bActiveRemotePeer;
@@ -83,16 +87,16 @@ namespace IHMC_ACI
             const uint32 _ui32RetryTimeout;
             unsigned long _ui32UncreachablePeerTimeout;
 
-            Mocket *_pMocket;
-            NOMADSUtil::Mutex _m;
+            Mocket * _pMocket;
             const NOMADSUtil::String _localPeerAddr;
             const NOMADSUtil::String _remotePeerAddr;
 
-            static const uint16 MAX_MESSAGE_SIZE = 65000;
+            NOMADSUtil::Mutex _m;
             char _buf[MAX_MESSAGE_SIZE];
     };
 
-    inline bool MocketConnHandler::isRemotePeerActive (void)
+
+    inline bool MocketConnHandler::isRemotePeerActive (void) const
     {
         return _bActiveRemotePeer;
     }
@@ -106,7 +110,17 @@ namespace IHMC_ACI
     {
         _bActiveRemotePeer = false;
     }
+
+    inline const char * MocketConnHandler::getLocalPeerAddress (void) const
+    {
+        return _localPeerAddr.c_str();
+    }
+
+    inline const char * MocketConnHandler::getRemotePeerAddress (void) const
+    {
+        return _remotePeerAddr.c_str();
+    }
+
 }
 
 #endif  // INCL_MOCKETS_CONNECTON_HANDLER_H
-

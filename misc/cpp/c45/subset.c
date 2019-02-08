@@ -31,7 +31,7 @@ void SubsetTest(Tree Node, Attribute Att);
 /*************************************************************************/
 
 void EvalSubset(Attribute Att, ItemNo Fp, ItemNo Lp, ItemCount Items)
-/*  ----------  */ 
+/*  ----------  */
 {
     void ComputeFrequencies(Attribute Att, ItemNo Fp, ItemNo Lp);
     void PrintDistribution(Attribute Att, DiscrValue MaxVal, Boolean ShowNames);

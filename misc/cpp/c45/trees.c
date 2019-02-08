@@ -242,7 +242,7 @@ Tree Leaf(ItemCount * ClassFreq, ClassNo NodeClass, ItemCount Cases, ItemCount E
     Node = (Tree) calloc(1, sizeof(TreeRec));
     Node->ClassDist = (ItemCount *) calloc(MaxClass+1, sizeof(ItemCount));
     memcpy(Node->ClassDist, ClassFreq, (MaxClass+1) * sizeof(ItemCount));
-    Node->NodeType = 0; 
+    Node->NodeType = 0;
     Node->Leaf = NodeClass;
     Node->Items	= Cases;
     Node->Errors = Errors;
@@ -267,7 +267,7 @@ void Sprout(Tree Node, DiscrValue Branches)
 /*	Count the nodes in a tree					 */
 /*									 */
 /*************************************************************************/
-	
+
 int TreeSize(Tree Node)
 {
     int Sum = 0;

@@ -44,7 +44,7 @@ bool UserRequests::contains (const char *pszMsgId, String &queryId)
 {
     queryId = "";
 
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return false;
     }
 
@@ -64,20 +64,20 @@ bool UserRequests::contains (const char *pszGroupName, const char*pszSenderNoded
 
     _m.lock (1085);
     BySender *pBySender = _byGroupName.get (pszGroupName);
-    if (pBySender == NULL) {
+    if (pBySender == nullptr) {
         _m.unlock (1085);
         return false;
     }
 
     BySeqId *pBySeqId = pBySender->get (pszSenderNoded);
-    if (pBySeqId == NULL) {
+    if (pBySeqId == nullptr) {
         _m.unlock (1085);
         return false;
     }
 
     bool bRet = pBySeqId->sedIds.hasTSN (ui32MsgSeqId);
     String *pString = pBySeqId->seqIdToQueryId.get (ui32MsgSeqId);
-    if (pString != NULL) {
+    if (pString != nullptr) {
         queryId = pString->c_str(); // queryId = operator makes a copy
     }
 
@@ -87,17 +87,17 @@ bool UserRequests::contains (const char *pszGroupName, const char*pszSenderNoded
 
 int UserRequests::put (const char *pszMsgId)
 {
-    return put (pszMsgId, NULL);
+    return put (pszMsgId, nullptr);
 }
 
 int UserRequests::put (const char *pszGroupName, const char *pszSenderNoded, uint32 ui32MsgSeqId)
 {
-    return put (pszGroupName, pszSenderNoded, ui32MsgSeqId, NULL);
+    return put (pszGroupName, pszSenderNoded, ui32MsgSeqId, nullptr);
 }
 
 int UserRequests::put (const char *pszMsgId, const char *pszQueryId)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
 
@@ -113,15 +113,15 @@ int UserRequests::put (const char *pszMsgId, const char *pszQueryId)
 
 int UserRequests::put (const char *pszGroupName, const char *pszSenderNoded, uint32 ui32MsgSeqId, const char *pszQueryId)
 {
-    if (pszGroupName == NULL || pszSenderNoded == NULL) {
+    if (pszGroupName == nullptr || pszSenderNoded == nullptr) {
         return -1;
     }
 
     _m.lock (1086);
     BySender *pBySender = _byGroupName.get (pszGroupName);
-    if (pBySender == NULL) {
+    if (pBySender == nullptr) {
         pBySender = new BySender (true, true, true, true);
-        if (pBySender == NULL) {
+        if (pBySender == nullptr) {
             checkAndLogMsg ("UserRequests::put", memoryExhausted);
             _m.unlock (1086);
             return -2;
@@ -130,9 +130,9 @@ int UserRequests::put (const char *pszGroupName, const char *pszSenderNoded, uin
     }
 
     BySeqId *pBySeqId = pBySender->get (pszSenderNoded);
-    if (pBySeqId == NULL) {
+    if (pBySeqId == nullptr) {
         pBySeqId = new BySeqId();
-        if (pBySeqId == NULL) {
+        if (pBySeqId == nullptr) {
             checkAndLogMsg ("UserRequests::put", memoryExhausted);
             _m.unlock (1086);
             return -3;
@@ -146,9 +146,9 @@ int UserRequests::put (const char *pszGroupName, const char *pszSenderNoded, uin
         _m.unlock (1086);
         return -4;
     }
-    if (pszQueryId != NULL) {
+    if (pszQueryId != nullptr) {
         String *pQueryId = new String (pszQueryId);
-        if (pQueryId != NULL) {
+        if (pQueryId != nullptr) {
             pBySeqId->seqIdToQueryId.put (ui32MsgSeqId, pQueryId);
         }
     }
@@ -159,7 +159,7 @@ int UserRequests::put (const char *pszGroupName, const char *pszSenderNoded, uin
 
 int UserRequests::remove (const char *pszMsgId)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
 
@@ -175,19 +175,19 @@ int UserRequests::remove (const char *pszMsgId)
 
 int UserRequests::remove (const char *pszGroupName, const char *pszSenderNoded, uint32 ui32MsgSeqId)
 {
-    if (pszGroupName == NULL || pszSenderNoded == NULL) {
+    if (pszGroupName == nullptr || pszSenderNoded == nullptr) {
         return -1;
     }
 
     _m.lock (1087);
     BySender *pBySender = _byGroupName.get (pszGroupName);
-    if (pBySender == NULL) {
+    if (pBySender == nullptr) {
         _m.unlock (1087);
         return 0;
     }
 
     BySeqId *pBySeqId = pBySender->get (pszSenderNoded);
-    if (pBySeqId == NULL) {
+    if (pBySeqId == nullptr) {
         _m.unlock (1087);
         return 0;
     }

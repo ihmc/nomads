@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -29,7 +29,7 @@
  * subscribed group's template will fail.
  *
  * NOTE: value 0 is reserved and CAN NOT be used.
- * NOTE: a subscription meant to accept any tag for the group must be created using 
+ * NOTE: a subscription meant to accept any tag for the group must be created using
  *       addGroup (pszGroupName, ui8Priority, bReliable, bSequenced),
  *       calling
  *       addGroup (pszGroupName, WildCard::ANY_TAG, ui8Priority, bReliable, bSequenced)
@@ -100,7 +100,7 @@ namespace IHMC_ACI
 
             /**
              * Checks if the client has subscribed to the specified group (and tag)
-             * Calling hasGenericSubscription (pszGroupName) means that there's 
+             * Calling hasGenericSubscription (pszGroupName) means that there's
              * no interest in the kind of the subscription (that is
              * GroupSubscription rather than GroupTagSubscription)
              *
@@ -118,7 +118,7 @@ namespace IHMC_ACI
             bool isGroupPredicateSubscription (const char *pszGroupName);
 
             /**
-             * Checks whether there is any client with a subscription matching 
+             * Checks whether there is any client with a subscription matching
              * pszGroupName (and ui16Tag) the client has subscribed to the
              * specified group (and tag) and requested reliable delivery.
              */
@@ -153,7 +153,7 @@ namespace IHMC_ACI
             bool isWildGroup (const char *pszString);
 
             void display (void);
-            
+
             uint8 getCount (void);
             NOMADSUtil::StringHashtable<Subscription>::Iterator getIterator (void);
 

@@ -17,8 +17,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import us.ihmc.aci.dspro2.util.LoggerInterface;
-import us.ihmc.aci.dspro2.util.LoggerWrapper;
+import org.slf4j.Logger;
+import us.ihmc.aci.util.dspro.LogUtils;
 import us.ihmc.aci.util.dspro.NodePath;
 import us.ihmc.comm.CommException;
 
@@ -26,7 +26,7 @@ import us.ihmc.comm.CommException;
  *
  * @author Giacomo Benincasa    (gbenincasa@ihmc.us)
  */
-public class QueuedDSProProxy extends DSProProxy
+public class QueuedDSProProxy extends AbstractDSProProxy
 {
     public interface Callback
     {        
@@ -80,16 +80,33 @@ public class QueuedDSProProxy extends DSProProxy
     public class QueuedArrivedMetadata extends QueuedData
     {
         QueuedArrivedMetadata (String id, String groupName, String objectId,
-                               String instanceId, String XMLMetadata,
+                               String instanceId, String jsonMetadata,
                                String referredDataId, String queryId)
         {
             super (id, groupName, objectId, instanceId, queryId);
-            this.XMLMetadata = XMLMetadata;
+            this.jsonMetadata = jsonMetadata;
             this.referredDataId = referredDataId;
         }
 
-        public final String XMLMetadata;
+        public final String jsonMetadata;
         public final String referredDataId;
+    }
+
+    public class QueuedAvailableData extends QueuedData
+    {
+        QueuedAvailableData (String id, String groupName, String objectId, String instanceId, String referredDataId,
+                             String mimeType, byte[] metadata, String queryId)
+        {
+            super (id, groupName, objectId, instanceId, queryId);
+
+            this.referredDataId = referredDataId;
+            this.mimeType = mimeType;
+            this.metadata = metadata;
+        }
+
+        public final String referredDataId;
+        public final String mimeType;
+        public final byte[] metadata;
     }
 
     public class QueuedArrivedPeer implements Callback
@@ -196,19 +213,9 @@ public class QueuedDSProProxy extends DSProProxy
     // Class implementation
     //--------------------------------------------------------------------------
 
-    public QueuedDSProProxy ()
+    public QueuedDSProProxy (DSProProxyInterface proxy)
     {
-        super();
-    }
-
-    public QueuedDSProProxy (short applicationId)
-    {
-        super (applicationId);
-    }
-
-    public QueuedDSProProxy (short applicationId, String host, int iPort)
-    {
-    	super (applicationId, host, iPort);
+        super(proxy);
     }
 
     @Override
@@ -228,18 +235,37 @@ public class QueuedDSProProxy extends DSProProxy
 
     @Override
     public boolean metadataArrived (String id, String groupName, String objectId, String instanceId,
-                                    String XMLMetadata, String referredDataId, String queryId)
+                                    String jsonMetadata, String referredDataId, String queryId)
     {
         if (_nDSProListeners.get() <= 0) {
             return true;
         }
-        
-        System.out.println ("NOMADS:QueuedDSProProxy: metadataArrived: " + id + " about to adding it to the queue");
+
+        LOG.debug ("NOMADS:QueuedDSProProxy: metadataArrived: " + id + " about to adding it to the queue");
         
         _arrivedDSProListenerCallback.add (new QueuedArrivedMetadata (id, groupName, objectId, instanceId,
-                                                                      XMLMetadata, referredDataId, queryId));
+                                                                      jsonMetadata, referredDataId, queryId));
 
-        System.out.println ("NOMADS:QueuedDSProProxy: metadataArrived: " + id
+        LOG.debug ("NOMADS:QueuedDSProProxy: metadataArrived: " + id
+                + " added it to the queue (queue size: " + _arrivedDSProListenerCallback.size() + ")");
+
+        return true;
+    }
+
+    @Override
+    public boolean dataAvailable (String id, String groupName, String objectId, String instanceId, String referredDataId,
+                                  String mimeType, byte[] metadata, String queryId)
+    {
+        if (_nDSProListeners.get() <= 0) {
+            return true;
+        }
+
+        LOG.debug ("NOMADS:QueuedDSProProxy: metadataArrived: " + id + " about to adding it to the queue");
+
+        _arrivedDSProListenerCallback.add (new QueuedAvailableData (id, groupName, objectId, instanceId,
+                                           referredDataId, mimeType, metadata, queryId));
+
+        LOG.debug ("NOMADS:QueuedDSProProxy: metadataArrived: " + id
                 + " added it to the queue (queue size: " + _arrivedDSProListenerCallback.size() + ")");
 
         return true;
@@ -359,44 +385,44 @@ public class QueuedDSProProxy extends DSProProxy
     }
 
     @Override
-    public int registerDSProProxyListener (DSProProxyListener listener)
+    public synchronized int registerDSProProxyListener (DSProProxyListener listener)
         throws CommException
     {
         LOG.info ("RegisterDSProProxyListener -> number of registered listeners: " + _nDSProListeners.get());
         int rc = 0;
         if (_nDSProListeners.get() == 0) {
-            rc = super.registerDSProProxyListener (this);
+            rc = proxy.registerDSProProxyListener (this);
         }
         _nDSProListeners.incrementAndGet();
         return rc;
     }
 
     @Override
-    public void deregisterDSProProxyListener (DSProProxyListener listener)
+    public synchronized void deregisterDSProProxyListener (DSProProxyListener listener)
         throws CommException
     {
         LOG.info ("DeregisterDSProProxyListener -> number of registered listeners: " + _nDSProListeners.get());
         _nDSProListeners.decrementAndGet();
         LOG.info ("DeregisterDSProProxyListener -> number of registered listeners after remove: " + _nDSProListeners.get());
         if (_nDSProListeners.get() == 0) {
-            super.deregisterDSProProxyListener(this);
+            proxy.deregisterDSProProxyListener(this);
         }
     }
 
     @Override
-    public int registerSearchListener (SearchListener listener)
+    public synchronized int registerSearchListener (SearchListener listener)
         throws CommException
     {
         int rc = 0;
         if (_nSearchListeners.get() == 0) {
-            rc = super.registerSearchListener (this);
+            rc = proxy.registerSearchListener (this);
         }
         _nSearchListeners.incrementAndGet();
         return rc;
     }
 
     @Override
-    public void deregisterSearchListener (SearchListener listener)
+    public synchronized void deregisterSearchListener (SearchListener listener)
         throws CommException
     {
         _nSearchListeners.decrementAndGet();
@@ -407,7 +433,7 @@ public class QueuedDSProProxy extends DSProProxy
 
     private final AtomicInteger _nDSProListeners = new AtomicInteger (0);
     private final AtomicInteger _nSearchListeners = new AtomicInteger (0);
-    private final BlockingQueue<Callback> _arrivedDSProListenerCallback = new LinkedBlockingQueue<Callback>();
+    private final BlockingQueue<Callback> _arrivedDSProListenerCallback = new LinkedBlockingQueue<>();
 
-    private final static LoggerInterface LOG = LoggerWrapper.getLogger (QueuedDSProProxy.class);
+    private final static Logger LOG = LogUtils.getLogger (QueuedDSProProxy.class);
 }

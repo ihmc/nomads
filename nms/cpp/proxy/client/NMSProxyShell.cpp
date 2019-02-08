@@ -1,4 +1,4 @@
-/* 
+/*
  * NMSProxyShell.cpp
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -63,7 +63,7 @@ namespace NOMADSUtil
         if (pszString == NULL) {
             return false;
         }
-        for (unsigned int i = 0; pszString[i] != '\0' ;i++) {
+        for (unsigned int i = 0; pszString[i] != '\0'; i++) {
             if (!isdigit (pszString[i])) {
                 return false;
             }
@@ -71,7 +71,7 @@ namespace NOMADSUtil
         return true;
     }
 
-    void handleGenericaCast (NetworkMessageServiceProxy &nmsProxy, CastType type, const void *pToken, const char *pszCmdLine)
+    void handleGenericaCast (NetworkMessageServiceProxy &nmsProxy, CastType type, const void *pToken, const char *pszCmdLine, bool bSecure = false)
     {
         StringTokenizer st (pszCmdLine);
         st.getNextToken();  // This is the command itself - discard
@@ -111,35 +111,36 @@ namespace NOMADSUtil
         int rc = 0;
         String methodName;
         switch (type) {
-            case GROUPCAST:
-                methodName = "broadcastMessage";
-                rc = nmsProxy.broadcastMessage (ui8MsgType, ppszOutgoingInterfaces, ui32DestAddr, ui16MsgId,
-                                                ui8HopCount, ui8TTL, ui16DelayTolerance, pszMsgMetaData, ui16MsgMetaDataLen,
-                                                pMsg, ui16MsgLen, bExpedited, pszHints);
-                break;
+        case GROUPCAST:
+            methodName = "broadcastMessage";
+            rc = nmsProxy.broadcastMessage (ui8MsgType, ppszOutgoingInterfaces, ui32DestAddr, ui16MsgId,
+                                            ui8HopCount, ui8TTL, ui16DelayTolerance, pszMsgMetaData, ui16MsgMetaDataLen,
+                                            pMsg, ui16MsgLen, bExpedited, pszHints);
+            break;
 
-            case TRANSMIT:
-                methodName = "transmitMessage";
-                rc = nmsProxy.transmitMessage (ui8MsgType, ppszOutgoingInterfaces, ui32DestAddr, ui16MsgId,
-                                               ui8HopCount, ui8TTL, ui16DelayTolerance, pszMsgMetaData, ui16MsgMetaDataLen,
-                                               pMsg, ui16MsgLen, pszHints);
-                break;
+        case TRANSMIT:
+            methodName = "transmitMessage";
+            rc = nmsProxy.transmitMessage (ui8MsgType, ppszOutgoingInterfaces, ui32DestAddr, ui16MsgId,
+                                           ui8HopCount, ui8TTL, ui16DelayTolerance, pszMsgMetaData, ui16MsgMetaDataLen,
+										   pMsg, ui16MsgLen, pszHints);
+            break;
 
-            case TRANSMIT_RELIABLE:
-                methodName = "transmitReliableMessage";
-                rc = nmsProxy.transmitReliableMessage (ui8MsgType, ppszOutgoingInterfaces, ui32DestAddr, ui16MsgId,
-                                                       ui8HopCount, ui8TTL, ui16DelayTolerance, pszMsgMetaData, ui16MsgMetaDataLen,
-                                                       pMsg, ui16MsgLen, pszHints);
-                break;
+        case TRANSMIT_RELIABLE:
+            methodName = "transmitReliableMessage";
+            rc = nmsProxy.transmitReliableMessage (ui8MsgType, ppszOutgoingInterfaces, ui32DestAddr, ui16MsgId,
+                                                   ui8HopCount, ui8TTL, ui16DelayTolerance, pszMsgMetaData, ui16MsgMetaDataLen,
+												   pMsg, ui16MsgLen, pszHints);
+            break;
 
-            default:
-                rc = -1;
-                assert (false);
+        default:
+            rc = -1;
+            assert(false);
         }
-        printf ("<%s> returned %d.\n", pszCmdLine, rc);
+        printf("<%s> returned %d.\n", pszCmdLine, rc);
     }
 }
 
+//This is the method where the sessionKey has to be inserted
 NMSProxyShell::NMSProxyShell()
     : NetworkMessageServiceListener (0), _nmsProxy (0, true)
 {
@@ -163,8 +164,8 @@ int NMSProxyShell::processCmd (const void *pToken, char *pszCmdLine)
 {
     String line (pszCmdLine);
     line.trim();
-    StringTokenizer st (line, ' ', ' ');
-    String cmd (st.getNextToken());
+    StringTokenizer cmdTokenizer (line, ' ', ' ');
+    String cmd (cmdTokenizer.getNextToken());
     cmd.trim();
     cmd.convertToLowerCase();
     if (cmd.length() <= 0) {
@@ -185,10 +186,10 @@ int NMSProxyShell::processCmd (const void *pToken, char *pszCmdLine)
         char buf[1024];
         int rc = 0;
         while ((rc = lr.readLine (buf, 1024)) >= 0) {
-            String line (buf, rc);
-            if (line.startsWith ("#") == 0) {
+            String batchCmd (buf, rc);
+            if (batchCmd.startsWith ("#") == 0) {
                 // Not a comment
-                if ((rc = processCmd (pToken, line)) != 0) {
+                if ((rc = processCmd (pToken, batchCmd)) != 0) {
                     return rc;
                 }
             }
@@ -267,16 +268,17 @@ int NMSProxyShell::processCmd (const void *pToken, char *pszCmdLine)
 }
 
 int NMSProxyShell::messageArrived (const char *pszIncomingInterface, uint32 ui32SourceIPAddress, uint8 ui8MsgType,
-                                   uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL,
+                                   uint16 ui16MsgId, uint8 ui8HopCount, uint8 ui8TTL, bool bUnicast,
                                    const void *pMsgMetaData, uint16 ui16MsgMetaDataLen,
-                                   const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp)
+                                   const void *pMsg, uint16 ui16MsgLen, int64 i64Timestamp, uint64 ui64MsgCount, uint64 ui64UnicastMsgCount)
 {
     InetAddr addr (ui32SourceIPAddress);
-    String metadata ((const char *) pMsgMetaData, ui16MsgMetaDataLen);
+    String metadata ((const char *)pMsgMetaData, ui16MsgMetaDataLen);
     printf ("Source %s.\tIncoming interface: %s.\n", addr.getIPAsString(), pszIncomingInterface);
     printf ("Metadata %s.\n", metadata.c_str());
     printf ("Data len %u.\n", ui16MsgLen);
-    printf ("Hop count: %d\tTTL %d.\b", (int) ui8HopCount, int (ui8TTL));
+    printf ("Hop count: %d\tTTL %d.\n", (int) ui8HopCount, int (ui8TTL));
+    printf ("%s message count: %llu.\n", bUnicast ? "Unicast" : "Multicast", ui64MsgCount);
     return 0;
 }
 
@@ -291,12 +293,12 @@ void NMSProxyShell::handleHelp (const void *pToken, const char *pszCmdLine)
 
 void NMSProxyShell::handleTransmit (const void *pToken, const char *pszCmdLine)
 {
-    handleGenericaCast (_nmsProxy, TRANSMIT, pToken, pszCmdLine);
+    handleGenericaCast(_nmsProxy, TRANSMIT, pToken, pszCmdLine);
 }
 
 void NMSProxyShell::handleTransmitReliable (const void *pToken, const char *pszCmdLine)
 {
-    handleGenericaCast (_nmsProxy, TRANSMIT_RELIABLE, pToken, pszCmdLine);
+    handleGenericaCast(_nmsProxy, TRANSMIT_RELIABLE, pToken, pszCmdLine);
 }
 
 void NMSProxyShell::handleSetRetransmissionTimeout (const void *pToken, const char *pszCmdLine)
@@ -336,7 +338,7 @@ void NMSProxyShell::handleGetInterfaces (const void *pToken, const char *pszCmdL
     if (pszDestination == NULL) {
         ppszInterfaces = _nmsProxy.getActiveNICsInfoAsString();
     }
-    else if (isNumber (pszDestination)) {
+    else if (isNumber(pszDestination)) {
         uint32 ui32SenderRemoteIPv4Addr = atoui32 (pszDestination);
         ppszInterfaces = _nmsProxy.getActiveNICsInfoAsStringForDestinationAddr (ui32SenderRemoteIPv4Addr);
     }
@@ -380,7 +382,7 @@ void NMSProxyShell::handleGetReceiveRate (const void *pToken, const char *pszCmd
     st.getNextToken();  // This is the command itself - discard
     const char *pszAddr = st.getNextToken();
 
-    printf ("<%s> returned %lld.\n", pszCmdLine, _nmsProxy.getReceiveRate (pszAddr));
+    printf ("<%s> returned %lld.\n", pszCmdLine, _nmsProxy.getReceiveRate(pszAddr));
 }
 
 void NMSProxyShell::handleGetTransmissionQueueSize (const void *pToken, const char *pszCmdLine)
@@ -389,7 +391,7 @@ void NMSProxyShell::handleGetTransmissionQueueSize (const void *pToken, const ch
     st.getNextToken();  // This is the command itself - discard
     const char *pszOutgoingInterface = st.getNextToken();
 
-    printf ("<%s> returned %u.\n", pszCmdLine, _nmsProxy.getTransmissionQueueSize (pszOutgoingInterface));
+    printf ("<%s> returned %u.\n", pszCmdLine, _nmsProxy.getTransmissionQueueSize(pszOutgoingInterface));
 }
 
 void NMSProxyShell::handleGetRascaledTransmissionQueueSize (const void *pToken, const char *pszCmdLine)
@@ -416,7 +418,7 @@ void NMSProxyShell::handleGetTransmitRateLimit (const void *pToken, const char *
     st.getNextToken();  // This is the command itself - discard
     const char *pszInterface = st.getNextToken();
 
-    printf ("<%s> returned %u.\n", pszCmdLine, _nmsProxy.getTransmitRateLimit (pszInterface));
+    printf ("<%s> returned %u.\n", pszCmdLine, _nmsProxy.getTransmitRateLimit(pszInterface));
 }
 
 void NMSProxyShell::handleSetTransmissionQueueMaxSize (const void *pToken, const char *pszCmdLine)
@@ -427,14 +429,14 @@ void NMSProxyShell::handleSetTransmissionQueueMaxSize (const void *pToken, const
     const char *pszQueueMaxSize = st.getNextToken();
     uint32 ui32QueueMaxSize = atoui32 (pszQueueMaxSize);
 
-    printf ("<%s> returned %d.\n", pszCmdLine, _nmsProxy.setTransmissionQueueMaxSize (pszOutgoingInterface, ui32QueueMaxSize));
+    printf ("<%s> returned %d.\n", pszCmdLine, _nmsProxy.setTransmissionQueueMaxSize(pszOutgoingInterface, ui32QueueMaxSize));
 }
 
 void NMSProxyShell::handleSetTransmitRateLimit (const void *pToken, const char *pszCmdLine)
 {
     StringTokenizer st (pszCmdLine);
     st.getNextToken();  // This is the command itself - discard
-    
+
     DArray2<String> tokens (3U);
     unsigned int i = 0;
     for (const char *pszToken; (pszToken = st.getNextToken()) != NULL; i++) {
@@ -444,100 +446,100 @@ void NMSProxyShell::handleSetTransmitRateLimit (const void *pToken, const char *
         printf ("<%s> returned an error: at least the rate limit must be set\n", pszCmdLine);
     }
 
-    const char *pszInterface = (tokens.getHighestIndex() > 1 ? tokens [tokens.getHighestIndex()-2].c_str() : NULL);
-    const char *pszDestinationAddress = (tokens.getHighestIndex() > 0 ? tokens [tokens.getHighestIndex()-1].c_str() : NULL);
+    const char *pszInterface = (tokens.getHighestIndex() > 1 ? tokens[tokens.getHighestIndex()-2].c_str() : NULL);
+    const char *pszDestinationAddress = (tokens.getHighestIndex() > 0 ? tokens[tokens.getHighestIndex()-1].c_str() : NULL);
     const char *pszRateLimit = tokens[tokens.getHighestIndex()].c_str();
-    uint32 ui32RateLimit = atoui32 (pszRateLimit);
+    uint32 ui32RateLimit = atoui32(pszRateLimit);
 
-    printf ("<%s> returned %d.\n", pszCmdLine, _nmsProxy.setTransmitRateLimit (pszInterface, pszDestinationAddress, ui32RateLimit));
+    printf("<%s> returned %d.\n", pszCmdLine, _nmsProxy.setTransmitRateLimit (pszInterface, pszDestinationAddress, ui32RateLimit));
 }
 
-void NMSProxyShell::handleGetLinkCapacity (const void *pToken, const char *pszCmdLine)
+void NMSProxyShell::handleGetLinkCapacity(const void *pToken, const char *pszCmdLine)
 {
-    StringTokenizer st (pszCmdLine);
+    StringTokenizer st(pszCmdLine);
     st.getNextToken();  // This is the command itself - discard
     const char *pszInterface = st.getNextToken();
 
-    printf ("<%s> returned %u.\n", pszCmdLine, _nmsProxy.getLinkCapacity (pszInterface));
+    printf("<%s> returned %u.\n", pszCmdLine, _nmsProxy.getLinkCapacity(pszInterface));
 }
 
-void NMSProxyShell::handleSetLinkCapacity (const void *pToken, const char *pszCmdLine)
+void NMSProxyShell::handleSetLinkCapacity(const void *pToken, const char *pszCmdLine)
 {
-    StringTokenizer st (pszCmdLine);
+    StringTokenizer st(pszCmdLine);
     st.getNextToken();  // This is the command itself - discard
     const char *pszInterface = st.getNextToken();
     const char *pszLinkCapacity = st.getNextToken();
-    const uint32 ui32LinkCapacity = atoui32 (pszLinkCapacity);
+    const uint32 ui32LinkCapacity = atoui32(pszLinkCapacity);
 
-    _nmsProxy.setLinkCapacity (pszInterface, ui32LinkCapacity);
-    printf ("<%s> worked.\n", pszCmdLine);
+    _nmsProxy.setLinkCapacity(pszInterface, ui32LinkCapacity);
+    printf("<%s> worked.\n", pszCmdLine);
 }
 
-void NMSProxyShell::handleGetNeighborQueueLength (const void *pToken, const char *pszCmdLine)
+void NMSProxyShell::handleGetNeighborQueueLength(const void *pToken, const char *pszCmdLine)
 {
-    StringTokenizer st (pszCmdLine);
+    StringTokenizer st(pszCmdLine);
     st.getNextToken();  // This is the command itself - discard
     const char *pszInterface = st.getNextToken();
     const char *pszSenderAddr = st.getNextToken();
     unsigned long ulSenderRemoteAddr = 0;
     if (pszSenderAddr != NULL) {
-        const InetAddr inet (pszSenderAddr);
+        const InetAddr inet(pszSenderAddr);
         ulSenderRemoteAddr = inet.getIPAddress();
     }
 
-    printf ("<%s> returned %d.\n", pszCmdLine, (int) _nmsProxy.getNeighborQueueLength (pszInterface, ulSenderRemoteAddr));
+    printf("<%s> returned %d.\n", pszCmdLine, (int)_nmsProxy.getNeighborQueueLength(pszInterface, ulSenderRemoteAddr));
 }
 
-void NMSProxyShell::handleClearToSend (const void *pToken, const char *pszCmdLine)
+void NMSProxyShell::handleClearToSend(const void *pToken, const char *pszCmdLine)
 {
-    StringTokenizer st (pszCmdLine);
+    StringTokenizer st(pszCmdLine);
     st.getNextToken();  // This is the command itself - discard
     const char *pszInterface = st.getNextToken();
 
-    printf ("<%s> returned %d.\n", pszCmdLine, (int) _nmsProxy.clearToSend (pszInterface));
+    printf("<%s> returned %d.\n", pszCmdLine, (int)_nmsProxy.clearToSend(pszInterface));
 }
 
-void NMSProxyShell::handleRegisterListener (const void *pToken, const char *pszCmdLine)
+void NMSProxyShell::handleRegisterListener(const void *pToken, const char *pszCmdLine)
 {
-    StringTokenizer st (pszCmdLine);
+    StringTokenizer st(pszCmdLine);
     st.getNextToken();  // This is the command itself - discard
     const char *pszMsgType = st.getNextToken();
-    uint32 ui32Type = (pszMsgType == NULL ? 0U : atoui32 (pszMsgType));
+    uint32 ui32Type = (pszMsgType == NULL ? 0U : atoui32(pszMsgType));
     if (ui32Type > 0xFF) {
-        printf ("<%s> failed: message type %u too large." , pszCmdLine, ui32Type);
+        printf("<%s> failed: message type %u too large.", pszCmdLine, ui32Type);
     }
 
-    printf ("<%s> returned %d.\n", pszCmdLine, _nmsProxy.registerHandlerCallback ((uint8) ui32Type, this));
+    printf("<%s> returned %d.\n", pszCmdLine, _nmsProxy.registerHandlerCallback((uint8)ui32Type, this));
 }
 
-void NMSProxyShell::handlePing (const void *pToken, const char *pszCmdLine)
+void NMSProxyShell::handlePing(const void *pToken, const char *pszCmdLine)
 {
     _nmsProxy.ping();
 }
 
-int parseArguments (int argc, char *argv[], String &host, uint16 &ui16Port, String &homeDir, String &batchFile)
+int parseArguments(int argc, char *argv[], String &host, uint16 &ui16Port, String &homeDir, String &batchFile)
 {
-    homeDir = getProgHomeDir (argv[0]);
+    homeDir = getProgHomeDir(argv[0]);
 
     for (int i = 1; i < argc;) {
-        if (0 == stricmp (argv[i], "-host")) {
+        if (0 == stricmp(argv[i], "-host")) {
             i++;
             if (i < argc) {
                 host = argv[i];
             }
         }
-        else if (0 == stricmp (argv[i], "-port")) {
+        else if (0 == stricmp(argv[i], "-port")) {
             i++;
             if (i < argc) {
-                ui16Port = (uint16) atoi (argv[i]);
+                ui16Port = (uint16)atoi(argv[i]);
             }
         }
-        else if (0 == stricmp (argv[i], "-load")) {
+        else if (0 == stricmp(argv[i], "-load")) {
             i++;
             if (i < argc) {
-                String tmp (argv[i]);
+                String tmp(argv[i]);
                 tmp.trim();
-                if (!tmp.startsWith ("/")) {
+                if (!tmp.startsWith("/")) {
                     // relative path - make it absolute
                     batchFile = homeDir;
                     batchFile += "/";
@@ -546,7 +548,7 @@ int parseArguments (int argc, char *argv[], String &host, uint16 &ui16Port, Stri
             }
         }
         else {
-            printf ("usage: %s [-host <host>] [-port <port>] [-load <BatchFile>]\n", argv[0]);
+            printf("usage: %s [-host <host>] [-port <port>] [-load <BatchFile>]\n", argv[0]);
             return -1;
         }
         i++;
@@ -554,7 +556,7 @@ int parseArguments (int argc, char *argv[], String &host, uint16 &ui16Port, Stri
     return 0;
 }
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     if (!pLogger) {
         pLogger = new Logger();
@@ -562,40 +564,40 @@ int main (int argc, char *argv[])
     pLogger->enableScreenOutput();
     pLogger->setDebugLevel(Logger::L_LowDetailDebug);
 
-    String host ("127.0.0.1");
+    String host("127.0.0.1");
     uint16 ui16Port = NMSProperties::DEFAULT_NMS_PROXY_PORT;
     String homeDir;
     String batchFile;
-    if (parseArguments (argc, argv, host, ui16Port, homeDir, batchFile) < 0) {
-        printf ("Usage: %s -host hostname -port port -load batchfile\n", argv[0]);
+    if (parseArguments(argc, argv, host, ui16Port, homeDir, batchFile) < 0) {
+        printf("Usage: %s -host hostname -port port -load batchfile\n", argv[0]);
     }
 
-    printf ("using host <%s> and port <%d> to connect to DisService\n",
-            (const char *) host, (int) ui16Port);
+    printf("using host <%s> and port <%d> to connect to DisService\n",
+        (const char *)host, (int)ui16Port);
     NMSProxyShell shell;
-    shell.setPrompt ("NMSProxy");
-    int rc = shell.init (host, ui16Port);
+    shell.setPrompt("NMSProxy");
+    int rc = shell.init(host, ui16Port);
     if (rc < 0) {
-        printf ("could not init network message service. Return code: %d.\n", rc);
+        printf("could not init network message service. Return code: %d.\n", rc);
     }
 
     if (batchFile.length() > 0) {
         // Batch mode
-        printf ("Running in batch mode\n");
-        String cmdLine ("load ");
+        printf("Running in batch mode\n");
+        String cmdLine("load ");
         cmdLine += batchFile;
         char *pszCmdLine = cmdLine.r_str();
         if (pszCmdLine != NULL) {
-            shell.processCmd (NULL, pszCmdLine);
-            free (pszCmdLine);
+            shell.processCmd(NULL, pszCmdLine);
+            free(pszCmdLine);
         }
         while (true) {
-            sleepForMilliseconds (5000);
+            sleepForMilliseconds(5000);
         }
     }
     else {
         // Interactive mode
-        printf ("Running in interactive mode\n");
+        printf("Running in interactive mode\n");
         shell.run();
     }
 

@@ -19,23 +19,59 @@
 
 #include "PositionUpdater.h"
 
-#include "Controller.h"
 #include "Defs.h"
 #include "DSPro.h"
 #include "DSProImpl.h"
 #include "DSSFLib.h"
 #include "MessageIdGenerator.h"
 #include "MetaData.h"
-#include "MetadataConfiguration.h"
+#include "MetadataConfigurationImpl.h"
 #include "NodeContextManager.h"
 
 #include "BufferWriter.h"
 #include "Logger.h"
 #include "NLFLib.h"
 #include "DataStore.h"
+#include "MetadataHelper.h"
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
+
+namespace POSITION_UPDATER
+{
+    int getReferredObjectAndInstanceIds (const MetaData *pMetadata, String &sReferredObjectId, String &sReferredInstanceId, String &sRefersTo)
+    {
+        pMetadata->getFieldValue (MetaData::REFERRED_DATA_OBJECT_ID, sReferredObjectId);
+        pMetadata->getFieldValue (MetaData::REFERRED_DATA_INSTANCE_ID, sReferredInstanceId);
+        pMetadata->getReferredDataMsgId (sRefersTo);
+        return 0;
+    }
+
+    Message * getCompleteMessageAndRemoveDSProMetadata (DataStore *pDataStore, const char *pszMsgId, MessageHeaders::MsgType &type)
+    {
+        Message *pMsg = pDataStore->getCompleteMessage (pszMsgId);
+        if (pMsg == nullptr) {
+            return nullptr;
+        }
+        const void *pData = pMsg->getData ();
+        MessageHeader *pMH = pMsg->getMessageHeader ();
+        uint32 ui32NewLen = 0;
+        void *pNewData = MessageHeaders::removeDSProHeader (pMsg->getData (), pMH->getFragmentLength (), ui32NewLen, type);
+        free ((void*)pData);
+        if (pNewData == nullptr || ui32NewLen == 0) {
+            delete pMsg->getMessageHeader ();
+            return nullptr;
+        }
+
+        pMH->setFragmentLength (ui32NewLen);
+        pMH->setTotalMessageLength (ui32NewLen);
+        pMsg->setData (pNewData);
+
+        return pMsg;
+    }
+}
+
+using namespace POSITION_UPDATER;
 
 PositionUpdater::PositionUpdater (NodeContextManager *pNodeContexMgr,
                                   DSProImpl *pDSPro)
@@ -52,29 +88,30 @@ PositionUpdater::~PositionUpdater (void)
 
 void PositionUpdater::addMetadataToNotify (const char *pszQueryId, const char **ppszMsgIds)
 {
-    if (ppszMsgIds == NULL || ppszMsgIds == NULL) {
+    const char *pszMethodName = "PositionUpdater::addMetadataToNotify";
+    if (ppszMsgIds == nullptr || ppszMsgIds == nullptr) {
         return;
     }
 
     _m.lock();
     MsgIdList *pMsgIds = _pMsgToNotify->get (pszQueryId);
     bool bAtLeastOne = false;
-    bool bNewMsgIdList = (pMsgIds == NULL);
+    bool bNewMsgIdList = (pMsgIds == nullptr);
     if (bNewMsgIdList) {
         pMsgIds = new MsgIdList();
-        if (pMsgIds == NULL) {
-            checkAndLogMsg ("PositionUpdater::addMetadataToNotify", memoryExhausted);
+        if (pMsgIds == nullptr) {
+            checkAndLogMsg (pszMethodName, memoryExhausted);
             _m.unlock();
             return;
         }
         _pMsgToNotify->put (pszQueryId, pMsgIds);
     }
-    for (unsigned int i = 0; ppszMsgIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszMsgIds[i] != nullptr; i++) {
         String msgId (ppszMsgIds[i]);
         if (bNewMsgIdList || (pMsgIds->search (msgId) == 0)) {
             bAtLeastOne = true;
             pMsgIds->add (msgId);
-            checkAndLogMsg ("PositionUpdater::addMetadataToNotify", Logger::L_Info,
+            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
                             "requested message %s\n", ppszMsgIds[i]);
         }
     }
@@ -99,22 +136,22 @@ void PositionUpdater::positionUpdated (void)
 
 void PositionUpdater::requestMessage (const char *pszMsgId)
 {
-    requestMessage (pszMsgId, NULL, NULL, NULL);
+    requestMessage (pszMsgId, nullptr, nullptr, nullptr);
 }
 
 void PositionUpdater::requestMessage (const char *pszMsgId, const char *pszPublisherId,
                                       const char *pszSenderNodeId, DArray<uint8> *pLocallyCachedChunkIds)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return;
     }
     MsgIdWrapper *pMsgIdWr = new MsgIdWrapper (pszMsgId, pszPublisherId, pszSenderNodeId, pLocallyCachedChunkIds);
-    if (pMsgIdWr == NULL) {
+    if (pMsgIdWr == nullptr) {
         checkAndLogMsg ("PositionUpdater::requestMessage", memoryExhausted);
     }
     _m.lock();
     MsgIdWrapper *pOldMsgIdWr = _msgToRequest.search (pMsgIdWr);
-    if (pOldMsgIdWr == NULL) {
+    if (pOldMsgIdWr == nullptr) {
         _msgToRequest.prepend (pMsgIdWr);
         checkAndLogMsg ("PositionUpdater::requestMessage", Logger::L_Info,
                         "requested message %s\n", pszMsgId);
@@ -122,7 +159,7 @@ void PositionUpdater::requestMessage (const char *pszMsgId, const char *pszPubli
         _cv.notify();
     }
     else {
-        if (pLocallyCachedChunkIds != NULL) {
+        if (pLocallyCachedChunkIds != nullptr) {
             // Update the list of locally cached chunk IDs
             for (unsigned int i = 0; i < pLocallyCachedChunkIds->size(); i++) {
                 pOldMsgIdWr->locallyCachedChunkIds[i] = (*pLocallyCachedChunkIds)[i];
@@ -135,10 +172,10 @@ void PositionUpdater::requestMessage (const char *pszMsgId, const char *pszPubli
 
 void PositionUpdater::removeMessageRequest (const char *pszMsgId)
 {
-    MsgIdWrapper msgIdWr (pszMsgId, NULL, NULL, NULL);
+    MsgIdWrapper msgIdWr (pszMsgId, nullptr, nullptr, nullptr);
     _m.lock();
     MsgIdWrapper *pMsgIdWrToRemove = _msgToRequest.remove (&msgIdWr);
-    if (pMsgIdWrToRemove != NULL) {
+    if (pMsgIdWrToRemove != nullptr) {
         checkAndLogMsg ("PositionUpdater::removeMessageRequest", Logger::L_Info,
                         "removed requested message %s\n", pszMsgId);
         delete pMsgIdWrToRemove;
@@ -153,15 +190,15 @@ void PositionUpdater::run (void)
 
     started();
 
-    BufferWriter bw;   
+    BufferWriter bw;
     do {
         _m.lock();
         if (!_bMessageRequested) {
             _cv.wait (DSPro::DEFAULT_UPDATE_TIMEOUT);
         }
 
-        if (pTopoLog != NULL) {
-            if (_pDSPro != NULL && _pDSPro->_pTopology != NULL) {
+        if (pTopoLog != nullptr) {
+            if ((_pDSPro != nullptr) && (_pDSPro->_pTopology != nullptr)) {
                 logTopology (pszMethodName, Logger::L_Info, "\n==== TOPOLOGY ===\n");
                 _pDSPro->_pTopology->display (pTopoLog->getLogFileHandle());
                 logTopology (pszMethodName, Logger::L_Info, "\n=================\n");
@@ -170,7 +207,7 @@ void PositionUpdater::run (void)
 
         LList<MsgIdWrapper> msgToRequestCpy;
         int64 i64Now = getTimeInMilliseconds();
-        for (MsgIdWrapper *pMsgIdWr = _msgToRequest.getFirst(); pMsgIdWr != NULL; pMsgIdWr = _msgToRequest.getNext()) {
+        for (MsgIdWrapper *pMsgIdWr = _msgToRequest.getFirst(); pMsgIdWr != nullptr; pMsgIdWr = _msgToRequest.getNext()) {
             msgToRequestCpy.add (*pMsgIdWr); // copy the IDs of the message to request
             pMsgIdWr->ui64LatestRequestTime = i64Now;
         }
@@ -183,7 +220,7 @@ void PositionUpdater::run (void)
 
         MsgIdWrapper msgIdWr;
         for (int rc = msgToRequestCpy.getFirst (msgIdWr); rc == 1; rc = msgToRequestCpy.getNext (msgIdWr)) {
-            int64 i64Elapsed = i64Now - msgIdWr.ui64LatestRequestTime; 
+            int64 i64Elapsed = i64Now - msgIdWr.ui64LatestRequestTime;
             if (msgIdWr.ui64LatestRequestTime == 0U || (i64Elapsed > DSPro::DEFAULT_UPDATE_TIMEOUT)) {
                 Targets **ppTargets;
                 if (msgIdWr.senderId.length() <= 0) {
@@ -192,7 +229,7 @@ void PositionUpdater::run (void)
                 else {
                     ppTargets = _pDSPro->_pTopology->getForwardingTargets (_pDSPro->getNodeId(), msgIdWr.senderId);
                 }
-                if ((ppTargets != NULL) && (ppTargets[0] != NULL)) {
+                if ((ppTargets != nullptr) && (ppTargets[0] != nullptr)) {
                     int rc = 0;
                     String publisher (msgIdWr.publisherId.length() <= 0 ? _pDSPro->getNodeId() : msgIdWr.publisherId.c_str());
                     if (isOnDemandDataID (msgIdWr.msgId)) {
@@ -216,6 +253,7 @@ void PositionUpdater::run (void)
         }
 
         doMetadataArrived (pMsgToNotify);
+        delete pMsgToNotify;
 
         _m.lock();
         _bMessageRequested = false;
@@ -248,7 +286,7 @@ void PositionUpdater::run (void)
             BufferWriter bw (1024, 1024);
             if (_pDSPro->_pTopology->write (&bw, 0) == 0) {
                 Targets **ppTargets = _pDSPro->_pTopology->getNeighborsAsTargets();
-                if (ppTargets != NULL && ppTargets[0] != NULL) {
+                if ((ppTargets != nullptr) && (ppTargets[0] != nullptr)) {
                     int rc = _pDSPro->_adaptMgr.sendTopologyReplyMessage (bw.getBuffer(), bw.getBufferLength(), ppTargets);
                     if (rc != 0) {
                         checkAndLogMsg (pszMethodName, Logger::L_Warning, "Can not send "
@@ -270,7 +308,7 @@ void PositionUpdater::run (void)
 
 void PositionUpdater::doMetadataArrived (StringHashtable<MsgIdList > *pMsgToNotifyByQueryId)
 {
-    if (pMsgToNotifyByQueryId == NULL) {
+    if (pMsgToNotifyByQueryId == nullptr) {
         return;
     }
     const char *pszMethodName = "PositionUpdater::doMetadataArrived";
@@ -284,58 +322,46 @@ void PositionUpdater::doMetadataArrived (StringHashtable<MsgIdList > *pMsgToNoti
         for (int rc = pMsgToNotify->getFirst (msgId); rc == 1; rc = pMsgToNotify->getNext (msgId)) {
 
             MessageHeaders::MsgType type;
-            Message *pMessage = getCompleteMessageAndRemoveDSProMetadata (msgId.c_str(), type);
-            if (pMessage == NULL || (type != MessageHeaders::Data && type != MessageHeaders::Metadata)) {
+            Message *pMessage = getCompleteMessageAndRemoveDSProMetadata (_pDSPro->_pDataStore, msgId.c_str(), type);
+            if (pMessage == nullptr || (type != MessageHeaders::Data && type != MessageHeaders::Metadata)) {
                 // The message to be notified to the application was not found at
                 // this time. Re-add it to the list of messages to notify so it can
                 // be tried again later.
                 static const char * messageIds[2];
                 messageIds[0] = msgId.c_str();
-                messageIds[1] = NULL;
+                messageIds[1] = nullptr;
                 addMetadataToNotify (pszQueryId, messageIds);
             }
             else {
                 MessageInfo *pMI = pMessage->getMessageInfo();
                 char *pszId = convertFieldToKey (pMI->getGroupName(), pMI->getPublisherNodeId(), pMI->getMsgSeqId());
                 const String currMsgId (pszId);
-                if (pszId == NULL) {
+                if (pszId == nullptr) {
                     checkAndLogMsg (pszMethodName, memoryExhausted);
                 }
                 else {
                     free (pszId);
-                    pszId = NULL;
+                    pszId = nullptr;
                 }
                 String sGrpName (MessageIdGenerator::extractSubgroupFromMsgGroup (pMI->getGroupName()));
                 if (sGrpName.length() <= 0) {
                     checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not extract group message id\n");
-                    sGrpName = pMI->getGroupName ();
+                    sGrpName = pMI->getGroupName();
                 }
 
                 if (type == MessageHeaders::Metadata) {
-                    MetadataConfiguration *pMetadataConf = MetadataConfiguration::getConfiguration();
-                    MetaData *pMetadata = pMetadataConf->createNewMetadataFromBuffer (pMessage->getData(), pMI->getTotalMessageLength());
-                    if (pMetadata != NULL) {
-                        char *pszRefersTo = NULL;
-                        char *pszReferredObjectId = NULL;
-                        char *pszReferredInstanceId = NULL;
-                        getReferredObjectAndInstanceIds (pMetadata, pszReferredObjectId, pszReferredInstanceId, pszRefersTo);
-                        int rc = _pDSPro->metadataArrived (currMsgId, sGrpName, pszReferredObjectId,
-                                                           pszReferredInstanceId, pMetadata, pszRefersTo,
+                    MetaData *pMetadata = toMetadata (pMessage->getData(), pMI->getTotalMessageLength());
+                    if (pMetadata != nullptr) {
+                        String sReferredObjectId, sReferredInstanceId, sRefersTo;
+                        getReferredObjectAndInstanceIds (pMetadata, sReferredObjectId, sReferredInstanceId, sRefersTo);
+                        int rc = _pDSPro->metadataArrived (currMsgId, sGrpName, sReferredObjectId,
+                                                           sReferredInstanceId, pMetadata, sRefersTo,
                                                            pszQueryId);
                         checkAndLogMsg (pszMethodName, Logger::L_Info, "notified clients "
                                         "with message %s matching query request %s\n/",
                                         currMsgId.c_str(), pszQueryId);
                         delete pMetadata;
-                        pMetadata = NULL;
-                        if (pszReferredObjectId != NULL) {
-                            free (pszReferredObjectId);
-                        }
-                        if (pszReferredInstanceId != NULL) {
-                            free (pszReferredInstanceId);
-                        }
-                        if (pszRefersTo != NULL) {
-                            free (pszRefersTo);
-                        }
+                        pMetadata = nullptr;
                         if (rc != 0) {
                             checkAndLogMsg (pszMethodName, Logger::L_Warning, "Can not notify message "
                                             "with id = <%s> failed. Returned %d\n", currMsgId.c_str(), rc);
@@ -348,10 +374,10 @@ void PositionUpdater::doMetadataArrived (StringHashtable<MsgIdList > *pMsgToNoti
                 }
                 else {
                     // Data or chunked data
-                    uint8 ui8NChunks = pMI->getTotalNumberOfChunks() == 0 ? (uint8) 0 : 1; // HACK: For the general case I need to figure out the current number of chunks from the database
+                    uint8 ui8ChunkIndex = pMI->getTotalNumberOfChunks() == 0 ? (uint8) 0 : 1; // HACK: For the general case I need to figure out the current number of chunks from the database
                     rc = _pDSPro->dataArrived (currMsgId, sGrpName, pMI->getObjectId(), pMI->getInstanceId(),
                                                pMI->getAnnotates(), pMI->getMimeType(), pMessage->getData(),
-                                               pMI->getTotalMessageLength(), ui8NChunks, pMI->getTotalNumberOfChunks(),
+                                               pMI->getTotalMessageLength(), ui8ChunkIndex, pMI->getTotalNumberOfChunks(),
                                                pszQueryId);
                 }
 
@@ -361,41 +387,4 @@ void PositionUpdater::doMetadataArrived (StringHashtable<MsgIdList > *pMsgToNoti
             }
         }
     }
-    
-    delete pMsgToNotifyByQueryId;
 }
-
-Message * PositionUpdater::getCompleteMessageAndRemoveDSProMetadata (const char *pszMsgId, MessageHeaders::MsgType &type)
-{
-    Message *pMsg = _pDSPro->_pDataStore->getCompleteMessage (pszMsgId);
-    if (pMsg == NULL) {
-        return NULL;
-    }
-    const void *pData = pMsg->getData();
-    MessageHeader *pMH = pMsg->getMessageHeader();
-    uint32 ui32NewLen = 0;
-    void *pNewData = MessageHeaders::removeDSProHeader (pMsg->getData(), pMH->getFragmentLength(), ui32NewLen, type);
-    free ((void*)pData);
-    if (pNewData == NULL || ui32NewLen == 0) {
-        delete pMsg->getMessageHeader();
-        return NULL;
-    }
-
-    pMH->setFragmentLength (ui32NewLen);
-    pMH->setTotalMessageLength (ui32NewLen);
-    pMsg->setData (pNewData);
-
-    return pMsg;
-}
-
-int PositionUpdater::getReferredObjectAndInstanceIds (MetaData *pMetadata, char *&pszReferredObjectId,
-                                                      char *&pszReferredInstanceId, char *&pszRefersTo)
-{
-    pszReferredObjectId = pszReferredInstanceId = NULL;
-    pMetadata->getFieldValue (MetaData::REFERRED_DATA_OBJECT_ID, &pszReferredObjectId);
-    pMetadata->getFieldValue (MetaData::REFERRED_DATA_INSTANCE_ID, &pszReferredInstanceId);
-    pMetadata->getFieldValue (MetaData::REFERS_TO, &pszRefersTo);
-
-    return 0;
-}
-

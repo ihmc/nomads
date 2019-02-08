@@ -46,8 +46,9 @@ namespace IHMC_ACI
 
             int init (NOMADSUtil::ConfigManager *pCfgMgr, const char *pszSessionId, Controller *pController, PropertyStoreInterface *pPropertyStore);
 
+            int changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len);
+
             CommAdaptor * getAdaptorByType (AdaptorType type);
-            NOMADSUtil::String getSessionId (void) const;
 
             /**
              * Returns 0 if the listener was correctly registered, a negative
@@ -66,12 +67,13 @@ namespace IHMC_ACI
 
             int sendContextUpdateMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets);
             int sendContextVersionMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets);
+            int broadcastDataMessage (Message *pMsg);
             int sendDataMessage (Message *pMsg, Targets **ppTargets);
             int sendChunkedMessage (Message *pMsg, const char *pszDataMimeType, Targets **ppTargets);
             int sendMessageRequestMessage (const char *pszMsgId, const char *pszPublisherNodeId, Targets **ppTargets);
             int sendChunkRequestMessage (const char *pszMsgId, NOMADSUtil::DArray<uint8> *pCachedChunks,
                                          const char *pszPublisherNodeId, Targets **ppTargets);
-            int sendPositionMessage(const void *pBuf, uint32 ui32Len, Targets **ppTargets);
+            int sendPositionMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets);
             int sendSearchMessage (SearchProperties &searchProp, Targets **ppTargets);
             int sendSearchReplyMessage (const char *pszQueryId, const char **ppszMatchingMsgIds,
                                         const char *pszTarget,  const char *pszMatchingNode,
@@ -85,6 +87,9 @@ namespace IHMC_ACI
             int sendVersionMessage (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, Targets **ppTargets);
             int sendWaypointMessage (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, Targets **ppTargets);
             int sendWholeMessage (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, Targets **ppTargets);
+            int notifyEvent (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, const char *pszTopic);
+
+            int subscribe (CommAdaptor::Subscription &sub);
 
             bool adaptorSupportsCaching (AdaptorId adaptorId);
             AdaptorType getAdaptorType (AdaptorId adaptorId);
@@ -104,7 +109,6 @@ namespace IHMC_ACI
             mutable NOMADSUtil::Mutex _mSessionId;
             mutable NOMADSUtil::LoggingMutex _m;
             const NOMADSUtil::String _nodeId;
-            NOMADSUtil::String _sessionId;
             NOMADSUtil::DArray2<AdaptorWrapper> _adaptors;
             CommAdaptorListenerNotifier _commListenerNotifier;
             PropertyStoreInterface *_pPropertyStore;
@@ -116,7 +120,7 @@ namespace IHMC_ACI
         if (lHighestIndex < 0) {
             return false;
         }
-        if (adaptorId > static_cast<unsigned int>(lHighestIndex)) {
+        if (adaptorId > static_cast<unsigned int> (lHighestIndex)) {
             return false;
         }
         return _adaptors.used (adaptorId) == 1;

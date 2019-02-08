@@ -1,4 +1,4 @@
-/* 
+/*
  * MocketsConnHandler.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -35,10 +35,9 @@ namespace IHMC_ACI
 {
     String ui32InetoaAsString (uint32 ui32Addr)
     {
-        char *pszTmp = NetUtils::ui32Inetoa (ui32Addr);
-        if (pszTmp == NULL) {
-            String empty;
-            return empty;
+        char * pszTmp = NetUtils::ui32Inetoa (ui32Addr);
+        if (pszTmp == nullptr) {
+            return String{};
         }
         else {
             String addr (pszTmp);
@@ -48,18 +47,13 @@ namespace IHMC_ACI
     }
 }
 
-MocketConnHandler::MocketConnHandler (const AdaptorProperties &adptProp, const char *pszRemotePeerId,
-                                      CommAdaptorListener *pListener, Mocket *pMocket)
-    : ConnHandler (adptProp, pszRemotePeerId, pMocket->getRemotePort(), pListener),
-      _bReliableTransmission (true),
-      _bSequencedTransmission (true),
-      _bActiveRemotePeer (true),
-      _ui32EnqueueTimeout (0),
-      _ui32RetryTimeout (0),
-      _ui32UncreachablePeerTimeout (30000U),
-      _pMocket (pMocket),
-      _localPeerAddr (ui32InetoaAsString (pMocket->getLocalAddress())),
-      _remotePeerAddr (ui32InetoaAsString (pMocket->getRemoteAddress()))
+MocketConnHandler::MocketConnHandler (const AdaptorProperties & adptProp, const char * pszRemotePeerId,
+                                      CommAdaptorListener * pListener, Mocket * pMocket) :
+    ConnHandler (adptProp, pszRemotePeerId, pMocket->getRemotePort(), pListener),
+    _bReliableTransmission (true), _bSequencedTransmission (true), _bActiveRemotePeer (true),
+    _ui32EnqueueTimeout (0), _ui32RetryTimeout (0), _ui32UncreachablePeerTimeout (30000U),
+    _pMocket (pMocket), _localPeerAddr (ui32InetoaAsString (pMocket->getLocalAddress())),
+    _remotePeerAddr (ui32InetoaAsString (pMocket->getRemoteAddress()))
 {
     assert (InetAddr::isIPv4Addr (_localPeerAddr));
     assert (InetAddr::isIPv4Addr (_remotePeerAddr));
@@ -72,7 +66,7 @@ MocketConnHandler::~MocketConnHandler()
         _pMocket->close();
     }
     delete _pMocket;
-    _pMocket = NULL;
+    _pMocket = nullptr;
     _m.unlock();
 }
 
@@ -92,25 +86,39 @@ int MocketConnHandler::init (void)
 
 bool MocketConnHandler::isConnected (void)
 {
-    if (_pMocket != NULL) {
+    if (_pMocket != nullptr) {
         return _pMocket->isConnected();
     }
     return false;
 }
 
-const char * MocketConnHandler::getLocalPeerAddress (void) const
+void MocketConnHandler::requestTermination (void)
 {
-    return _localPeerAddr.c_str();
+    if (_pMocket->isConnected()) {
+        _pMocket->close();
+    }
+    ManageableThread::requestTermination();
 }
 
-const char * MocketConnHandler::getRemotePeerAddress (void) const
+void MocketConnHandler::requestTerminationAndWait (void)
 {
-    return _remotePeerAddr.c_str();
+    if (_pMocket->isConnected()) {
+        _pMocket->close();
+    }
+    ManageableThread::requestTerminationAndWait();
+}
+
+void MocketConnHandler::abortConnHandler (void)
+{
+    if (_pMocket->isConnected()) {
+        _pMocket->applicationAbort();
+    }
+    ManageableThread::requestTerminationAndWait();
 }
 
 void MocketConnHandler::resetTransmissionCounters (void)
 {
-    if (_pMocket == NULL) {
+    if (_pMocket == nullptr) {
         return;
     }
     _pMocket->resetTransmissionCounters();
@@ -118,7 +126,7 @@ void MocketConnHandler::resetTransmissionCounters (void)
 
 int MocketConnHandler::send (const void *pBuf, uint32 ui32BufSize, uint8 ui8Priority)
 {
-    if (pBuf == NULL || ui32BufSize == 0) {
+    if (pBuf == nullptr || ui32BufSize == 0) {
         return -1;
     }
 
@@ -128,9 +136,9 @@ int MocketConnHandler::send (const void *pBuf, uint32 ui32BufSize, uint8 ui8Prio
 }
 
 int MocketConnHandler::sendDataMessage (const void *pBuf, uint32 ui32BufSize,
-                                        uint8 ui8Priority)
+                                               uint8 ui8Priority)
 {
-    if (pBuf == NULL || ui32BufSize == 0) {
+    if (pBuf == nullptr || ui32BufSize == 0) {
         return -1;
     }
 
@@ -140,9 +148,9 @@ int MocketConnHandler::sendDataMessage (const void *pBuf, uint32 ui32BufSize,
 }
 
 int MocketConnHandler::sendVersionMessage (const void *pBuf, uint32 ui32BufSize,
-                                           uint8 ui8Priority)
+                                                  uint8 ui8Priority)
 {
-    if (pBuf == NULL || ui32BufSize == 0) {
+    if (pBuf == nullptr || ui32BufSize == 0) {
         return -1;
     }
 
@@ -152,9 +160,9 @@ int MocketConnHandler::sendVersionMessage (const void *pBuf, uint32 ui32BufSize,
 }
 
 int MocketConnHandler::sendWaypointMessage (const void *pBuf, uint32 ui32BufSize,
-                                            uint8 ui8Priority, const char *pszPublisherNodeId)
+                                                   uint8 ui8Priority, const char *pszPublisherNodeId)
 {
-    if (pBuf == NULL || ui32BufSize == 0 || pszPublisherNodeId == NULL) {
+    if (pBuf == nullptr || ui32BufSize == 0 || pszPublisherNodeId == nullptr) {
         return -1;
     }
 
@@ -166,7 +174,7 @@ int MocketConnHandler::sendWaypointMessage (const void *pBuf, uint32 ui32BufSize
 
 int MocketConnHandler::receive (BufferWrapper &bw, char **ppszRemotePeerAddr)
 {
-    if (ppszRemotePeerAddr == NULL || _pMocket == NULL) {
+    if (ppszRemotePeerAddr == nullptr || _pMocket == nullptr) {
         return -1;
     }
 
@@ -175,7 +183,7 @@ int MocketConnHandler::receive (BufferWrapper &bw, char **ppszRemotePeerAddr)
         return -2;
     }
     else if (iSize > MAX_MESSAGE_SIZE) {
-        void *pBuf = NULL;
+        void *pBuf = nullptr;
         int rc = _pMocket->receive (&pBuf);
         assert (rc == iSize);
         if (rc < 0) {
@@ -203,7 +211,7 @@ int MocketConnHandler::cancelPreviousAndSend (bool bReliableTransmission, bool b
                                               uint16 ui16Tag, uint8 ui8Priority)
 {
     _m.lock();
-    if (_pMocket == NULL || !_pMocket->isConnected()) {
+    if (_pMocket == nullptr || !_pMocket->isConnected()) {
         _m.unlock();
         return -1;
     }
@@ -220,7 +228,7 @@ int MocketConnHandler::replace (bool bReliableTransmission, bool bSequencedTrans
                                 uint16 ui16Tag, uint8 ui8Priority)
 {
     _m.lock();
-    if (_pMocket == NULL || !_pMocket->isConnected()) {
+    if (_pMocket == nullptr || !_pMocket->isConnected()) {
         _m.unlock();
         return -1;
     }
@@ -236,7 +244,7 @@ int MocketConnHandler::send (bool bReliableTransmission, bool bSequencedTransmis
                              uint16 ui16Tag, uint8 ui8Priority)
 {
     _m.lock();
-    if (_pMocket == NULL || !_pMocket->isConnected()) {
+    if (_pMocket == nullptr || !_pMocket->isConnected()) {
         _m.unlock();
         return -1;
     }
@@ -249,7 +257,7 @@ int MocketConnHandler::send (bool bReliableTransmission, bool bSequencedTransmis
 
 bool MocketConnHandler::callNewPeer (void *pArg, unsigned long ulTimeSinceLastContact)
 {
-    if (pArg == NULL) {
+    if (pArg == nullptr) {
         return false;
     }
 
@@ -268,7 +276,7 @@ bool MocketConnHandler::callNewPeer (void *pArg, unsigned long ulTimeSinceLastCo
 bool MocketConnHandler::callDeadPeer (void *pArg, unsigned long ulTimeSinceLastContact)
 {
     const char *pszMethodName = "MocketConnHandler::callDeadPeer";
-    if (pArg != NULL) {
+    if (pArg != nullptr) {
         MocketConnHandler *pThisHandler = (MocketConnHandler*) pArg;
         if (pThisHandler->isRemotePeerActive() &&
             (ulTimeSinceLastContact >= pThisHandler->_ui32UncreachablePeerTimeout)) {
@@ -284,20 +292,3 @@ bool MocketConnHandler::callDeadPeer (void *pArg, unsigned long ulTimeSinceLastC
 
     return false;
 }
-
-void MocketConnHandler::requestTermination (void)
-{
-    if (_pMocket->isConnected()) {
-        _pMocket->close();
-    }
-    ManageableThread::requestTerminationAndWait();
-}
-
-void MocketConnHandler::requestTerminationAndWait (void)
-{
-    if (_pMocket->isConnected()) {
-        _pMocket->close();
-    }
-    ManageableThread::requestTerminationAndWait();
-}
-

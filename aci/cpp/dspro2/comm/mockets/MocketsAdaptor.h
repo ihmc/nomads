@@ -1,4 +1,4 @@
-/* 
+/*
  * MocketsAdaptor.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -16,12 +16,12 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * Author: Giacomo Benincasa	(gbenincasa@ihmc.us)
+ * Author: Giacomo Benincasa    (gbenincasa@ihmc.us)
  * Created on August 19, 2012, 4:14 PM
  */
 
 #ifndef INCL_MOCKETS_ADAPTOR_H
-#define	INCL_MOCKETS_ADAPTOR_H
+#define INCL_MOCKETS_ADAPTOR_H
 
 #include "ConnCommAdaptor.h"
 
@@ -37,7 +37,7 @@ namespace IHMC_ACI
         public:
             static const unsigned short DEFAULT_PORT;
 
-            MocketsAdaptor (AdaptorId uiId, const char *pszNodeId, const char *pszSessionId,
+            MocketsAdaptor (AdaptorId uiId, const char *pszNodeId,
                             CommAdaptorListener *pListener, uint16 ui16Port);
             ~MocketsAdaptor (void);
 
@@ -108,6 +108,9 @@ namespace IHMC_ACI
                                   const char *pszPublisherNodeId,
                                   const char **ppszRecipientNodeIds,
                                   const char **ppszInterfaces);
+            int notifyEvent (const void *pBuf, uint32 ui32Len,
+                             const char *pszPublisherNodeId,
+                             const char *pszTopic, const char **ppszInterfaces);
 
         protected:
             int connectToPeerInternal (const char *pszRemotePeerAddr, uint16 ui16Port);
@@ -119,6 +122,8 @@ namespace IHMC_ACI
         private:
             const uint8 _ui16DefaultPriority;
             NOMADSUtil::String _mocketsCfgFile;
+            NOMADSUtil::String _mocketsCert;
+            NOMADSUtil::String _mocketsKey;
     };
 
     inline bool MocketsAdaptor::supportsManycast (void)
@@ -128,4 +133,3 @@ namespace IHMC_ACI
 }
 
 #endif // INCL_MOCKETS_ADAPTOR_H
-

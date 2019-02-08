@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,6 +27,8 @@
 
 #define MAXSIZE 65535
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
+ /* a=target variable, b=bit number to act upon 0-n */
+#define BIT_SET(a,b) ((a) |= (1<<(b)))
 
 using namespace NOMADSUtil;
 
@@ -62,6 +64,11 @@ NetworkMessageV1::NetworkMessageV1 (const NetworkMessage& nm) //copy constructor
         create (ui8MsgType, ui32SourceAddress, ui32TargetAddress, ui16SessionId,
                 ui16MsgId, ui8HopCount, ui8TTL, chunkType, bReliable,
                 pMsgMetaData, ui16MsgMetaDataLen, pMsg, ui16MsgLen);
+        if (nm.isEncrypted()) {
+            uint8 bitarray = *(((uint8*)_pBuf) + RELIABLE_FIELD);
+            BIT_SET (bitarray, 1);
+            ((uint8*)_pBuf)[RELIABLE_FIELD] = bitarray;
+        }
     }
 }
 
@@ -123,7 +130,10 @@ void NetworkMessageV1::create (uint8 ui8MsgType, uint32 ui32SourceAddress, uint3
     *((uint8*)(_pBuf + TTL_FIELD_OFFSET)) = ui8TTL;
     *((uint8*)(_pBuf + CHUNK_TYPE_FIELD)) = (uint8) chunkType;
 
-    uint8 ui8Rel = (bReliable ? 1 : 0);
+    uint8 ui8Rel = 0;
+    if (bReliable) {
+        BIT_SET (ui8Rel, 0);
+    }
     *((uint8*)(_pBuf + RELIABLE_FIELD)) = ui8Rel;
 
     *((uint16*)(_pBuf + MSG_META_DATA_LENGTH_FIELD_OFFSET)) = ui16MsgMetaDataLen;
@@ -135,6 +145,7 @@ void NetworkMessageV1::create (uint8 ui8MsgType, uint32 ui32SourceAddress, uint3
 
     if (pMsg != NULL) {
         memcpy (_pBuf + MSG_META_DATA_FIELD_OFFSET + ui16MsgMetaDataLen, pMsg, ui16MsgLen);
+        *((uint16*)(_pBuf + CHECKSUM_FIELD)) = calculateChecksum (pMsg, ui16MsgLen);
     }
     else {
         checkAndLogMsg ("NetworkMessage::NetworkMessage", Logger::L_Warning,

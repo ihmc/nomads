@@ -21,6 +21,7 @@
 
 #include "DSProImpl.h"
 
+#include "AMTDictator.h"
 #include "ApplicationQueryController.h"
 #include "C45AVList.h"
 #include "ChunkQueryController.h"
@@ -36,14 +37,15 @@
 #include "InformationStore.h"
 #include "LocalNodeContext.h"
 #include "MatchMakingPolicies.h"
-#include "MetadataConfiguration.h"
+#include "MetadataConfigurationImpl.h"
 #include "MetaData.h"
+#include "MissionPkg.h"
+#include "NetLogger.h"
 #include "NodeContextManager.h"
 #include "NodePath.h"
 #include "PositionUpdater.h"
 #include "Searches.h"
 #include "Scheduler.h"
-#include "TransmissionHistoryInterface.h"
 #include "WaypointMessageHelper.h"
 
 #include "DSSFLib.h"
@@ -52,25 +54,37 @@
 #include "ConfigManager.h"
 #include "Logger.h"
 #include "StrClass.h"
+#include "C45Utils.h"
+#include "MetadataHelper.h"
+#include "Voi.h"
 
+#include "ChunkingManager.h"
+#include "Json.h"
+
+#include <memory>
+
+#define nodeCtxMgrNotInitialized(pszMethodName) if (pLogger) pLogger->logMsg (pszMethodName, Logger::L_Warning, "Trying set node context before but NodeContextManager not initialized yet.\n");
 #define initErr(pszMethodName, component, rc) if (pLogger) pLogger->logMsg (pszMethodName, Logger::L_SevereError, "%s could not be instantiated or configured. Returned error code: %d.\n", component, rc)
+#define initWarn(pszMethodName, component, rc) if (pLogger) pLogger->logMsg (pszMethodName, Logger::L_Warning, "%s could not be instantiated or configured. Returned error code: %d.\n", component, rc)
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
+using namespace IHMC_MISC_MIL_STD_2525;
 
 namespace IHMC_ACI
 {
     const char * configureSessionId (ConfigManager *pCfgMgr)
     {
         const char *pszSessionId = pCfgMgr->getValue ("aci.dspro.sessionKey");
-        if ((pszSessionId == NULL) || (strlen (pszSessionId) <= 0)) {
+        if ((pszSessionId == nullptr) || (strlen (pszSessionId) <= 0)) {
             pszSessionId = pCfgMgr->getValue ("aci.disService.sessionKey");
         }
         else {
             pCfgMgr->setValue ("aci.disService.sessionKey", pszSessionId);
         }
-        if ((pszSessionId != NULL) && (strlen (pszSessionId) <= 0)) {
-            pszSessionId = NULL;
+        if ((pszSessionId != nullptr) && (strlen (pszSessionId) <= 0)) {
+            pszSessionId = nullptr;
         }
         return pszSessionId;
     }
@@ -90,7 +104,7 @@ namespace IHMC_ACI
             StaticTopology::USE_STATIC_TOPOLOGY_PROPERTY,
             StaticTopology::USE_STATIC_TOPOLOGY_DEFAULT);
         Topology *pTopology = (bUseStaticTopology ? new StaticTopology (nodeId) : new Topology (nodeId));
-        if (pTopology != NULL) {
+        if (pTopology != nullptr) {
             if (bUseStaticTopology) {
                 static_cast<StaticTopology *>(pTopology)->configure (pAdptrMgr, pNodeContextMgr, pCfgMgr);
             }
@@ -104,28 +118,28 @@ namespace IHMC_ACI
     int loadPath (ConfigManager *pCfgMgr, DSProImpl *pDSPro)
     {
         NodePath *pPath = new NodePath ();
-        if (pPath == NULL) {
+        if (pPath == nullptr) {
             return -1;
         }
         pPath->read (pCfgMgr, 0);
-        if (pPath->getPathLength () > 0 &&
-            pPath->getPathID () != NULL) {
+        if (pPath->getPathLength() > 0 &&
+            pPath->getPathId() != nullptr) {
             pDSPro->registerPath (pPath);
             if (pCfgMgr->hasValue ("aci.dspro.nodePath.current") &&
                 pCfgMgr->getValueAsBool ("aci.dspro.nodePath.current")) {
-                pDSPro->setCurrentPath (pPath->getPathID ());
+                pDSPro->setCurrentPath (pPath->getPathId());
                 if (pCfgMgr->hasValue ("aci.dspro.nodePath.setFirstWaypoint") &&
                     pCfgMgr->getValueAsBool ("aci.dspro.nodePath.setFirstWaypoint")) {
                     pDSPro->setCurrentPosition (pPath->getLatitude (0), pPath->getLongitude (0),
-                        pPath->getAltitude (0), pPath->getLocation (0),
-                        pPath->getNote (0));
+                                                pPath->getAltitude (0), pPath->getLocation (0),
+                                                pPath->getNote (0));
                 }
             }
             pPath->display();
         }
         else {
             delete pPath;
-            pPath = NULL;
+            pPath = nullptr;
         }
         return 0;
     }
@@ -134,16 +148,18 @@ namespace IHMC_ACI
 DSProImpl::DSProImpl (const char *pszNodeId, const char *pszVersion)
     : _bEnableLoopbackNotifications (true),
       _bEnableTopologyExchange (true),
-      _pMetadataConf (NULL),
-      _pLocalNodeContext (NULL),
-      _pDataStore (NULL),
-      _pInfoStore (NULL),
-      _pController (NULL),
-      _pPublisher (NULL),
-      _pNodeContextMgr (NULL),
-      _pTopology (NULL),
-      _pScheduler (NULL),
-      _pPositionUpdater (NULL),    
+      _pMetadataConf (nullptr),
+      _pLocalNodeContext (nullptr),
+      _pDataStore (nullptr),
+      _pInfoStore (nullptr),
+      _pController (nullptr),
+      _pPublisher (nullptr),
+      _pNodeContextMgr (nullptr),
+      _pTopology (nullptr),
+      _pScheduler (nullptr),
+      _pPositionUpdater (nullptr),
+      _pVoi (nullptr),
+      _pAMTDict (nullptr),
       _nodeId (pszNodeId),
       _version (pszVersion),
       _m (MutexId::DSPro_m, LOG_MUTEX),
@@ -153,32 +169,41 @@ DSProImpl::DSProImpl (const char *pszNodeId, const char *pszVersion)
 
 DSProImpl::~DSProImpl (void)
 {
-    if ((_pPositionUpdater != NULL) && (_pPositionUpdater->isRunning())) {
-        _pPositionUpdater->requestTerminationAndWait ();
+    if ((_pPositionUpdater != nullptr) && _pPositionUpdater->isRunning()) {
+        _pPositionUpdater->requestTerminationAndWait();
     }
-    if ((_pScheduler != NULL) && (_pScheduler->isRunning())) {
+    if ((_pScheduler != nullptr) && _pScheduler->isRunning()) {
         _pScheduler->requestTerminationAndWait();
     }
     delete _pPositionUpdater;
-    _pPositionUpdater = NULL;
+    _pPositionUpdater = nullptr;
     delete _pPositionUpdater;
-    _pPositionUpdater = NULL;
+    _pPositionUpdater = nullptr;
+    delete _pVoi;
+    _pVoi = nullptr;
 }
 
-int DSProImpl::init (ConfigManager *pCfgMgr, MetadataConfiguration *pMetadataConf)
+int DSProImpl::init (ConfigManager *pCfgMgr, MetadataConfigurationImpl *pMetadataConf)
 {
     const char *pszMethodName = "DSProImpl::init";
-    String tag = "$Name: BeforeNodeCtxtSerializationRefactoring-20160927 $";
+    String tag = "$Name$";
 
-    if ((pCfgMgr == NULL) || (pMetadataConf == NULL)) {
+    if ((pCfgMgr == nullptr) || (pMetadataConf == nullptr)) {
         return -1;
+    }
+    if (_chunkingConf.init (pCfgMgr) < 0) {
+        return -2;
     }
     _pMetadataConf = pMetadataConf;
     if (_nodeId.length() <= 0) {
-        return -2;
+        return -3;
     }
     if (_cbackHandler.init (pCfgMgr) < 0) {
-        return -3;
+        return -4;
+    }
+    _pAMTDict = new AMTDictator (this);
+    if (_pAMTDict == nullptr) {
+        return -5;
     }
 
     int rc = -1;
@@ -187,120 +212,145 @@ int DSProImpl::init (ConfigManager *pCfgMgr, MetadataConfiguration *pMetadataCon
 
     // Instantiate Local Node Context
     _pLocalNodeContext = LocalNodeContext::getInstance (_nodeId, pCfgMgr, _pMetadataConf);
-    if ((_pLocalNodeContext == NULL) || ((rc = _pLocalNodeContext->configure (pCfgMgr)) < 0)) {
+    if ((_pLocalNodeContext == nullptr) || ((rc = _pLocalNodeContext->configure (pCfgMgr)) < 0)) {
         initErr (pszMethodName, "LocalNodeContext", rc);
+        return -6;
     }
 
     // Instantiate Data Store (to store the messages in binary format)
     _pDataStore = DataStore::getDataStore (pCfgMgr, sessionId);
-    if (_pDataStore == NULL) {
+    if (_pDataStore == nullptr) {
         initErr (pszMethodName, "DataStore", rc);
-        return -4;
+        return -7;
     }
 
     // Instantiate Information Store (to store metadata attributes)
     _pInfoStore = new InformationStore (_pDataStore, DisServiceAdaptor::DSPRO_GROUP_NAME);
-    if ((_pInfoStore == NULL) || ((rc = _pInfoStore->init (_pMetadataConf)) < 0)) {
+    if ((_pInfoStore == nullptr) || ((rc = _pInfoStore->init (_pMetadataConf)) != 0)) {
         initErr (pszMethodName, "InformationStore", rc);
-        return -5;
+        return -8;
     }
 
     // Instantiate Publisher
     _pPublisher = new Publisher (_nodeId, DisServiceAdaptor::DSPRO_GROUP_NAME, _pInfoStore, _pDataStore);
-    if ((_pPublisher == NULL) || ((rc = _pPublisher->init (pCfgMgr)) < 0)) {
+    if ((_pPublisher == nullptr) || ((rc = _pPublisher->init (pCfgMgr)) < 0)) {
         initErr (pszMethodName, "Publisher", rc);
-        return -6;
+        return -9;
     }
 
     // Instantiate Node Context Manager
     _pNodeContextMgr = new NodeContextManager (_nodeId, _pLocalNodeContext);
-    if (_pNodeContextMgr == NULL) {
+    if (_pNodeContextMgr == nullptr) {
         initErr (pszMethodName, "NodeContextManager", rc);
-        return -7;
+        return -10;
     }
 
     // Instantiate Topology
     _pTopology = instantiateTopology (pCfgMgr, _nodeId, &_adaptMgr, _pNodeContextMgr);
-    if (_pTopology == NULL) {
+    if (_pTopology == nullptr) {
         initErr (pszMethodName, "Topology", rc);
-        return -8;
+        return -11;
     }
 
     if ((rc = _pNodeContextMgr->configure (&_adaptMgr, _pTopology, _pMetadataConf)) < 0) {
         initErr (pszMethodName, "NodeContextMgr", rc);
-        return -9;
-    }
-
-    // Instantiate Scheduler
-    _pScheduler = Scheduler::getScheduler (pCfgMgr, this, &_adaptMgr, _pDataStore, _pNodeContextMgr, _pInfoStore, _pTopology);
-    if (_pScheduler == NULL) {
-        initErr (pszMethodName, "Scheduler", rc);
-        return -10;
-    }
-
-    InformationPushPolicy *pInfoPushPolicy = instantiateInformationPushPolicy (pCfgMgr, _pInfoStore);
-    if (pInfoPushPolicy == NULL) {
-        initErr (pszMethodName, "InformationPushPolicy", rc);
-        return -11;
-    }
-
-    _pController = new Controller (this, _pLocalNodeContext, _pScheduler, _pInfoStore, _pTopology, TransmissionHistoryInterface::getTransmissionHistory());
-    if ((_pController == NULL) || ((rc = _pController->init (pCfgMgr, pInfoPushPolicy, _pScheduler)) < 0)) {
-        initErr (pszMethodName, "Controller", rc);
         return -12;
     }
 
-    if ((rc = _adaptMgr.init (pCfgMgr, sessionId, _pController, _pDataStore->getPropertyStore())) < 0) {
+    // Instantiate or connect to VoI
+    _pVoi = new Voi (sessionId);
+    if (_pVoi->init() < 0) {
         return -13;
     }
 
-    _pPositionUpdater = new PositionUpdater (_pNodeContextMgr, this);
-    if (_pPositionUpdater == NULL) {
+    // Instantiate Scheduler
+    _pScheduler = Scheduler::getScheduler (pCfgMgr, this, &_adaptMgr, _pDataStore, _pNodeContextMgr, _pInfoStore, _pTopology, _pVoi);
+    if (_pScheduler == nullptr) {
+        initErr (pszMethodName, "Scheduler", rc);
         return -14;
+    }
+
+    InformationPushPolicy *pInfoPushPolicy = instantiateInformationPushPolicy (pCfgMgr, _pInfoStore);
+    if (pInfoPushPolicy == nullptr) {
+        initErr (pszMethodName, "InformationPushPolicy", rc);
+        return -15;
+    }
+
+    _pController = new Controller (this, _pLocalNodeContext, _pScheduler, _pInfoStore, _pTopology);
+    if ((_pController == nullptr) || ((rc = _pController->init (pCfgMgr, pInfoPushPolicy, _pScheduler, _pVoi)) < 0)) {
+        initErr (pszMethodName, "Controller", rc);
+        return -16;
+    }
+
+    if ((rc = _adaptMgr.init (pCfgMgr, sessionId, _pController, _pDataStore->getPropertyStore())) < 0) {
+        return -17;
+    }
+
+    _pPositionUpdater = new PositionUpdater (_pNodeContextMgr, this);
+    if (_pPositionUpdater == nullptr) {
+        return -18;
     }
 
     // Load query controllers
     QueryController *pQueryCtrlr = new DSProQueryController (this, _pDataStore, _pInfoStore);
-    if (pQueryCtrlr == NULL || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
+    if (pQueryCtrlr == nullptr || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
         initErr (pszMethodName, "DSProQueryController", rc);
-        return -15;
+        return -19;
     }
     _controllers.prepend (pQueryCtrlr);
 
     pQueryCtrlr = new ApplicationQueryController (this, _pDataStore, _pInfoStore);
-    if (pQueryCtrlr == NULL || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
+    if (pQueryCtrlr == nullptr || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
         initErr (pszMethodName, "ApplicationQueryController", rc);
-        return -16;
+        return -20;
     }
     _controllers.prepend (pQueryCtrlr);
 
     pQueryCtrlr = new DisServiceQueryController (this, _pDataStore, _pInfoStore);
-    if (pQueryCtrlr == NULL || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
+    if (pQueryCtrlr == nullptr || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
         initErr (pszMethodName, "DisServiceQueryController", rc);
-        return -17;
+        return -21;
     }
     _controllers.prepend (pQueryCtrlr);
 
     pQueryCtrlr = new ChunkQueryController (this, _pDataStore, _pInfoStore);
-    if (pQueryCtrlr == NULL || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
+    if (pQueryCtrlr == nullptr || (rc = pQueryCtrlr->init (_pMetadataConf, &_adaptMgr)) < 0) {
         initErr (pszMethodName, "ChunkQueryController", rc);
-        return -18;
+        return -22;
     }
     _controllers.prepend (pQueryCtrlr);
 
     // Start threads
     rc = _adaptMgr.startAdaptors();
     if (rc < 0) {
-        return -19;
+        initWarn (pszMethodName, "CommAdaptorManager", rc);
+        return -23;
     }
     _pPositionUpdater->start();
 
+    if (pCfgMgr->getValueAsBool (NetLogger::ENABLE_PROPERTY, false)) {
+        pNetLogger = new NetLogger (_nodeId);
+        if (pNetLogger != nullptr) {
+            if (pNetLogger->init (&_adaptMgr) < 0) {
+                initWarn (pszMethodName, "NetLogger", rc);
+            }
+            else if (pNetLogger->notify (pCfgMgr) < 0) {
+                initWarn (pszMethodName, "NetLogger", rc);
+            }
+        }
+    }
+
     // Load path if it is configured
     if (loadPath (pCfgMgr, this) < 0) {
-        return -20;
+        return -24;
     }
 
     return 0;
+}
+
+int DSProImpl::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    return _adaptMgr.changeEncryptionKey (pchKey, ui32Len);
 }
 
 CallbackHandler * DSProImpl::getCallbackHandler (void)
@@ -323,7 +373,7 @@ InformationStore * DSProImpl::getInformationStore (void)
     return _pInfoStore;
 }
 
-MetadataConfiguration * DSProImpl::getMetadataConf (void)
+MetadataConfigurationImpl * DSProImpl::getMetadataConf (void)
 {
     return _pMetadataConf;
 }
@@ -349,7 +399,10 @@ int DSProImpl::addAnnotation (const char *pszGroupName, const char *pszObjectId,
                               int64 i64ExpirationTime, char **ppszId)
 {
     const char *pszMethodName = "DSProImpl::addAnnotation";
-    if (pMetadata == NULL) {
+    if (ppszId != nullptr) {
+        *ppszId = nullptr;
+    }
+    if (pMetadata == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not create metadata.\n");
         return -1;
     }
@@ -368,47 +421,52 @@ int DSProImpl::addAnnotation (const char *pszGroupName, const char *pszObjectId,
     Publisher::PublicationInfo pub (pszGroupName, pszObjectId, pszInstanceId, i64ExpirationTime);
 
     _m.lock (2016);
-    char *pszDataId = NULL;
-    if ((pData != NULL) && (ui32DataLen > 0)) {
-        int rc = _pPublisher->chunkAndAddData (pub, NULL, NULL, 0U, pData, ui32DataLen, NULL,
-                                               &pszDataId, false); // annotation can't be fragmented
+    char *pszDataId = nullptr;
+    if ((pData != nullptr) && (ui32DataLen > 0)) {
+        const uint8 ui8NChunks = _chunkingConf.getNumberofChunks (ui32DataLen);
+        int rc = _pPublisher->chunkAndAddData (pub, nullptr, nullptr, 0U, pData, ui32DataLen, nullptr,
+                                               &pszDataId, ui8NChunks, false); // annotation can't be fragmented
         if (rc < 0) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not store data.\n");
             _m.unlock (2016);
             return -3;
         }
-        assert (pszDataId != NULL);
+        assert (pszDataId != nullptr);
     }
 
     String sMetadataId;
     // setReferredObjAddAndPushAnnotation() modifies pMetadata - no problem here,
     // since pMetadata is not used anymore, in fact, it is even deallocated
-    
-    pub.pszReferredObjectId = pszDataId != NULL ? pszDataId : MetadataInterface::NO_REFERRED_OBJECT;
-    
-    int rc = _pPublisher->setAndAddMetadata (pub, pMetadata, sMetadataId, true);
+
+    pub.pszReferredObjectId = pszDataId != nullptr ? pszDataId : MetadataInterface::NO_REFERRED_OBJECT;
+
+    int rc = _pPublisher->setAndAddMetadata (pub, pMetadata, sMetadataId, true, false);
     _m.unlock (2016);
 
-    checkAndLogMsg (pszMethodName, Logger::L_Info, "added message metadata %s "
-                    "referring to data %s.\n", sMetadataId.c_str(), (pszDataId == NULL ? "NULL" : pszDataId));
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "added message metadata %s referring to data %s.\n",
+                    sMetadataId.c_str(), (pszDataId == nullptr ? "NULL" : pszDataId));
 
-    if (rc == 0 && (rc = _pController->metadataPush (sMetadataId, pMetadata)) < 0) {
-        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not push metadata. Returned code %d\n", rc);
-    }
-    if (_bEnableLoopbackNotifications) {
-        const char *pszMsgIds[2] = { sMetadataId.c_str(), NULL };
-        _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, pszMsgIds);
+    if (rc == 0) {
+        int rcPush = _pController->metadataPush (sMetadataId, pMetadata);
+        if (rcPush < 0) {
+            checkAndLogMsg (pszMethodName, Logger::L_MildError,
+                            "could not push metadata. Returned code %d\n", rcPush);
+        }
+        if (_bEnableLoopbackNotifications) {
+            const char *pszMsgIds[2] = { sMetadataId.c_str (), nullptr };
+            _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, pszMsgIds);
+        }
+        if (ppszId != nullptr) {
+            *ppszId = sMetadataId.r_str();
+        }
     }
 
-    if (pszDataId != NULL) {
+    if (pszDataId != nullptr) {
         free (pszDataId);
-    }
-    if (ppszId != NULL) {
-        *ppszId = sMetadataId.r_str();
     }
 
     return (rc < 0 ? -4 : 0);
-    
+
 }
 
 int DSProImpl::addMessage (const char *pszGroupName, const char *pszObjectId,
@@ -417,7 +475,10 @@ int DSProImpl::addMessage (const char *pszGroupName, const char *pszObjectId,
                            int64 i64ExpirationTime, char **ppszId)
 {
     const char *pszMethodName = "DSProImpl::addMessage";
-    if (pMetadata == NULL) {
+    if (ppszId != nullptr) {
+        *ppszId = nullptr;
+    }
+    if (pMetadata == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not create metadata.\n");
         return -1;
     }
@@ -430,62 +491,169 @@ int DSProImpl::addMessage (const char *pszGroupName, const char *pszObjectId,
     // setAndAddMetadata modifies pMetadata - no problem here, since pMetadata
     // is not used anymore, in fact, it is even deallocated
     _m.lock (2012);
-    char *pszDataId = NULL;
-    if ((pData != NULL) && (ui32DataLen > 0)) {
-        int rc = _pPublisher->chunkAndAddData (pub, NULL, NULL, 0U, pData, ui32DataLen, mimeType,
-                                               &pszDataId, true);
+    char *pszDataId = nullptr;
+    if ((pData != nullptr) && (ui32DataLen > 0)) {
+        int rc = _pPublisher->chunkAndAddData (pub, nullptr, nullptr, 0U, pData, ui32DataLen, mimeType,
+                                               &pszDataId, 0, false);
         if (rc < 0) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not store data.\n");
             _m.unlock (2012);
             return -3;
         }
-        assert (pszDataId != NULL);
+        assert (pszDataId != nullptr);
     }
 
     String sMetadataId;
     // setReferredObjAddAndPushAnnotation() modifies pMetadata - no problem here,
     // since pMetadata is not used anymore, in fact, it is even deallocated
-    
-    pub.pszReferredObjectId = pszDataId != NULL ? pszDataId : MetadataInterface::NO_REFERRED_OBJECT;
-    int rc = _pPublisher->setAndAddMetadata (pub, pMetadata, sMetadataId, true);
+
+    pub.pszReferredObjectId = pszDataId != nullptr ? pszDataId : MetadataInterface::NO_REFERRED_OBJECT;
+    int rc = _pPublisher->setAndAddMetadata (pub, pMetadata, sMetadataId, true, false);
 
     _m.unlock (2012);
-    if (pszDataId != NULL) {
+
+    if (rc == 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "added message metadata %s "
+                        "referring to data %s.\n", sMetadataId.c_str(), pub.pszReferredObjectId);
+        int rcPush = _pController->metadataPush (sMetadataId, pMetadata);
+        if (rcPush < 0) {
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not push metadata. Returned code %d\n", rcPush);
+        }
+        if (_bEnableLoopbackNotifications) {
+            const char *pszMsgIds[2] = { sMetadataId.c_str (), nullptr };
+            _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, pszMsgIds);
+        }
+        if (ppszId != nullptr) {
+            *ppszId = sMetadataId.r_str();
+        }
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "could not add message metadata %s "
+                        "referring to data %s.\n", sMetadataId.c_str(), pub.pszReferredObjectId);
+    }
+    if (pszDataId != nullptr) {
         free (pszDataId);
     }
 
-    if (rc == 0 && (rc = _pController->metadataPush (sMetadataId, pMetadata)) < 0) {
-        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not push metadata. Returned code %d\n", rc);
+    return (rc < 0 ? -4 : 0);
+}
+
+int DSProImpl::addChunkedMessage (const char *pszGroupName, const char *pszObjectId, const char *pszInstanceId,
+                                  MetaData *pMetadata, PtrLList<IHMC_MISC::Chunker::Fragment> *pChunks,
+                                  const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId)
+{
+    const char *pszMethodName = "DSProImpl::addChunkedMessage";
+    if (ppszId != nullptr) {
+        *ppszId = nullptr;
     }
-    if (_bEnableLoopbackNotifications) {
-        const char *pszMsgIds[2] = { sMetadataId.c_str(), NULL };
-        _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, pszMsgIds);
+    if (pszGroupName == nullptr || pszDataMimeType == nullptr) {
+        return -1;
+    }
+    if (pMetadata == nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not create metadata.\n");
+        return -2;
+    }
+    Publisher::PublicationInfo pub (pszGroupName, pszObjectId, pszInstanceId, i64ExpirationTime);
+    char *pszDataId = nullptr;
+    _m.lock (2014);
+    int rc = _pPublisher->addChunkedData (pub, pChunks, pszDataMimeType, false, pszDataId);
+    if (rc < 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not store data.\n");
+        _m.unlock (2014);
+        return -3;
     }
 
-    checkAndLogMsg (pszMethodName, Logger::L_Info, "added message metadata %s "
-                    "referring to data %s.\n", sMetadataId.c_str(), (ppszId == NULL ? "NULL" : *ppszId));
+    assert (pszDataId != nullptr);
 
-    if (ppszId != NULL) {
-        *ppszId = sMetadataId.r_str();
+    String sMetadataId;
+    // setReferredObjAddAndPushAnnotation() modifies pMetadata - no problem here,
+    // since pMetadata is not used anymore, in fact, it is even deallocated
+    pub.pszReferredObjectId = pszDataId;
+    rc = _pPublisher->setAndAddMetadata (pub, pMetadata, sMetadataId, true, false);
+
+    _m.unlock (2014);
+
+    if (rc == 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "added message metadata %s "
+                        "referring to data %s.\n", sMetadataId.c_str(), pub.pszReferredObjectId);
+        int rcPush = _pController->metadataPush (sMetadataId, pMetadata);
+        if (rcPush < 0) {
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not push metadata. Returned code %d\n", rcPush);
+        }
+        if (_bEnableLoopbackNotifications) {
+            const char *pszMsgIds[2] = { sMetadataId.c_str (), nullptr };
+            _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, pszMsgIds);
+        }
+        if (ppszId != nullptr) {
+            *ppszId = sMetadataId.r_str();
+        }
     }
+    if (pszDataId != nullptr) {
+        free (pszDataId);
+    }
+
+    return (rc < 0 ? -4 : 0);
+}
+
+int DSProImpl::addAdditionalChunk (const char *pszId, const char *pszReferredObjectId,
+                                   const char *pszObjectId, const char *pszInstanceId,
+                                   IHMC_MISC::Chunker::Fragment *pChunk, int64 i64ExpirationTime)
+{
+    const char *pszMethodName = "DSProImpl::addAdditionalChunk";
+    if ((pszId == nullptr) || (pChunk == nullptr) || (pChunk->src_type.length() <= 0)) {
+        return -1;
+    }
+    uint8 ui8NChunks, ui8TotChunks;
+    ui8NChunks = ui8TotChunks = 0;
+    if (_pDataStore->getNumberOfReceivedChunks (pszReferredObjectId, ui8NChunks, ui8TotChunks) < 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "error when trying "
+                        "to check the number of received chunks for message %s\n", pszId);
+        return -2;
+    }
+    if (ui8NChunks >= ui8TotChunks) {
+        return -3;
+    }
+    pChunk->ui8TotParts = ui8TotChunks;
+    Publisher::PublicationInfo pub ("", pszObjectId, pszInstanceId, i64ExpirationTime);
+    _m.lock (2014);
+    int rc = _pPublisher->addChunkedData (pszReferredObjectId, pub, pChunk, pChunk->src_type);
+    _m.unlock (2014);
     return (rc < 0 ? -4 : 0);
 }
 
 int DSProImpl::chunkAndAddMessage (const char *pszGroupName, const char *pszObjectId,
                                    const char *pszInstanceId, MetaData *pMetadata,
                                    const void *pData, uint32 ui32DataLen,
-                                   const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId)
+                                   const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId,
+                                   bool bPush)
+{
+    MissionPackage missionPkg;
+    if (missionPkg.isMissionPackage (pszDataMimeType)) {
+        return missionPkg.addAsChunkedMissionPkg (this, pszGroupName, pszObjectId,
+                                                  pszInstanceId, pMetadata,
+                                                  pData, ui32DataLen, pszDataMimeType,
+                                                  i64ExpirationTime, ppszId);
+    }
+    return chunkAndAddMessageInternal (pszGroupName, pszObjectId, pszInstanceId, pMetadata,
+                                       pData, ui32DataLen, pszDataMimeType, i64ExpirationTime, ppszId,
+                                       bPush);
+}
+
+int DSProImpl::chunkAndAddMessageInternal (const char *pszGroupName, const char *pszObjectId,
+                                           const char *pszInstanceId, MetaData *pMetadata,
+                                           const void *pData, uint32 ui32DataLen,
+                                           const char *pszDataMimeType, int64 i64ExpirationTime, char **ppszId,
+                                           bool bPush)
 {
     const char *pszMethodName = "DSProImpl::chunkAndAddMessage";
-    if (ppszId != NULL) {
-        *ppszId = NULL;
+    if (ppszId != nullptr) {
+        *ppszId = nullptr;
     }
-    if (pszGroupName == NULL || pData == NULL || ui32DataLen == 0U || pszDataMimeType == NULL) {
+    if (pszGroupName == nullptr || pData == nullptr || ui32DataLen == 0U || pszDataMimeType == nullptr) {
         return -1;
     }
-    if (pMetadata == NULL) {
+    if (pMetadata == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not create metadata.\n");
-        
         return -2;
     }
 
@@ -493,45 +661,113 @@ int DSProImpl::chunkAndAddMessage (const char *pszGroupName, const char *pszObje
 
     // setAndAddMetadata modifies pMetadata - no problem here, since pMetadata
     // is not used anymore, in fact, it is even deallocated
-    _m.lock (2014);
-    char *pszDataId = NULL;
+    char *pszDataId = nullptr;
 
-    int rc = _pPublisher->chunkAndAddData (pub, NULL, NULL, 0U, pData, ui32DataLen,
-                                           pszDataMimeType, &pszDataId, false);
+    _m.lock (2014);
+
+    const uint8 ui8NChunks = _chunkingConf.getNumberofChunks (ui32DataLen);
+    int rc = _pPublisher->chunkAndAddData (pub, nullptr, nullptr, 0U, pData, ui32DataLen,
+                                           pszDataMimeType, &pszDataId, ui8NChunks, false);
 
     if (rc < 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not store data.\n");
         _m.unlock (2014);
         return -3;
     }
-    assert (pszDataId != NULL);
+    assert (pszDataId != nullptr);
 
     String sMetadataId;
     // setReferredObjAddAndPushAnnotation() modifies pMetadata - no problem here,
     // since pMetadata is not used anymore, in fact, it is even deallocated
     pub.pszReferredObjectId = pszDataId;
-    rc = _pPublisher->setAndAddMetadata (pub, pMetadata, sMetadataId, true);
+    rc = _pPublisher->setAndAddMetadata (pub, pMetadata, sMetadataId, bPush, false);
 
     _m.unlock (2014);
 
-    if (rc == 0 && (rc = _pController->metadataPush (sMetadataId, pMetadata)) < 0) {
-        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not push metadata. Returned code %d\n", rc);
+    if (rc == 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "added message metadata %s "
+                        "referring to data %s.\n", sMetadataId.c_str(), pub.pszReferredObjectId);
+        int rcPush = bPush ? _pController->metadataPush (sMetadataId, pMetadata) : 0;
+        if (rcPush < 0) {
+            checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not push metadata. Returned code %d\n", rcPush);
+        }
+        if (_bEnableLoopbackNotifications) {
+            const char *pszMsgIds[2] = { sMetadataId.c_str(), nullptr };
+            _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, pszMsgIds);
+        }
+        if (ppszId != nullptr) {
+            *ppszId = sMetadataId.r_str();
+        }
     }
-    if (_bEnableLoopbackNotifications) {
-        const char *pszMsgIds[2] = { sMetadataId.c_str(), NULL };
-        _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, pszMsgIds);
-    }
-    if (pszDataId != NULL) {
+    if (pszDataId != nullptr) {
         free (pszDataId);
     }
 
-    checkAndLogMsg (pszMethodName, Logger::L_Info, "added message metadata %s referring to data %s.\n",
-                    sMetadataId.c_str(), (ppszId == NULL ? "NULL" : *ppszId));
-    if (ppszId != NULL) {
-        *ppszId = sMetadataId.r_str();
+    return (rc < 0 ? -4 : 0);
+}
+
+int DSProImpl::disseminateMessage (const char *pszGroupName, const char *pszObjectId,
+                                   const char *pszInstanceId, const void *pData,
+                                   uint32 ui32DataLen, int64 i64ExpirationTime, char **ppszId)
+{
+    const uint8 ui8NChunks = 0;
+    const bool bDisseminate = true;
+    const char *pszDataMimeType = nullptr;
+    const char *pszAnnotatedObjMsgId = nullptr;
+    const void *pAnnotationMetadata = nullptr;
+    const uint32 ui32AnnotationMetadataLen = 0U;
+    Publisher::PublicationInfo pub (pszGroupName, pszObjectId, pszInstanceId, i64ExpirationTime);
+
+    _m.lock (2018);
+    int rc = _pPublisher->chunkAndAddData (pub, pszAnnotatedObjMsgId, pAnnotationMetadata, ui32AnnotationMetadataLen,
+                                           pData, ui32DataLen, pszDataMimeType, ppszId, ui8NChunks, bDisseminate);
+    _m.unlock (2018);
+
+    if ((ppszId != nullptr) && (*ppszId != nullptr)) {
+        _pScheduler->addMessageToDisseminated (*ppszId);
+        // const char * messageIds[2] = { *ppszId , nullptr };
+        // _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, messageIds);
     }
 
-    return (rc < 0 ? -4 : 0);
+    return rc;
+}
+
+int DSProImpl::disseminateMessageMetadata (const char *pszGroupName, const char *pszObjectId, const char *pszInstanceId,
+                                           const void *pMetadata, uint32 ui32MetadataLen,
+                                           const void *pData, uint32 ui32DataLen, const char *pszMimeType,
+                                           int64 i64ExpirationTime, char **ppszId)
+{
+    const uint8 ui8NChunks = _chunkingConf.getNumberofChunks (ui32DataLen);
+    const void *pAnnotationMetadata = nullptr;
+    const uint32 ui32AnnotationMetadataLen = 0U;
+    String dataGroup ("ds.data.");
+    dataGroup += pszGroupName;
+    Publisher::PublicationInfo pub (dataGroup, pszObjectId, pszInstanceId, i64ExpirationTime);
+
+    _m.lock (2018);
+    // Publish data
+    char *pszDataId = nullptr;
+    int rc = _pPublisher->chunkAndAddData (pub, nullptr, pAnnotationMetadata, ui32AnnotationMetadataLen,
+                                           pData, ui32DataLen, pszMimeType, &pszDataId, ui8NChunks, true);
+    _m.unlock (2018);
+    if (pszDataId == nullptr) {
+        return -1;
+    }
+
+    *ppszId = _pPublisher->assignIdAndAddMetadata (pszGroupName, pszObjectId, pszInstanceId, nullptr, nullptr, pszDataId,
+                                                   pMetadata, ui32MetadataLen, i64ExpirationTime, true);
+    if ((ppszId != nullptr) && (*ppszId != nullptr)) {
+        _pScheduler->addMessageToDisseminated (*ppszId);
+        // const char * messageIds[2] = { *ppszId , nullptr };
+        // _pPositionUpdater->addMetadataToNotify (CallbackHandler::LOOPBACK_NOTIFICATION, messageIds);
+    }
+
+    return rc;
+}
+
+int DSProImpl::subscribe (CommAdaptor::Subscription &sub)
+{
+    return _adaptMgr.subscribe (sub);
 }
 
 int DSProImpl::addAnnotationNoPrestage (const char *pszGroupName, const char *pszObjectId,
@@ -539,7 +775,7 @@ int DSProImpl::addAnnotationNoPrestage (const char *pszGroupName, const char *ps
                                         const char *pszReferredObject, int64 i64ExpirationTime,
                                         char **ppszId)
 {
-    if ((pszGroupName == NULL) || (pMetadata == NULL) || (ppszId == NULL)) {
+    if ((pszGroupName == nullptr) || (pMetadata == nullptr) || (ppszId == nullptr)) {
         return -1;
     }
 
@@ -547,7 +783,7 @@ int DSProImpl::addAnnotationNoPrestage (const char *pszGroupName, const char *ps
     String msgId;
     Publisher::PublicationInfo pub (pszGroupName, pszObjectId, pszInstanceId, i64ExpirationTime);
     pub.pszReferredObjectId = pszReferredObject;
-    int rc = _pPublisher->setAndAddMetadata (pub, pMetadata, msgId, false);
+    int rc = _pPublisher->setAndAddMetadata (pub, pMetadata, msgId, false, false);
     _m.unlock (2018);
     *ppszId = msgId.r_str();
     return rc;
@@ -560,14 +796,14 @@ int DSProImpl::addData (const char *pszGroupName, const char *pszObjectId,
                         const char *pszDataMimeType, int64 i64ExpirationTime,
                         char **ppszId)
 {
-    if ((pszGroupName == NULL) || (pData == NULL) || (ui32DataLen == 0U) || (ppszId == NULL)) {
+    if ((pszGroupName == nullptr) || (pData == nullptr) || (ui32DataLen == 0U) || (ppszId == nullptr)) {
         return -1;
     }
     Publisher::PublicationInfo pub (pszGroupName, pszObjectId, pszInstanceId, i64ExpirationTime);
     _m.lock (2018);
     int rc = _pPublisher->chunkAndAddData (pub, pszAnnotatedObjMsgId, pszAnnotationMetadata,
                                            ui32AnnotationMetdataLen, pData, ui32DataLen,
-                                           pszDataMimeType, ppszId, true);
+                                           pszDataMimeType, ppszId, 0, false);
     _m.unlock (2018);
     return rc;
 }
@@ -576,7 +812,7 @@ int DSProImpl::setAndAddMetadata (Publisher::PublicationInfo &pubInfo, MetadataI
                                   String &msgId, bool bStoreInInfoStore)
 {
     _m.lock (2015);
-    int rc = _pPublisher->setAndAddMetadata (pubInfo, pMetadata, msgId, bStoreInInfoStore);
+    int rc = _pPublisher->setAndAddMetadata (pubInfo, pMetadata, msgId, bStoreInInfoStore, false);
     _m.unlock (2015);
     return rc;
 }
@@ -585,7 +821,7 @@ int DSProImpl::addPeer (AdaptorType adaptorType, const char *pszNetworkInterface
                         const char *pszRemoteAddress, uint16 ui16Port)
 {
     // TODO: change _adaptMgr's code to also take and use pszNetworkInterface
-    if (/*pszNetworkInterface == NULL ||*/ pszRemoteAddress == NULL) {
+    if (/*pszNetworkInterface == nullptr ||*/ pszRemoteAddress == nullptr) {
         return -1;
     }
     if (adaptorType == DISSERVICE) {
@@ -604,7 +840,7 @@ int DSProImpl::addPeer (AdaptorType adaptorType, const char *pszNetworkInterface
 
 int DSProImpl::addRequestedMessageToUserRequests (const char *pszId, const char *pszQueryId)
 {
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         return -1;
     }
     _userReqs.put (pszId, pszQueryId);
@@ -613,29 +849,94 @@ int DSProImpl::addRequestedMessageToUserRequests (const char *pszId, const char 
 
 int DSProImpl::addUserId (const char *pszUserName)
 {
-    if (pszUserName == NULL) {
+    const char *pszMethodName = "DSProImpl::addUserId";
+    if (pszUserName == nullptr) {
         return -1;
     }
     _m.lock (2001);
-    if (_pNodeContextMgr == NULL) {
+    if (_pNodeContextMgr == nullptr) {
         _m.unlock (2001);
+        nodeCtxMgrNotInitialized (pszMethodName);
         return -2;
     }
-    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext ();
-    if (pLocalNodeContext == NULL) {
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    if (pLocalNodeContext == nullptr) {
         _m.unlock (2001);
         return -3;
     }
     int rc = pLocalNodeContext->addUserId (pszUserName);
-    _pNodeContextMgr->releaseLocalNodeContext ();
+    _pNodeContextMgr->releaseLocalNodeContext();
 
     if (rc == 0) {
-        checkAndLogMsg ("DSProImpl::addUserId", Logger::L_Info, "added user id %s.\n",
-                        pszUserName);
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "added user id %s.\n", pszUserName);
     }
     else {
-        checkAndLogMsg ("DSProImpl::addUserId", Logger::L_MildError, "could not "
-                        "add user id %s. Return code %d.\n", pszUserName, rc);
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not add user id %s. "
+                        "Return code %d.\n", pszUserName, rc);
+    }
+
+    _m.unlock (2001);
+    return rc;
+}
+
+int DSProImpl::addAreaOfInterest (const char *pszAreaName, BoundingBox &bb, int64 i64StatTime, int64 i64EndTime)
+{
+    const char *pszMethodName = "DSProImpl::addAreaOfInterest";
+    if (pszAreaName == nullptr) {
+        return -1;
+    }
+    _m.lock (2001);
+    if (_pNodeContextMgr == nullptr) {
+        _m.unlock (2001);
+        nodeCtxMgrNotInitialized (pszMethodName);
+        return -2;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    if (pLocalNodeContext == nullptr) {
+        _m.unlock (2001);
+        return -3;
+    }
+    int rc = pLocalNodeContext->addAreaOfInterest (pszAreaName, bb, i64StatTime, i64EndTime);
+    _pNodeContextMgr->releaseLocalNodeContext();
+
+    if (rc == 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "added area of interest %s.\n", pszAreaName);
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not add area of interest %s. "
+            "Return code %d.\n", pszAreaName, rc);
+    }
+
+    _m.unlock (2001);
+    return rc;
+}
+
+int DSProImpl::addCustomPolicy (CustomPolicyImpl *pPolicy)
+{
+    const char *pszMethodName = "DSProImpl::addCustomPolicy";
+    if (pPolicy == nullptr) {
+        return -1;
+    }
+    _m.lock (2001);
+    if (_pNodeContextMgr == nullptr) {
+        _m.unlock (2001);
+        nodeCtxMgrNotInitialized (pszMethodName);
+        return -2;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    if (pLocalNodeContext == nullptr) {
+        _m.unlock (2001);
+        return -3;
+    }
+    int rc = pLocalNodeContext->addCustomPolicy (pPolicy);
+
+    if (rc == 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "added custom policy of type %d.\n",
+                        pPolicy->getType());
+    }
+    else {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError, "could not add custom policy of type %d. Return code: %d.\n",
+                        pPolicy->getType(), rc);
     }
 
     _m.unlock (2001);
@@ -644,7 +945,7 @@ int DSProImpl::addUserId (const char *pszUserName)
 
 void DSProImpl::asynchronouslyNotifyMatchingMetadata (const char *pszQueryId, const char **ppszMsgIds)
 {
-    if (pszQueryId == NULL && ppszMsgIds != NULL && ppszMsgIds[0] != NULL) {
+    if (pszQueryId == nullptr && ppszMsgIds != nullptr && ppszMsgIds[0] != nullptr) {
         return;
     }
 
@@ -653,7 +954,7 @@ void DSProImpl::asynchronouslyNotifyMatchingMetadata (const char *pszQueryId, co
 
 void DSProImpl::asynchronouslyNotifyMatchingSearch (const char *pszQueryId, const void *pReply, uint16 ui16ReplyLen)
 {
-    if (pszQueryId == NULL && pReply != NULL && ui16ReplyLen == 0) {
+    if (pszQueryId == nullptr && pReply != nullptr && ui16ReplyLen == 0) {
         return;
     }
 
@@ -667,75 +968,67 @@ int DSProImpl::getData (const char *pszId, const char *pszCallbackParameter,
     bHasMoreChunks = false;
     ui32DataLen = 0;
 
-    if (pszId == NULL || ppData == NULL || strcmp (pszId, MetaData::NO_REFERRED_OBJECT) == 0) {
+    const String id (pszId);
+
+    if ((id.length() <= 0) || (ppData == nullptr) || ((id == MetaData::NO_REFERRED_OBJECT) == 1)) {
         return -1;
     }
 
-    *ppData = NULL;
-    const String grpName (extractGroupFromKey (pszId));
+    *ppData = nullptr;
+    const String grpName (extractGroupFromKey (id));
     if (grpName.length() <= 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
-                        "Could not extract group from message id %s.\n", pszId);
+                        "Could not extract group from message id %s.\n", id.c_str());
         return -2;
     }
 
-    const bool bIsDSProGrp = DisServiceAdaptor::checkGroupName (grpName, DisServiceAdaptor::DSPRO_GROUP_NAME);
-    const bool bIsLargeObject = isOnDemandGroupName (grpName);
-    if (!bIsDSProGrp) {
-
-    }
-
-    if (_pDataStore->getData (pszId, ppData, ui32DataLen) < 0) {
+    if (_pDataStore->getData (id, ppData, ui32DataLen) < 0) {
+        // The data is in the cache, but could not be read correctly
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "Could not read the data from the datacache.\n");
         return -3;
     }
 
     _m.lock (2008);
-    if ((*ppData == NULL) || (ui32DataLen == 0)) {
+    if ((*ppData == nullptr) || (ui32DataLen == 0)) {
         // the data has not arrived yet, register the data request
-        if (_userReqs.put (pszId, pszCallbackParameter) == 0) {
+        if (_userReqs.put (id, pszCallbackParameter) == 0) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "data message "
-                            "%s not found. Added it to _userReqs\n", pszId);
+                            "%s not found. Added it to _userReqs\n", id.c_str());
         }
-    }
 
-    MetadataList *pMetadataList = _pInfoStore->getMetadataForData (pszId);
-    if (pMetadataList == NULL) {
-        checkAndLogMsg ("DSPro::getData", Logger::L_Warning, "metadata not "
-            "found for data message with id %s.\n", pszId);
-    }
-    else {
-        for (MetadataInterface *pMetadata = pMetadataList->getFirst();
-            pMetadata != NULL; pMetadata = pMetadataList->getNext()) {
-
-            char *pszMetadataId = NULL;
-            if (0 == pMetadata->getFieldValue (pMetadata->MESSAGE_ID, &pszMetadataId) &&
-                pszMetadataId != NULL) {
-                updateLearning (pszMetadataId, Classification::Useful);
-                free (pszMetadataId);
+        // Hack for missiong packages
+        if (grpName.endsWith ("part") || grpName.endsWith ("part.[od]") || grpName.endsWith ("manifest")) {
+            int rc = sendAsynchronousRequestMessage (id);
+            if (rc < 0) {
+                checkAndLogMsg (pszMethodName, Logger::L_Warning, "can not "
+                                "request referred message %s. Returned code %d\n",
+                                id.c_str(), rc);
             }
-            delete (pMetadata);
+            else {
+                checkAndLogMsg (pszMethodName, Logger::L_Info, "requested "
+                                "referred message %s\n", id.c_str());
+            }
         }
-        delete pMetadataList;
-        pMetadataList = NULL;
     }
 
-    if (*ppData == NULL) {
+    updateUsage (id);
+
+    if (*ppData == nullptr) {
         _m.unlock (2008);
         return 1;
     }
 
     // Copy the returned object
-    void *pDataCpy = NULL;
-    if (bIsLargeObject) {
+    void *pDataCpy = nullptr;
+    if (isOnDemandGroupName (grpName)) {
         pDataCpy = *ppData;
     }
     else {
         uint32 ui32NewLen = 0;
         MessageHeaders::MsgType type;
         pDataCpy = MessageHeaders::removeDSProHeader (*ppData, ui32DataLen, ui32NewLen, type);
-        if (pDataCpy == NULL) {
+        if (pDataCpy == nullptr) {
             checkAndLogMsg (pszMethodName, memoryExhausted);
             free (*ppData);
             _m.unlock (2008);
@@ -750,9 +1043,10 @@ int DSProImpl::getData (const char *pszId, const char *pszCallbackParameter,
 
     uint8 ui8NChunks, ui8TotChunks;
     ui8NChunks = ui8TotChunks = 0;
-    if (_pDataStore->getNumberOfReceivedChunks (pszId, ui8NChunks, ui8TotChunks) < 0) {
+    if (_pDataStore->getNumberOfReceivedChunks (id, ui8NChunks, ui8TotChunks) < 0) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "error when trying "
-                        "to check the number of received chunks for message %s\n", pszId);
+                        "to check the number of received chunks for message %s\n", id.c_str());
+        free (*ppData);
         return -6;
     }
     checkAndLogMsg (pszMethodName, Logger::L_Info, "getNumberOfReceivedChunks() "
@@ -762,24 +1056,26 @@ int DSProImpl::getData (const char *pszId, const char *pszCallbackParameter,
     return 0;
 }
 
-char ** DSProImpl::getMatchingMetadataAsXML (AVList *pAVQueryList, int64 i64BeginArrivalTimestamp, int64 i64EndArrivalTimestamp)
+char ** DSProImpl::getMatchingMetadataAsJson (AVList *pAVQueryList, int64 i64BeginArrivalTimestamp, int64 i64EndArrivalTimestamp)
 {
     MetadataList *pMetadataList = _pInfoStore->getAllMetadata (pAVQueryList, i64BeginArrivalTimestamp, i64EndArrivalTimestamp);
-    if (pMetadataList == NULL || pMetadataList->getFirst () == NULL) {
-        return NULL;
+    if (pMetadataList == nullptr || pMetadataList->getFirst() == nullptr) {
+        return nullptr;
     }
-    int iCount = pMetadataList->getCount ();
+    int iCount = pMetadataList->getCount();
     if (iCount <= 0) {
-        return NULL;
+        return nullptr;
     }
     char **ppszMetadataAsXML = static_cast<char **>(calloc (iCount + 1, sizeof (char *)));
-    if (ppszMetadataAsXML != NULL) {
+    if (ppszMetadataAsXML != nullptr) {
         // Convert the fields to XML
         MetadataInterface *pCurr, *pNext;
         pNext = pMetadataList->getFirst();
-        for (unsigned int i = 0; ((pCurr = pNext) != NULL) && (i < ((unsigned int) iCount)); i++) {
-            pNext = pMetadataList->getNext ();
-            ppszMetadataAsXML[i] = _pMetadataConf->convertMetadataToXML (pCurr);
+        for (unsigned int i = 0; ((pCurr = pNext) != nullptr) && (i < ((unsigned int) iCount)); i++) {
+            pNext = pMetadataList->getNext();
+            std::unique_ptr<JsonObject> pJson (pCurr->toJson());
+            String json (pJson->toString (true));
+            ppszMetadataAsXML[i] = json.r_str();
             delete pMetadataList->remove (pCurr);
         }
     }
@@ -792,7 +1088,7 @@ const char * DSProImpl::getNodeId (void) const
     return _nodeId.c_str();
 }
 
-char ** DSProImpl::getPeerList (void)
+DArray2<String> * DSProImpl::getPeerList (void)
 {
     return _pNodeContextMgr->getPeerList (true);
 }
@@ -807,14 +1103,9 @@ bool DSProImpl::isTopologyExchangedEnabled (void)
     return _bEnableTopologyExchange;
 }
 
-NOMADSUtil::String DSProImpl::getSessionId (void) const
-{
-    return _adaptMgr.getSessionId();
-}
-
 int DSProImpl::notUseful (const char *pszMessageID)
 {
-    if (pszMessageID == NULL) {
+    if (pszMessageID == nullptr) {
         return -1;
     }
     _m.lock (2009);
@@ -825,50 +1116,86 @@ int DSProImpl::notUseful (const char *pszMessageID)
 
 void DSProImpl::sendWaypointMessage (const void *pBuf, uint32 ui32BufLen)
 {
-    if (pBuf == NULL || ui32BufLen == 0) {
+    if (pBuf == nullptr || ui32BufLen == 0) {
         return;
     }
 
     PtrLList<String> *pNeighborList = _pTopology->getNeighbors();
-    if (pNeighborList == NULL) {
+    if (pNeighborList == nullptr) {
         return;
     }
-    if (pNeighborList->getFirst () == NULL) {
+    if (pNeighborList->getFirst() == nullptr) {
         delete pNeighborList;
         return;
     }
 
     NodeIdSet nodeIdSet;
     PreviousMessageIds previousMessageIds;
-    String *pszNextPeerId = pNeighborList->getFirst ();
-    for (String *pszCurrPeerId; (pszCurrPeerId = pszNextPeerId) != NULL;) {
-        pszNextPeerId = pNeighborList->getNext ();
-        previousMessageIds.add (pszCurrPeerId->c_str (), _pScheduler->getLatestMessageReplicatedToPeer (pszCurrPeerId->c_str ()));
-        nodeIdSet.add (pszCurrPeerId->c_str ());
+    String *pszNextPeerId = pNeighborList->getFirst();
+    for (String *pszCurrPeerId; (pszCurrPeerId = pszNextPeerId) != nullptr;) {
+        pszNextPeerId = pNeighborList->getNext();
+        const String latestMsg (_pScheduler->getLatestMessageReplicatedToPeer (pszCurrPeerId->c_str()));
+        previousMessageIds.add (pszCurrPeerId->c_str(), latestMsg);
+        nodeIdSet.add (pszCurrPeerId->c_str());
         delete pNeighborList->remove (pszCurrPeerId);
     }
     delete pNeighborList;
 
+    const String latestResetMsg (_pScheduler->getLatestResetMessage());
+    if (latestResetMsg.length() <= 0) {
+        previousMessageIds.add ("*", latestResetMsg);
+    }
+
     uint32 ui32TotalLen = 0;
     void *pData = WaypointMessageHelper::writeWaypointMessageForTarget (previousMessageIds, pBuf, ui32BufLen, ui32TotalLen);
     Targets **ppTargets = _pTopology->getNextHopsAsTarget (nodeIdSet);
-    if ((ppTargets != NULL) && (ppTargets[0] != NULL)) {
+    if ((ppTargets != nullptr) && (ppTargets[0] != nullptr)) {
         // Send the waypoint message on each available interface that reaches the recipients
         int rc = _adaptMgr.sendWaypointMessage (pData, ui32TotalLen, _nodeId, ppTargets);
         String sLatestMsgs (previousMessageIds);
         String sPeers (nodeIdSet);
         checkAndLogMsg ("DSPro::sendWaypointMessage", Logger::L_Info, "sending waypoint message "
-            "to %s (%s); last message pushed to this node was %s.\n", sPeers.c_str (),
-            (rc == 0 ? "succeeded" : "failed"), sLatestMsgs.c_str ());
+                        "to %s (%s); last message pushed to this node was %s.\n", sPeers.c_str(),
+                        (rc == 0 ? "succeeded" : "failed"), sLatestMsgs.c_str());
     }
     Targets::deallocateTargets (ppTargets);
     free (pData);
 }
 
+int DSProImpl::updateUsage (const char *pszMessageId)
+{
+    const char *pszMethodName = "DSProImpl::updateUsage";
+    if (pszMessageId == nullptr) {
+        return -1;
+    }
+
+    MetadataList *pMetadataList = _pInfoStore->getMetadataForData (pszMessageId);
+    if (pMetadataList == nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "metadata not "
+                        "found for data message with id %s.\n", pszMessageId);
+        return -2;
+    }
+    else {
+        for (MetadataInterface *pMetadata = pMetadataList->getFirst(); pMetadata != nullptr;
+             pMetadata = pMetadataList->getNext()) {
+            char *pszMetadataId = nullptr;
+            if (0 == pMetadata->getFieldValue (pMetadata->MESSAGE_ID, &pszMetadataId) &&
+                pszMetadataId != nullptr) {
+                updateLearning (pszMetadataId, Classification::Useful);
+                free (pszMetadataId);
+            }
+            delete pMetadata;
+        }
+        delete pMetadataList;
+    }
+
+    return 0;
+}
+
 int DSProImpl::updateLearning (const char *pszMessageId, uint8 ui8Usage)
 {
     const char *pszMethodName = "DSPro::updateLearning";
-    if (pszMessageId == NULL) {
+    if (pszMessageId == nullptr) {
         return -1;
     }
 
@@ -881,14 +1208,14 @@ int DSProImpl::updateLearning (const char *pszMessageId, uint8 ui8Usage)
     }
 
     MetadataList *pMetadataList = _pInfoStore->getMetadataForData (pszMessageId);
-    if (pMetadataList != NULL) {
+    if (pMetadataList != nullptr) {
         MetadataInterface *pCurr, *pNext;
         pNext = pMetadataList->getFirst ();
-        for (unsigned int i = 0; ((pCurr = pNext) != NULL); i++) {
+        for (unsigned int i = 0; ((pCurr = pNext) != nullptr); i++) {
             pNext = pMetadataList->getNext ();
 
-            IHMC_C45::C45AVList *pDataset = _pMetadataConf->getMetadataAsDataset (pCurr);
-            if (pDataset == NULL) {
+            IHMC_C45::C45AVList *pDataset = C45Utils::getMetadataAsDataset (pCurr, _pMetadataConf);
+            if (pDataset == nullptr) {
                 checkAndLogMsg (pszMethodName, Logger::L_MildError, "Unable to convert the metadata "
                                 "from message with id = <%s> to C45AVList class.\n", pszMessageId);
             }
@@ -913,7 +1240,7 @@ int DSProImpl::updateLearning (const char *pszMessageId, uint8 ui8Usage)
 int DSProImpl::search (SearchProperties &searchProp, char **ppszQueryId)
 {
     Targets **ppTargets = _pTopology->getNeighborsAsTargets();
-    if (ppTargets != NULL) {
+    if (ppTargets != nullptr) {
         // Send search
         int rc = _adaptMgr.sendSearchMessage (searchProp, ppTargets);
         Targets::deallocateTargets (ppTargets);
@@ -927,7 +1254,7 @@ int DSProImpl::search (SearchProperties &searchProp, char **ppszQueryId)
         }
     }
 
-    if (searchProp.pszQueryId == NULL) {
+    if (searchProp.pszQueryId == nullptr) {
         searchProp.pszQueryId = SearchService::getSearchId (searchProp.pszGroupName, getNodeId(), _pDataStore->getPropertyStore());
     }
 
@@ -941,7 +1268,7 @@ int DSProImpl::search (SearchProperties &searchProp, char **ppszQueryId)
 
 int DSProImpl::sendAsynchronousRequestMessage (const char *pszId)
 {
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         return -1;
     }
 
@@ -949,12 +1276,59 @@ int DSProImpl::sendAsynchronousRequestMessage (const char *pszId)
     return 0;
 }
 
+int DSProImpl::setMissionId (const char *pszMissionName)
+{
+    if (pszMissionName == nullptr) {
+        return -1;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setMissionId (pszMissionName);
+    _pNodeContextMgr->releaseLocalNodeContext();
+    checkAndLogMsg ("DSProImpl::setMissionId", Logger::L_Info, "added mission id %s.\n", pszMissionName);
+    return 0;
+}
+
+int DSProImpl::setRole (const char *pszRole)
+{
+    if (pszRole == nullptr) {
+        return -1;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setRole (pszRole);
+    _pNodeContextMgr->releaseLocalNodeContext();
+    checkAndLogMsg ("DSProImpl::setRole", Logger::L_Info, "added role %s.\n", pszRole);
+    return 0;
+}
+
+int DSProImpl::setTeamId (const char *pszTeamId)
+{
+    if (pszTeamId == nullptr) {
+        return -1;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setTeam (pszTeamId);
+    _pNodeContextMgr->releaseLocalNodeContext();
+    checkAndLogMsg ("DSProImpl::setTeamId", Logger::L_Info, "added team %s.\n", pszTeamId);
+    return 0;
+}
+
+int DSProImpl::setNodeType (const char *pszType)
+{
+    if (pszType == nullptr) {
+        return -1;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setNodeType (pszType);
+    _pNodeContextMgr->releaseLocalNodeContext();
+    checkAndLogMsg ("DSProImpl::setNodeType", Logger::L_Info, "added node type %s.\n", pszType);
+    return 0;
+}
+
 int DSProImpl::setCurrentPath (const char *pszPathID)
 {
     _m.lock (2002);
-    if (_pNodeContextMgr == NULL) {
-        checkAndLogMsg ("DSProImpl::setCurrentPath", Logger::L_Warning, "Trying set node "
-                        "context before but NodeContextManager not initialized yet.\n");
+    if (_pNodeContextMgr == nullptr) {
+        nodeCtxMgrNotInitialized ("DSProImpl::setCurrentPath");
         _m.unlock (2002);
         return -1;
     }
@@ -967,12 +1341,12 @@ int DSProImpl::setCurrentPath (const char *pszPathID)
 int DSProImpl::setCurrentPosition (float fLatitude, float fLongitude, float fAltitude,
                                    const char *pszLocation, const char *pszNote)
 {
-    if (_pNodeContextMgr == NULL) {
-        checkAndLogMsg ("DSProImpl::setCurrentPosition", Logger::L_Warning, "Trying set node "
-                       "context before but NodeContextManager not initialized yet.\n");
+    const char *pszMethodName = "DSProImpl::setCurrentPosition";
+    if (_pNodeContextMgr == nullptr) {
+        nodeCtxMgrNotInitialized (pszMethodName);
         return -1;
     }
-    if (_pController == NULL) {
+    if (_pController == nullptr) {
         return -2;
     }
 
@@ -980,7 +1354,7 @@ int DSProImpl::setCurrentPosition (float fLatitude, float fLongitude, float fAlt
     bool bPositionChanged = pLocalNodeContext->setCurrentPosition (fLatitude, fLongitude,
                                                                    fAltitude, pszLocation, pszNote,
                                                                    getTimeInMilliseconds());
-    _pNodeContextMgr->releaseLocalNodeContext ();
+    _pNodeContextMgr->releaseLocalNodeContext();
     if (!bPositionChanged) {
         return 0;
     }
@@ -988,18 +1362,70 @@ int DSProImpl::setCurrentPosition (float fLatitude, float fLongitude, float fAlt
     BufferWriter bw (1024, 128);
     int rc = _pNodeContextMgr->updatePosition (&bw);
     if (rc < 0) {
-        checkAndLogMsg ("DSProImpl::setCurrentPosition", Logger::L_Warning, "\n");
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "\n");
         return -3;
     }
+    sendWaypointMessage (bw.getBuffer(), bw.getBufferLength());
 
     _pPositionUpdater->positionUpdated();
-    sendWaypointMessage (bw.getBuffer(), bw.getBufferLength());
+
+    return 0;
+}
+
+int DSProImpl::setMatchingThreshold (float fMatchmakingThreshold)
+{
+    if (_pNodeContextMgr == nullptr) {
+        nodeCtxMgrNotInitialized ("DSProImpl::setMatchingThreshold");
+        return -1;
+    }
+    if ((fMatchmakingThreshold < 0.0f) || (fMatchmakingThreshold > 10.0f)) {
+        return -2;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setMatchmakingThreshold (fMatchmakingThreshold);
+    _pNodeContextMgr->releaseLocalNodeContext();
+    return 0;
+}
+
+int DSProImpl::setRangeOfInfluence (const char *pszNodeType, uint32 ui32RangeOfInfluenceInMeters)
+{
+    if (_pNodeContextMgr == nullptr) {
+        nodeCtxMgrNotInitialized ("DSProImpl::setDefaultUsefulDistance (1)");
+        return -1;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setRangeOfInfluence (pszNodeType, ui32RangeOfInfluenceInMeters);
+    _pNodeContextMgr->releaseLocalNodeContext();
+    return 0;
+}
+
+int DSProImpl::setDefaultUsefulDistance (uint32 ui32UsefulDistanceInMeters)
+{
+    if (_pNodeContextMgr == nullptr) {
+        nodeCtxMgrNotInitialized ("DSProImpl::setDefaultUsefulDistance (1)");
+        return -1;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setDefaultUsefulDistance (ui32UsefulDistanceInMeters);
+    _pNodeContextMgr->releaseLocalNodeContext();
+    return 0;
+}
+
+int DSProImpl::setUsefulDistance (const char *pszMIMEType, uint32 ui32UsefulDistanceInMeters)
+{
+    if (_pNodeContextMgr == nullptr) {
+        nodeCtxMgrNotInitialized ("DSProImpl::setDefaultUsefulDistance (2)");
+        return -1;
+    }
+    LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
+    pLocalNodeContext->setUsefulDistance (pszMIMEType, ui32UsefulDistanceInMeters);
+    _pNodeContextMgr->releaseLocalNodeContext();
     return 0;
 }
 
 int DSProImpl::registerPath (NodePath *pPath)
 {
-    if (pPath == NULL) {
+    if (pPath == nullptr) {
         return -1;
     }
     if (pPath->getPathLength() <= 0) {
@@ -1008,9 +1434,8 @@ int DSProImpl::registerPath (NodePath *pPath)
         return -2;
     }
     _m.lock (2001);
-    if (_pNodeContextMgr == NULL) {
-        checkAndLogMsg ("DSProImpl::registerPath", Logger::L_Warning, "trying set node "
-                        "context before but NodeContextManager not initialized yet.\n");
+    if (_pNodeContextMgr == nullptr) {
+        nodeCtxMgrNotInitialized ("DSProImpl::registerPath");
         _m.unlock (2001);
         return -1;
     }
@@ -1023,7 +1448,7 @@ int DSProImpl::registerPath (NodePath *pPath)
 
 int DSProImpl::removeAsynchronousRequestMessage (const char *pszId)
 {
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         return -1;
     }
 
@@ -1034,7 +1459,7 @@ int DSProImpl::removeAsynchronousRequestMessage (const char *pszId)
 int DSProImpl::requestMoreChunks (const char *pszChunkedMsgId, const char *pszCallbackParameter)
 {
     const char *pszMethodName = "DSProImpl::requestMoreChunks";
-    if (pszChunkedMsgId == NULL) {
+    if (pszChunkedMsgId == nullptr) {
         return -1;
     }
 
@@ -1045,11 +1470,11 @@ int DSProImpl::requestMoreChunks (const char *pszChunkedMsgId, const char *pszCa
     }
 
     Targets **ppTargets = _pTopology->getNeighborsAsTargets();
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         _m.unlock (2010);
         return 0;
     }
-    if (ppTargets[0] == NULL) {
+    if (ppTargets[0] == nullptr) {
         delete ppTargets;
         _m.unlock (2010);
         return 0;
@@ -1061,13 +1486,13 @@ int DSProImpl::requestMoreChunks (const char *pszChunkedMsgId, const char *pszCa
                                                 getNodeId(), ppTargets);
     Targets::deallocateTargets (ppTargets);
     String chunkIds ("");
-    if (pCachedChunkIds != NULL) {
+    if (pCachedChunkIds != nullptr) {
         for (unsigned int i = 0; i < pCachedChunkIds->size(); i++) {
             chunkIds += ((uint32) (*pCachedChunkIds)[i]);
             chunkIds += " ";
         }
         delete pCachedChunkIds;
-        pCachedChunkIds = NULL;
+        pCachedChunkIds = nullptr;
     }
 
     if (rc < 0) {
@@ -1103,25 +1528,51 @@ int DSProImpl::deregisterCommAdaptorListener (uint16 ui16ClientId, CommAdaptorLi
     return _adaptMgr.deregisterCommAdaptorListener (ui16ClientId);
 }
 
+int DSProImpl::registerChunkFragmenter (const char *pszMimeType, IHMC_MISC::ChunkerInterface *pChunker)
+{
+    return _pDataStore->getChunkingManager()->registerChunker (pszMimeType, pChunker);
+}
+
+int DSProImpl::registerChunkReassembler (const char *pszMimeType, IHMC_MISC::ChunkReassemblerInterface *pReassembler)
+{
+    return _pDataStore->getChunkingManager()->registerReassembler (pszMimeType, pReassembler);
+}
+
+int DSProImpl::deregisterChunkFragmenter (const char *pszMimeType)
+{
+    return _pDataStore->getChunkingManager()->deregisterChunker (pszMimeType);
+}
+
+int DSProImpl::deregisterChunkReassembler (const char *pszMimeType)
+{
+    return _pDataStore->getChunkingManager()->deregisterReassembler (pszMimeType);
+}
+
 int DSProImpl::dataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
                             const char *pszInstanceId, const char *pszAnnotatedObjMsgId, const char *pszMimeType,
-                            const void *pBuf, uint32 ui32Len, uint8 ui8NChunks, uint8 ui8TotNChunks,
+                            const void *pBuf, uint32 ui32Len, uint8 ui8ChunkIndex, uint8 ui8TotNChunks,
                             const char *pszQueryId)
 {
     const char *pszMethodName = "DSProImpl::dataArrived";
     String dsproQueryId;
-    if (!_userReqs.contains (pszId, dsproQueryId)) {
+    const String group (pszGroupName);
+    if (group.startsWith (DisServiceAdaptor::DSPRO_GROUP_NAME) && !_userReqs.contains (pszId, dsproQueryId)) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "message %s of length %u arrived. "
-            "It was not requested, therefore it will not be delivered "
-            "to the applications\n", pszId, ui32Len);
+                        "It was not requested, therefore it will not be delivered "
+                        "to the applications\n", pszId, ui32Len);
         return 0;
     }
-    if ((pszQueryId == NULL) && (dsproQueryId.length () > 0)) {
-        pszQueryId = dsproQueryId.c_str ();
+    if ((pszQueryId == nullptr) && (dsproQueryId.length() > 0)) {
+        pszQueryId = dsproQueryId.c_str();
     }
+
+    // Notify DSPro internal clients
+    _pAMTDict->messageArrived (pBuf, ui32Len, pszMimeType);
+
+    // Notify DSPro external clients
     return _cbackHandler.dataArrived (pszId, pszGroupName, pszObjectId,
                                       pszInstanceId, pszAnnotatedObjMsgId, pszMimeType,
-                                      pBuf, ui32Len, ui8NChunks, ui8TotNChunks, pszQueryId);
+                                      pBuf, ui32Len, ui8ChunkIndex, ui8TotNChunks, pszQueryId);
 }
 
 int DSProImpl::metadataArrived (const char *pszId, const char *pszGroupName,
@@ -1130,19 +1581,19 @@ int DSProImpl::metadataArrived (const char *pszId, const char *pszGroupName,
                                 const char *pszQueryId)
 {
     const char *pszMethodName = "DSProImpl::metadataArrived";
-    if (pszId == NULL || pBuf == NULL || ui32Len == 0 || pszReferredDataId == NULL) {
+    if (pszId == nullptr || pBuf == nullptr || ui32Len == 0 || pszReferredDataId == nullptr) {
         return -1;
     }
 
-    MetaData *pMetadata = _pMetadataConf->createNewMetadataFromBuffer (pBuf, ui32Len);
-    if (pMetadata == NULL) {
+    MetaData *pMetadata = toMetadata (pBuf, ui32Len);
+    if (pMetadata == nullptr) {
         checkAndLogMsg (pszMethodName, dataDeserializationError, pszId);
         return -2;
     }
 
     String dsproQueryId;
-    if (pszQueryId == NULL) {
-        if (_userReqs.contains (pszId, dsproQueryId) && (dsproQueryId.length () > 0)) {
+    if (pszQueryId == nullptr) {
+        if (_userReqs.contains (pszId, dsproQueryId) && (dsproQueryId.length() > 0)) {
             pszQueryId = dsproQueryId.c_str();
         }
     }
@@ -1150,18 +1601,18 @@ int DSProImpl::metadataArrived (const char *pszId, const char *pszGroupName,
     int rc = metadataArrived (pszId, pszGroupName, pszObjectId, pszInstanceId,
                               pMetadata, pszReferredDataId, pszQueryId);
     delete pMetadata;
-    pMetadata = NULL;
+    pMetadata = nullptr;
 
     return (int) rc;
 }
 
 int DSProImpl::metadataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
-                                const char *pszInstanceId, MetaData *pMetadata, const char *pszReferredDataId,
+                                const char *pszInstanceId, const MetaData *pMetadata, const char *pszReferredDataId,
                                 const char *pszQueryId)
 {
     String metaDataTarget;
     if (0 != pMetadata->getFieldValue (MetaData::TARGET_ID, metaDataTarget)) {
-        metaDataTarget = NULL;
+        metaDataTarget = nullptr;
     }
 
     String refObjectId (pszObjectId);
@@ -1174,36 +1625,61 @@ int DSProImpl::metadataArrived (const char *pszId, const char *pszGroupName, con
     }
 
     bool bIsTarget = true;
-    if (metaDataTarget.length () > 0 && _pNodeContextMgr != NULL) {
+    if (metaDataTarget.length() > 0 && _pNodeContextMgr != nullptr) {
         LocalNodeContext *pLocalNodeContext = _pNodeContextMgr->getLocalNodeContext();
-        if (pLocalNodeContext != NULL) {
+        if (pLocalNodeContext != nullptr) {
             bIsTarget = MatchMakingPolicies::isNodeOrUserTarget (metaDataTarget, pLocalNodeContext);
-            _pNodeContextMgr->releaseLocalNodeContext ();
+            _pNodeContextMgr->releaseLocalNodeContext();
         }
     }
 
-    char *pszXMLMetadata = _pMetadataConf->convertMetadataToXML (pMetadata);
-    if (pszXMLMetadata == NULL) {
-        return -2;
+    String dsproQueryId;
+    if (pszQueryId == nullptr) {
+        if (_userReqs.contains (pszId, dsproQueryId) && (dsproQueryId.length() > 0)) {
+            pszQueryId = dsproQueryId.c_str();
+        }
     }
 
+    // Notify DSPro internal clients
+    String appMetadata, appMetadataMIMEType;
+    if ((pMetadata->getFieldValue (MetaData::APPLICATION_METADATA, appMetadata) == 0) &&
+        (pMetadata->getFieldValue (MetaData::APPLICATION_METADATA_FORMAT, appMetadataMIMEType) == 0)) {
+        _pAMTDict->messageArrived (appMetadata, appMetadata.length(), appMetadataMIMEType);
+    }
+
+    // Notify DSPro external clients
+    std::unique_ptr<JsonObject> pJson (pMetadata->toJson());
+    String json (pJson->toString (true));
+    int rc = _cbackHandler.metadataArrived (pszId, pszGroupName, refObjectId, refInstanceId,
+                                            json, pszReferredDataId, pszQueryId, bIsTarget);
+
+    return rc;
+}
+
+int DSProImpl::dataAvailable (const char *pszId, const char *pszGroupName,
+                              const char *pszObjectId, const char *pszInstanceId,
+                              const char *pszRefObjId, const char *pszMimeType,
+                              const void *pMetadata, uint32 ui32MetadataLength,
+                              const char *pszQueryId)
+{
     String dsproQueryId;
-    if (pszQueryId == NULL) {
+    if (pszQueryId == nullptr) {
         if (_userReqs.contains (pszId, dsproQueryId) && (dsproQueryId.length () > 0)) {
             pszQueryId = dsproQueryId.c_str();
         }
     }
 
-    int rc = _cbackHandler.metadataArrived (pszId, pszGroupName, refObjectId, refInstanceId,
-                                            pszXMLMetadata, pszReferredDataId, pszQueryId, bIsTarget);
+    // Notify DSPro external clients
+    int rc = _cbackHandler.dataAvailable (pszId, pszGroupName, pszObjectId, pszInstanceId,
+                                          pszMimeType, pszRefObjId, pMetadata, ui32MetadataLength,
+                                          pszQueryId);
 
-    free (pszXMLMetadata);
     return rc;
 }
 
 int DSProImpl::newPeer (const char *pszNewPeerId)
 {
-    if (pszNewPeerId == NULL) {
+    if (pszNewPeerId == nullptr) {
         return -1;
     }
     _pPositionUpdater->topologyHasChanged();
@@ -1212,10 +1688,9 @@ int DSProImpl::newPeer (const char *pszNewPeerId)
 
 int DSProImpl::deadPeer (const char *pszDeadPeerId)
 {
-    if (pszDeadPeerId == NULL) {
+    if (pszDeadPeerId == nullptr) {
         return -1;
     }
     _pPositionUpdater->topologyHasChanged();
     return _cbackHandler.deadPeer (pszDeadPeerId);
 }
-

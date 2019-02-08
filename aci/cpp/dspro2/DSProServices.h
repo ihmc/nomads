@@ -22,7 +22,7 @@
  */
 
 #ifndef INCL_DSPRO_SERVICES_H
-#define	INCL_DSPRO_SERVICES_H
+#define INCL_DSPRO_SERVICES_H
 
 #include "SearchProperties.h"
 
@@ -38,7 +38,7 @@ namespace IHMC_ACI
         public:
             explicit TopologySvc (DSProImpl *pDSPro);
             virtual ~TopologySvc (void);
- 
+
         protected:
             Topology * getTopology (void);
 
@@ -53,7 +53,7 @@ namespace IHMC_ACI
             virtual ~MessagingSvc (void);
 
         protected:
-            int addRequestedMessageToUserRequests (const char *pszId, const char *pszQueryId=NULL);
+            int addRequestedMessageToUserRequests (const char *pszId, const char *pszQueryId=nullptr);
             int sendAsynchronousRequestMessage (const char *pszId);
             int removeAsynchronousRequestMessage (const char *pszId);
             int sendSearchMessage (SearchProperties &searchProp, Targets **ppTargets);
@@ -84,4 +84,3 @@ namespace IHMC_ACI
 }
 
 #endif // INCL_DSPRO_SERVICES_H
-

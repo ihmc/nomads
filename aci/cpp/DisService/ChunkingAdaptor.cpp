@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -27,11 +27,11 @@
 
 #include "BufferReader.h"
 #include "Logger.h"
-#include "Chunker.h"
-#include "ChunkReassembler.h"
+#include "ChunkingManager.h"
 
 #include "ConfigManager.h"
 #include "Writer.h"
+#include "MimeUtils.h"
 
 using namespace IHMC_ACI;
 using namespace IHMC_MISC;
@@ -47,7 +47,7 @@ ChunkingConfiguration::Range::Range (uint64 ui64Bytes, uint8 ui8NChunks)
 }
 
 ChunkingConfiguration::Range::~Range (void)
-{    
+{
 }
 
 bool ChunkingConfiguration::Range::operator > (const Range &range) const
@@ -59,7 +59,7 @@ bool ChunkingConfiguration::Range::operator < (const Range &range) const
 {
    return (_ui64Bytes < range._ui64Bytes);
 }
-            
+
 bool ChunkingConfiguration::Range::operator == (const Range& range) const
 {
     return (_ui64Bytes == range._ui64Bytes);
@@ -109,26 +109,24 @@ int ChunkingConfiguration::init (ConfigManager *pCfgMgr)
 
 uint8 ChunkingConfiguration::getNumberofChunks (uint64 ui64Bytes)
 {
+    uint8 ui8NChunks = 4;
     Range *pRange = _sizeToNchunks.getFirst();
     while ((pRange != NULL) && (ui64Bytes > pRange->_ui64Bytes)) {
+        ui8NChunks = pRange->_ui8NChunks;
         pRange = _sizeToNchunks.getNext();
     }
-    if (pRange == NULL) {
-        return 4;
-    }
-    return pRange->_ui8NChunks;
+    return ui8NChunks;
 }
 
 //------------------------------------------------------------------------------
 // ChunkingAdaptor
 //------------------------------------------------------------------------------
 
-Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, PtrLList<Message> *pAnnotations, uint32 &ui32LargeObjLen)
+Reader * ChunkingAdaptor::reassemble (ChunkingManager *pChunkingMgr, PtrLList<Message> *pChunks, PtrLList<Message> *pAnnotations, uint32 &ui32LargeObjLen)
 {
     const char *pszMethodName = "ChunkingAdaptor::reassemble";
-    int rc;
-    ui32LargeObjLen = 0;
-    if (pChunks == NULL) {
+    ui32LargeObjLen = 0U;
+    if ((pChunkingMgr == NULL) || (pChunks == NULL)) {
         return NULL;
     }
     Message *pMsg = pChunks->getFirst();
@@ -153,18 +151,15 @@ Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, PtrLList<Messa
     }
 
     // This is a fragment - so use the reassembler
-    ChunkReassembler cr;
     ChunkMsgInfo *pCMI = pMsg->getChunkMsgInfo();
     if (pCMI == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "ChunkMsgInfo is NULL\n");
         return NULL;
     }
-    if (0 != (rc = cr.init (ChunkReassembler::Image, pCMI->getTotalNumberOfChunks()))) {
-        checkAndLogMsg (pszMethodName, Logger::L_MildError,
-                        "could not initialize ChunkReassembler; rc = %d\n", rc);
-        return NULL;
-    }
 
+    const String mimeType (pCMI->getMimeType());
+    const uint8 ui8TotalNumberOfChunks = pCMI->getTotalNumberOfChunks();
+    DArray2<BufferReader> fragments;
     do {
         pCMI = pMsg->getChunkMsgInfo();
         const void *pData = pMsg->getData();
@@ -176,20 +171,11 @@ Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, PtrLList<Messa
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "data is NULL\n");
             return NULL;
         }
-        if (0 != (rc = cr.incorporateChunk (pData, pCMI->getTotalMessageLength(), Chunker::JPEG, pCMI->getChunkId()))) {
-            checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to incorporate chunk %d; "
-                            "rc = %d\n", (int) pCMI->getChunkId(), rc);
-            return NULL;
-        }
+
+        fragments[pCMI->getChunkId()].init (pData, pCMI->getTotalMessageLength());
     } while ((pMsg = pChunks->getNext()) != NULL);
 
-    BufferReader *pBR = cr.getReassembledObject (Chunker::JPEG, 90);
-    if (pBR == NULL) {
-        checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
-                        "failed to get reassembled object\n");
-        return NULL;
-    }
-
+    Annotations annotations;
     if (pAnnotations != NULL) {
         for (Message *pCustumChunk = pAnnotations->getFirst(); pCustumChunk != NULL;
             pCustumChunk = pAnnotations->getNext()) {
@@ -208,23 +194,25 @@ Reader * ChunkingAdaptor::reassemble (PtrLList<Message> *pChunks, PtrLList<Messa
                     ui32TotalMsgLen -= 1;
                     pCustumChunkData++;
                 }
-                if ((rc = cr.incorporateAnnotation (chunkDescr.getIntervals(),
-                    pCustumChunkData, ui32TotalMsgLen, Chunker::JPEG)) < 0) {
-                    checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to "
-                                    "incorporate annotation: rc = %d\n", rc);
+                Annotation *pAnn = new Annotation (true);
+                if (pAnn != NULL) {
+                    pAnn->ppIntervals = chunkDescr.getIntervals();
+                    pAnn->bw.init (pCustumChunkData, ui32TotalMsgLen);
+                    annotations.append (pAnn);
                 }
             }
         }
-
-        pBR = cr.getAnnotatedObject (Chunker::JPEG, 90);
-        if (pBR == NULL) {
-            checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
-                            "failed to get annotated object\n");
-            return NULL;
-        }
     }
 
-    ui32LargeObjLen = pBR->getBufferLength();
+    BufferReader *pBR = pChunkingMgr->reassemble (&fragments, &annotations, mimeType, ui8TotalNumberOfChunks, 90);
+    if (pBR == NULL) {
+        checkAndLogMsg ("ChunkingAdaptor::reassembler", Logger::L_MildError,
+                        "failed to get annotated object\n");
+    }
+    else {
+        ui32LargeObjLen = pBR->getBufferLength();
+    }
+    deallocateAllPtrLListElements<Annotation> (&annotations);
     return pBR;
 }
 
@@ -240,7 +228,7 @@ ChunkMsgInfo * ChunkingAdaptor::toChunkMsgInfo (const char *pszGroupName, const 
     }
 
     return new ChunkMsgInfo (pszGroupName, pszSenderNodeId, ui32MsgSeqId, pChunkFragment->ui8Part,
-                             pszObjectId, pszInstanceID, ui16Tag, ui16ClientId, ui8ClientType, 
+                             pszObjectId, pszInstanceID, ui16Tag, ui16ClientId, ui8ClientType,
                              pszMimeType, pszChecksum, 0, // ui32FragmentOffset
                              (uint32) pChunkFragment->ui64FragLen, (uint32) pChunkFragment->ui64FragLen,
                              pChunkFragment->ui8TotParts, ui16HistoryWindow, ui8Priority,
@@ -265,7 +253,7 @@ CustomChunkDescription::CustomChunkDescription (IHMC_MISC::Chunker::Type inputTy
 }
 
 CustomChunkDescription::~CustomChunkDescription (void)
-{   
+{
 }
 
 void CustomChunkDescription::deleteIntervals (IHMC_MISC::Chunker::Interval **ppIntervals)
@@ -276,14 +264,14 @@ void CustomChunkDescription::deleteIntervals (IHMC_MISC::Chunker::Interval **ppI
     free (ppIntervals);
 }
 
-IHMC_MISC::Chunker::Interval** CustomChunkDescription::getIntervals (void)
+IHMC_MISC::Chunker::Interval ** CustomChunkDescription::getIntervals (void)
 {
-    if (_dimensions.size () <= 0) {
+    if (_dimensions.size() <= 0) {
         return NULL;
     }
-    Chunker::Interval **ppIntervals = static_cast<Chunker::Interval **>(calloc (_dimensions.size () + 1, sizeof (Chunker::Interval*)));
+    Chunker::Interval **ppIntervals = static_cast<Chunker::Interval **>(calloc (_dimensions.size() + 1, sizeof (Chunker::Interval*)));
     if (ppIntervals != NULL) {
-        for (unsigned int i = 0; i < _dimensions.size (); i++) {
+        for (unsigned int i = 0; i < _dimensions.size(); i++) {
             ppIntervals[i] = new Chunker::Interval (_dimensions[i]);
             if (ppIntervals[i] == NULL) {
                 deleteIntervals (ppIntervals);

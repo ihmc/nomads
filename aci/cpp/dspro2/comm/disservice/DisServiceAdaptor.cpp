@@ -1,4 +1,4 @@
-/* 
+/*
  * DisServiceAdaptor.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -30,6 +30,9 @@
 #include "DSSFLib.h"
 #include "Message.h"
 #include "MessageProperties.h"
+#include "SessionId.h"
+#include "SessionIdChecker.h"
+#include "Stats.h"
 
 #include "ConfigManager.h"
 #include "StrClass.h"
@@ -45,33 +48,17 @@ const char * DisServiceAdaptor::DSPRO_CTRL_TO_CTRL_GROUP_NAME = "DSProCtrl";
 const uint16 DisServiceAdaptor::DSPRO_CLIENT_ID = 1;
 const uint8  DisServiceAdaptor::DSPRO_SUBSCRIPTION_PRIORITY = 3;
 
-DisServiceAdaptor * DisServiceAdaptor::_pDisServiceAdaptor = NULL;
-
-namespace IHMC_ACI
-{
-    bool disServiceAndDSProSessionIDsMatch (const char *pszSessionId, const char *pszDisServiceSessionId)
-    {
-        if (pszDisServiceSessionId == NULL) {
-            return (pszSessionId == NULL);
-        }
-        else if (pszSessionId == NULL) {
-            return false;
-        }
-        return (strcmp (pszSessionId, pszDisServiceSessionId) == 0);
-    }
-}
+DisServiceAdaptor * DisServiceAdaptor::_pDisServiceAdaptor = nullptr;
 
 DisServiceAdaptor::DisServiceAdaptor (unsigned int uiId, CommAdaptorListener *pListener,
-                                      const char *pszNodeId, const char *pszSessionId,
-                                      DisseminationService *pDisService)
-    : CommAdaptor (uiId, DISSERVICE, true, false, pszNodeId, pszSessionId, pListener),
+                                      const char *pszNodeId, DisseminationService *pDisService)
+    : CommAdaptor (uiId, DISSERVICE, true, false, pszNodeId, pListener),
       DataCacheService (pDisService),
       MessagingService (pDisService),
       _pDisService (pDisService),
       _pPropertyStore (getDataCacheInterface()->getStorageInterface()->getPropertyStore()),
-      _sessionIdChecker (pszSessionId),
-      _periodicCtrlMessages (6U) 
-{            
+      _periodicCtrlMessages (6U)
+{
     _periodicCtrlMessages.put (MessageHeaders::CtxtUpdates_V1);
     _periodicCtrlMessages.put (MessageHeaders::CtxtUpdates_V2);
     _periodicCtrlMessages.put (MessageHeaders::CtxtVersions_V1);
@@ -80,20 +67,20 @@ DisServiceAdaptor::DisServiceAdaptor (unsigned int uiId, CommAdaptorListener *pL
     _periodicCtrlMessages.put (MessageHeaders::CtxtWhole_V1);
 }
 
-DisServiceAdaptor::~DisServiceAdaptor()
+DisServiceAdaptor::~DisServiceAdaptor (void)
 {
-    if (_pDisService != NULL) {
+    if (_pDisService != nullptr) {
         if (_pDisService->isRunning()) {
             _pDisService->requestTerminationAndWait();
         }
         delete _pDisService;
-        _pDisService = NULL;
+        _pDisService = nullptr;
     }
 }
 
 bool DisServiceAdaptor::checkGroupName (const char *pszIncomingGroupName, const char *pszExpectedGroupName)
 {
-    if (pszIncomingGroupName == NULL || pszExpectedGroupName == NULL) {
+    if (pszIncomingGroupName == nullptr || pszExpectedGroupName == nullptr) {
         return false;
     }
     const String incomingGroupName (pszIncomingGroupName);
@@ -102,55 +89,47 @@ bool DisServiceAdaptor::checkGroupName (const char *pszIncomingGroupName, const 
     return (incomingGroupName.startsWith (pszExpectedGroupName) == 1);
 }
 
-DisServiceAdaptor * DisServiceAdaptor::getDisServiceAdaptor (unsigned int uiId, const char *pszNodeId, const char *pszSessionId,
+DisServiceAdaptor * DisServiceAdaptor::getDisServiceAdaptor (unsigned int uiId, const char *pszNodeId,
                                                              CommAdaptorListener *pListener, ConfigManager *pCfgMgr)
 {
-    if (_pDisServiceAdaptor != NULL) {
+    if (_pDisServiceAdaptor != nullptr) {
         return _pDisServiceAdaptor;
     }
-    if ((pszNodeId == NULL) || (pListener == NULL)) {
-        return NULL;
+    if ((pszNodeId == nullptr) || (pListener == nullptr)) {
+        return nullptr;
     }
 
     const char *pszMethodName = "DisServiceAdaptor::getDisServiceAdaptor";
 
     const String dsProNodeId (pszNodeId);
-    const char *pszDisServiceNodeId = NULL;
+    const char *pszDisServiceNodeId = nullptr;
     const char *pszDisServiceNodeIdProperty = "aci.disService.nodeUUID";
     if (!pCfgMgr->hasValue (pszDisServiceNodeIdProperty)) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "%s does not exist. Setting it to %s\n",
                         pszDisServiceNodeIdProperty, dsProNodeId.c_str());
         pCfgMgr->setValue (pszDisServiceNodeIdProperty, dsProNodeId);
     }
-    else if (((pszDisServiceNodeId = pCfgMgr->getValue (pszDisServiceNodeIdProperty)) == NULL) || (dsProNodeId != pszDisServiceNodeId)) {
+    else if (((pszDisServiceNodeId = pCfgMgr->getValue (pszDisServiceNodeIdProperty)) == nullptr) || (dsProNodeId != pszDisServiceNodeId)) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "%s is set to %s, while the dspro node id is set to %s. "
                         "Overriding the DisService node id to %s\n", pszDisServiceNodeIdProperty, pszDisServiceNodeId,
                         dsProNodeId.c_str(), dsProNodeId.c_str());
     }
 
     // Avoid setting any search controller, DSPro will register its own
-    if (pCfgMgr->getValue ("aci.disService.searchController") != NULL) {
+    if (pCfgMgr->getValue ("aci.disService.searchController") != nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "forcing aci.disService.searchController value to NONE\n");
     }
     pCfgMgr->setValue ("aci.disService.searchController", "NONE");
 
     DisseminationService *pDisService = new DisseminationService (pCfgMgr);
-    if (pDisService == NULL) {
+    if (pDisService == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     if (pDisService->init() < 0) {
         delete pDisService;
-        return NULL;
-    }
-
-    if (!disServiceAndDSProSessionIDsMatch (pszSessionId, pDisService->getSessionId())) {
-        checkAndLogMsg (pszMethodName, Logger::L_Warning, "DisService sessionKey (%s), "
-                        "and dspro sessionKey (%s) do not match.\n",
-                        (pszSessionId == NULL ? "NULL" : pszSessionId),
-                        (pDisService->getSessionId() == NULL ? "NULL" : pDisService->getSessionId()));
-        return NULL;
+        return nullptr;
     }
 
     String dataSubscription (DSPRO_GROUP_NAME);
@@ -163,7 +142,7 @@ DisServiceAdaptor * DisServiceAdaptor::getDisServiceAdaptor (unsigned int uiId, 
     if (rc != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to subscribe to %s group."
                         "DisService returned code %d\n", dataSubscription.c_str(), rc);
-        return NULL;
+        return nullptr;
     }
 
     rc = pDisService->subscribe (DSPRO_CLIENT_ID, DSPRO_CTRL_TO_CTRL_GROUP_NAME,
@@ -174,21 +153,20 @@ DisServiceAdaptor * DisServiceAdaptor::getDisServiceAdaptor (unsigned int uiId, 
     if (rc != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to subscribe to %s group."
                         "DisService returned code %d\n", DSPRO_CTRL_TO_CTRL_GROUP_NAME, rc);
-        return NULL;
+        return nullptr;
     }
 
-    _pDisServiceAdaptor = new DisServiceAdaptor (uiId, pListener, dsProNodeId,
-                                                 pszSessionId, pDisService);
-    if (_pDisServiceAdaptor == NULL) {
+    _pDisServiceAdaptor = new DisServiceAdaptor (uiId, pListener, dsProNodeId, pDisService);
+    if (_pDisServiceAdaptor == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     rc = pDisService->registerDisseminationServiceListener (DSPRO_CLIENT_ID, _pDisServiceAdaptor);
     if (rc != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "failed to register to DisseminationServiceListener. Return code: %d\n", rc);
-        return NULL;
+        return nullptr;
     }
 
     unsigned int uiIndex = 0;
@@ -196,14 +174,23 @@ DisServiceAdaptor * DisServiceAdaptor::getDisServiceAdaptor (unsigned int uiId, 
     if (rc != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "failed to register to MessageListener. Return code: %d\n", rc);
-        return NULL;
+        return nullptr;
     }
 
+    uiIndex = 0;
     rc = pDisService->registerPeerStateListener (_pDisServiceAdaptor, uiIndex);
     if (rc != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "failed to register to MessageListener. Return code: %d\n", rc);
-        return NULL;
+        return nullptr;
+    }
+
+    uiIndex = 0;
+    rc = pDisService->registerNetworkStateListener (_pDisServiceAdaptor, uiIndex);
+    if (rc != 0) {
+        checkAndLogMsg (pszMethodName, Logger::L_MildError,
+                        "failed to register to NetworkStateListener. Return code: %d\n", rc);
+        return nullptr;
     }
 
     return _pDisServiceAdaptor;
@@ -221,9 +208,18 @@ int DisServiceAdaptor::init (ConfigManager *pConfMgr)
     return 0;
 }
 
+int DisServiceAdaptor::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    if (_pDisService == nullptr) {
+        return -1;
+    }
+    _pDisService->changeEncryptionKey (pchKey, ui32Len);
+    return 0;
+}
+
 int DisServiceAdaptor::startAdaptor (void)
 {
-    if (_pDisService == NULL) {
+    if (_pDisService == nullptr) {
         return -1;
     }
     _pDisService->start();
@@ -232,7 +228,7 @@ int DisServiceAdaptor::startAdaptor (void)
 
 int DisServiceAdaptor::stopAdaptor (void)
 {
-    if (_pDisService == NULL) {
+    if (_pDisService == nullptr) {
         return -1;
     }
     _pDisService->requestTerminationAndWait();
@@ -243,11 +239,11 @@ void DisServiceAdaptor::newIncomingMessage (const void *, uint16,
                                             DisServiceMsg *pDisServiceMsg,
                                             uint32, const char *pszIncomingInterface)
 {
-    if (pDisServiceMsg == NULL) {
+    if (pDisServiceMsg == nullptr) {
         return;
     }
 
-    if (!_sessionIdChecker.checkSessionId (pDisServiceMsg->getSessionId())) {
+    if (!checkSessionId (pDisServiceMsg->getSessionId())) {
         checkAndLogMsg ("DisServiceAdaptor::newIncomingMessage", Logger::L_Info,
                         "received message from peer with wrong session key: %s\n",
                         pDisServiceMsg->getSessionId());
@@ -296,7 +292,7 @@ void DisServiceAdaptor::newIncomingMessage (const void *, uint16,
 void DisServiceAdaptor::handleDataMsg (DisServiceDataMsg *pDisServiceMsg, const char *pszIncomingInterface)
 {
     MessageHeader *pMH = pDisServiceMsg->getMessageHeader();
-    if (pMH == NULL) {
+    if (pMH == nullptr) {
         return;
     }
     if (!pMH->isCompleteMessage()) {
@@ -326,28 +322,28 @@ void DisServiceAdaptor::handleChunkRetrievalMsg (ChunkRetrievalMsgQuery *pChunkR
 void DisServiceAdaptor::handleCtrlToCtrlMsg (ControllerToControllerMsg *pCtrlMsg,
                                              const char *pszIncomingInterface)
 {
-    if (pCtrlMsg == NULL) {
+    if (pCtrlMsg == nullptr) {
         return;
     }
     if ((pCtrlMsg->getControllerType() != DisseminationService::DCReplicationCtrl) ||
         (pCtrlMsg->getControllerVersion() != DataCacheReplicationController::DCRC_DSPro)) {
         return;
     }
-    
+
     uint8 *pType = (uint8 *) pCtrlMsg->getMetaData();
-    if (pType == NULL) {
+    if (pType == nullptr) {
         checkAndLogMsg ("DisServiceAdaptor::newIncomingMessage", Logger::L_Warning,
-                        "controller to controller message of NULL type.\n");
+                        "controller to controller message of nullptr type.\n");
         return;
     }
 
     void *pBuf = pCtrlMsg->getData();
-    if (pBuf == NULL || pCtrlMsg->getDataLength() == 0) {
+    if (pBuf == nullptr || pCtrlMsg->getDataLength() == 0) {
         checkAndLogMsg ("DisServiceAdaptor::newIncomingMessage", Logger::L_Warning,
-                        "controller to controller message contains NULL payload.\n");
+                        "controller to controller message contains nullptr payload.\n");
     }
 
-    char *pszPublisherNodeId = NULL;
+    char *pszPublisherNodeId = nullptr;
     uint32 ui32BytesReadForPublisherNodeId = 0;
     uint32 ui32RemainingBytes = pCtrlMsg->getDataLength();
     const char *pDataBuf = (const char *) pBuf;
@@ -361,7 +357,7 @@ void DisServiceAdaptor::handleCtrlToCtrlMsg (ControllerToControllerMsg *pCtrlMsg
         case MessageHeaders::CtxtWhole_V1:
             pszPublisherNodeId = DSProMessage::readMessagePublisher (pBuf, pCtrlMsg->getDataLength(),
                                                                      ui32BytesReadForPublisherNodeId);
-            if (pszPublisherNodeId == NULL) {
+            if (pszPublisherNodeId == nullptr) {
                 return;
             }
 
@@ -420,7 +416,7 @@ void DisServiceAdaptor::handleCtrlToCtrlMsg (ControllerToControllerMsg *pCtrlMsg
 
 void DisServiceAdaptor::handleSearchMsg (SearchMsg *pSearchMsg, const char *)
 {
-    if (pSearchMsg == NULL) {
+    if (pSearchMsg == nullptr) {
         return;
     }
     SearchProperties searchProp;
@@ -437,7 +433,7 @@ void DisServiceAdaptor::handleSearchMsg (SearchMsg *pSearchMsg, const char *)
 
 void DisServiceAdaptor::handleSearchReplyMsg (SearchReplyMsg *pSearchReplyMsg, const char *)
 {
-    if (pSearchReplyMsg == NULL) {
+    if (pSearchReplyMsg == nullptr) {
         return;
     }
     _pListener->searchReplyMessageArrived (getAdaptorId(), pSearchReplyMsg->getSenderNodeId(), pSearchReplyMsg->getQueryId(),
@@ -447,7 +443,7 @@ void DisServiceAdaptor::handleSearchReplyMsg (SearchReplyMsg *pSearchReplyMsg, c
 
 void DisServiceAdaptor::handleSearchReplyMsg (VolatileSearchReplyMsg *pSearchReplyMsg, const char *pszIncomingInterface)
 {
-    if (pSearchReplyMsg == NULL) {
+    if (pSearchReplyMsg == nullptr) {
         return;
     }
     uint16 ui16ReplyLen = 0;
@@ -489,10 +485,14 @@ bool DisServiceAdaptor::dataArrived (uint16, const char *pszSender, const char *
                                      const void *pData, uint32 ui32Length, uint32, uint16, uint8,
                                      const char *pszQueryId)
 {
-    if (pszSender == NULL || pszGroupName == NULL || pData == NULL || ui32Length == 0) {
+    if (pszSender == nullptr || pszGroupName == nullptr || pData == nullptr || ui32Length == 0) {
         return false;
     }
-    if (!checkGroupName (pszGroupName, DSPRO_GROUP_NAME)) {
+    _mSubscribedGrps.lock();
+    bool bSubscribed = checkGroupName (pszGroupName, DSPRO_GROUP_NAME) || _subscribedGroups.containsKeyWild (pszGroupName);
+    _mSubscribedGrps.unlock();
+
+    if (!bSubscribed) {
         return false;
     }
     if (checkGroupName (pszGroupName, DSPRO_CTRL_TO_CTRL_GROUP_NAME)) {
@@ -500,7 +500,7 @@ bool DisServiceAdaptor::dataArrived (uint16, const char *pszSender, const char *
     }
 
     char *pszId = convertFieldToKey (pszGroupName, pszSender, ui32SeqId);
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         checkAndLogMsg ("DisServiceAdaptor::dataArrived", couldNotCreateId,
                         pszGroupName, pszSender, ui32SeqId);
         return false;
@@ -509,19 +509,18 @@ bool DisServiceAdaptor::dataArrived (uint16, const char *pszSender, const char *
     MessageHeaders::MsgType type;
     uint32 ui32NewLen = 0;
     void *pNewData = MessageHeaders::removeDSProHeader (pData, ui32Length, ui32NewLen, type);
-    if (pNewData == NULL || ui32NewLen == 0) {
+    if (pNewData == nullptr || ui32NewLen == 0) {
         free (pszId);
         return false;
     }
-
     uint32 ui32AnnotationMetadataLen = 0U;
-    void *pAnnotationMetadataBuf = NULL;
-    if (pszAnnotatedObjMsgId != NULL) {
+    void *pAnnotationMetadataBuf = nullptr;
+    if (pszAnnotatedObjMsgId != nullptr) {
         // Retrieve the annotation metadata
         pAnnotationMetadataBuf = getDataCacheInterface()->getAnnotationMetadata (pszGroupName, pszSender, ui32SeqId, ui32AnnotationMetadataLen);
     }
 
-    char *pszChecksum = NULL;
+    char *pszChecksum = nullptr;
     MessageProperties msgProp (pszSender, pszId, pszObjectId, pszInstanceId,
                                pszAnnotatedObjMsgId, pAnnotationMetadataBuf,
                                ui32AnnotationMetadataLen, pszMimeType, pszChecksum,
@@ -533,7 +532,7 @@ bool DisServiceAdaptor::dataArrived (uint16, const char *pszSender, const char *
             break;
 
         case MessageHeaders::Metadata: {
-            const char *pszRefersTo = NULL;
+            const char *pszRefersTo = nullptr;
             _pListener->metadataArrived (&_adptorProperties, &msgProp, pNewData, ui32NewLen, pszRefersTo);
             break;
         }
@@ -555,7 +554,7 @@ bool DisServiceAdaptor::chunkArrived (uint16, const char *pszSender, const char 
                                       uint8 ui8NChunks, uint8 ui8TotNChunks, const char *,
                                       uint16, uint8, const char *pszQueryId)
 {
-    if (pszSender == NULL || pszGroupName == NULL || pChunk == NULL || ui32Length == 0) {
+    if (pszSender == nullptr || pszGroupName == nullptr || pChunk == nullptr || ui32Length == 0) {
         return false;
     }
     if (!checkGroupName (pszGroupName, DSPRO_GROUP_NAME)) {
@@ -566,22 +565,22 @@ bool DisServiceAdaptor::chunkArrived (uint16, const char *pszSender, const char 
     }
 
     char *pszOnDemandGroupName = getOnDemandDataGroupName (pszGroupName);
-    if (pszOnDemandGroupName == NULL) {
+    if (pszOnDemandGroupName == nullptr) {
         checkAndLogMsg ("DisServiceAdaptor::chunkArrived", memoryExhausted);
         return false;
     }
 
     char *pszId = convertFieldToKey (pszOnDemandGroupName, pszSender, ui32SeqId);
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         checkAndLogMsg ("DisServiceAdaptor::chunkArrived", couldNotCreateId,
                         pszId, pszGroupName, pszSender, ui32SeqId);
         free (pszOnDemandGroupName);
         return false;
     }
 
-    char *pszChecksum = NULL;
+    char *pszChecksum = nullptr;
     MessageProperties msgProp (pszSender, pszId, pszObjectId, pszInstanceId,
-                               NULL, NULL, 0U, pszMimeType, pszChecksum, pszQueryId, 0);
+                               nullptr, nullptr, 0U, pszMimeType, pszChecksum, pszQueryId, 0);
 
     _pListener->dataArrived (&_adptorProperties, &msgProp, pChunk, ui32Length, ui8NChunks, ui8TotNChunks);
 
@@ -595,7 +594,7 @@ bool DisServiceAdaptor::metadataArrived (uint16, const char *pszSender, const ch
                                          const char *pszMimeType, const void *pMetadata, uint32 ui32MetadataLength,
                                          bool, uint16, uint8, const char *pszQueryId)
 {
-    if (pszSender == NULL || pszGroupName == NULL || pMetadata == NULL || ui32MetadataLength <= 1) {
+    if (pszSender == nullptr || pszGroupName == nullptr || pMetadata == nullptr || ui32MetadataLength <= 1) {
         return false;
     }
     if (!checkGroupName (pszGroupName, DSPRO_GROUP_NAME)) {
@@ -606,17 +605,17 @@ bool DisServiceAdaptor::metadataArrived (uint16, const char *pszSender, const ch
     }
 
     char *pszId = convertFieldToKey (pszGroupName, pszSender, ui32SeqId);
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         checkAndLogMsg ("DisServiceAdaptor::metadataArrived", couldNotCreateId,
                         pszId, pszGroupName, pszSender, ui32SeqId);
         return false;
     }
 
-    char *pszChecksum = NULL;
+    char *pszChecksum = nullptr;
     MessageProperties msgProp (pszSender, pszId, pszObjectId, pszInstanceId,
-                               NULL, NULL, 0U, pszMimeType, pszChecksum, pszQueryId, 0);
+                               nullptr, nullptr, 0U, pszMimeType, pszChecksum, pszQueryId, 0);
 
-    _pListener->metadataArrived (&_adptorProperties, &msgProp, pMetadata, ui32MetadataLength, NULL);
+    _pListener->metadataArrived (&_adptorProperties, &msgProp, pMetadata, ui32MetadataLength, nullptr);
 
     free (pszId);
     return true;
@@ -628,11 +627,8 @@ bool DisServiceAdaptor::dataAvailable (uint16, const char *pszSender, const char
                                        uint32 ui32MetadataLength, uint16, uint8,
                                        const char *pszQueryId)
 {
-    if (pszSender == NULL || pszGroupName == NULL ||
-        pMetadata == NULL || ui32MetadataLength == 0 || pszRefObjId == NULL) {
-        return false;
-    }
-    if (!checkGroupName (pszGroupName, DSPRO_GROUP_NAME)) {
+    if (pszSender == nullptr || pszGroupName == nullptr ||
+        pMetadata == nullptr || ui32MetadataLength == 0 || pszRefObjId == nullptr) {
         return false;
     }
     if (checkGroupName (pszGroupName, DSPRO_CTRL_TO_CTRL_GROUP_NAME)) {
@@ -640,15 +636,15 @@ bool DisServiceAdaptor::dataAvailable (uint16, const char *pszSender, const char
     }
 
     char *pszId = convertFieldToKey (pszGroupName, pszSender, ui32SeqId);
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         checkAndLogMsg ("DisServiceAdaptor::dataAvailable", couldNotCreateId,
                         pszId, pszGroupName, pszSender, ui32SeqId, pszRefObjId);
         return false;
     }
 
-    char *pszChecksum = NULL;
+    char *pszChecksum = nullptr;
     MessageProperties msgProp (pszSender, pszId, pszObjectId, pszInstanceId,
-                               NULL, NULL, 0U, pszMimeType, pszChecksum, pszQueryId, 0);
+                               nullptr, nullptr, 0U, pszMimeType, pszChecksum, pszQueryId, 0);
 
     _pListener->metadataArrived (&_adptorProperties, &msgProp, pMetadata, ui32MetadataLength, pszRefObjId);
 
@@ -667,7 +663,7 @@ int DisServiceAdaptor::sendContextUpdateMessage (const void *pBuf, uint32 ui32Bu
                                                  const char **ppszRecipientNodeIds,
                                                  const char **ppszInterfaces)
 {
-    return sendAndLogCtrMsg (pBuf, ui32BufLen, NULL, ppszRecipientNodeIds,
+    return sendAndLogCtrMsg (pBuf, ui32BufLen, nullptr, ppszRecipientNodeIds,
                              ppszInterfaces, MessageHeaders::CtxtUpdates_V2);
 }
 
@@ -675,91 +671,93 @@ int DisServiceAdaptor::sendContextVersionMessage (const void *pBuf, uint32 ui32B
                                                   const char **ppszRecipientNodeIds,
                                                   const char **ppszInterfaces)
 {
-    return sendAndLogCtrMsg (pBuf, ui32BufLen, NULL, ppszRecipientNodeIds,
+    return sendAndLogCtrMsg (pBuf, ui32BufLen, nullptr, ppszRecipientNodeIds,
                              ppszInterfaces, MessageHeaders::CtxtVersions_V2);
 }
 
 int DisServiceAdaptor::sendDataMessage (Message *pMsg, const char **ppszRecipientNodeIds,
                                         const char **ppszInterfaces)
 {
-    if (pMsg == NULL) {
+    if (pMsg == nullptr) {
         return -1;
     }
 
     StringHashset hs (true, false, false);
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
-        hs.put (ppszRecipientNodeIds[i]);
+    if (ppszRecipientNodeIds != nullptr) {
+        for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
+            hs.put (ppszRecipientNodeIds[i]);
+        }
     }
     String multipleTargets (DisServiceMsgHelper::getMultiNodeTarget (hs));
 
     // TODO: concatenate recipients!
     DisServiceDataMsg msg (_pDisService->getNodeId(), pMsg, multipleTargets);
     if (multipleTargets.length() <= 0) {
-        const char *pszMsgId = NULL;
+        const char *pszMsgId = nullptr;
         MessageHeader *pMH = pMsg->getMessageHeader();
-        if (pMH != NULL) {
+        if (pMH != nullptr) {
             pszMsgId = pMH->getMsgId();
         }
         checkAndLogMsg ("DisServiceAdaptor::sendDataMessage", Logger::L_Warning,
                         "can not set target for data message %s\n",
-                        pszMsgId != NULL ? pszMsgId : "");
+                        pszMsgId != nullptr ? pszMsgId : "");
     }
 
-    return broadcastDataMessage (&msg, "DisServiceAdaptor", ppszInterfaces, NULL, NULL);
+    return broadcastDataMessage (&msg, "DisServiceAdaptor", ppszInterfaces, nullptr, nullptr);
 }
 
 int DisServiceAdaptor::sendChunkedMessage (Message *pMsg, const char *pszDataMimeType,
                                            const char **ppszRecipientNodeIds,
                                            const char **ppszInterfaces)
 {
-    if (pMsg == NULL) {
+    if (pMsg == nullptr) {
         return -1;
     }
 
     // TODO: concatenate recipients!
     DisServiceDataMsg msg (_pDisService->getNodeId(), pMsg);
-    if (ppszRecipientNodeIds == NULL || ppszRecipientNodeIds[0] == NULL) {
-        const char *pszMsgId = NULL;
+    if (ppszRecipientNodeIds == nullptr || ppszRecipientNodeIds[0] == nullptr) {
+        const char *pszMsgId = nullptr;
         MessageHeader *pMH = pMsg->getMessageHeader();
-        if (pMH != NULL) {
+        if (pMH != nullptr) {
             pszMsgId = pMH->getMsgId();
         }
         checkAndLogMsg ("DisServiceAdaptor::sendChunkedMessage", Logger::L_Warning,
                         "can not set target for data message %s\n",
-                        pszMsgId != NULL ? pszMsgId : "");
+                        pszMsgId != nullptr ? pszMsgId : "");
     }
     else {
         msg.setTargetNodeId (ppszRecipientNodeIds[0]);
     }
-    return broadcastDataMessage (&msg, "DisServiceAdaptor", NULL, NULL);
+    return broadcastDataMessage (&msg, "DisServiceAdaptor", nullptr, nullptr);
 }
 
 int DisServiceAdaptor::sendMessageRequestMessage (const char *pszMsgId, const char *,
                                                   const char **, const char **)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
     const char *pszMethodName = "DisServiceAdaptor::sendMessageRequestMessage";
 
     int rc = 0;
-    const char *pszOperation = NULL;
+    const char *pszOperation = nullptr;
     if (isOnDemandDataID (pszMsgId) && isAllChunksMessageID (pszMsgId)) {
         // It's pointing to a large object - retrieve whatever is in the
         // cache or search or run discovery for any chunk
         pszOperation = "retrieve";
-        void *pBuf = NULL;
+        void *pBuf = nullptr;
         uint32 ui32BufSize = 0;
         rc = _pDisService->retrieve (pszMsgId, &pBuf, &ui32BufSize, 0);
-        if (pBuf != NULL && ui32BufSize > 0) {
+        if (pBuf != nullptr && ui32BufSize > 0) {
             // it returned something - rc is the number of bytes that were read:
             // retrieve does not need to be called again, if the application needs
             // more chunks, it will request for them, and requestMoreChunks()
             // will be used instead
             free (pBuf);
-            pBuf = NULL;
+            pBuf = nullptr;
             ui32BufSize = 0;
-            rc = 0;            
+            rc = 0;
         }
     }
     else {
@@ -785,14 +783,14 @@ int DisServiceAdaptor::sendMessageRequestMessage (const char *pszMsgId, const ch
 int DisServiceAdaptor::sendChunkRequestMessage (const char *pszMsgId, DArray<uint8> *pCachedChunks,
                                                 const char *, const char **, const char **)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
     const char *pszMethodName = "DisServiceAdaptor::sendChunkRequestMessage";
 
     int rc = 0;
     if (isOnDemandDataID (pszMsgId) && isAllChunksMessageID (pszMsgId)) {
-        const int64 i64Timeout = (pCachedChunks == NULL ? 1 : (pCachedChunks->size() <= 0 ? 1 : 0));
+        const int64 i64Timeout = (pCachedChunks == nullptr ? 1 : (pCachedChunks->size() <= 0 ? 1 : 0));
         rc = _pDisService->requestMoreChunks (DSPRO_CLIENT_ID, pszMsgId, i64Timeout);
     }
 
@@ -808,7 +806,7 @@ int DisServiceAdaptor::sendChunkRequestMessage (const char *pszMsgId, DArray<uin
     }
     else {
         String chunkIds ("");
-        if (pCachedChunks != NULL) {
+        if (pCachedChunks != nullptr) {
             for (unsigned int i = 0; i < pCachedChunks->size(); i++) {
                 chunkIds += ((uint32) (*pCachedChunks)[i]);
                 chunkIds += ((char) ' ');
@@ -820,12 +818,12 @@ int DisServiceAdaptor::sendChunkRequestMessage (const char *pszMsgId, DArray<uin
 
     return 0;
 }
-                                         
+
 int DisServiceAdaptor::sendPositionMessage (const void *pBuf, uint32 ui32BufLen,
                                             const char **ppszRecipientNodeIds,
                                             const char **ppszInterfaces)
 {
-    return sendAndLogCtrMsg (pBuf, ui32BufLen, NULL, ppszRecipientNodeIds,
+    return sendAndLogCtrMsg (pBuf, ui32BufLen, nullptr, ppszRecipientNodeIds,
                              ppszInterfaces, MessageHeaders::Position);
 }
 
@@ -833,21 +831,21 @@ int DisServiceAdaptor::sendSearchMessage (SearchProperties &searchProp,
                                           const char **ppszRecipientNodeIds,
                                           const char **)
 {
-    if (searchProp.pszGroupName == NULL || searchProp.pszQuerier == NULL ||
-        searchProp.pQuery == NULL || searchProp.uiQueryLen == 0) {
+    if (searchProp.pszGroupName == nullptr || searchProp.pszQuerier == nullptr ||
+        searchProp.pQuery == nullptr || searchProp.uiQueryLen == 0) {
         return -1;
     }
 
-    if (searchProp.pszQueryId == NULL) {
+    if (searchProp.pszQueryId == nullptr) {
         searchProp.pszQueryId = SearchService::getSearchId (searchProp.pszQuerier, searchProp.pszGroupName, _pPropertyStore);
-        if (searchProp.pszQueryId == NULL) {
+        if (searchProp.pszQueryId == nullptr) {
             return -2;
         }
     }
 
     BufferWriter bw (1024, 1024);
     int rc = 0;
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         SearchMsg srcMsg (_pDisService->getNodeId(), ppszRecipientNodeIds[i]);
         srcMsg.setQuery (searchProp.pQuery, searchProp.uiQueryLen);
         srcMsg.setQuerier (searchProp.pszQuerier);
@@ -880,13 +878,13 @@ int DisServiceAdaptor::sendSearchReplyMessage (const char *pszQueryId,
                                                const char **ppszRecipientNodeIds,
                                                const char **)
 {
-    if (pszQueryId == NULL || ppszMatchingMsgIds == NULL) {
+    if (pszQueryId == nullptr || ppszMatchingMsgIds == nullptr) {
         return -1;
     }
 
     BufferWriter bw (1024, 1024);
     int rc = 0;
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         SearchReplyMsg srcMsg (_pDisService->getNodeId(), pszTarget);
         srcMsg.setQueryId (pszQueryId);
         srcMsg.setQuerier (pszTarget);
@@ -917,13 +915,13 @@ int DisServiceAdaptor::sendVolatileSearchReplyMessage (const char *pszQueryId,
                                                        const char **ppszRecipientNodeIds,
                                                        const char **ppszInterfaces)
 {
-    if (pszQueryId == NULL || pReply == NULL || ui16ReplyLen == 0) {
+    if (pszQueryId == nullptr || pReply == nullptr || ui16ReplyLen == 0) {
         return -1;
     }
 
     BufferWriter bw (1024, 1024);
     int rc = 0;
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         VolatileSearchReplyMsg srcMsg (_pDisService->getNodeId (), pszTarget);
         srcMsg.setQueryId (pszQueryId);
         srcMsg.setQuerier (pszTarget);
@@ -951,7 +949,7 @@ int DisServiceAdaptor::sendTopologyReplyMessage (const void *pBuf, uint32 ui32Bu
                                                  const char **ppszRecipientNodeIds,
                                                  const char **ppszInterfaces)
 {
-    return sendAndLogCtrMsg (pBuf, ui32BufLen, NULL, ppszRecipientNodeIds,
+    return sendAndLogCtrMsg (pBuf, ui32BufLen, nullptr, ppszRecipientNodeIds,
                              ppszInterfaces, MessageHeaders::TopoReply);
 }
 
@@ -959,7 +957,7 @@ int DisServiceAdaptor::sendTopologyRequestMessage (const void *pBuf, uint32 ui32
                                                    const char **ppszRecipientNodeIds,
                                                    const char **ppszInterfaces)
 {
-    return sendAndLogCtrMsg (pBuf, ui32BufLen, NULL, ppszRecipientNodeIds,
+    return sendAndLogCtrMsg (pBuf, ui32BufLen, nullptr, ppszRecipientNodeIds,
                              ppszInterfaces, MessageHeaders::TopoReq);
 }
 
@@ -987,7 +985,7 @@ int DisServiceAdaptor::sendWaypointMessage (const void *pBuf, uint32 ui32BufLen,
                                             const char **ppszInterfaces)
 {
     const char *pszMethodName = "DisServiceAdaptor::sendWaypointMessage";
-    uint32 ui32PubLen = pszPublisherNodeId == NULL ? 0
+    uint32 ui32PubLen = pszPublisherNodeId == nullptr ? 0
                       : strlen (pszPublisherNodeId);
     BufferWriter bw (4U + ui32PubLen + ui32BufLen, 128U);
     int rc = 0;
@@ -997,7 +995,7 @@ int DisServiceAdaptor::sendWaypointMessage (const void *pBuf, uint32 ui32BufLen,
     }
 
     StringHashset hs (true, false, false);
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         hs.put (ppszRecipientNodeIds[i]);
     }
     const String multipleTargets (DisServiceMsgHelper::getMultiNodeTarget (hs));
@@ -1010,12 +1008,12 @@ int DisServiceAdaptor::sendWaypointMessage (const void *pBuf, uint32 ui32BufLen,
                                                             multipleTargets,
                                                             MessageHeaders::WayPoint, pBufCpy, // DSProMessage's destructor
                                                             ui32BufferLen);                    // deletes pBuf! Pass a copy to it
-    if (pCtrlMsg != NULL) {
+    if (pCtrlMsg != nullptr) {
         BufferWriter bwMsg;
         rc  = pCtrlMsg->write (&bwMsg);
         if (rc >= 0) {
             char msgId[256];
-            rc = _pDisService->store (DSPRO_CLIENT_ID, DSPRO_CTRL_TO_CTRL_GROUP_NAME, NULL, NULL, NULL, NULL, 0,
+            rc = _pDisService->store (DSPRO_CLIENT_ID, DSPRO_CTRL_TO_CTRL_GROUP_NAME, nullptr, nullptr, nullptr, nullptr, 0,
                                       bwMsg.getBuffer(), bwMsg.getBufferLength(), 0, 0, 0, 0, msgId, 256);
             if (rc == 0) {
                 char logBuf [256];
@@ -1053,22 +1051,54 @@ int DisServiceAdaptor::sendWholeMessage (const void *pBuf, uint32 ui32BufLen,
                              ppszInterfaces, MessageHeaders::CtxtWhole_V1);
 }
 
+int DisServiceAdaptor::notifyEvent (const void *pBuf, uint32 ui32Len,
+                                    const char *pszPublisherNodeId,
+                                    const char *pszTopic, const char **ppszInterfaces)
+{
+    return 0;
+}
+
+int DisServiceAdaptor::subscribe (Subscription &sub)
+{
+    int rc = _pDisService->subscribe (DSPRO_CLIENT_ID, sub.groupName, sub.ui8Priority,
+                                      sub.bGroupReliable, sub.bMsgReliable, sub.bSequenced);
+    if (rc == 0) {
+        _mSubscribedGrps.lock();
+        _subscribedGroups.put (sub.groupName);
+        _mSubscribedGrps.unlock();
+    }
+    return rc;
+}
+
+void DisServiceAdaptor::networkQuiescent (const char **)
+{
+}
+
+void DisServiceAdaptor::messageCountUpdate (const char *pszPeerNodeId, const char *pszIncomingInterface, const char *pszPeerIp,
+                                            uint64 ui64GroumMsgCount, uint64 ui64UnicastMsgCount)
+{
+    Stats *pStats = Stats::getInstance();
+    if (pStats) {
+        pStats->messageCountUpdated (pszPeerNodeId, pszIncomingInterface, pszPeerIp, ui64GroumMsgCount, ui64UnicastMsgCount);
+    }
+}
+
 int DisServiceAdaptor::sendAndLogCtrMsg (const void *pBuf, uint32 ui32BufLen,
                                          const char *pszPublisherNodeId,
                                          const char **ppszRecipientNodeIds,
                                          const char **ppszInterfaces,
                                          MessageHeaders::MsgType type)
 {
-    if (pBuf == NULL || ui32BufLen == 0) {
+    if (pBuf == nullptr || ui32BufLen == 0) {
         return -1;
     }
 
     const char *pszMethodName = "DisServiceAdaptor::sendAndLogCtrMsg";
     int rc = 0;
 
-    uint32 ui32PubLen = pszPublisherNodeId == NULL ? 0
+    uint32 ui32PubLen = pszPublisherNodeId == nullptr ? 0
                       : strlen (pszPublisherNodeId);
-    for (int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         BufferWriter bw (4U + ui32PubLen + ui32BufLen, 128U);
 
         if ((rc = DSProMessageHelper::writesCtrlMsg (&bw, pszPublisherNodeId, ui32PubLen, pBuf, ui32BufLen) < 0)) {
@@ -1081,7 +1111,7 @@ int DisServiceAdaptor::sendAndLogCtrMsg (const void *pBuf, uint32 ui32BufLen,
                                                                 ppszRecipientNodeIds[i],
                                                                 type, bw.relinquishBuffer(), // DSProMessage's destructor
                                                                 ui32BufferLen);              // deletes pBuf! Pass a copy to it!
-        if (pCtrlMsg != NULL) {
+        if (pCtrlMsg != nullptr) {
             char buf [256];
             snprintf (buf, sizeof (buf) - 1, "dspro - sending ControllerToControllerMsg message of type %s to peer %s",
                       MessageHeaders::getMetadataAsString ((uint8 *)pCtrlMsg->getMetaData()), pCtrlMsg->getTargetNodeId());

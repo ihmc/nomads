@@ -172,7 +172,7 @@ void CoverClass(void)
     memcpy(RuleIn, Subset, NRules+1);
     Verbosity(1) printf("\n\tBest value %.1f\n", SubsetValue);
 }
- 
+
 /*************************************************************************/
 /*									 */
 /*    Try all combinations of rules to find best value			 */
@@ -495,7 +495,7 @@ void MakeIndex(void)
         }
         Included[BestC] = true;
         Verbosity(1) printf("%5d     %s\n", FalsePos[BestC], ClassName[BestC]);
-        // Now grab the rules for this class 
+        // Now grab the rules for this class
         do {
             BestR = 0;
             // Find the best rule to put next

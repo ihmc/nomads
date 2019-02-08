@@ -1,4 +1,4 @@
-/* 
+/*
  * NMSCommandProcessor.cpp
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -33,7 +33,7 @@ NMSCommandProcessor::NMSCommandProcessor (NetworkMessageService *pNMS)
 {
 }
 
-NMSCommandProcessor::~NMSCommandProcessor()
+NMSCommandProcessor::~NMSCommandProcessor (void)
 {
 }
 
@@ -47,8 +47,11 @@ int NMSCommandProcessor::processCmd (const void *pToken, char *pszCmdLine)
     }
     String cmd (pszCmd);
     cmd.trim();
-    if (cmd == "ping") {
+    if (cmd ^= "ping") {
         displayPongMsg (pToken);
+    }
+    if ((cmd ^= "getencryptionkey") || (cmd ^= "getencryptionkeyhash") || (cmd ^= "getenckeyhash") || (cmd ^= "getenckey")) {
+        getEncryptionKey (pToken);
     }
     else if ((cmd == "exit") || (cmd == "quit")) {
         return 0;
@@ -62,4 +65,10 @@ int NMSCommandProcessor::processCmd (const void *pToken, char *pszCmdLine)
 void NMSCommandProcessor::displayPongMsg (const void *pToken)
 {
     print (pToken, "pong\n");
+}
+
+void NMSCommandProcessor::getEncryptionKey (const void *pToken)
+{
+    const String encKeyHash (_pNMS->getEncryptionKeyHash());
+    print (pToken, "Current encryption key hash: %s.\n", encKeyHash.c_str());
 }

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -55,7 +55,7 @@ namespace IHMC_C45
             // Initialize, construct and use the tree
             int configureClassifier(C45AVList * attributes);
                                                         // Set the classes, attributes and values names.
-                                                        // Returns 0 if no errors occurred or a code 
+                                                        // Returns 0 if no errors occurred or a code
                                                         // between 1 and 10 if there is an error.
 
             C45TreeInfo * createNewTree(C45AVList * dataset);
@@ -92,7 +92,7 @@ namespace IHMC_C45
                                                         // at the beginning of each cycle in % of the actual
                                                         // window in use. When percCycleWin is set to 0.0, the
                                                         // default value 1.0 (100% of actual window size) will
-                                                        // be used.  
+                                                        // be used.
 
             int setupWindowMode(int initialWindow, int maxWindow, int increment);
                                                         // new mode with window
@@ -168,8 +168,8 @@ namespace IHMC_C45
                                                         // returned).
 
             void setPercentMaximumErrors(float percCycleErr);
-                                                        // Set the "percCycleErr" parameter used in Cycle Mode 
-                                                        
+                                                        // Set the "percCycleErr" parameter used in Cycle Mode
+
             void setPercentInizialWindow(float percCycleWin);
                                                         // Set the "percCycleWin" parameter used in Cycle Mode
 
@@ -181,7 +181,7 @@ namespace IHMC_C45
                                                         // to construct trees, if gain = false use the
                                                         // gain ratio criterion. The default uses the
                                                         // gain ratio criterion.
-            
+
             bool setConfidence(float confidence);       // Set the pruning confidence level. The
                                                         // default is 0.25. The range must be between
                                                         // 0,001 and 100, if not "false" is returned and
@@ -190,7 +190,7 @@ namespace IHMC_C45
             void setVerbosity(bool verb);               // If the verbosity is set, a standard output
                                                         // is generated. That may help to explain what
                                                         // the program is doing.
-                                                                                            
+
             void setSubsetting(bool subset);            // Force `subsetting' of all tests based on
                                                         // discrete attributes with more than two
                                                         // values. C4.5 will construct a test with
@@ -370,12 +370,12 @@ namespace IHMC_C45
         }
         return false;
     }
-    
+
     inline int C45DecisionTree::getNoTreesConstructed(void)
     {
         return _treeCounter;
     }
-    
+
     inline uint16 C45DecisionTree::getVersion(void)
     {
         return _treeCounter;

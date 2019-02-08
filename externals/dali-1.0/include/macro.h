@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -127,10 +127,10 @@ extern "C" {
 /*
  * Debugging aid, and error checking routines.
  * Wei Tsang August 97
- * 
- * If you want to turn off error checking totally to 
- * speed up execution,  compiled with NO_ERROR_CHECKING.  
- * The default is to check for errors and output the error 
+ *
+ * If you want to turn off error checking totally to
+ * speed up execution,  compiled with NO_ERROR_CHECKING.
+ * The default is to check for errors and output the error
  * messages as Tcl messages.
  *
  * RULE 1 : Must use this inside a Tcl command function

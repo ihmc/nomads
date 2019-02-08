@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -76,7 +76,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, const char *pszVa
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = -1;
@@ -112,7 +112,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, uint32 ui32Val)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_int (_pPrepStmt, (int) usColumnIdx, ui32Val);
@@ -129,7 +129,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, uint64 ui64Val)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (uint64)", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_int64 (_pPrepStmt, (int) usColumnIdx, ui64Val);
@@ -156,7 +156,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, int32 i32Val)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (int32)", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_int (_pPrepStmt, (int) usColumnIdx, i32Val);
@@ -173,7 +173,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, int64 i64Val)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (int64)", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_int64 (_pPrepStmt, (int) usColumnIdx, i64Val);
@@ -190,7 +190,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, float fVal)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (float)", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_double (_pPrepStmt, (int) usColumnIdx, fVal);
@@ -207,7 +207,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, double dVal)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (double)", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_double (_pPrepStmt, (int) usColumnIdx, dVal);
@@ -224,7 +224,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, bool bVal)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (bool)", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_int (_pPrepStmt, (int) usColumnIdx,
@@ -242,7 +242,7 @@ int SQLitePreparedStatement::bind (unsigned short usColumnIdx, const void *pBuf,
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bind (blob)", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     if (pBuf == NULL) {
@@ -278,7 +278,7 @@ int SQLitePreparedStatement::bindNull (unsigned short usColumnIdx)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::bindNull", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_bind_null (_pPrepStmt, (int) usColumnIdx);
@@ -310,7 +310,7 @@ bool SQLitePreparedStatement::nextInternal (SQLitePreparedStatementRow *pRow)
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::next", emptySqlStmt);
-        return false; 
+        return false;
     }
 
     int rc = sqlite3_step (_pPrepStmt);
@@ -336,7 +336,7 @@ int SQLitePreparedStatement::update()
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::update", emptySqlStmt);
-        return -1; 
+        return -1;
     }
 
     int rc = sqlite3_step (_pPrepStmt);
@@ -361,7 +361,7 @@ void SQLitePreparedStatement::reset()
 {
     if (_pPrepStmt == NULL) {
         checkAndLogMsg ("SQLitePreparedStatement::reset", emptySqlStmt);
-        return; 
+        return;
     }
 
     sqlite3_reset (_pPrepStmt);

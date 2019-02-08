@@ -1,4 +1,4 @@
-/* 
+/*
  * SchedulerGeneratedMetadata.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -27,7 +27,7 @@
 using namespace NOMADSUtil;
 using namespace IHMC_ACI;
 
-SchedulerGeneratedMetadata *SchedulerGeneratedMetadata::_pInstance = NULL;
+SchedulerGeneratedMetadata *SchedulerGeneratedMetadata::_pInstance = nullptr;
 
 SchedulerGeneratedMetadata::SchedulerGeneratedMetadata()
     : _m (MutexId::SchedulerGeneratedMetadata_m, LOG_MUTEX),
@@ -68,7 +68,7 @@ void SchedulerGeneratedMetadata::put (const char *pszGenMetadataID, const char *
 
 SchedulerGeneratedMetadata * SchedulerGeneratedMetadata::getInstance (void)
 {
-    if (_pInstance == NULL) {
+    if (_pInstance == nullptr) {
         _pInstance = new SchedulerGeneratedMetadata();
     }
     return _pInstance;

@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -59,7 +59,7 @@ void BitImageCloseScan(BitImageScan *);
 
 /*
  * Return code for BitImageGetNextExtent().
- * SCAN_NOT_DONE indicates the current extents output is valid.  
+ * SCAN_NOT_DONE indicates the current extents output is valid.
  * SCAN_DONE indicate the current extents is invalid and there are no more
  * extents to be found.
  */

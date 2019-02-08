@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -35,7 +35,7 @@ using namespace NOMADSUtil;
 //------------------------------------------------------------------------------
 
 RequestsInterface::RequestsInterface()
-{   
+{
 }
 
 RequestsInterface::~RequestsInterface()
@@ -63,7 +63,7 @@ AbstractRequestsState::~AbstractRequestsState()
 //------------------------------------------------------------------------------
 
 MessageRequestState::MessageRequestState()
-{    
+{
 }
 
 MessageRequestState::~MessageRequestState()
@@ -132,7 +132,7 @@ int MessageRequestState::addRequestInternal (RequestInfo &reqInfo, uint32 ui32Ms
                             reqInfo._pszQueryId == NULL ? "" : reqInfo._pszQueryId);
         }
     }
-    
+
     return 0;
 }
 
@@ -194,7 +194,7 @@ bool MessageRequestState::wasRequested (const char *pszGroupName, const char *ps
     if (pszGroupName == NULL || pszPublisherNodeI == NULL) {
         return false;
     }
- 
+
     ByGroup *pByGroup = _states.get (pszGroupName);
     if (pByGroup == NULL) {
         return false;
@@ -322,7 +322,7 @@ int ChunkRequestsState::addRequestInternal (RequestInfo &reqInfo, uint32 ui32Msg
             else {
                 pOldDetails->addDetails (reqInfo._pszQueryId, reqInfo._ui16ClientId, reqInfo._ui64ExpirationTime);
             }
- 
+
             checkAndLogMsg ("ChunkRequestsState::addRequestInternal", Logger::L_LowDetailDebug,
                             "range [%u, %u] for subscription %s:%s:%u pushed into the queue (queryId <%s>).\n",
                             ui8ChunkIdStart, ui8ChunkIdEnd, reqInfo._pszGroupName, reqInfo._pszSenderNodeId,
@@ -390,7 +390,7 @@ AbstractRequestsState::ByGroup::ByGroup()
                        true,  // bCloneKeys
                        true,  // bDeleteKeys
                        true)  // bDeleteValues
-{   
+{
 }
 
 AbstractRequestsState::ByGroup::~ByGroup()
@@ -579,7 +579,7 @@ bool RequestsState::wasRequested (const char *pszGroupName, const char *pszPubli
 
     if (ui8ChunkId == MessageHeader::UNDEFINED_CHUNK_ID) {
         return _msgReqState.wasRequested (pszGroupName, pszPublisherNodeId, ui32MsgSeqId);
-        
+
     }
     return _chunkReqState.wasRequested (pszGroupName, pszPublisherNodeId,
                                         ui32MsgSeqId, ui8ChunkId);

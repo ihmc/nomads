@@ -1,12 +1,12 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
  * mpegvideoindex.c
- * 
+ *
  * Functions to work with an index of frame types and positions in
  * display order in order to grab and decode a given series of frames.
  *
@@ -61,7 +61,7 @@ MpegVideoIndexParse(bp, index)
 }
 
 
-/* 
+/*
  *Assume BitParser *bp is wrapped to an empty stream
  */
 

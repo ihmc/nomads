@@ -47,7 +47,7 @@ const char * const MessageHeaders::VERSIONS        = "Versions";
 const char * const MessageHeaders::WAYPOINT        = "Waypoint";
 const char * const MessageHeaders::WHOLE           = "Whole";
 const char * const MessageHeaders::MESSAGE_REQUEST = "MessageRequest";
-const char * const MessageHeaders::CHUNK_REQUEST   = "ChunkRequest"; 
+const char * const MessageHeaders::CHUNK_REQUEST   = "ChunkRequest";
 const char * const MessageHeaders::UNKNOWN         = "Unknown";
 
 void * MessageHeaders::addDSProHeader (const void *pBuf, uint32 ui32Len, bool bIsMetadata, uint32 &ui32NewLen)
@@ -55,10 +55,10 @@ void * MessageHeaders::addDSProHeader (const void *pBuf, uint32 ui32Len, bool bI
     BufferWriter bw ((ui32Len + 1U), 1024U);
     const uint8 ui8Header = bIsMetadata ? Metadata : Data;
     if (bw.write8 (&ui8Header) != 0) {
-        return NULL;
+        return nullptr;
     }
     if (bw.writeBytes (pBuf, ui32Len) != 0) {
-        return NULL;
+        return nullptr;
     }
 
     ui32NewLen = bw.getBufferLength();
@@ -71,7 +71,7 @@ void * MessageHeaders::removeDSProHeader (const void *pBuf, uint32 ui32Len,
     uint8 ui8Header = 0;
     BufferReader br (pBuf, ui32Len);
     if (br.read8 (&ui8Header) != 0) {
-        return NULL;
+        return nullptr;
     }
     switch (ui8Header) {
         case Data:
@@ -82,21 +82,21 @@ void * MessageHeaders::removeDSProHeader (const void *pBuf, uint32 ui32Len,
         default:
             checkAndLogMsg ("MessageHeaders::removeDSProHeader", Logger::L_Warning,
                             "message of unknown type %u\n", ui8Header);
-            return NULL;
+            return nullptr;
     }
 
     ui32NewLen = ui32Len-1;
     void *pNewBuf = calloc (ui32NewLen, 1);
-    if (pNewBuf == NULL) {
+    if (pNewBuf == nullptr) {
         checkAndLogMsg ("MessageHeaders::removeDSProHeader", memoryExhausted);
         ui32NewLen = 0;
-        return NULL;
+        return nullptr;
     }
     if (br.readBytes (pNewBuf, ui32NewLen) != 0) {
         checkAndLogMsg ("MessageHeaders::removeDSProHeader", Logger::L_Warning,
                         "error reading buffer\n", ui8Header);
         free (pNewBuf);
-        pNewBuf = NULL;
+        pNewBuf = nullptr;
         ui32NewLen = 0;
     }
 
@@ -104,7 +104,7 @@ void * MessageHeaders::removeDSProHeader (const void *pBuf, uint32 ui32Len,
 }
 
 int MessageHeaders::ui8ToMsgType (uint8 ui8MsgType, MsgType &type)
-{                
+{
     switch (ui8MsgType) {
         case Data:
             type = Data;
@@ -183,7 +183,7 @@ int MessageHeaders::ui8ToMsgType (uint8 ui8MsgType, MsgType &type)
 
 const char * MessageHeaders::getMetadataAsString (const uint8 *puiType)
 {
-    if (puiType == NULL) {
+    if (puiType == nullptr) {
         return MessageHeaders::UNKNOWN;
     }
 

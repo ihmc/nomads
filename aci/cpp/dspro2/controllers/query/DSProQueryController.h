@@ -26,7 +26,6 @@
 #include "QueryController.h"
 
 #include "PtrLList.h"
-#include "SearchProperties.h"
 #include "StringHashtable.h"
 
 namespace IHMC_ACI
@@ -34,7 +33,6 @@ namespace IHMC_ACI
     class DataStore;
     class InformationStore;
     class MetaData;
-    class SQLAVList;
 
     class PropertyCondition
     {
@@ -80,21 +78,19 @@ namespace IHMC_ACI
             void volatileSearchReplyArrived (const char *pszQueryId, const void *pReply, uint16 ui162ReplyLen, const char *pszMatchingNodeId);
 
         private:
-            int doXPathQuery (const void *pQuery, unsigned int uiQueryLen, const char *pszQueryQualifiers,
-                              NOMADSUtil::PtrLList<const char> *pResultsList);
             int doSQLQueryOnMetadata (const char *pszGroupName, const void *pQuery, unsigned int uiQueryLen,
                                       const char *pszQueryQualifiers, InformationStore *pInfoStore,
                                       NOMADSUtil::PtrLList<const char> *pResultsList);
-            int doQueryWithPropertyListOnApplicationMetadata (const void *pQuery, unsigned int uiQueryLen, 
+            int doQueryWithPropertyListOnApplicationMetadata (const void *pQuery, unsigned int uiQueryLen,
                                                               const char *pszQueryQualifiers,
                                                               NOMADSUtil::PtrLList<const char> *pResultsList);
             char ** getMatchingIds (const char *pszQueryId, const char *pszGroupName, const char *pszQueryType,
                                     const char *pszQueryQualifiers, const void *pQuery, unsigned int uiQueryLen);
             int matchPropertyListToApplicationMetadata (char *pszApplicationMetadataBuffer, PropertiesConditionsList *pPropertiesConditionsList,
-                                                        MetadataInterface *pCurr, NOMADSUtil::PtrLList<const char> *pResultsList);
+                                                        IHMC_VOI::MetadataInterface *pCurr, NOMADSUtil::PtrLList<const char> *pResultsList);
 
         private:
-            static const char * const SUPPORTED_QUERY_TYPES[];       
+            static const char * const SUPPORTED_QUERY_TYPES[];
     };
 }
 

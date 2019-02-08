@@ -1,4 +1,4 @@
-/* 
+/*
  * DSLib.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_STRING_UTILS_H
-#define	INCL_STRING_UTILS_H
+#define INCL_STRING_UTILS_H
 
 #include "FTypes.h"
 
@@ -43,13 +43,10 @@ namespace IHMC_ACI
             static int uint32ToString (char *pszBuf, int iBufLen, uint32 ui32Val);
             static int floatToString (char *pszBuf, int iBufLen, float fVal);
 
-            static int readBool (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize, bool &bValue);
-            static int writeBool (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize, bool bValue);
-
             /**
              * Read/Write a \0-terminated string. The \0 character is not written.
              * The string is preceded by its length as a 2 byte value.
-             * 
+             *
              * Return 0 if the string was read/written correctly. A negative
              * number otherwise
              */
@@ -73,5 +70,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	// INCL_STRING_UTILS_H
-
+#endif    // INCL_STRING_UTILS_H

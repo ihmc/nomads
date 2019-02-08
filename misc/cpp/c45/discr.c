@@ -16,7 +16,7 @@ void DiscreteTest(Tree Node, Attribute Att);
 /*************************************************************************/
 
 void EvalDiscreteAtt(Attribute Att, ItemNo Fp, ItemNo Lp, ItemCount Items)
-/*  ---------------  */ 
+/*  ---------------  */
 {
     void ComputeFrequencies(Attribute Att, ItemNo Fp, ItemNo Lp);
     void PrintDistribution(Attribute Att, DiscrValue MaxVal, Boolean ShowNames);
@@ -53,16 +53,16 @@ void ComputeFrequencies(Attribute Att, ItemNo Fp, ItemNo Lp)
 {
     void ResetFreq(DiscrValue MaxVal);
     ItemCount CountItems(ItemNo Fp, ItemNo Lp);
-    Description Case; 
+    Description Case;
     ClassNo c;
     DiscrValue v;
     ItemNo p;
     ResetFreq(MaxAttVal[Att]);
     //  Determine the frequency of each class amongst cases with each possible value for the given attribute
-    ForEach(p, Fp, Lp) { 
+    ForEach(p, Fp, Lp) {
         Case = Item[p];
         Freq[ DVal(Case,Att) ][ Class(Case) ] += Weight[p];
-    } 
+    }
     // Determine the frequency of each possible value for the given attribute
     ForEach(v, 0, MaxAttVal[Att]) {
         ForEach(c, 0, MaxClass) {

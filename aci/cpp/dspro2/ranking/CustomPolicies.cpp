@@ -1,4 +1,4 @@
-/* 
+/*
  * CustumRanker.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -14,7 +14,7 @@
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
- * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details..
+ * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
  * Author: Giacomo Benincasa    (gbenincasa@ihmc.us)
  * Created on February 12, 2015, 7:09 PM
@@ -22,8 +22,6 @@
 
 #include "CustomPolicies.h"
 #include "Defs.h"
-#include "DSLib.h"
-#include "InstrumentedReader.h"
 #include "InstrumentedWriter.h"
 #include "MetadataInterface.h"
 
@@ -37,16 +35,17 @@
 #include <limits.h>
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
-CustomPolicy::CustomPolicy (Type type)
+CustomPolicyImpl::CustomPolicyImpl (Type type)
     : _type (type),
       _fRankWeight (0.0f)
 {
     assert (_type < 0xFF);  // because it is serialized ad uint8
 }
 
-CustomPolicy::CustomPolicy (Type type, float rankWeight, const String &attributeName)
+CustomPolicyImpl::CustomPolicyImpl (Type type, float rankWeight, const String &attributeName)
     : _type (type),
       _fRankWeight (rankWeight),
       _attributeName (attributeName)
@@ -54,33 +53,33 @@ CustomPolicy::CustomPolicy (Type type, float rankWeight, const String &attribute
     assert (_type < 0xFF);  // because it is serialized ad uint8
 }
 
-CustomPolicy::~CustomPolicy()
+CustomPolicyImpl::~CustomPolicyImpl ()
 {
 }
 
-const char * CustomPolicy::getAttribute (void) const
+const char * CustomPolicyImpl::getAttribute (void) const
 {
     return _attributeName.c_str();
 }
 
-float CustomPolicy::getRankWeight (void) const
+float CustomPolicyImpl::getRankWeight (void) const
 {
     return _fRankWeight;
 }
 
-CustomPolicy::Type CustomPolicy::getType (void) const
+CustomPolicyImpl::Type CustomPolicyImpl::getType (void) const
 {
     return _type;
 }
 
-int CustomPolicy::operator == (const CustomPolicy &rhsPolicy) const
+int CustomPolicyImpl::operator == (const CustomPolicyImpl &rhsPolicy) const
 {
     return (rhsPolicy._attributeName == _attributeName);
 }
 
-int CustomPolicy::read (Reader *pReader, uint32 i32MaxLen, bool bSkip)
+int CustomPolicyImpl::read (Reader *pReader, bool bSkip)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
 
@@ -108,9 +107,9 @@ int CustomPolicy::read (Reader *pReader, uint32 i32MaxLen, bool bSkip)
     return 0;
 }
 
-int CustomPolicy::write (Writer *pWriter, uint32 i32MaxLen)
+int CustomPolicyImpl::write (Writer *pWriter)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
     if (pWriter->writeFloat (&_fRankWeight) < 0) {
@@ -120,19 +119,10 @@ int CustomPolicy::write (Writer *pWriter, uint32 i32MaxLen)
     if (pWriter->write16 (&ui16Len) < 0) {
         return -3;
     }
-    if (ui16Len > 0 && pWriter->writeBytes (_attributeName.c_str(), ui16Len) < 0) {
+    if ((ui16Len > 0) && (pWriter->writeBytes (_attributeName, ui16Len) < 0)) {
         return -4;
     }
     return 0;
-}
-
-int CustomPolicy::writeLength (void)
-{
-    int i = 4; // _rankWeight
-    i += 2;    // _attributeName's length
-    i += _attributeName.length();
-
-    return i;
 }
 
 CustomPolicies::CustomPolicies (void)
@@ -144,39 +134,45 @@ CustomPolicies::~CustomPolicies (void)
 {
 }
 
+int CustomPolicies::add (CustomPolicyImpl *pPolicy)
+{
+    prepend (pPolicy);
+    return 0;
+}
+
 int CustomPolicies::add (const char *pszCustomPolicyXML)
 {
     const char *pszMethodName = "CustomPolicies::add";
-    if (pszCustomPolicyXML == NULL) {
+    if (pszCustomPolicyXML == nullptr) {
         return -1;
     }
 
     TiXmlDocument doc;
     doc.Parse (pszCustomPolicyXML);
     TiXmlElement *pRoot = doc.FirstChildElement ("RankerPolicy");
-    if (pRoot == NULL) {
+    if (pRoot == nullptr) {
         return -2;
     }
 
     TiXmlElement *pXml = pRoot->FirstChildElement ("Type");
-    if ((pXml == NULL) || (pXml->GetText() == NULL)) {
+    if ((pXml == nullptr) || (pXml->GetText() == nullptr)) {
         return -3;
     }
     String type (pXml->GetText());
 
     pXml = pRoot->FirstChildElement ("Attribute");
-    if ((pXml == NULL) || (pXml->GetText() == NULL)) {
+    if ((pXml == nullptr) || (pXml->GetText() == nullptr)) {
         return -4;
     }
     const String attr (pXml->GetText());
 
     pXml = pRoot->FirstChildElement ("Weight");
-    if ((pXml == NULL) || (pXml->GetText() == NULL)) {
+    if ((pXml == nullptr) || (pXml->GetText() == nullptr)) {
         return -5;
     }
     const float fWeight = (float) atof (pXml->GetText());
 
-    CustomPolicy *pPolicy = NULL;
+    CustomPolicyImpl *pPolicy = nullptr;
     type.convertToUpperCase();
     if ((type == "STATIC") || (type == "1")) {
         pPolicy = new StaticPolicy (fWeight, attr);
@@ -191,21 +187,21 @@ int CustomPolicies::add (const char *pszCustomPolicyXML)
     }
     else {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError, "cannot parse "
-                        "custom policy of type %s.\n", (const char *) type);
+                        "custom policy of type %s.\n", type.c_str());
         return -11;
     }
-    if (pPolicy != NULL) {
+    if (pPolicy != nullptr) {
         int rc = pPolicy->init (pRoot);
         if (rc < 0) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError, "cannot parse "
                         "custom policy of type %s. Returned code: %d\n",
-                        (const char *) type, rc);
+                        type.c_str(), rc);
             return -6;
         }
-        prepend (pPolicy);
+        add (pPolicy);
         checkAndLogMsg (pszMethodName, Logger::L_Info, "custom policy of type "
                         "%s on attribute %s with weight %f added to the custom policies list. "
-                        "There now are %d policies set.\n", (const char *) type, pPolicy->getAttribute(),
+                        "There now are %d policies set.\n", type.c_str(), pPolicy->getAttribute(),
                         pPolicy->getRankWeight(), getCount());
     }
 
@@ -215,32 +211,33 @@ int CustomPolicies::add (const char *pszCustomPolicyXML)
 int CustomPolicies::init (ConfigManager *pCfgMgr)
 {
     const char *pszMethodName = "CustomPolicies::init";
-    if (pCfgMgr == NULL) {
+    if (pCfgMgr == nullptr) {
         return -1;
     }
 
     const char *pszCustomPoliciesFiles = pCfgMgr->getValue ("aci.dspro.localNodeContext.policies");
-    if (pszCustomPoliciesFiles == NULL) {
+    if (pszCustomPoliciesFiles == nullptr) {
         return 0;
     }
 
     StringTokenizer tokenizer (pszCustomPoliciesFiles, ',', ',');
-    for (String token; (token = tokenizer.getNextToken()) != NULL;) {
+    for (String token; (token = tokenizer.getNextToken()) != nullptr;) {
         token.trim();
-
         if (!FileUtils::fileExists (token)) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError, "cannot find "
-                            "file %s.\n", (const char *) token);
+                            "file %s.\n", token.c_str());
             return -2;
         }
-        char *pszCustomPolicyXML = NULL;
-        if ((DSLib::readFileIntoString (token, &pszCustomPolicyXML) < 0) || (pszCustomPolicyXML == NULL)) {
-            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "cannot load "
-                            "file %s.\n", (const char *) token);
+        int64 i64FileLen = 0;
+        void *pBuf = FileUtils::readFile (token, &i64FileLen);
+        if (pBuf == nullptr) {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError, "cannot load file %s.\n",
+                            token.c_str());
             return -3;
         }
-
-        if (add (pszCustomPolicyXML) < 0) {
+        String customPolicyXML ((const char *) pBuf, i64FileLen);
+        free (pBuf);
+        if (add (customPolicyXML) < 0) {
             return -4;
         }
     }
@@ -248,39 +245,38 @@ int CustomPolicies::init (ConfigManager *pCfgMgr)
     return 0;
 }
 
-void CustomPolicies::prepend (CustomPolicy *pPolicy)
+void CustomPolicies::prepend (CustomPolicyImpl *pPolicy)
 {
-    PtrLList<CustomPolicy>::prepend (pPolicy);
+    PtrLList<CustomPolicyImpl>::prepend (pPolicy);
     _ui8Count++;
 }
 
 void CustomPolicies::removeAll (void)
 {
-    CustomPolicy *pNext = getFirst();
-    for (CustomPolicy *pCurr; (pCurr = pNext) != NULL;) {
+    CustomPolicyImpl *pNext = getFirst();
+    for (CustomPolicyImpl *pCurr; (pCurr = pNext) != nullptr;) {
         pNext = getNext();
         delete remove (pCurr);
     }
 }
 
-int CustomPolicies::skip (Reader *pReader, uint32 i32MaxLen)
+int CustomPolicies::skip (Reader *pReader)
 {
-    return readInternal (pReader, i32MaxLen, true);
+    return readInternal (pReader, true);
 }
 
-int CustomPolicies::read (Reader *pReader, uint32 i32MaxLen)
+int CustomPolicies::read (Reader *pReader)
 {
-    return readInternal (pReader, i32MaxLen, false);
+    return readInternal (pReader, false);
 }
 
-int CustomPolicies::readInternal (NOMADSUtil::Reader *pReader, uint32 i32MaxLen, bool bSkip)
+int CustomPolicies::readInternal (Reader *pReader, bool bSkip)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
-    InstrumentedReader ir (pReader, false);
     uint8 ui8Count = 0;
-    if (ir.read8 (&ui8Count) < 0) {
+    if (pReader->read8 (&ui8Count) < 0) {
         return -2;
     }
     if (!bSkip) {
@@ -290,22 +286,22 @@ int CustomPolicies::readInternal (NOMADSUtil::Reader *pReader, uint32 i32MaxLen,
         uint8 i = 0;
         for (; i < ui8Count; i++) {
             uint8 ui8Type = 0;
-            if (ir.read8 (&ui8Type) < 0) {
+            if (pReader->read8 (&ui8Type) < 0) {
                 return -3;
             }
-            CustomPolicy *pPolicy = NULL;
+            CustomPolicyImpl *pPolicy = nullptr;
             switch (ui8Type) {
-                case CustomPolicy::STATIC:
+                case CustomPolicyImpl::STATIC:
                     pPolicy = new StaticPolicy();
                     break;
 
                 default:
                     return -4;
             }
-            if (pPolicy == NULL) {
+            if (pPolicy == nullptr) {
                 return -5;
             }
-            const int rc = pPolicy->read (&ir, i32MaxLen, bSkip);
+            const int rc = pPolicy->read (pReader, bSkip);
             if (rc < 0) {
                 return -6;
             }
@@ -318,12 +314,12 @@ int CustomPolicies::readInternal (NOMADSUtil::Reader *pReader, uint32 i32MaxLen,
             return -7;
         }
     }
-    return ir.getBytesRead();
+    return 0;
 }
 
-int CustomPolicies::write (Writer *pWriter, uint32 i32MaxLen)
+int CustomPolicies::write (Writer *pWriter)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
     InstrumentedWriter iw (pWriter, false);
@@ -331,12 +327,12 @@ int CustomPolicies::write (Writer *pWriter, uint32 i32MaxLen)
         return -2;
     }
     if (_ui8Count > 0) {
-        for (CustomPolicy *pPolicy = getFirst(); pPolicy != NULL; pPolicy = getNext()) {
+        for (CustomPolicyImpl *pPolicy = getFirst(); pPolicy != nullptr; pPolicy = getNext()) {
             uint8 ui8 = pPolicy->getType();
             if (iw.write8 (&ui8) < 0) {
                 return -3;
             }
-            int rc = pPolicy->write (&iw, (i32MaxLen - iw.getBytesWritten()));
+            int rc = pPolicy->write (&iw);
             if (rc < 0) {
                 return -4;
             }
@@ -345,40 +341,103 @@ int CustomPolicies::write (Writer *pWriter, uint32 i32MaxLen)
     if (iw.getBytesWritten() > INT_MAX) {
         return -5;
     }
-    return iw.getBytesWritten();
+    return 0;
 }
 
-int CustomPolicies::getWriteLength (void)
+namespace CUSTUM_POLICIES
 {
-    int iBytes = 1;  // iCount
-    if (_ui8Count > 0) {
-        for (CustomPolicy *pPolicy = getFirst(); pPolicy != NULL; pPolicy = getNext()) {
-            iBytes += 1;    // _type
-            int rc = pPolicy->writeLength();
-            if (rc < 0) {
-                return -1;
+    static const char * POLICIES = "policies";
+    static const char * TYPE = "type";
+    static const char * ATTRIBUTE = "attribute";
+    static const char * WEIGHT = "weight";
+    static const char * MATCHES = "matches";
+    static const char * RANK = "rank";
+    static const char * VALUE = "value";
+}
+
+int CustomPolicies::fromJson (const JsonObject *pJson)
+{
+    JsonArray *pArray = pJson->getArrayReference (CUSTUM_POLICIES::POLICIES);
+    if (pArray == nullptr) {
+        return 0;
+    }
+    int rcAll = 0;
+    for (int i = 0; i < pArray->getSize(); i++) {
+        JsonObject *pJsonPolicy = pArray->getObject (i);
+        if (pJsonPolicy == nullptr) {
+            continue;
+        }
+        uint16 ui16Type = CustomPolicyImpl::STATIC;
+        if (pJsonPolicy->getNumber (CUSTUM_POLICIES::TYPE, ui16Type) < 0) {
+            return -1;
+        }
+        String attribute;
+        if (pJsonPolicy->getString (CUSTUM_POLICIES::ATTRIBUTE, attribute) < 0) {
+            return -2;
+        }
+        double dWeight = 0.0f;
+        if (pJsonPolicy->getNumber (CUSTUM_POLICIES::WEIGHT, dWeight) < 0) {
+            return -3;
+        }
+        CustomPolicyImpl *pPolicy = nullptr;
+        switch (ui16Type)
+        {
+            case CustomPolicyImpl::STATIC:
+                pPolicy = new StaticPolicy (dWeight, attribute);
+                break;
+            default:
+                delete pArray;
+                return -4;
+        }
+        if (pPolicy == nullptr) {
+            return -5;
+        }
+        JsonArray *pMatches = pJsonPolicy->getArrayReference (CUSTUM_POLICIES::MATCHES);
+        if (pMatches != nullptr) {
+            int rc = pPolicy->fromJson (pMatches);
+            delete pMatches;
+            if (rc == 0) {
+                add (pPolicy);
             }
             else {
-                iBytes += rc;
+                rcAll += rc;
             }
         }
     }
-    return iBytes;
+    return rcAll;
 }
 
-CustomPolicy * CustomPolicies::remove (CustomPolicy *pel)
+JsonObject * CustomPolicies::toJson (void) const
 {
-    return PtrLList<CustomPolicy>::remove (pel);
+    JsonObject *pJson = new JsonObject();
+    if (pJson == nullptr) {
+        return nullptr;
+    }
+    JsonArray policies;
+    for (PtrLList<CustomPolicyImpl>::Node *pnext = pRoot; pnext != nullptr; pnext = pnext->pNextNode) {
+        CustomPolicyImpl *pPolicy = pnext->pel;
+        JsonObject *pPolJson = pPolicy->toJson();
+        if (pPolJson != nullptr) {
+            policies.addObject (pPolJson);
+        }
+    }
+    pJson->setObject (CUSTUM_POLICIES::POLICIES, &policies);
+    return pJson;
+}
+
+CustomPolicyImpl * CustomPolicies::remove (CustomPolicyImpl *pel)
+{
+    return PtrLList<CustomPolicyImpl>::remove (pel);
 }
 
 StaticPolicy::StaticPolicy (void)
-    : CustomPolicy (STATIC)
+    : CustomPolicyImpl (STATIC)
 {
 }
 
 StaticPolicy::StaticPolicy (float rankWeight, const NOMADSUtil::String &attributeName)
-    : CustomPolicy (STATIC, rankWeight, attributeName)
-{   
+    : CustomPolicyImpl (STATIC, rankWeight, attributeName)
+{
 }
 
 StaticPolicy::~StaticPolicy (void)
@@ -386,28 +445,28 @@ StaticPolicy::~StaticPolicy (void)
 }
 
 /*
- * 
+ *
  */
 int StaticPolicy::init (TiXmlElement *pXmlField)
 {
     const char *pszMethodName = "StaticPolicy::init";
 
-    if (pXmlField == NULL) {
+    if (pXmlField == nullptr) {
         return -1;
     }
     TiXmlElement *pXmlMatch = pXmlField->FirstChildElement ("Match");
-    if (pXmlMatch == NULL) {
+    if (pXmlMatch == nullptr) {
         return 0;
     }
     do {
         TiXmlElement *pXml = pXmlMatch->FirstChildElement ("Value");
-        if ((pXml == NULL) || (pXml->GetText() == NULL)) {
+        if ((pXml == nullptr) || (pXml->GetText() == nullptr)) {
             return -2;
         }
         String value (pXml->GetText());
 
         pXml = pXmlMatch->FirstChildElement ("Rank");
-        if ((pXml == NULL) || (pXml->GetText() == NULL)) {
+        if ((pXml == nullptr) || (pXml->GetText() == nullptr)) {
             return -3;
         }
         const float fRank = (float)atof(pXml->GetText());
@@ -416,9 +475,9 @@ int StaticPolicy::init (TiXmlElement *pXmlField)
         }
         Rank *pRank = new Rank (fRank);
 
-        if (pRank != NULL) {
-            checkAndLogMsg(pszMethodName, Logger::L_Info, "storing match for "
-                "attribute %s: %f.\n", (const char *) value, fRank);
+        if (pRank != nullptr) {
+            checkAndLogMsg (pszMethodName, Logger::L_Info, "storing match for "
+                            "attribute %s: %f.\n", value.c_str(), fRank);
             value.trim();
             // The matching between value types is case-insensitive!
             value.convertToLowerCase();
@@ -427,14 +486,14 @@ int StaticPolicy::init (TiXmlElement *pXmlField)
 
         pXmlMatch = pXmlMatch->NextSiblingElement();
     }
-    while (pXmlMatch != 0);
+    while (pXmlMatch != nullptr);
 
     return 0;
 }
 
 Match StaticPolicy::rank (MetadataInterface *pMetadata)
 {
-    if (pMetadata == NULL) {
+    if (pMetadata == nullptr) {
         Match match (Match::NOT_SURE);
         return match;
     }
@@ -448,17 +507,28 @@ Match StaticPolicy::rank (MetadataInterface *pMetadata)
     // The matching between value types is case-insensitive!
     value.convertToLowerCase();
     Rank *pRank = _valueToRank.get (value);
-    if (pRank == NULL) {
+    if (pRank == nullptr) {
+        // Check whether "value" is actually a comma-separated list of values
+        StringTokenizer tokenizer (value, ',', ',');
+        for (const char *pszToken; (pszToken = tokenizer.getNextToken()) != nullptr;) {
+            Rank *pRank = _valueToRank.get (pszToken);
+            if (pRank != nullptr) {
+                Match match (pRank->_rank);
+                return match;
+            }
+        }
         Match match (Match::NO);
         return match;
     }
+
+
     Match match (pRank->_rank);
     return match;
 }
 
-int StaticPolicy::read (Reader *pReader, uint32 i32MaxLen, bool bSkip)
+int StaticPolicy::read (Reader *pReader, bool bSkip)
 {
-    if (CustomPolicy::read (pReader, i32MaxLen, bSkip) < 0) {
+    if (CustomPolicyImpl::read (pReader, bSkip) < 0) {
         return -1;
     }
     uint16 ui16 = 0;
@@ -481,7 +551,7 @@ int StaticPolicy::read (Reader *pReader, uint32 i32MaxLen, bool bSkip)
         }
         if (!bSkip) {
             Rank *pRank = new Rank (fRank);
-            if (pRank != NULL) {
+            if (pRank != nullptr) {
                 delete _valueToRank.put (buf, pRank);
             }
         }
@@ -489,9 +559,9 @@ int StaticPolicy::read (Reader *pReader, uint32 i32MaxLen, bool bSkip)
     return 0;
 }
 
-int StaticPolicy::write (Writer *pWriter, uint32 i32MaxLen)
+int StaticPolicy::write (Writer *pWriter)
 {
-    if (CustomPolicy::write (pWriter, i32MaxLen) < 0) {
+    if (CustomPolicyImpl::write (pWriter) < 0) {
         return -1;
     }
     unsigned int uiCount = _valueToRank.getCount();
@@ -520,20 +590,52 @@ int StaticPolicy::write (Writer *pWriter, uint32 i32MaxLen)
     return 0;
 }
 
-int StaticPolicy::writeLength (void)
+int StaticPolicy::fromJson (JsonArray *pMatches)
 {
-    int i = CustomPolicy::writeLength();
-    i += 2;    // uiCount
+    if (pMatches == nullptr) {
+        return -1;
+    }
+    for (int i = 0; i < pMatches->getSize(); i++) {
+        JsonObject *pMatch = pMatches->getObject (i);
+        if (pMatch != nullptr) {
+            String value;
+            if (pMatch->getString (CUSTUM_POLICIES::VALUE, value) < 0) {
+                return -2;
+            }
+            double dRank = 0.0f;
+            if (pMatch->getNumber (CUSTUM_POLICIES::RANK, dRank) < 0) {
+                return -2;
+            }
+            Rank *pRank = new Rank ((float) dRank);
+            if (pRank != nullptr) {
+                _valueToRank.put (value, pRank);
+            }
+        }
+    }
+    return 0;
+}
+
+JsonObject * StaticPolicy::toJson (void) const
+{
+    JsonObject *pJson = new JsonObject();
+    if (pJson == nullptr) {
+        return nullptr;
+    }
+    pJson->setString (CUSTUM_POLICIES::ATTRIBUTE, getAttribute());
+    pJson->setNumber (CUSTUM_POLICIES::TYPE, getType());
+    pJson->setNumber (CUSTUM_POLICIES::WEIGHT, getRankWeight());
+    JsonArray array;
     StringHashtable<Rank>::Iterator iter = _valueToRank.getAllElements();
     for (; !iter.end(); iter.nextElement()) {
-        String attr (iter.getKey());
-        uint16 ui16Len = attr.length();
-        i += 2;          // ui16Len
-        i += ui16Len;    // attr
-        i += 4;          // rank
+        String val (iter.getKey());
+        float rank = (iter.getValue()->_rank);
+        JsonObject match;
+        match.setString (CUSTUM_POLICIES::VALUE, val);
+        match.setNumber (CUSTUM_POLICIES::RANK, rank);
+        array.setObject (&match);
     }
-
-    return i;
+    pJson->setObject (CUSTUM_POLICIES::MATCHES, &array);
+    return pJson;
 }
 
 StaticPolicy::Rank::Rank (float rank)
@@ -541,7 +643,7 @@ StaticPolicy::Rank::Rank (float rank)
 {
 }
 
-StaticPolicy::Rank::~Rank()
+StaticPolicy::Rank::~Rank (void)
 {
 }
 

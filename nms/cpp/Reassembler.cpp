@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -106,7 +106,7 @@ void * Reassembler::getSacks (uint32 ui32SourceAddress, uint32 ui32MaxLength, ui
         // sent until a new message is received from this node.
         // If _ui8MaxTimeOfLostRetransmissions == 0, SAck messages are always
         // sent.
-        if ((_ui8MaxTimeOfLostRetransmissions == 0) || 
+        if ((_ui8MaxTimeOfLostRetransmissions == 0) ||
             (getTimeInMilliseconds () - pMQ->_i64LastMsgRcvdTime) <
             (_ui8MaxTimeOfLostRetransmissions *_ui32RetransmissionTime)) {
             BufferWriter bw (ui32MaxLength, 0);
@@ -149,87 +149,97 @@ NetworkMessage * Reassembler::pop (uint32 ui32SourceAddress)
     uint16 ui16LatestSeqId;
     uint32 ui32MetaDataLen;
     uint32 ui32DataLen;
+    bool bIsEncrypted = false;
 
     MsgQueue *pMsgQueue = _msgsBySourceAddress.get (ui32SourceAddress);
     if (!pMsgQueue) {
         _m.unlock();
         return NULL;
     }
-    else {
-        NetworkMessage *pNetMsg = NULL;
-        pMsgQueue->_msgs.resetGet();
-        for (MsgWrapper *pMsgWrap = pMsgQueue->_msgs.getFirst(); pMsgWrap; pMsgWrap = pMsgQueue->_msgs.getNext()) {
-            pNetMsg = pMsgWrap->_pNetMsg;
-            checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
-                            "found msg %u\n", pNetMsg->getMsgId());
-            switch (pNetMsg->getChunkType()) {
-                case NetworkMessage::CT_DataMsgComplete:
-                {
-                    NetworkMessage *pRet = (pMsgQueue->_msgs.remove(pMsgWrap))->_pNetMsg;
-                    _m.unlock();
-                    return pRet;
+
+    NetworkMessage *pNetMsg = NULL;
+    pMsgQueue->_msgs.resetGet();
+    for (MsgWrapper *pMsgWrap = pMsgQueue->_msgs.getFirst(); pMsgWrap; pMsgWrap = pMsgQueue->_msgs.getNext()) {
+        pNetMsg = pMsgWrap->_pNetMsg;
+        checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
+                        "found msg %u\n", pNetMsg->getMsgId());
+        switch (pNetMsg->getChunkType()) {
+            case NetworkMessage::CT_DataMsgComplete:
+            {
+                NetworkMessage *pRet = (pMsgQueue->_msgs.remove(pMsgWrap))->_pNetMsg;
+                _m.unlock();
+                return pRet;
+            }
+            case NetworkMessage::CT_DataMsgStart:
+            {
+                bSkipToNextCompleteMsg = false;
+                ui16FirstSeqId = pNetMsg->getMsgId();
+                ui16LatestSeqId = ui16FirstSeqId;
+                ui32MetaDataLen = pNetMsg->getMetaDataLen();
+                ui32DataLen = pNetMsg->getMsgLen();
+                bIsEncrypted = pNetMsg->isEncrypted();
+                break;
+            }
+            case NetworkMessage::CT_DataMsgInter:
+            {
+                if (bSkipToNextCompleteMsg) {
+                    continue;
                 }
-                case NetworkMessage::CT_DataMsgStart:
-                {
-                    bSkipToNextCompleteMsg = false;
-                    ui16FirstSeqId = pNetMsg->getMsgId();
-                    ui16LatestSeqId = ui16FirstSeqId;
-                    ui32MetaDataLen = pNetMsg->getMetaDataLen();
-                    ui32DataLen = pNetMsg->getMsgLen();
-                    break;
+                if (!isNextSequenceId (ui16LatestSeqId, pNetMsg->getMsgId())) {
+                    if (_bSequenced) {
+                        _m.unlock();
+                        return NULL;
+                    }
+                    bSkipToNextCompleteMsg = true;
                 }
-                case NetworkMessage::CT_DataMsgInter:
-                {
-                    if (bSkipToNextCompleteMsg) {
-                        continue;
-                    }
-                    if (!isNextSequenceId (ui16LatestSeqId, pNetMsg->getMsgId())) {
-                        if (_bSequenced) {
-                            _m.unlock();
-                            return NULL;
-                        }
-                        bSkipToNextCompleteMsg = true;
-                    }
-                    else {
-                        ui16LatestSeqId = pNetMsg->getMsgId();
-                        ui32MetaDataLen += pNetMsg->getMetaDataLen();
-                        ui32DataLen += pNetMsg->getMsgLen();
-                    }
-                    break;
-                }
-                case NetworkMessage::CT_DataMsgEnd:
-                {
-                    if (bSkipToNextCompleteMsg) {
-                        continue;
-                    }
-                    if (!isNextSequenceId (ui16LatestSeqId, pNetMsg->getMsgId())) {
-                        bSkipToNextCompleteMsg = true;
-                        if (_bSequenced) {
-                            _m.unlock();
-                            return NULL;
-                        }
-                    }
-                    // if it arrives here, it means that the message is complete
+                else {
                     ui16LatestSeqId = pNetMsg->getMsgId();
                     ui32MetaDataLen += pNetMsg->getMetaDataLen();
                     ui32DataLen += pNetMsg->getMsgLen();
-
-                    // reassemble and return it
-                    NetworkMessage *pRet = reassemble (pMsgQueue, ui16FirstSeqId,
-                                                       ui16LatestSeqId, ui32MetaDataLen,
-                                                       ui32DataLen);
-                    _m.unlock();
-                    return pRet;
                 }
+                break;
+            }
+            case NetworkMessage::CT_DataMsgEnd:
+            {
+                if (bSkipToNextCompleteMsg) {
+                    continue;
+                }
+                if (!isNextSequenceId (ui16LatestSeqId, pNetMsg->getMsgId())) {
+                    bSkipToNextCompleteMsg = true;
+                    if (_bSequenced) {
+                        _m.unlock();
+                        return NULL;
+                    }
+                }
+                // if it arrives here, it means that the message is complete
+                ui16LatestSeqId = pNetMsg->getMsgId();
+                ui32MetaDataLen += pNetMsg->getMetaDataLen();
+                ui32DataLen += pNetMsg->getMsgLen();
+
+                // reassemble and return it
+                NetworkMessage *pRet = reassemble (pMsgQueue, ui16FirstSeqId,
+                                                   ui16LatestSeqId, ui32MetaDataLen,
+                                                   ui32DataLen);
+                if ((pRet != NULL) && (bIsEncrypted)) {
+                    pRet->setEncrypted();
+                }
+                _m.unlock();
+                return pRet;
             }
         }
     }
+
     _m.unlock();
     return NULL;
 }
 
 int Reassembler::push (uint32 ui32SourceAddress, NetworkMessage *pNetMsg)
 {
+    if (pNetMsg == NULL) {
+        return -1;
+    }
+    const uint16 ui16MsgId = pNetMsg->getMsgId();
+
     _m.lock();
     MsgQueue *pMsgQueue = _msgsBySourceAddress.get (ui32SourceAddress);
     if (pMsgQueue == NULL) {
@@ -239,11 +249,13 @@ int Reassembler::push (uint32 ui32SourceAddress, NetworkMessage *pNetMsg)
             return -1;
         }
         pMsgQueue->_ui16SessionId = pNetMsg->getSessionId();
+        pMsgQueue->_sAcks.setCumulativeTSN (ui16MsgId);
         _msgsBySourceAddress.put (ui32SourceAddress, pMsgQueue);
     }
     else if (pMsgQueue->_ui16SessionId != pNetMsg->getSessionId()) {
         pMsgQueue->_sAcks.reset();
         pMsgQueue->_ui16SessionId = pNetMsg->getSessionId();
+        pMsgQueue->_sAcks.setCumulativeTSN (ui16MsgId);
     }
 
     pMsgQueue->_i64LastMsgRcvdTime = getTimeInMilliseconds();
@@ -256,19 +268,16 @@ int Reassembler::push (uint32 ui32SourceAddress, NetworkMessage *pNetMsg)
             pMsgWrapTmp->_ui64ArrivalTime = getTimeInMilliseconds();
             delete pMsgWrap;     // This deletes the inner pNetMsg also!
             pMsgWrap = NULL;
-            _m.unlock();
+            _m.unlock ();
             return 1;
         }
-        else {
-            // add Message in the queue and update the received TSN list
-            uint16 ui16MsgId = pNetMsg->getMsgId();
-            (pMsgQueue->_msgs).insert (pMsgWrap);
-            checkAndLogMsg ("Reassembler::push", Logger::L_Info,
-                            "adding message id %d to the SAck list\n", (int) ui16MsgId);
-            (pMsgQueue->_sAcks).addTSN (ui16MsgId);
-            _m.unlock();
-            return 0;
-        }
+        // add Message in the queue and update the received TSN list
+        (pMsgQueue->_msgs).insert (pMsgWrap);
+        checkAndLogMsg ("Reassembler::push", Logger::L_Info,
+                        "adding message id %d to the SAck list\n", (int)ui16MsgId);
+        (pMsgQueue->_sAcks).addTSN (ui16MsgId);
+        _m.unlock();
+        return 0;
     }
 
     _m.unlock();
@@ -371,6 +380,9 @@ NetworkMessage * Reassembler::reassemble (MsgQueue *pMsgQueue, uint16 ui16FirstS
                                                                    (NetworkMessage::ChunkType) pNetMsg->getChunkType(),
                                                                    pNetMsg->isReliableMsg(), pMetaData, ui32MetaDataLen,
                                                                    pData, ui32DataLen, 1);
+            if (pNetMsg->isEncrypted()) {
+                pRet->setEncrypted();
+            }
         }
 
         pMsgWrapperTmp = pMsgQueue->_msgs.getNext();

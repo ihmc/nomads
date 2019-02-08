@@ -85,6 +85,30 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\awareness\parts">
+      <UniqueIdentifier>{cbc01ea4-be4e-48d0-b0c7-3b22a5487987}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\awareness\parts">
+      <UniqueIdentifier>{60e4789a-8619-4585-be58-1727606c11b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\apps">
+      <UniqueIdentifier>{dc467402-52ec-4ad1-8b9d-626c8465e67b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\apps">
+      <UniqueIdentifier>{2adb32d9-4cdb-4ce5-a176-43cbb2650997}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\comm\netlogger">
+      <UniqueIdentifier>{e1ccd236-7f27-493d-888b-70fb451339c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\comm\netlogger">
+      <UniqueIdentifier>{7e408873-5029-4dfd-aa2e-c01780840d76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\comm\udp">
+      <UniqueIdentifier>{e7a6ab9f-74af-4079-bb8a-d114c9a338a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\comm\udp">
+      <UniqueIdentifier>{6949b851-23ee-4523-9469-65875c294f32}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Classification.h">
@@ -130,9 +154,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\awareness\C45LocalNodeContext.h">
-      <Filter>Header Files\awareness</Filter>
-    </ClInclude>
-    <ClInclude Include="..\awareness\LocalNodeContext.h">
       <Filter>Header Files\awareness</Filter>
     </ClInclude>
     <ClInclude Include="..\awareness\NodeContextManager.h">
@@ -181,27 +202,6 @@
       <Filter>Header Files\ranking</Filter>
     </ClInclude>
     <ClInclude Include="..\ranking\MetaData.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\MetadataConfiguration.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\MetaDataRanker.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\NodeContext.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\NodePath.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\Path.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\Pedigree.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\SQLAVList.h">
       <Filter>Header Files\ranking</Filter>
     </ClInclude>
     <ClInclude Include="..\scheduler\Scheduler.h">
@@ -288,21 +288,6 @@
     <ClInclude Include="..\MessageForwardingPolicy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ranking\MetadataInterface.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\MatchMakingPolicies.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\MetadataRankerConfiguration.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\Rank.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\RankFactory.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
     <ClInclude Include="..\MatchmakingHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -342,21 +327,6 @@
     <ClInclude Include="..\DSProCmdProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ranking\PreviousMessageIds.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\NodeIdSet.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\BoundingBox.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\CustumPolicy.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ranking\Match.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
     <ClInclude Include="..\controllers\query\ChunkQuery.h">
       <Filter>Header Files\controllers\query</Filter>
     </ClInclude>
@@ -375,11 +345,92 @@
     <ClInclude Include="..\CallbackHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ranking\RankByTargetMap.h">
-      <Filter>Header Files\ranking</Filter>
-    </ClInclude>
     <ClInclude Include="..\DSProUtils.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\RangeOfInfluence.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\UsefulDistance.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\DSProProxyUnmarshaller.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DSProInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\NodeContextImpl.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\Versions.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\parts\LocationInfo.h">
+      <Filter>Header Files\awareness\parts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\parts\PathInfo.h">
+      <Filter>Header Files\awareness\parts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\LocalNodeContext.h">
+      <Filter>Header Files\awareness</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\parts\MatchmakingInfo.h">
+      <Filter>Header Files\awareness\parts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\parts\NodeGenInfo.h">
+      <Filter>Header Files\awareness\parts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\parts\Part.h">
+      <Filter>Header Files\awareness\parts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\CustomPolicies.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetadataConfigurationImpl.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\PreviousMessageIds.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetadataHelper.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ranking\MetadataRankerLocalConfigurationImpl.h">
+      <Filter>Header Files\ranking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\apps\AMTDictator.h">
+      <Filter>Header Files\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\apps\Stats.h">
+      <Filter>Header Files\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\apps\MissionPkg.h">
+      <Filter>Header Files\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\awareness\parts\AreasOfIntInfo.h">
+      <Filter>Header Files\awareness\parts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\measure.pb.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\netlogger\NatsAdaptor.h">
+      <Filter>Header Files\comm\netlogger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\netlogger\NetLogger.h">
+      <Filter>Header Files\comm\netlogger</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\subject.pb.h">
+      <Filter>Header Files\comm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\apps\Reset.h">
+      <Filter>Header Files\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\udp\UDPAdaptor.h">
+      <Filter>Header Files\comm\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\comm\subjects\disservice\disservice.pb.h">
+      <Filter>Header Files\comm</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -464,27 +515,6 @@
     <ClCompile Include="..\ranking\MetaData.cpp">
       <Filter>Source Files\ranking</Filter>
     </ClCompile>
-    <ClCompile Include="..\ranking\MetadataConfiguration.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\MetaDataRanker.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\NodeContext.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\NodePath.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\Path.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\Pedigree.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\SQLAVList.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
     <ClCompile Include="..\scheduler\Scheduler.cpp">
       <Filter>Source Files\scheduler</Filter>
     </ClCompile>
@@ -557,18 +587,6 @@
     <ClCompile Include="..\MessageForwardingPolicy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ranking\MetadataInterface.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\MatchMakingPolicies.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\MetadataRankerConfiguration.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\RankFactory.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
     <ClCompile Include="..\MatchmakingHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -605,19 +623,7 @@
     <ClCompile Include="..\DSProCmdProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ranking\NodeIdSet.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\Rank.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\BoundingBox.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
     <ClCompile Include="..\ranking\CustomPolicies.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ranking\Match.cpp">
       <Filter>Source Files\ranking</Filter>
     </ClCompile>
     <ClCompile Include="..\controllers\query\ChunkQuery.cpp">
@@ -638,9 +644,6 @@
     <ClCompile Include="..\DSProServices.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ranking\RankByTargetMap.cpp">
-      <Filter>Source Files\ranking</Filter>
-    </ClCompile>
     <ClCompile Include="..\DSProListener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -649,6 +652,81 @@
     </ClCompile>
     <ClCompile Include="..\DSProUtils.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\RangeOfInfluence.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\UsefulDistance.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\DSProProxyUnmarshaller.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DSProInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\NodeContextImpl.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\Versions.cpp">
+      <Filter>Source Files\awareness</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\parts\LocationInfo.cpp">
+      <Filter>Source Files\awareness\parts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\parts\PathInfo.cpp">
+      <Filter>Source Files\awareness\parts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\parts\MatchmakingInfo.cpp">
+      <Filter>Source Files\awareness\parts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\parts\NodeGenInfo.cpp">
+      <Filter>Source Files\awareness\parts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\parts\Part.cpp">
+      <Filter>Source Files\awareness\parts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetadataConfigurationImpl.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetadataHelper.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ranking\MetadataRankerLocalConfigurationImpl.cpp">
+      <Filter>Source Files\ranking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\apps\AMTDictator.cpp">
+      <Filter>Source Files\apps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\apps\Stats.cpp">
+      <Filter>Source Files\apps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\apps\MissionPkg.cpp">
+      <Filter>Source Files\apps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\awareness\parts\AreasOfIntInfo.cpp">
+      <Filter>Source Files\awareness\parts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\netlogger\NatsAdaptor.cpp">
+      <Filter>Source Files\comm\netlogger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\netlogger\NetLogger.cpp">
+      <Filter>Source Files\comm\netlogger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\measure.pb.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\subject.pb.cpp">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\apps\Reset.cpp">
+      <Filter>Source Files\apps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\udp\UDPAdaptor.cpp">
+      <Filter>Source Files\comm\udp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\subjects\disservice\disservice.pb.cpp">
+      <Filter>Source Files\comm</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

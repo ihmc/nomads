@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -30,15 +30,6 @@
 
 #ifdef WIN32
     #include <stdint.h>
-#elif ANDROID
-    #ifndef __STDC_LIMIT_MACROS
-        #define __STDC_LIMIT_MACROS 1
-        #endif
-    # undef _STDINT_H
-    #include <limits.h>
-    #include <stdint.h>
-#else
-    #include <limits.h>
 #endif
 
 using namespace IHMC_ACI;
@@ -255,8 +246,6 @@ void AsynchronousDataRequestHandler::run()
         i64SleepTime = _i64BaseTimeMs + i64TimeOffset;
     }
     while (!terminationRequested()) {
-        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
-                        "sleeping for %I64d ms\n", i64SleepTime);
         sleepForMilliseconds (i64SleepTime);
         checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
                         "queued data requests: %u\n", _llreceivedDataReqMessages.getCount());
@@ -367,7 +356,7 @@ AsynchronousDataRequestHandlerV2::AsynchronousDataRequestHandlerV2 (Disseminatio
                                                                     float fReceiveRateThreshold)
     : AsynchronousDataRequestHandler (pDisService, pTrSvc, i64SleepTime, i64BaseTimeMs,
                                       u16OffsetRange, fReceiveRateThreshold)
-{    
+{
 }
 
 AsynchronousDataRequestHandlerV2::~AsynchronousDataRequestHandlerV2 (void)
@@ -382,7 +371,7 @@ void AsynchronousDataRequestHandlerV2::dataRequestMessageArrived (DisServiceData
     }
 
     PtrLList<DisServiceDataReqMsg::FragmentRequest> *pRequests = pDSDRMsg->getRequests();
-    if (pRequests == NULL) {   
+    if (pRequests == NULL) {
         return;
     }
 
@@ -464,12 +453,10 @@ void AsynchronousDataRequestHandlerV2::run (void)
     while (!terminationRequested()) {
 
         int64 i64SleepTime = DataRequestHandler::getRandomSleepTime (_i64BaseTimeMs);
-        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
-                        "sleeping for %I64d ms\n", i64SleepTime);
         sleepForMilliseconds (i64SleepTime);
 
         serveRequest();
-        
+
     }
 
     terminating();
@@ -581,7 +568,7 @@ AsynchronousDataRequestHandlerV2::RequestByInterface * AsynchronousDataRequestHa
     _m.unlock();
     return pRet;
 }
-            
+
 AsynchronousDataRequestHandlerV2::RequestByInterface * AsynchronousDataRequestHandlerV2::RequestByInterfaceList::insertUnique (RequestByInterface *pByIface)
 {
     if (pByIface == NULL) {
@@ -646,7 +633,7 @@ int AsynchronousDataRequestHandlerV2::QueuedRequest::operator == (const Asynchro
 }
 
 AsynchronousDataRequestHandlerV2::QueuedRequest &  AsynchronousDataRequestHandlerV2::QueuedRequest::operator += (QueuedRequest &rhsQueuedReq)
-{   
+{
     _avgMinimumNumberOfActiveNeighbors.add (rhsQueuedReq._i64ArrivalOfLatestRequestTimestamp, (uint16) rhsQueuedReq._avgMinimumNumberOfActiveNeighbors.getAverage());
     _i64ArrivalOfLatestRequestTimestamp = rhsQueuedReq._i64ArrivalOfLatestRequestTimestamp;
     const bool RESET_GET = true;
@@ -766,21 +753,18 @@ void AsynchronousDataRequestHandlerV4::run (void)
     setName (pszMethodName);
     started();
 
-    StringHashtable<RangesByMsgId> *pIncompleteMsgsByIface = NULL;    
+    StringHashtable<RangesByMsgId> *pIncompleteMsgsByIface = NULL;
     for (int64 i64SleepTime = 0; !terminationRequested();) {
         //calculate a random amount of msecs to use as sleep time
         const int64 i64FragReqTimeout = _pDisService->getMissingFragmentTimeout();
         const int64 i64SleepRandomRange = i64FragReqTimeout / 10;
-        
+
         int64 i64DeletionStart = getTimeInMilliseconds();
         if (pIncompleteMsgsByIface != NULL) {
             delete pIncompleteMsgsByIface;
         }
         int64 i64DeletionTime = getTimeInMilliseconds() - i64DeletionStart;
         i64SleepTime = (i64DeletionTime > i64SleepTime ? 0 : i64SleepTime - i64DeletionTime);
-        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "sleeping for %lld ms. "
-                        "(Subtracted %I64d millis for incomplete ranges deallocation time)\n",
-                        i64SleepTime, i64DeletionTime);
         sleepForMilliseconds (i64SleepTime);
 
         _m.lock();
@@ -842,11 +826,17 @@ void AsynchronousDataRequestHandlerV4::run (void)
                 uint32 ui32Begin, ui32End;
                 String target (DisServiceMsgHelper::getMultiNodeTarget (pRanges->_requestingPeers));
                 for (int rc = pRanges->_ranges.getFirst (ui32Begin, ui32End, true); rc == 0; rc = pRanges->_ranges.getNext (ui32Begin, ui32End)) {
+                    static const int64 MAXIMUM_INT64 =
+                    #ifdef WIN32
+                        INT64_MAX;
+                    #else
+                        9223372036854775807LL;
+                    #endif
                     stats.uiNRanges++;
                     stats.ui64TotalBytes += (ui32End - ui32Begin);
                     DisServiceMsg::Range range (ui32Begin, ui32End);
                     handleDataRequestMessage (iter.getKey(), &range, false, target, ui16ActiveNeighbor, i64ArrivalTime,
-                                              (const char **)&pszOutgoingInterfaces, INT64_MAX);
+                                              (const char **)&pszOutgoingInterfaces, MAXIMUM_INT64);
                 }
             }
             free (ppszInterfaces[i]);

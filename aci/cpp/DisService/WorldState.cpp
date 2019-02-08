@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -110,6 +110,14 @@ DisServiceCtrlMsg * WorldState::getKeepAliveMsg (uint8 ui8RepCtrlType, uint8 ui8
         pWSSIMsg->setBandwidth (_pLocalNodeInfo->getBandwidth());
         pWSSIMsg->setNodesInConnectivityHistory (_pLocalNodeInfo->getConnectivityHistoryNodesCount());
         pWSSIMsg->setNodesRepetitivity (getRepetitiveness());
+
+        // Publication advertisment
+        String group;
+        uint32 ui32SeqId = 0;
+        if (_pLocalNodeInfo->getGroupPubStateToAdvertise (group, ui32SeqId)) {
+            pWSSIMsg->setPubAdv (group, ui32SeqId);
+        }
+
     }
     //iRet = _pDisService->broadcastDisServiceCntrlMsg (pWSSIMsg, "Sending Keep Alive Msg");
     //delete pWSSIMsg;
@@ -200,7 +208,7 @@ void WorldState::newIncomingMessage (const void *pMsgMetaData, uint16 ui16MsgMet
     }
 
     _m.unlock (100);
-    
+
     if (pEvent != NULL) {
         switch (pEvent->type) {
             case NewNeighbor:
@@ -1284,7 +1292,7 @@ PtrLList<String> * WorldState::getIsolatedNeighbors (void)
                 pNext = pRet->getNext();
                 delete pRet->remove (pCurr);
             }
-            delete pRet;            
+            delete pRet;
             return NULL;
         }
     }

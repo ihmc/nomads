@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -49,7 +49,7 @@ SQLMessageStorage::SQLMessageStorage (const char *pszDBName, bool bUseTransactio
     : SQLMessageHeaderStorage (pszDBName),
     _pCommitThread (NULL),
     _bUseTransactionTimer (pszDBName == NULL ? false : bUseTransactionTimer),
-    _pDSDCQuery (new DisServiceDataCacheQuery ()),
+    _pDSDCQuery (new DisServiceDataCacheQuery()),
     _pGetData (NULL),
     _pGetFullyQualifiedMsg (NULL),
     _pGetMsg (NULL),
@@ -89,7 +89,7 @@ int SQLMessageStorage::init()
     // jk 8/2010
     if (_bUseTransactionTimer) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "Using transaction timer\n");
-        if (_pDB->execute ("BEGIN;") < 0) {
+        if ((*_pDB)->execute ("BEGIN;") < 0) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Can't begin transaction\n");
             return -9;
         }
@@ -190,7 +190,7 @@ void * SQLMessageStorage::getData (const char *pszKey)
                    + SQLMessageHeaderStorage::FIELD_FRAGMENT_OFFSET +" = ?5 AND "
                    + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = ?6;";
 
-        _pGetData = _pDB->prepare ((const char *)sql);
+        _pGetData = (*_pDB)->prepare ((const char *)sql);
         if (_pGetData == NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                             "failed to prepare statement. %s\n", (const char *)sql);
@@ -217,7 +217,7 @@ void * SQLMessageStorage::getData (const char *pszKey)
         _m.unlock (228);
         return NULL;
     }
-    
+
     Row *pRow = _pGetData->getRow();
     if (pRow == NULL) {
         checkAndLogMsg ("SQLMessageStorage::getData", memoryExhausted);
@@ -273,7 +273,7 @@ Message * SQLMessageStorage::getMessage (const char *pszKey)
             + SQLMessageHeaderStorage::FIELD_CHUNK_ID + " = ?4 AND "
             + SQLMessageHeaderStorage::FIELD_FRAGMENT_OFFSET +" = ?5 AND "
             + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = ?6;";
-            _pGetFullyQualifiedMsg = _pDB->prepare ((const char *)sql);
+            _pGetFullyQualifiedMsg = (*_pDB)->prepare ((const char *)sql);
             if (_pGetFullyQualifiedMsg == NULL) {
                 checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                                 "failed to prepare statement: %s\n", (const char *)sql);
@@ -301,7 +301,7 @@ Message * SQLMessageStorage::getMessage (const char *pszKey)
         }
         _m.lock (229);
         if (_pGetMsg == NULL) {
-            String sql = (String) "SELECT " + SQLMessageHeaderStorage::ALL_PERSISTENT 
+            String sql = (String) "SELECT " + SQLMessageHeaderStorage::ALL_PERSISTENT
                          + " FROM " + SQLMessageHeaderStorage::TABLE_NAME + " WHERE "
                          + SQLMessageHeaderStorage::FIELD_GROUP_NAME + " = ?1 AND "
                          + SQLMessageHeaderStorage::FIELD_SENDER_ID + " = ?2 AND "
@@ -309,7 +309,7 @@ Message * SQLMessageStorage::getMessage (const char *pszKey)
                          + SQLMessageHeaderStorage::FIELD_CHUNK_ID + " = ?4 AND "
                          + SQLMessageHeaderStorage::FIELD_FRAGMENT_OFFSET +" = 0 AND "
                          + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = " + SQLMessageHeaderStorage::FIELD_TOT_MSG_LENGTH + ";";
-            _pGetMsg = _pDB->prepare (sql);
+            _pGetMsg = (*_pDB)->prepare (sql);
             if (_pGetMsg == NULL) {
                 checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                                 "failed to prepare statement: %s\n", sql.c_str());
@@ -383,7 +383,7 @@ PtrLList<Message> * SQLMessageStorage::getMessages (DisServiceDataCacheQuery *pQ
     }
 
     _m.lock (230);
-    PreparedStatement *pStmt = _pDB->prepare (pQuery->getSqlQuery());
+    PreparedStatement *pStmt = (*_pDB)->prepare (pQuery->getSqlQuery());
     PtrLList<Message> *pRet = getMessages (pStmt, ui16Limit);
     pStmt->reset();
     delete pStmt;
@@ -408,14 +408,14 @@ PtrLList<Message> * SQLMessageStorage::getCompleteChunks (const char *pszGroupNa
                                  + SQLMessageHeaderStorage::FIELD_MSG_SEQ_ID + " = ?3 AND "
                                  + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = " + SQLMessageHeaderStorage::FIELD_TOT_MSG_LENGTH + ";";
 
-        _pGetComplChunksPrepStmt = _pDB->prepare (sql);
+        _pGetComplChunksPrepStmt = (*_pDB)->prepare (sql);
         if (_pGetComplChunksPrepStmt != NULL) {
             checkAndLogMsg ("SQLMessageStorage::getCompleteChunks", Logger::L_Info,
                             "Statement %s prepared successfully.\n", sql.c_str());
         }
         else {
             checkAndLogMsg ("SQLMessageStorage::getCompleteChunks", Logger::L_SevereError,
-                            "Could not prepare statement: %s.\n", sql.c_str()); 
+                            "Could not prepare statement: %s.\n", sql.c_str());
             _m.unlock (231);
             return NULL;
         }
@@ -423,7 +423,7 @@ PtrLList<Message> * SQLMessageStorage::getCompleteChunks (const char *pszGroupNa
 
     // Bind the values to the prepared statement
     if (_pGetComplChunksPrepStmt->bind (1, pszGroupName) < 0 ||
-        _pGetComplChunksPrepStmt->bind (2, pszSender) < 0 || 
+        _pGetComplChunksPrepStmt->bind (2, pszSender) < 0 ||
         _pGetComplChunksPrepStmt->bind (3, ui32MsgSeqId) < 0) {
         checkAndLogMsg ("SQLMessageStorage::getCompleteChunks", bindingError);
         _pGetComplChunksPrepStmt->reset();
@@ -456,7 +456,7 @@ PtrLList<Message> * SQLMessageStorage::getCompleteAnnotations (const char *pszAn
             + SQLMessageHeaderStorage::FIELD_ANNOTATION_MSG_ID + " = ?1 AND "
             + SQLMessageHeaderStorage::FIELD_FRAGMENT_LENGTH + " = " + SQLMessageHeaderStorage::FIELD_TOT_MSG_LENGTH + ";";
 
-        _pGetComplAnnotationsPrepStmt = _pDB->prepare (sql.c_str ());
+        _pGetComplAnnotationsPrepStmt = (*_pDB)->prepare (sql.c_str ());
         if (_pGetComplAnnotationsPrepStmt != NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_Info,
                 "Statement %s prepared successfully.\n", sql.c_str ());
@@ -567,14 +567,17 @@ void SQLMessageStorage::CommitThread::run()
 
     started();
 
+    DatabasePtr *pDB = parent->_pDB;
+
     while (!terminationRequested()) {
         sleepForMilliseconds (TRANSACTION_COMMIT_INTERVAL);
 
         parent->_m.lock (232);
         checkAndLogMsg (pszMethodName, Logger::L_Info,
                         "Committing database\n");
+
         do {
-            if ((s = parent->_pDB->endTransaction()) < 0) {
+            if ((s = (*pDB)->endTransaction (true)) < 0) {
                 checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                                 "Can't commit - error %d, retrying\n", s);
                 sleepForMilliseconds (1000);
@@ -585,7 +588,7 @@ void SQLMessageStorage::CommitThread::run()
         if (count >= VACUUM_INTERVAL) {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "Vacuuming database\n");
             do {
-                if ((s = parent->_pDB->execute ("VACUUM;")) < 0) {
+                if ((s = (*pDB)->execute ("VACUUM;")) < 0) {
                     checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                                     "Can't vacuum database - error %d, retrying\n", s);
                     sleepForMilliseconds (1000);
@@ -595,7 +598,7 @@ void SQLMessageStorage::CommitThread::run()
         }
 
         do {
-            if ((s = parent->_pDB->beginTransaction()) < 0) {
+            if ((s = (*pDB)->beginTransaction()) < 0) {
                 checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                                 "Can't begin transaction - error %d, retrying\n", s);
                 sleepForMilliseconds (1000);
@@ -605,7 +608,7 @@ void SQLMessageStorage::CommitThread::run()
     }
 
     // Commit before terminating!
-    if ((s = parent->_pDB->endTransaction()) < 0) {
+    if ((s = (*pDB)->endTransaction (true)) < 0) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                         "Can't commit - error %d, retrying\n", s);
     }

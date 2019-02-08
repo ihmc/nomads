@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -71,6 +71,7 @@ MessageReassembler::MessageReassembler (DisseminationService *pDisService, PeerS
     _pLocalNodeInfo = pLocalNodeInfo;
     _pSubState = pSubState;
     _pTrSvc = NULL;
+    _bSendSessionSync = false;
     _bNewPeer = false;
     _bExpBackoff = bExpBackoff;
     _iMaxNumberOfReqs = DEFAULT_MAX_NUMBER_OF_REQUESTS;
@@ -215,6 +216,11 @@ int MessageReassembler::addRequest (RequestInfo &reqInfo, uint32 ui32MsgSeqId,
 
     _m.unlock (176);
     return rc;
+}
+
+void MessageReassembler::sendSessionSync (void)
+{
+    _bSendSessionSync = true;
 }
 
 bool MessageReassembler::containsMessage (const char *pszGroupName, const char *pszSenderNodeId,
@@ -421,7 +427,7 @@ int MessageReassembler::fragmentArrived (Message *pMessage, bool bIsNotTarget)
     uint8 ui8NewMsgChunkId = pMessage->getMessageHeader()->getChunkId();
     const void *pFragment = pMessage->getData();
     bool isSequenced, isReliable;
-    isSequenced = isReliable = true; // these are set by getSubscriptionParameters() 
+    isSequenced = isReliable = true; // these are set by getSubscriptionParameters()
                                      // but just to be safe...
     _m.lock (179);
     int rc = getSubscriptionParameters (pMessage, bIsNotTarget, isSequenced, isReliable);
@@ -527,7 +533,7 @@ int MessageReassembler::fragmentArrived (Message *pMessage, bool bIsNotTarget)
         //FragmentWrapper *pFoundFragWrapper = pFragMsg->searchFragment (*pFragWrapper);
         if (!pFragMsg->addFragment (pFragWrapper)) {
             // This fragment already exists - discard
-            checkAndLogMsg ("MessageReassembler::fragmentArrived", Logger::L_HighDetailDebug,
+            checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
                             "trying to add duplicate fragment - offset: %lu length %lu of message %s."
                             " (Found fragment of offset %lu length %lu)\n", pFragWrapper->ui32FragmentOffset,
                             pFragWrapper->ui16FragmentLength, pFragMsg->pMH->getMsgId(),
@@ -561,7 +567,7 @@ int MessageReassembler::fragmentArrived (Message *pMessage, bool bIsNotTarget)
                 }
                 else {
                     // Reassembly failed - warn
-                    checkAndLogMsg ("MessageReassembler::fragmentArrived", Logger::L_Warning,
+                    checkAndLogMsg (pszMethodName, Logger::L_Warning,
                                     "reassemble failed (second case) even though message should have been complete\n");
                 }
             }
@@ -750,6 +756,8 @@ void MessageReassembler::run (void)
     const char *pszMethodName = "MessageReassembler::run";
     setName (pszMethodName);
 
+    const String nodeId (_pDisService->getNodeId());
+
     started();
     int64 i64SleepTime, i64Random;
     char **ppszInterfaces;
@@ -766,6 +774,11 @@ void MessageReassembler::run (void)
         }
         sleepForMilliseconds (i64SleepTime);
 
+        if (_bSendSessionSync) {
+            DisServiceSessionSyncMsg sessionSyncMsg (nodeId);
+            _pDisService->broadcastDisServiceCntrlMsg (&sessionSyncMsg, NULL, NULL, NULL);
+            _bSendSessionSync = false;
+        }
         if ((_pTrSvc != NULL) && (_pTrSvc->getIncomingQueueSize() < _ui32IncomingQueueSizeRequestThreshold)) {
             /*
             if (_pTrSvc->getAsyncTransmission()) {
@@ -793,18 +806,17 @@ void MessageReassembler::run (void)
                 loadOpportunisticallyCachedFragments();
 
                 while (!_requestSched.isEmpty() && (ui16MaxMsgSize > 0) && (_pTrSvc->getIncomingQueueSize() < _ui32IncomingQueueSizeRequestThreshold)) {
-                    DisServiceIncrementalDataReqMsg dataReq (_pDisService->getNodeId(),
-                                                             NULL, // pszQueryTargetNodeId
+                    DisServiceIncrementalDataReqMsg dataReq (nodeId, NULL, // pszQueryTargetNodeId
                                                              _pPeerState->getNumberOfActiveNeighbors(),
                                                              &_requestSched, ui16MaxMsgSize);
-                    checkAndLogMsg (pszMethodName, Logger::L_Info, "++++++++++++++++Sending Fragment "
+                    checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "++++++++++++++++Sending Fragment "
                                     "Request (ui16MaxMsgSize <%u>) - \n", ui16MaxMsgSize);
                     _pDisService->broadcastDisServiceCntrlMsg (&dataReq, const_cast<const char**>(ppszInterfaces), "Sending DisServiceDataReqMsg");
-                    _pDisService->getStats()->missingFragmentRequestSent (dataReq.getSize());    
+                    _pDisService->getStats()->missingFragmentRequestSent (dataReq.getSize());
                 }
 
                 _m.unlock (183);
-                checkAndLogMsg (pszMethodName, Logger::L_Info, "computing and sending missing fragment requests "
+                checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "computing and sending missing fragment requests "
                                 "took %lld milliseconds.\n", (getTimeInMilliseconds() - i64SendingMissingFragReqStart));
 
                 // Reset the scheduler _before_ deleting the lists
@@ -866,14 +878,14 @@ int MessageReassembler::deliverCompleteMessage (MessageHeader *pMH, void *pData,
     bool bFreeUpMemory = false;
     pMHClone->setFragmentOffset (0);
     if (bIsMetaDataPart) {
-        // metadata
+        // Metadata
         pMHClone->setFragmentLength (((MessageInfo*)pMHClone)->getMetaDataLength());
         pFragMsg->bMetaDataDelivered = true;
     }
     else {
-        // complete data or complete chunk
+        // Complete data or complete chunk
         pMHClone->setFragmentLength (pMHClone->getTotalMessageLength());
-        // store the complete data in the cache
+        // Store the complete data in the cache
         // NOTE: it is assumed that cached data is copied!
         _pDisService->addDataToCache (pMHClone, pData);
         bFreeUpMemory = true;
@@ -919,15 +931,13 @@ int MessageReassembler::deliverCompleteMessage (MessageHeader *pMH, void *pData,
 
     // Delete the Fragmented Message and all the Fragments
     if (bFreeUpMemory) {
-        // remove the fragmented message
+        // Remove the fragmented message
         ChunkList *pChunk = pMS->messages.get (pMH->getMsgSeqId());
         if (pChunk != NULL) {
             pChunk->remove (pFragMsg);
             if (pFragMsg != NULL) {
                 delete pFragMsg->pMH;
-                pFragMsg->pMH = NULL;
                 delete pFragMsg;
-                pFragMsg = NULL;
             }
             if (pChunk->getFirst() == NULL) {
                 delete pMS->messages.remove (pMH->getMsgSeqId());
@@ -991,8 +1001,6 @@ void MessageReassembler::fillMessageRequestScheduler()
                 }
             }
 
-
-            
         }
     }
 
@@ -1207,20 +1215,12 @@ void * MessageReassembler::reassemble (FragmentedMessage *pFragMsg, bool bReasse
         }
     }
 
-    // Assume we have all the fragments - reassemble
+    // Assume we have all the fragments
     uint32 ui32NextExpected = 0;
-
-    // create a buffer of the proper size
-    uint32 ui32TotMsgLen;
-    if (bReassembleOnlyMetaDataPart) {
-        ui32TotMsgLen = ((MessageInfo*)(pFragMsg->pMH))->getMetaDataLength();
-    }
-    else {
-        ui32TotMsgLen = pFragMsg->pMH->getTotalMessageLength();
-    }
-    char *pMsgBuf = (char*) calloc (ui32TotMsgLen, sizeof(char));
-
-    for (FragmentWrapper *pFragWrapper = pFragMsg->getFirstFragment(); (NULL !=  pFragWrapper) &&
+    const uint32 ui32TotMsgLen = bReassembleOnlyMetaDataPart ?
+        ((MessageInfo *) (pFragMsg->pMH))->getMetaDataLength() : pFragMsg->pMH->getTotalMessageLength();
+    char *pMsgBuf = (char*) calloc (ui32TotMsgLen, sizeof(char));           // Create a buffer of the proper size
+    for (FragmentWrapper *pFragWrapper = pFragMsg->getFirstFragment(); (NULL != pFragWrapper) &&
             (ui32NextExpected < ui32TotMsgLen); pFragWrapper = pFragMsg->getNextFragment()) {
         uint32 ui32Overlap = 0;
         if (ui32NextExpected > pFragWrapper->ui32FragmentOffset) {
@@ -1369,12 +1369,12 @@ MessageReassembler::FragmentWrapper * MessageReassembler::FragmentedMessage::get
 {
     return fragments.getNext();
 }
-            
+
 MessageReassembler::FragmentWrapper * MessageReassembler::FragmentedMessage::searchFragment (FragmentWrapper &fragWrap)
 {
     return fragments.search (&fragWrap);
 }
-                
+
 void MessageReassembler::FragmentedMessage::updateNextExpectedValue (void)
 {
     ui32NextExpected = 0;
@@ -1444,7 +1444,7 @@ bool checkCompleteMessageLength (MessageHeader *pMI, uint32 ui32DataLength, bool
 {
     if (bIsMetaDataPart) {
         // It's complete metadata part
-        if (ui32DataLength == ((MessageInfo*)pMI)->getMetaDataLength()) {
+        if (ui32DataLength == ((IHMC_ACI::MessageInfo*)pMI)->getMetaDataLength()) {
             return true;
         }
     }
@@ -1481,22 +1481,22 @@ bool MessageReassemblerUtils::loadOpportunisticallyCachedFragmentsInternal (Mess
     }
 
     // There is no entry for the message - load what is already in the cache first
-    
+
     PtrLList<Message> *pMessages = pDCI->getMessages (pMsgId->getGroupName(), pMsgId->getOriginatorNodeId(),
                                                       0, pMsgId->getSeqId(), pMsgId->getSeqId());
     if (pMessages == NULL) {
         checkAndLogMsg ("MessageReassemblerUtils::loadOpportunisticallyCachedFragmentsInternal", Logger::L_Info,
                         "no fragments for message <%s>\n", pMsgId->getId());
-        return 0;
+        return false;
     }
 
     uint64 ui64LoadedBytes = 0U;
     bool bAtLeastOneInsert = false;
     for (Message *pCurrMsg = pMessages->getFirst(); pCurrMsg != NULL; pCurrMsg = pMessages->getNext()) {
-        uint32 ui32Len = pCurrMsg->getMessageHeader()->getFragmentLength();
+        const uint32 ui32Len = pCurrMsg->getMessageHeader()->getFragmentLength();
         if ((pMHFilter == NULL) ||
-            (pCurrMsg->getMessageHeader()->getFragmentOffset() != pMHFilter->getFragmentOffset() ||
-                (ui32Len != pMHFilter->getFragmentLength()))) {
+            (pCurrMsg->getMessageHeader()->getFragmentOffset() != pMHFilter->getFragmentOffset()) ||
+            (ui32Len != pMHFilter->getFragmentLength())) {
             // This message retrieved from the database is not the same as the
             // one just received over the network - process it
 
@@ -1512,6 +1512,9 @@ bool MessageReassemblerUtils::loadOpportunisticallyCachedFragmentsInternal (Mess
                 if (0 == pMsgReassembler->fragmentArrived (&msgToAdd, bNotTarget)) {
                     bAtLeastOneInsert = true;
                     ui64LoadedBytes += msgToAdd.getMessageHeader()->getFragmentLength();
+                }
+                else {
+                    free (pData);
                 }
             }
         }

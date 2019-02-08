@@ -1,4 +1,4 @@
-/* 
+/*
  * CommAdaptorListener.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_COMM_ADAPTOR_LISTENER_H
-#define	INCL_COMM_ADAPTOR_LISTENER_H
+#define INCL_COMM_ADAPTOR_LISTENER_H
 
 #include "AdaptorProperties.h"
 
@@ -35,6 +35,7 @@ namespace IHMC_ACI
     class CommAdaptorListener
     {
         public:
+            virtual ~CommAdaptorListener (void) {};
             virtual int contextUpdateMessageArrived (AdaptorId uiAdaptorId, const char *pszSenderNodeId,
                                                      const void *pBuf, uint32 ui32Len) = 0;
             virtual int contextVersionMessageArrived (AdaptorId uiAdaptorId, const char *pszSenderNodeId,
@@ -88,5 +89,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_COMM_ADAPTOR_LISTENER_H */
-
+#endif    /* INCL_COMM_ADAPTOR_LISTENER_H */

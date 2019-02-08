@@ -5,7 +5,7 @@ package us.ihmc.aci.disServiceProProxy;
  * Date: Sep 21, 2010
  * Time: 8:58:50 AM
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.11 $
+ * @version $Revision$
  */
 
 public interface MatchmakingLogListener

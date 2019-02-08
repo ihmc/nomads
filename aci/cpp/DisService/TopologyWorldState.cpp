@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -106,14 +106,14 @@ void TopologyWorldState::newIncomingMessage (const void *pMsgMetaData, uint16 ui
             addOrActivateNeighbor (pDisServiceMsg->getSenderNodeId(), ui32IPAddress, pEvent);
             break;
         }
-        
+
         case DisServiceMsg::DSMT_WorldStateSeqId:
         {
             DisServiceWorldStateSeqIdMsg *pDSWSMsg = (DisServiceWorldStateSeqIdMsg *) pDisServiceMsg;
             addOrActivateNeighbor (pDisServiceMsg->getSenderNodeId(), ui32IPAddress, pDSWSMsg, pEvent);
             if (_bSubscriptionsExchangeEnabled) {
                 bool iSSUTD = isSubscriptionStateUpToDate (pDisServiceMsg->getSenderNodeId(), pDSWSMsg->getSubscriptionStateCRC());
-                if (!iSSUTD || (pDSWSMsg->getSubscriptionStateCRC() != _ui16SubscriptionStateCRC)) { 
+                if (!iSSUTD || (pDSWSMsg->getSubscriptionStateCRC() != _ui16SubscriptionStateCRC)) {
                     // SubscriptionState of the node is not uptodate OR CRCreceived != myCRC
                     DisServiceSubscriptionStateReqMsg *pSSReqMsg = new DisServiceSubscriptionStateReqMsg();
                     pSSReqMsg->setSenderNodeId (_pDisService->getNodeId());
@@ -152,7 +152,7 @@ void TopologyWorldState::newIncomingMessage (const void *pMsgMetaData, uint16 ui
             }
             break;
         }
-        
+
         case DisServiceMsg::DSMT_ProbabilitiesMsg:
         {
             addOrActivateNeighbor (pDisServiceMsg->getSenderNodeId(), ui32IPAddress, pEvent);
@@ -169,7 +169,7 @@ void TopologyWorldState::newIncomingMessage (const void *pMsgMetaData, uint16 ui
     }
 
     _m.unlock (100);
-    
+
     if (pEvent != NULL) {
         switch (pEvent->type) {
             case NewNeighbor:
@@ -249,7 +249,7 @@ void TopologyWorldState::incrementSubscriptionStateSeqId (void)
     _m.unlock (108);
 }
 
-int TopologyWorldState::sendSubscriptionStateMsg (const char *pszNodeId) 
+int TopologyWorldState::sendSubscriptionStateMsg (const char *pszNodeId)
 {
     // Creates a subscription msg for pszNodeId with the missing subscriptions
     _m.lock (125);
@@ -374,10 +374,10 @@ int TopologyWorldState::sendSubscriptionState (void)
                 iRet = _pDisService->broadcastDisServiceCntrlMsg (_pISSMsg, NULL, "Sending Subscription State Message");
             } else {
                 iRet = _pDisService->broadcastDisServiceCntrlMsg (_pSSReqMsg, NULL, "Sending SubscriptionStateReq Message");
-                if (_bSendReq == true) 
+                if (_bSendReq == true)
                    _bSendReq = false;
             }
-        } else { 
+        } else {
             if (_pSSReqMsg && _bSendReq == true) {
                 iRet = _pDisService->broadcastDisServiceCntrlMsg (_pSSReqMsg, NULL, "Sending SubscriptionStateReq Message");
                 _bSendReq = false;
@@ -491,8 +491,8 @@ NodeInfo * TopologyWorldState::retrieveNodeInfo (const char *pszNodeId)
     } else {
         pNI = new RemoteNodeInfo(pszNodeId);
         _deadPeers.put (pszNodeId, (RemoteNodeInfo*) pNI);
-        pNI = (NodeInfo*) _deadPeers.get (pszNodeId); 
-    }    
+        pNI = (NodeInfo*) _deadPeers.get (pszNodeId);
+    }
     _m.unlock(135);
     return pNI;
 }
@@ -558,7 +558,7 @@ StringFloatHashtable * TopologyWorldState::sendProbabilitiesInternal (RemoteNode
                     }
                 }
             }
-            if (fHigh1 > 0.0f) { 
+            if (fHigh1 > 0.0f) {
                 pIndProb = new StringFloatHashtable();
                 float *pHigh1 = &fHigh1;
                 pIndProb->put (pszHigh1, pHigh1);
@@ -595,7 +595,7 @@ int TopologyWorldState::sendProbabilities (void)
     for (StringHashtable<RemoteNodeInfo>::Iterator iDead = _deadPeers.getAllElements(); !iDead.end(); iDead.nextElement()) {
         RemoteNodeInfo *pRNI = (RemoteNodeInfo*) iDead.getValue();
         StringFloatHashtable *pIndProb = sendProbabilitiesInternal (pRNI);
-        if (pIndProb) {          
+        if (pIndProb) {
             if (pProbabilitiesTable == NULL) {
                 pProbabilitiesTable = new StringHashtable<StringFloatHashtable>();
             }
@@ -639,7 +639,7 @@ int TopologyWorldState::updateIndirectProbabilities (const char *pszNeighborNode
     return 0;
 }
 
-int TopologyWorldState::printWorldStateInfo (void) 
+int TopologyWorldState::printWorldStateInfo (void)
 {
     // Prints information about local node, like subscriptions, alive neighbors, dead peers, etc
     _m.lock (141);
@@ -662,7 +662,7 @@ int TopologyWorldState::printWorldStateInfo (void)
                     checkAndLogMsg ("TopologyWorldState::printWorldStateInfo", Logger::L_Info, "     SUBSCRIPTION:\n");
                     checkAndLogMsg ("TopologyWorldState::printWorldStateInfo", Logger::L_Info, "     groupname %s\n", i.getKey());
                     Subscription *pS = i.getValue();
-                    pS->printInfo();                
+                    pS->printInfo();
                 }
             }
         }
@@ -673,7 +673,7 @@ int TopologyWorldState::printWorldStateInfo (void)
             checkAndLogMsg ("TopologyWorldState::printWorldStateInfo", Logger::L_Info, "     SUBSCRIPTION:\n");
             checkAndLogMsg ("TopologyWorldState::printWorldStateInfo", Logger::L_Info, "     groupname %s\n", i.getKey());
             Subscription *pS = i.getValue();
-            pS->printInfo();   
+            pS->printInfo();
         }
     }
     checkAndLogMsg ("TopologyWorldState::printWorldStateInfo", Logger::L_Info, "-------------------------------------------------------------------------\n");
@@ -706,7 +706,7 @@ uint8 TopologyWorldState::getForwardingStrategy (DisServiceMsg *pDSMsg)
     // Maybe every node can send this info in the keep alive msg
     // TODO: if I know that there are some interested nodes in this msg,
     // but I don't know how to reach them, it's not a good idea to use topology forwarding
-    if (_bTopologyExchangeEnabled && _bSubscriptionsExchangeEnabled 
+    if (_bTopologyExchangeEnabled && _bSubscriptionsExchangeEnabled
         && pDSMsg->getType() == DisServiceMsg::DSMT_Data) {
         return ForwardingStrategy::TOPOLOGY_FORWARDING;
     } else {
@@ -761,7 +761,7 @@ const char * TopologyWorldState::getBestGateway (const char *pszTargetNodeId)
         for (StringFloatHashtable::Iterator iGWNodes = pTRNI->getIndirectProbabilities()->getAllElements(); !iGWNodes.end(); iGWNodes.nextElement()) {
             const char *pszGWNodeId = iGWNodes.getKey();
             RemoteNodeInfo *pGWRNI = (RemoteNodeInfo*) retrieveNodeInfo (pszGWNodeId);
-            if (pGWRNI) { 
+            if (pGWRNI) {
                 if (isActiveNeighbor (pszGWNodeId)) {
                     float fProb = *(iGWNodes.getValue()); // Prob from GWnode to targetNode
                     if (fProb > fMaxProb) {

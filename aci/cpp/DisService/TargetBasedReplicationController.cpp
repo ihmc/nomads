@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -326,7 +326,7 @@ void TargetBasedReplicationController::newNeighbor (const char *pszNodeUUID,
             return;
         }
     }
-    
+
     // Ok - Add this node to the pending list
     String *pDestNodeID = new String (pszNodeUUID);
     _pendingDestNodes.enqueue (pDestNodeID);
@@ -348,7 +348,7 @@ void TargetBasedReplicationController::newNeighbor (const char *pszNodeUUID,
        checkAndStartNextReceivingSession
     if the neighborNode was serially queued in _mPendingSourceNodes
        remove it from the queue
-    
+
 */
 void TargetBasedReplicationController::deadNeighbor (const char *pszNodeUUID)
 {
@@ -419,7 +419,7 @@ void TargetBasedReplicationController::newLinkToNeighbor (const char *pszNodeUID
 
 void TargetBasedReplicationController::droppedLinkToNeighbor (const char *pszNodeUID,
                                                               const char *pszPeerRemoteAddr)
-{    
+{
 }
 
 /*
@@ -463,7 +463,7 @@ void TargetBasedReplicationController::disServiceControllerMsgArrived (Controlle
 
     const char *pszCtrlMsgSenderID = pCtrlMsg->getSenderNodeId();
     if (pszCtrlMsgSenderID == NULL) {
-        checkAndLogMsg (pszMethod, Logger::L_Info, 
+        checkAndLogMsg (pszMethod, Logger::L_Info,
                         "failed to retrieve message sender ID\n");
         return;
     }
@@ -476,14 +476,14 @@ void TargetBasedReplicationController::disServiceControllerMsgArrived (Controlle
 
     uint32 ui32MetadataLen = pCtrlMsg->getMetaDataLength();
     if (ui32MetadataLen == 0) {
-        checkAndLogMsg (pszMethod, Logger::L_Info, 
+        checkAndLogMsg (pszMethod, Logger::L_Info,
                         "failed to retrieve metadata length\n");
         return;
     }
 
     uint8 *pui8MetaData = (uint8 *) pCtrlMsg->getMetaData();
     if (pui8MetaData == NULL) {
-        checkAndLogMsg (pszMethod, Logger::L_Info, 
+        checkAndLogMsg (pszMethod, Logger::L_Info,
                         "failed to retrieve metadata\n");
         return;
     }
@@ -664,7 +664,7 @@ int TargetBasedReplicationController::ReplicationSessionThread::init (const char
     note: deleting self signals thread's parent to terminate this thread
           go through the list of successfully send and ack'd?
           and possibly queue up another session?
-              
+
 */
 void TargetBasedReplicationController::ReplicationSessionThread::run (void)
 {

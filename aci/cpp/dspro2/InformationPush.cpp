@@ -23,84 +23,134 @@
 #include "NodeContextManager.h"
 #include "InformationPushPolicy.h"
 #include "MetaData.h"
-#include "MetadataConfiguration.h"
+#include "MetadataConfigurationImpl.h"
 #include "MetaDataRanker.h"
 #include "Scheduler.h"
+
+#include "Voi.h"
 
 #include "Logger.h"
 #include "PtrLList.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
-InformationPush::InformationPush (const char *pszNodeId,
+namespace INFORMATION_PUSH
+{
+    Rank * toRank (Score *pScore)
+    {
+        if (pScore == nullptr) {
+            return nullptr;
+        }
+        Score::Novelty novelty = pScore->novelty;
+        Rank *pRank = pScore->pRank;
+        pScore->pRank = nullptr;  // Otherwise the rank is deallocated with the call to Score's destructor!
+        delete pScore;
+        if (pRank == nullptr) {
+            return nullptr;
+        }
+        switch (novelty) {
+            case Score::CRITICAL:
+                pRank->_fTotalRank = minimum (pRank->_fTotalRank * 1.5, 10.0f);
+                break;
+
+            case Score::INSIGNIFICANT:
+                pRank->_fTotalRank = 0.0f;
+                break;
+
+            default:
+                break;
+        }
+        return pRank;
+    }
+
+    Ranks * toRanks (ScoreList *pScores)
+    {
+        if (pScores == nullptr) {
+            return nullptr;
+        }
+        Ranks *pRanks = new Ranks();
+        if (pRanks != nullptr) {
+            for (Score *pScore; (pScore = pScores->removeFirst ()) != nullptr;) {
+                Rank *pRank = toRank (pScore);
+                pRanks->append (pRank);
+            }
+        }
+        delete pScores;
+        return pRanks;
+    }
+}
+
+InformationPush::InformationPush (const char *pszNodeId, Voi *pVoi,
                                   MetadataRankerLocalConfiguration *pMetaDataRankerLocalConf,
                                   NodeContextManager *pNodeContextManager,
                                   InformationPushPolicy *pPolicy, Scheduler *pScheduler)
-    : _nodeId (pszNodeId)
+    : _nodeId (pszNodeId),
+      _pNodeContextManager (pNodeContextManager),
+      _pPolicy (pPolicy),
+      _pScheduler (pScheduler),
+      _pMetaDataRankerLocalConf (pMetaDataRankerLocalConf),
+      _pVoi (pVoi)
 {
-    if (pNodeContextManager == NULL || pPolicy == NULL || pScheduler == NULL) {
-        checkAndLogMsg ("InformationPush::InformationPush", Logger::L_SevereError,
-                        "InformationPush could not be initialized. Quitting.\n");
-        exit (-1);
-    }
-
-    _pNodeContextManager = pNodeContextManager;
-    _pPolicy = pPolicy;
-    _pScheduler = pScheduler;
-    _pMetaDataRankerLocalConf = pMetaDataRankerLocalConf;
+    assert (_pNodeContextManager != nullptr);
+    assert (_pPolicy != nullptr);
+    assert (_pScheduler != nullptr);
+    assert (_pMetaDataRankerLocalConf != nullptr);
 }
 
-InformationPush::~InformationPush()
+InformationPush::~InformationPush (void)
 {
-    _pNodeContextManager = NULL;
+    _pNodeContextManager = nullptr;
     delete _pPolicy;
-    _pPolicy = NULL;
-    _pMetaDataRankerLocalConf = NULL;
+    _pPolicy = nullptr;
+    _pMetaDataRankerLocalConf = nullptr;
+    delete _pVoi;
 }
 
 Instrumentations * InformationPush::dataArrived (MetaData *pMetaData, PeerNodeContextList *pPeerNodeContextList)
 {
     const char *pszMethodName = "InformationPush::dataArrived";
-    if (pPeerNodeContextList == NULL) {
-        return NULL;
+    if (pPeerNodeContextList == nullptr) {
+        return nullptr;
     }
 
     unsigned int uiActivePeerNumber = _pNodeContextManager->getActivePeerNumber();
     checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "active peer number = %d\n",
                     uiActivePeerNumber);
     if (uiActivePeerNumber == 0) {
-        return NULL;
+        return nullptr;
     }
 
     Instrumentations *pInstrumentations = new Instrumentations();
-    Rank *pMergedRank = NULL;
+    Rank *pMergedRank = nullptr;
     unsigned int uiNMatchedPeers = 0;
     const int64 i64MatchmakingStartTime = getTimeInMilliseconds();
-    for (PeerNodeContext *pCurrPeer = pPeerNodeContextList->getFirst(); pCurrPeer != NULL;
+    for (PeerNodeContext *pCurrPeer = pPeerNodeContextList->getFirst(); pCurrPeer != nullptr;
             pCurrPeer = pPeerNodeContextList->getNext(), uiNMatchedPeers++) {
 
         if (pCurrPeer->isPeerActive()) {
+            const String nodeId (pCurrPeer->getNodeId());
             checkAndLogMsg (pszMethodName, Logger::L_Info, "Peer with ID = <%s> is active. "
-                            "Calling single rank\n", pCurrPeer->getNodeId());
+                            "Calling single rank\n", nodeId.c_str());
 
             // Call ranker
             const float fMatchThreashold = pCurrPeer->getMatchmakingThreshold();
-            Rank *pRank = MetaDataRanker::rank (pMetaData, pCurrPeer,
-                                                MetadataConfiguration::getExistingConfiguration(),
-                                                _pMetaDataRankerLocalConf);
-            if (pRank != NULL) {
+            Rank *pRank = INFORMATION_PUSH::toRank (_pVoi->getVoi (pMetaData, pCurrPeer,
+                                                                   MetadataConfigurationImpl::getExistingConfiguration(),
+                                                                   _pMetaDataRankerLocalConf));
+            if (pRank != nullptr) {
                 const bool bSkip = ((pRank->_bFiltered) || (pRank->_fTotalRank < fMatchThreashold));
                 if (bSkip) {
                     MatchmakingIntrumentation *pInstrumentation = createInstrumentation (pRank, bSkip, fMatchThreashold);
-                    if (pInstrumentation != NULL) {
+                    if (pInstrumentation != nullptr) {
                         pInstrumentations->prepend (pInstrumentation);
                     }
                 }
                 else {
-                    if (pMergedRank == NULL) {
+                    if (pMergedRank == nullptr) {
                         pMergedRank = new Rank (*pRank);
-                        if (pMergedRank == NULL) {
+                        if (pMergedRank == nullptr) {
                             checkAndLogMsg (pszMethodName, memoryExhausted);
                             break;
                         }
@@ -108,6 +158,7 @@ Instrumentations * InformationPush::dataArrived (MetaData *pMetaData, PeerNodeCo
                     else {
                         (*pMergedRank) += (*pRank);
                     }
+                    delete pRank;
                 }
             }
         }
@@ -115,25 +166,25 @@ Instrumentations * InformationPush::dataArrived (MetaData *pMetaData, PeerNodeCo
     checkAndLogMsg (pszMethodName, Logger::L_Info, "matchmaking for %u peers took %lld millisec.\n",
                     uiNMatchedPeers, (getTimeInMilliseconds() - i64MatchmakingStartTime));
 
-    if (pMergedRank == NULL) {
+    if (pMergedRank == nullptr) {
         return pInstrumentations;
     }
     MatchmakingIntrumentation *pInstrumentation = createInstrumentation (pMergedRank, false, 0.0f);
-    if (pInstrumentation != NULL) {
+    if (pInstrumentation != nullptr) {
         pInstrumentations->prepend (pInstrumentation);
     }
 
     // If the metadata is not skipped, add it to the scheduler
     Ranks *pProcessedRanks = _pPolicy->process (pMergedRank);
-    if (pProcessedRanks == NULL) {
+    if (pProcessedRanks == nullptr) {
         _pScheduler->addToCurrentPreStaging (pMergedRank);
     }
     else {
       //  delete pMergedRank;
-      //  pMergedRank = NULL;
+      //  pMergedRank = nullptr;
          // _pPolicy may add some related messages to add to the scheduler
         for (Rank *pProcessRank = pProcessedRanks->getFirst();
-             pProcessRank != NULL; pProcessRank = pProcessedRanks->getNext()) {
+             pProcessRank != nullptr; pProcessRank = pProcessedRanks->getNext()) {
             _pScheduler->addToCurrentPreStaging (pProcessRank);
         }
     }
@@ -143,25 +194,27 @@ Instrumentations * InformationPush::dataArrived (MetaData *pMetaData, PeerNodeCo
     return pInstrumentations;
 }
 
+/* TODO: */
 Instrumentations * InformationPush::nodeContextChanged (MetadataList *pMetadataList,
                                                         PeerNodeContext *pPeerContext)
 {
     const char *pszMethodName = "InformationPush::nodeContextChanged";
 
-    if ((pMetadataList == NULL) || (pMetadataList->getFirst() == NULL)) {
-        checkAndLogMsg (pszMethodName, Logger::L_Warning, "NULL or empty pFields list.\n");
-        return NULL;
+    if ((pMetadataList == nullptr) || (pMetadataList->getFirst() == nullptr)) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning,
+                        "pMetadataList is nullptr or an empty list.\n");
+        return nullptr;
     }
-    if (pPeerContext == NULL) {
-        checkAndLogMsg (pszMethodName, Logger::L_Warning, "NULL PeerNodeContext.\n");
-        return NULL;
+    if (pPeerContext == nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "PeerNodeContext is nullptr.\n");
+        return nullptr;
     }
 
-    Ranks *pRanks = MetaDataRanker::rank (pMetadataList, pPeerContext,
-                                          MetadataConfiguration::getExistingConfiguration(),
-                                          _pMetaDataRankerLocalConf);
-    if (pRanks == NULL) {
-        return NULL;
+    Ranks *pRanks = INFORMATION_PUSH::toRanks (_pVoi->getVoi (pMetadataList, pPeerContext,
+                                                              MetadataConfigurationImpl::getExistingConfiguration(),
+                                                              _pMetaDataRankerLocalConf));
+    if (pRanks == nullptr) {
+        return nullptr;
     }
 
     const String targetNodeId (pPeerContext->getNodeId());
@@ -170,7 +223,7 @@ Instrumentations * InformationPush::nodeContextChanged (MetadataList *pMetadataL
     unsigned int uiNMatchedMessages = 0;
     const float fMatchThreashold = pPeerContext->getMatchmakingThreshold();
     const int64 i64MatchmakingStartTime = getTimeInMilliseconds();
-    for (Rank *pRank; (pRank = pNext) != NULL; uiNMatchedMessages++) {
+    for (Rank *pRank; (pRank = pNext) != nullptr; uiNMatchedMessages++) {
         pNext = pRanks->getNext();
         const bool bSkip = ((pRank->_bFiltered) || (pRank->_fTotalRank < fMatchThreashold));
         if (bSkip) {
@@ -178,7 +231,7 @@ Instrumentations * InformationPush::nodeContextChanged (MetadataList *pMetadataL
             // Only add ranks for skipped messages for now.  The ranks for the
             // matched messages will be added later (after processing, if needed)
             MatchmakingIntrumentation *pInstrumentation = createInstrumentation (pRank, bSkip, fMatchThreashold);
-            if (pInstrumentation != NULL) {
+            if (pInstrumentation != nullptr) {
                 pInstrumentations->prepend (pInstrumentation);
             }
         }
@@ -186,24 +239,24 @@ Instrumentations * InformationPush::nodeContextChanged (MetadataList *pMetadataL
             // Sanity check
             checkAndLogMsg (pszMethodName, Logger::L_MildError, "pRank->_targetId was set "
                             "to <%s> instead of <%s>.\n",  (const char *) pRank->_targetId,
-                            (const char *) targetNodeId);           
+                            targetNodeId.c_str());
         }
     }
     checkAndLogMsg (pszMethodName, Logger::L_Info, "matchmaking %u messages for peer %s took %lld millisec.\n",
                     uiNMatchedMessages, targetNodeId.c_str(), (getTimeInMilliseconds() - i64MatchmakingStartTime));
 
     Ranks *pProcessedRanks = _pPolicy->process (pRanks);
-    Ranks *pRanksToAddToScheduler = (pProcessedRanks == NULL ? pRanks : pProcessedRanks);
+    Ranks *pRanksToAddToScheduler = (pProcessedRanks == nullptr ? pRanks : pProcessedRanks);
     _pScheduler->startNewPreStagingForPeer (targetNodeId, pRanksToAddToScheduler);
-    for (Rank *pRank = pRanks->getFirst(); pRank != NULL; pRank = pRanks->getNext()) {
+    for (Rank *pRank = pRanks->getFirst(); pRank != nullptr; pRank = pRanks->getNext()) {
         MatchmakingIntrumentation *pInstrumentation = createInstrumentation (pRank, false, fMatchThreashold);
-        if (pInstrumentation != NULL) {
+        if (pInstrumentation != nullptr) {
             pInstrumentations->prepend (pInstrumentation);
         }
     }
-    if (pProcessedRanks != NULL) {
+    if (pProcessedRanks != nullptr) {
         Rank *pNext = pProcessedRanks->getFirst();
-        for (Rank *pRank; (pRank = pNext) != NULL;) {
+        for (Rank *pRank; (pRank = pNext) != nullptr;) {
             pNext = pProcessedRanks->getNext();
             delete pProcessedRanks->remove (pRank);
         }
@@ -216,8 +269,8 @@ Instrumentations * InformationPush::nodeContextChanged (MetadataList *pMetadataL
 
 MatchmakingIntrumentation * InformationPush::createInstrumentation (Rank *pRank, bool bSkipped, float fMatchThreashold)
 {
-    if (pRank == NULL) {
-        return NULL;
+    if (pRank == nullptr) {
+        return nullptr;
     }
     return new MatchmakingIntrumentation (bSkipped, _nodeId, fMatchThreashold, pRank);
 }

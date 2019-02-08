@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -603,7 +603,7 @@ void SearchService::NotifiedSearches::put (const char *pszQueryId, uint16 ui16Cl
 
     String att (getAttribute (pszQueryId, ui16ClientId, pszMessageId));
     if (_pPropertyStore->set (_nodeId, att, NOTIFIED) < 0) {
-        
+
     }
 }
 

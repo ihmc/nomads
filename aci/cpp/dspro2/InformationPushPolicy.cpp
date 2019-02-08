@@ -27,6 +27,7 @@
 #include "Logger.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 const char * InformationPushPolicy::PROACTIVE_REPLICATOR = "DATA_REPLICATOR";
@@ -34,7 +35,7 @@ const char * InformationPushPolicy::REACTIVE_REPLICATOR = "METADATA_REPLICATOR";
 
 InformationPushPolicy::InformationPushPolicy (InformationStore *pInformationStore)
 {
-    if (pInformationStore == NULL) {
+    if (pInformationStore == nullptr) {
         checkAndLogMsg ("InformationPushPolicy::InformationPushPolicy", coreComponentInitFailed);
         exit (-1);
     }
@@ -52,15 +53,15 @@ MetadataInterface * InformationPushPolicy::getMetadata (const char *pszMessageID
 
 Ranks * InformationPushPolicy::process (Ranks *pRanks)
 {
-    if (pRanks == NULL || pRanks->getFirst() == NULL) {
-        return NULL;
+    if (pRanks == nullptr || pRanks->getFirst() == nullptr) {
+        return nullptr;
     }
 
     Ranks *pRetRanks = new Ranks();
-    for (Rank *pRank = pRanks->getFirst(); pRank != NULL; pRank = pRanks->getNext()) {
+    for (Rank *pRank = pRanks->getFirst(); pRank != nullptr; pRank = pRanks->getNext()) {
         PtrLList<Rank> *pRanksInner = process (pRank);
-        if (pRanksInner != NULL) {
-            for (Rank *pRankInner = pRanksInner->getFirst(); pRankInner != NULL; pRankInner = pRanksInner->getNext()) {
+        if (pRanksInner != nullptr) {
+            for (Rank *pRankInner = pRanksInner->getFirst(); pRankInner != nullptr; pRankInner = pRanksInner->getNext()) {
                 pRetRanks->insert (pRankInner);
             }
             delete pRanksInner;
@@ -73,7 +74,7 @@ Ranks * InformationPushPolicy::process (Ranks *pRanks)
 InformationPushPolicy * InformationPushPolicy::getPolicy (const char *pszType, InformationStore *pInformationStore)
 {
     const char *pszMethodName = "InformationPushPolicy::getPolicy";
-    if (pszType != NULL) {
+    if (pszType != nullptr) {
         if (0 == stringcasecmp (pszType, PROACTIVE_REPLICATOR)) {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "loading %s\n", pszType);
             return new ProactivePush (pInformationStore);
@@ -99,43 +100,42 @@ ProactivePush::ProactivePush (InformationStore *pInformationStore)
 }
 
 ProactivePush::~ProactivePush (void)
-{   
+{
 }
 
 Ranks * ProactivePush::process (Rank *pRank)
 {
     MetadataInterface *pMetadata = getMetadata (pRank->_msgId.c_str());
-    if (pMetadata == NULL) {
-        return NULL;
+    if (pMetadata == nullptr) {
+        return nullptr;
     }
 
     // Get the referred data's ID
-    char *pszReferredMessageId;
-    if (pMetadata->getFieldValue (MetadataInterface::REFERS_TO, &pszReferredMessageId) < 0) {
+    String sReferredMessageId;
+    if (pMetadata->getReferredDataMsgId (sReferredMessageId) < 0) {
         delete pMetadata;
-        return NULL;
+        return nullptr;
     }
     delete pMetadata;
-    pMetadata = NULL;
+    pMetadata = nullptr;
 
     Ranks *pRanks = new Ranks();
-    if (pRanks != NULL) {
-        Rank *pNewRank = new Rank (pszReferredMessageId, pRank->_targetId, pRank->_rankByTarget,
+    if (pRanks != nullptr) {
+        Rank *pNewRank = new Rank (sReferredMessageId, pRank->_targetId, pRank->_rankByTarget,
                                    pRank->_bFiltered, pRank->_fTotalRank, pRank->_fTimeRank);
-        if (pNewRank != NULL) {
+        if (pNewRank != nullptr) {
             pRanks->prepend (pNewRank);
         }
 
         pNewRank = pRank->clone();
-        if (pNewRank != NULL) {
+        if (pNewRank != nullptr) {
             pRanks->prepend (pNewRank);
         }
     }
 
-    free (pszReferredMessageId);
-    if (pRanks != NULL && pRanks->getFirst() == NULL) {
+    if (pRanks != nullptr && pRanks->getFirst() == nullptr) {
         delete pRanks;
-        pRanks = NULL;
+        pRanks = nullptr;
     }
     return pRanks;
 }
@@ -156,11 +156,11 @@ ReactivePush::~ReactivePush()
 Ranks *  ReactivePush::process (Rank *pRank)
 {
     Ranks *pRanks = new Ranks();
-    if (pRanks != NULL) {
+    if (pRanks != nullptr) {
         Rank *pRankClone = pRank->clone();
-        if (pRankClone == NULL) {
+        if (pRankClone == nullptr) {
             delete pRanks;
-            pRanks = NULL;
+            pRanks = nullptr;
         }
         else {
             pRanks->prepend (pRankClone);

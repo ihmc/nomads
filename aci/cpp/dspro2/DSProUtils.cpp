@@ -16,7 +16,7 @@
  * Alternative licenses that allow for use within commercial products may be
  * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
  *
- * Author: Giacomo Benincasa	(gbenincasa@ihmc.us)
+ * Author: Giacomo Benincasa    (gbenincasa@ihmc.us)
  */
 
 #include "DSProUtils.h"
@@ -25,6 +25,7 @@
 #include "Defs.h"
 #include "MocketsAdaptor.h"
 #include "TCPAdaptor.h"
+#include "UDPAdaptor.h"
 
 #include "Logger.h"
 #include "StringTokenizer.h"
@@ -41,7 +42,7 @@ namespace IHMC_ACI
         const char *pszMethodName = "DSProUtils::addPeer";
         StringHashset::Iterator iter = addresses.getAllElements();
         for (; !iter.end(); iter.nextElement()) {
-            int rc = dspro.addPeer (adaptorType, NULL, iter.getKey(), ui16Port);
+            int rc = dspro.addPeer (adaptorType, nullptr, iter.getKey(), ui16Port);
             if (rc < 0) {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not connect "
                     "to %s:%u via %s. Returned %d.\n", iter.getKey(), ui16Port,
@@ -54,34 +55,60 @@ namespace IHMC_ACI
 
     void parsePeers (const char *pszPeerAddresses, StringHashset &addresses)
     {
+        if ((pszPeerAddresses == nullptr) || (strlen (pszPeerAddresses) <= 0)) {
+            return;
+        }
         StringTokenizer tokenizer (pszPeerAddresses, ';', ';');
         const char *pszRemoteAddress;
-        while ((pszRemoteAddress = tokenizer.getNextToken()) != NULL) {
+        while ((pszRemoteAddress = tokenizer.getNextToken()) != nullptr) {
             addresses.put (pszRemoteAddress);
         }
     }
 }
 
-int DSProUtils::addPeers (DSPro &dspro, ConfigManager &cfgMgr)
+namespace DSPRO_UTILS
 {
-    const char *pszMethodName = "DSProUtils::addPeers";
-    const uint16 ui16MocketsPort = static_cast<uint16>(cfgMgr.getValueAsInt ("aci.dspro.adaptor.mockets.port", MocketsAdaptor::DEFAULT_PORT));
-    StringHashset mocketsAddresses;
-    parsePeers (cfgMgr.getValue ("aci.dspro.adaptor.mockets.peer.addr"), mocketsAddresses);
-    const int mocketsRc = addPeer (dspro, MOCKETS, mocketsAddresses, ui16MocketsPort);
+    int addPeersInternal (DSPro &dspro, ConfigManager &cfgMgr, AdaptorType adaptorType, uint16 ui16DefaultPort, StringHashset &cumulativeFilter)
+    {
+        const char *pszMethodName = "DSProUtils::addPeersInternal";
 
-    const uint16 ui16TCPPort = static_cast<uint16>(cfgMgr.getValueAsInt ("aci.dspro.adaptor.tcp.port", TCPAdaptor::DEFAULT_PORT));
-    StringHashset tcpAddresses;
-    parsePeers (cfgMgr.getValue ("aci.dspro.adaptor.tcp.peer.addr"), tcpAddresses);
-    const int iCount = tcpAddresses.getCount();
-    tcpAddresses.removeAll (mocketsAddresses);
-    if (iCount > tcpAddresses.getCount()) {
-        checkAndLogMsg (pszMethodName, Logger::L_Warning,
-                        "trying to connect to the same peer with both Mockets and TCP. "
-                        "The duplicated connections via TCP will be dropped.\n");
+        String type (getAdaptorTypeAsString (adaptorType));
+        type.convertToLowerCase();
+        String base ("aci.dspro.adaptor."); base += type;
+        String port (base + ".port");
+        String addr (base + ".peer.addr");
+
+        const uint16 ui16Port = static_cast<uint16> (cfgMgr.getValueAsInt (port, ui16DefaultPort));
+        StringHashset addresses;
+        parsePeers (cfgMgr.getValue (addr), addresses);
+        const int iCount = addresses.getCount();
+        addresses.removeAll (cumulativeFilter);
+        if (iCount > addresses.getCount()) {
+            checkAndLogMsg (pszMethodName, Logger::L_Warning,
+                            "trying to connect to the same peer with another adaptor. "
+                            "The duplicated connections via %s will be dropped.\n", type.c_str (), type.c_str());
+        }
+        int rc = addPeer (dspro, adaptorType, addresses, ui16Port);
+
+        StringHashset::Iterator iter = addresses.getAllElements();
+        for (; !iter.end(); iter.nextElement()) {
+            cumulativeFilter.put (iter.getKey());
+        }
+
+        return rc;
     }
-    const int tcpRc = addPeer (dspro, TCP, tcpAddresses, ui16TCPPort);
-
-    return (mocketsRc + tcpRc);
 }
 
+int DSProUtils::addPeers (DSPro &dspro, ConfigManager &cfgMgr)
+{
+    StringHashset cumulativeFilter;                 // Avoids that peers reached via Mockets are also reached via TCP
+    int mocketsRc = DSPRO_UTILS::addPeersInternal (dspro, cfgMgr, MOCKETS, MocketsAdaptor::DEFAULT_PORT, cumulativeFilter);
+    int tcpRc = DSPRO_UTILS::addPeersInternal (dspro, cfgMgr, TCP, TCPAdaptor::DEFAULT_PORT, cumulativeFilter);
+
+    // TODO: at this time, UDP adaptor is only used by the NetLogger, therefore it is not necessary to filter out peers that
+    //       are already connected using other adaptors.
+    StringHashset emptyFilter;
+    int udpRc = DSPRO_UTILS::addPeersInternal (dspro, cfgMgr, UDP, UDPAdaptor::DEFAULT_PORT, emptyFilter);
+
+    return (mocketsRc + tcpRc + udpRc);
+}

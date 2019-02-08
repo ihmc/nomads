@@ -1,4 +1,4 @@
-/* 
+/*
  * PositionUpdater.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_POSITION_UPDATER_H
-#define	INCL_POSITION_UPDATER_H
+#define INCL_POSITION_UPDATER_H
 
 #include "ManageableThread.h"
 
@@ -51,16 +51,23 @@ namespace IHMC_ACI
                              DSProImpl *pDSPro);
             virtual ~PositionUpdater (void);
 
+            // Received metadata from a remote peer or a local client
             void addMetadataToNotify (const char *pszQueryId, const char **ppszMsgIds);
+            // Received search from a remote peer or a local client
             void addSearchToNotify (const char *pszQueryId, const void *pReply, uint16 ui16ReplyLen);
 
+            // Received updated position from a local client
             void positionUpdated (void);
+            // Received updated topology
+            void topologyHasChanged (void);
 
+            // DSPro asynchronously requests a message
             void requestMessage (const char *pszMsgId);
             void requestMessage (const char *pszMsgId, const char *pszPublisherId, const char *pszSenderNodeId,
                                  NOMADSUtil::DArray<uint8> *pLocallyCachedChunkIds);
+
+            // DSPro cancels an asynchronous message request
             void removeMessageRequest (const char *pszMsgId);
-            void topologyHasChanged (void);
 
             void run (void);
 
@@ -86,10 +93,6 @@ namespace IHMC_ACI
             typedef NOMADSUtil::LList<NOMADSUtil::String> MsgIdList;
 
             void doMetadataArrived (NOMADSUtil::StringHashtable<MsgIdList > *pMsgToNotify);
-            Message * getCompleteMessageAndRemoveDSProMetadata (const char *pszMsgId, MessageHeaders::MsgType &type);
-            int getReferredObjectAndInstanceIds (MetaData *pMetadata, char *&pszReferredObjectId,
-
-                                                 char *&pszReferredInstanceId, char *&pszRefersTo);
 
         private:
             bool _bMessageRequested;
@@ -118,7 +121,7 @@ namespace IHMC_ACI
     {
         assert (!msgId.contains (","));
         ui64LatestRequestTime = 0;
-        if (pLocallyCachedChunkIds != NULL) {
+        if (pLocallyCachedChunkIds != nullptr) {
             for (unsigned int i = 0; i < pLocallyCachedChunkIds->size(); i++) {
                 locallyCachedChunkIds[i] = (*pLocallyCachedChunkIds)[i];
             }
@@ -154,5 +157,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_POSITION_UPDATER_H */
-
+#endif    /* INCL_POSITION_UPDATER_H */

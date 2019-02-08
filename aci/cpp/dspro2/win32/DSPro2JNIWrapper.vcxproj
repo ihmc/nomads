@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -13,18 +13,19 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CC0805C3-C321-4539-AFA1-29F262C42019}</ProjectGuid>
     <RootNamespace>DSPro2JNIWrapper</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -38,19 +39,22 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\DisService;..\..\..\..\util\cpp\graph;..\..\..\..\util\cpp;..;..\storage;..\scheduler;..\..\..\..\util\cpp\net;..\ranking;..\proxy;..\comm\disservice;..\comm\mockets;..\comm\tcp;..\comm;..\awareness;..\..\..\..\misc\cpp\chunking;..\;..\..\..\..\util\cpp;..\..\..\..\externals\JDK;..\..\..\..\externals\JDK\win32</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\storage;..\scheduler;..\ranking;..\proxy;..\comm\disservice;..\comm\mockets;..\comm\tcp;..\comm;..\awareness;..\..\DisService;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\util\cpp;..\..\..\..\externals\JDK;..\..\..\..\externals\JDK\win32</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\..\..\externals\lib\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>WS2_32.lib;libeay32_debug.lib;ssleay32_debug.lib;zlib.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;..\..\..\..\externals-win\cnats\vs2015-x86\lib;..\..\..\..\externals\openssl\1.0.2h\WIN32\vs2015\lib;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WS2_32.lib;nats.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MTd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -61,11 +65,16 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>..\;..\storage;..\scheduler;..\ranking;..\proxy;..\comm\disservice;..\comm\mockets;..\comm\tcp;..\comm;..\awareness;..\..\DisService;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\util\cpp;..\..\..\..\externals\JDK;..\..\..\..\externals\JDK\win32</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <ImportLibrary>$(OutDir)$(TargetName).lib</ImportLibrary>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -75,6 +84,9 @@
     <ClInclude Include="..\jni\DSProJNIWrapper.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\externals\dali-1.0\win32\dali.vcxproj">
+      <Project>{b75a6882-0c1a-4b6b-841a-b98d0421fe5e}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\..\externals\jasper\win32\jasperlib.vcxproj">
       <Project>{c510c045-17a1-428c-93b1-5cb2014c4ecf}</Project>
     </ProjectReference>
@@ -90,6 +102,9 @@
     <ProjectReference Include="..\..\..\..\externals\TinyXPath\win32\TinyXPath.vcxproj">
       <Project>{62f94fce-9e1d-410c-b16f-c91295d3922b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\externals\zlib\win32\zlib.vcxproj">
+      <Project>{544a0007-9ce2-4a8b-b24d-3aa18924fd15}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\..\misc\cpp\c45\win32\C45Lib.vcxproj">
       <Project>{7578c341-1d9f-403b-a61e-72dd45e1312d}</Project>
     </ProjectReference>
@@ -104,6 +119,12 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\misc\cpp\milstd2525\win32\milstd2525lib.vcxproj">
       <Project>{f06d3152-6735-4fb3-8ae8-351de439833a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\misc\cpp\natswr\win32\natswrlib.vcxproj">
+      <Project>{1fa6181f-bd1a-4b98-bb7e-ded33e0f753a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\misc\cpp\voi\win32\voilib.vcxproj">
+      <Project>{e2d2dcec-a041-4c93-958d-714cb7a14ac4}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\mockets\cpp\win32\mockets.vcxproj">
       <Project>{b5b29df6-3670-4806-a979-47f87d27961a}</Project>

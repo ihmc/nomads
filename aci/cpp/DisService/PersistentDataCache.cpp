@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -112,8 +112,7 @@ int PersistentDataCache::addDataNoNotifyInternal (Message *pMessage)
 
     if (0 == _pPersistentDB->insert (pMessage)) {
         checkAndLogMsg (pszMethodName, Logger::L_Info,
-                        "Added message with id <%s> to the DataCache. %s",
-        	        pMH->getMsgId(),
+                        "Added message with id <%s> to the DataCache. %s", pMH->getMsgId(),
                         (ui32FragmentCounter > 0 ? "Fragments for this complete message deleted.\n" : "\n"));
         _ui32CurrentCacheSize += pMH->getTotalMessageLength();
         return 0;
@@ -131,6 +130,13 @@ int PersistentDataCache::release (const char *pszId, MessageHeader *pMI)
     delete pMI;
     pMI = NULL;
     return 0;
+}
+
+void PersistentDataCache::clear (void)
+{
+    _m.lock (89);
+    _pDB->clear();
+    _m.unlock (89);
 }
 
 const void * PersistentDataCache::getData (const char *pszId)
@@ -184,7 +190,7 @@ const void * PersistentDataCache::getData (const char *pszId, uint32 &ui32Len)
         ui32Len = result.ui32Length;
     }
 
-    _m.unlock (80);
+    _m.unlock (79);
     return pData;
 }
 
@@ -228,8 +234,16 @@ void PersistentDataCache::getDataInternal (const char *pszId, Result &result)
         if (pChunks->getFirst()->getMessageHeader()->isChunk()) {
             // Return the reassembled large object
             uint32 ui32LargeObjLen = 0;
-            Reader *pReader = ChunkingAdaptor::reassemble (pChunks, pAnnotations, ui32LargeObjLen);
+            const uint8 ui8Chunks = pChunks->getCount();
+            const MessageHeader *pMH = pChunks->getFirst()->getMessageHeader();
+            const uint8 ui8TotChunks = pMH->getTotalNumberOfChunks();
+            const String objectId (pMH->getObjectId());
+            const String instanceId (pMH->getInstanceId());
+            Reader *pReader = ChunkingAdaptor::reassemble (_pChunkingMgr, pChunks, pAnnotations, ui32LargeObjLen);
             release (pChunks);
+            pChunks = NULL;
+            release (pAnnotations);
+            pAnnotations = NULL;
             if (pReader == NULL) {
                 checkAndLogMsg ("DataCache::getDataInternal", Logger::L_SevereError,
                                 "could not reassemble large object\n");
@@ -246,15 +260,32 @@ void PersistentDataCache::getDataInternal (const char *pszId, Result &result)
             pReader->read (result.pData, ui32LargeObjLen);
             result.ui8StorageType = MEMORY;
             result.ui32Length = ui32LargeObjLen;
+            result.ui8NChunks = ui8Chunks;
+            result.ui8TotalNChunks = ui8TotChunks;
+            result.objectId = objectId;
+            result.instanceId = instanceId;
+            delete pReader;
         }
         else {
             assert (pChunks->getCount() == 1);
             MessageInfo *pMI = pChunks->getFirst()->getMessageInfo();
             result.ui8StorageType = MEMORY;
-            result.pData = (void*)pChunks->getFirst()->getData();
+            Message *pMsg = pChunks->getFirst();
+            result.pData = (void*)pMsg->getData();
             result.ui32Length = pMI->getFragmentLength();
+            // CleanUp
+            pChunks->remove (pMsg);
+            MessageHeader *pMH = pMsg->getMessageHeader();
+            delete pMH;
+            delete pMsg;
         }
-        
+
+        if (pChunks != NULL) {
+            release (pChunks);
+        }
+        if (pAnnotations != NULL) {
+            release (pAnnotations);
+        }
         return;
     }
 
@@ -315,7 +346,7 @@ PtrLList<Message> * PersistentDataCache::getMessages (const char *pszGroupName, 
         pDSDCQuery->addConstraintOnMsgSeqId (ui32StartSeqNo);
     }
     else {
-        pDSDCQuery->addConstraintOnMsgSeqId (ui32StartSeqNo, ui32EndSeqNo, 
+        pDSDCQuery->addConstraintOnMsgSeqId (ui32StartSeqNo, ui32EndSeqNo,
                                              true);   // open interval
     }
 
@@ -327,6 +358,9 @@ PtrLList<Message> * PersistentDataCache::getMessages (const char *pszGroupName, 
 
 int PersistentDataCache::release (PtrLList<Message> *pMessages)
 {
+    if (pMessages == NULL) {
+        return 0;
+    }
     Message *pMsg = pMessages->getFirst();
     Message *pMsgTmp; MessageHeader *pMH;
     while (pMsg) {
@@ -403,7 +437,7 @@ NOMADSUtil::DArray2<NOMADSUtil::String> * PersistentDataCache::getExpiredEntries
 
 int PersistentDataCache::deleteDataAndMessageInfo (const char *pszKey, bool bIsLatestMessagePushedByNode)
 {
-    
+
     if (bIsLatestMessagePushedByNode) {
         checkAndLogMsg ("PersistentDataCache::deleteDataAndMessageInfo", Logger::L_Info,
                         "the message %s can't be eliminated because it is the latest message sent.\n", pszKey);

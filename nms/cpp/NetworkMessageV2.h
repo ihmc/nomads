@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -58,7 +58,7 @@ namespace NOMADSUtil
             void setQueueLength (uint8 ui8QueueLength);
 
         public:
-            static const uint16 FIXED_HEADER_LENGTH = 25;
+            static const uint16 FIXED_HEADER_LENGTH = 27;
 
         private:
             void create (uint8 ui8MsgType, uint32 ui32SourceAddress, uint32 ui32TargetAddress,
@@ -70,10 +70,10 @@ namespace NOMADSUtil
         private:
             static const uint8 VERSION_AND_TYPE = 0x20 | 0x0C;       // Version 2, type C
 
-            static const uint16 QUEUE_LENGTH_FIELD_OFFSET = 20;
-            static const uint16 MSG_META_DATA_LENGTH_FIELD_OFFSET = 21;
-            static const uint16 MSG_DATA_LENGTH_FIELD_OFFSET = 23;
-            static const uint16 MSG_META_DATA_FIELD_OFFSET = 25;
+            static const uint16 QUEUE_LENGTH_FIELD_OFFSET = 22;
+            static const uint16 MSG_META_DATA_LENGTH_FIELD_OFFSET = 23;
+            static const uint16 MSG_DATA_LENGTH_FIELD_OFFSET = 25;
+            static const uint16 MSG_META_DATA_FIELD_OFFSET = 27;
     };
 
     inline bool NetworkMessageV2::isMalformed () const

@@ -1,4 +1,4 @@
-/* 
+/*
  * NetworkInterfaceManager.cpp
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -151,16 +151,18 @@ NetworkInterfaceManager::~NetworkInterfaceManager (void)
 
 void NetworkInterfaceManager::run (void)
 {
-    while (!terminationRequested()) {
-        sleepForMilliseconds (15000);
-        _m.lock();
-        for (Interfaces::Iterator iter = _interfaces.getAllElements(); !iter.end(); iter.nextElement()) {
-            NetworkInterface *pIface = iter.getValue();
-            if (MULTICAST == pIface->getMode()) {
-                static_cast<LocalNetworkInterface *>(pIface)->rejoinMulticastGroup ();
+    if (_bRejoinMcastGrp) {
+        while (!terminationRequested ()) {
+            sleepForMilliseconds (15000);
+            _m.lock ();
+            for (Interfaces::Iterator iter = _interfaces.getAllElements(); !iter.end(); iter.nextElement()) {
+                NetworkInterface *pIface = iter.getValue();
+                if (MULTICAST == pIface->getMode()) {
+                    static_cast<LocalNetworkInterface *>(pIface)->rejoinMulticastGroup();
+                }
             }
+            _m.unlock ();
         }
-        _m.unlock();
     }
 }
 
@@ -183,9 +185,10 @@ int NetworkInterfaceManager::init (ConfigManager *pCfgMgr)
         _bRejoinMcastGrp = false;
     }
     else {
-        _bRejoinMcastGrp = pCfgMgr->getValueAsBool (NMSProperties::NMS_PERIODIC_MULTICAST_GROUP_REJOIN, true);
+        _bRejoinMcastGrp = pCfgMgr->getValueAsBool (NMSProperties::NMS_PERIODIC_MULTICAST_GROUP_REJOIN, false);
     }
 
+    // TODO: bind network interfaces
     const char **ppszBindingInterfaces = NULL;
     const char **ppszIgnoredInterfaces = NULL;
     const char **ppszAddedInterfaces = NULL;
@@ -234,8 +237,8 @@ int NetworkInterfaceManager::init (const char **ppszBindingInterfaces, const cha
                     _requieredInterfaces.put (iface);
                 }
             }
-			NetUtils::freeNICsInfo (ppIfaces);
-		}
+            NetUtils::freeNICsInfo (ppIfaces);
+        }
     }
     else {
         // otherwise, look for all the available interfaces that match the required ones
@@ -323,12 +326,12 @@ bool NetworkInterfaceManager::clearToSendOnAllInterfaces (void)
 char ** NetworkInterfaceManager::getActiveNICsInfoAsString (void)
 {
     resolveProxyDatagramSocketAddresses();
-
     unsigned int ulLen = _interfaces.getCount() + 1;
     if (ulLen == 1) {
         return NULL;
     }
-    char **ppszInterfaces = static_cast<char **>(calloc (ulLen, sizeof (char *)));
+
+    char **ppszInterfaces = static_cast<char **> (calloc (ulLen, sizeof (char *)));
     if (ppszInterfaces != NULL) {
         StringHashtable<NetworkInterface>::Iterator iter = _interfaces.getAllElements();
         for (unsigned int i = 0; !iter.end() && i < ulLen; iter.nextElement()) {
@@ -341,6 +344,7 @@ char ** NetworkInterfaceManager::getActiveNICsInfoAsString (void)
             }
         }
     }
+
     return ppszInterfaces;
 }
 
@@ -359,31 +363,46 @@ char ** NetworkInterfaceManager::getActiveNICsInfoAsStringForDestinationAddr (co
 
 char ** NetworkInterfaceManager::getActiveNICsInfoAsStringForDestinationAddr (uint32 ulSenderRemoteIPv4Addr)
 {
-    unsigned int ulLen = _interfaces.getCount() + 1;
+    const unsigned int ulLen = _interfaces.getCount() + 2;
     if (ulLen == 1) {
         return NULL;
     }
     char **ppszInterfaces = static_cast<char **>(calloc (ulLen, sizeof (char *)));
-    if (ppszInterfaces != NULL) {
-        Interfaces::Iterator iter = _interfaces.getAllElements();
-        for (unsigned int i = 0; !iter.end() && i < ulLen; iter.nextElement()) {
-            NetworkInterface *pNetInt = iter.getValue();
-            if ((pNetInt != NULL) && (pNetInt->getNetworkAddr() != NULL) && (pNetInt->isAvailable()) && (!pNetInt->boundToWildcardAddr())) {
-                InetAddr senderRemoteAddr (ulSenderRemoteIPv4Addr);
-                if (NetUtils::areInSameNetwork (pNetInt->getNetworkAddr(), pNetInt->getNetmask(),
-                                                senderRemoteAddr.getIPAsString(), pNetInt->getNetmask())) {
-                    ppszInterfaces[i] = strDup (pNetInt->getNetworkAddr());
-                    if (ppszInterfaces[i] != NULL) {
-                        i++;
-                    }
+    if (ppszInterfaces == NULL) {
+        return NULL;
+    }
+
+    if (_ui32PrimaryInterface > 0) {
+        InetAddr inet (_ui32PrimaryInterface);
+        ppszInterfaces[0] = strDup (inet.getIPAsString());
+        return ppszInterfaces;
+    }
+
+    Interfaces::Iterator iter = _interfaces.getAllElements();
+    for (unsigned int i = 0; !iter.end() && i < ulLen; iter.nextElement()) {
+        NetworkInterface *pNetInt = iter.getValue();
+        if ((pNetInt != NULL) && (pNetInt->getNetworkAddr () != NULL) && (pNetInt->isAvailable()) && (!pNetInt->boundToWildcardAddr())) {
+            InetAddr senderRemoteAddr (ulSenderRemoteIPv4Addr);
+            if (NetUtils::areInSameNetwork (pNetInt->getNetworkAddr(), pNetInt->getNetmask(),
+                senderRemoteAddr.getIPAsString(), pNetInt->getNetmask())) {
+                ppszInterfaces[i] = strDup (pNetInt->getNetworkAddr());
+                if (ppszInterfaces[i] != NULL) {
+                    i++;
                 }
             }
         }
     }
-    if ((ppszInterfaces != NULL) && (ppszInterfaces[0] == NULL)) {
-        free (ppszInterfaces);
-        ppszInterfaces = NULL;
+    if (ppszInterfaces[0] == NULL) {
+        // Use them all
+        iter = _interfaces.getAllElements();
+        for (unsigned int i = 0; !iter.end() && i < ulLen; iter.nextElement()) {
+            NetworkInterface *pNetInt = iter.getValue();
+            if ((pNetInt != NULL) && (pNetInt->getNetworkAddr() != NULL) && (pNetInt->isAvailable()) && (!pNetInt->boundToWildcardAddr())) {
+                ppszInterfaces[i] = strDup (pNetInt->getNetworkAddr());
+            }
+        }
     }
+
     return ppszInterfaces;
 }
 
@@ -490,7 +509,7 @@ int64 NetworkInterfaceManager::getReceiveRate (const char *pszAddr)
         _m.unlock();
         return -3;
     }
-    
+
     uint32 ui32Bytes = pNetIF->getReceiveRate();
 
     // In UNIX the INADDR_ANY address must be bound in order to receive broadcast
@@ -515,7 +534,7 @@ uint8 NetworkInterfaceManager::getRescaledTransmissionQueueSize (const char *psz
         return 0;
     }
     _m.lock();
-    uint32 ui32RescaledQueueSize = 0U; 
+    uint32 ui32RescaledQueueSize = 0U;
     NetworkInterface *pNetIf = _interfaces.get (pszOutgoingInterface);
     if (pNetIf != NULL) {
         ui32RescaledQueueSize = pNetIf->getRescaledTransmissionQueueSize();
@@ -529,7 +548,7 @@ uint32 NetworkInterfaceManager::getTransmissionQueueMaxSize (const char *pszOutg
     if (pszOutgoingInterface == NULL) {
         return 0;
     }
-    uint32 ui32MaxQueueSize = 0U; 
+    uint32 ui32MaxQueueSize = 0U;
     _m.lock();
     NetworkInterface *pNetIf = _interfaces.get (pszOutgoingInterface);
     if (pNetIf != NULL) {
@@ -670,13 +689,13 @@ bool NetworkInterfaceManager::send (NetworkMessage *pNetMsg, const char **ppszOu
             checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "sending from "
                             "interface %s\n", ppszOutgoingInterfaces[i]);
             if (sendInternal (pNetMsg, _interfaces.get (ppszOutgoingInterfaces[i]),
-                      ppszOutgoingInterfaces[i], ui32Address, bExpedited, pszHints) == 0) {
+                              ppszOutgoingInterfaces[i], ui32Address, bExpedited, pszHints) == 0) {
                 bAtLeastOneIF = true;
             }
             else {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not send from "
                                 "specified interface: %s\n", ppszOutgoingInterfaces[i]);
-            }            
+            }
         }
         _m.unlock();
     }
@@ -803,7 +822,7 @@ void NetworkInterfaceManager::bindInterface (const String &ifaceAddr)
         return;
     }
     const char *pszMethodName = "NetworkInterfaceManager::bindInterface";
-    const bool bReceiveOnly = (ifaceAddr ==  NetworkInterface::IN_ADDR_ANY_STR);
+    const bool bReceiveOnly = (1 == (ifaceAddr ==  NetworkInterface::IN_ADDR_ANY_STR));
     NetworkInterface *pNetInt = NetworkInterfaceFactory::getNetworkInterface (ifaceAddr, _mode, _bAsyncTransmission, _bReplyViaUnicast);
     if (pNetInt == NULL) {
         return;
@@ -860,13 +879,12 @@ int NetworkInterfaceManager::resolveProxyDatagramSocketAddresses (void)
             checkAndLogMsg (pszMethodName, Logger::L_Info, "resolved the address for %s to be %s\n",
                             pNetInt->getBindingInterfaceSpec(), pNetInt->getNetworkAddr());
             if (!_bPrimaryInterfaceIdSet) {
-                InetAddr actualAddr (pNetInt->getNetworkAddr());
                 _ui32PrimaryInterface = actualAddr.getIPAddress();
                 _bPrimaryInterfaceIdSet = true;
                 checkAndLogMsg (pszMethodName, Logger::L_Info, "set the primary "
                                 "interface address to be %s\n", pNetInt->getNetworkAddr());
             }
-			pNetInt->start();
+            pNetInt->start();
             _proxyInterfacesToResolve.remove (pNetInt);
             _proxyInterfacesToResolve.resetGet();      // Must restart the iteration when deleting elements from the list
         }

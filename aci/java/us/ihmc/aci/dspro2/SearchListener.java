@@ -18,9 +18,9 @@ import java.util.Collection;
  */
 public interface SearchListener
 {
-    public void searchArrived (String queryId, String groupName, String querier,
-                               String queryType, String queryQualifiers, byte[] query);
-    public void searchReplyArrived (String queryId, Collection<String> matchingMessageIds, String responderNodeId);
-    public void searchReplyArrived (String queryId, byte[] reply, String responderNodeId);
+    void searchArrived (String queryId, String groupName, String querier,
+                        String queryType, String queryQualifiers, byte[] query);
+    void searchReplyArrived (String queryId, Collection<String> matchingMessageIds, String responderNodeId);
+    void searchReplyArrived (String queryId, byte[] reply, String responderNodeId);
 }
 

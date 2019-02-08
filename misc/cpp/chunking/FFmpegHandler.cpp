@@ -218,7 +218,7 @@ NOMADSUtil::BufferReader * FFmpegReassembler::getAnnotatedVideo (void)
                 pNext = NULL;
             }
         }
-        
+
         // if a chunk is missing take the next frame from the current chunk
     }
     writer.close();

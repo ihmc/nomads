@@ -44,84 +44,59 @@ Mutex _m;
 
 int main (int argc, char *argv[])
 {
+    _terminated = false;
     const String execName (argv[0]);
     #ifdef UNIX
         SigFaultHandler handler (execName);
     #endif
-
-    _m.lock();
-    _terminated = false;
-    _m.unlock();
-
     if (signal (SIGINT, sigIntHandler) == SIG_ERR) {
         printf ("Error handling SIGINT\n");
         exit (-1);
     }
-
-    ConfigManager *pConfigManager = NULL;
-    uint16 ui16Port = DIS_SVC_PROXY_SERVER_PORT_NUMBER;
-
-    // Read Configuration
-    if (argc > 2) {
+    if (argc > 3) {
         printf ("Usage: ./DisServiceProxy <configFile>\n");
         exit (-2);
     }
 
-    if (argv[1]) {
-        if (FileUtils::fileExists(argv[1])) {
-            pConfigManager = new ConfigManager();
-            pConfigManager->init();
-            int rc;
-            if ((rc = pConfigManager->readConfigFile((const char *) argv[1])) != 0) {
-                printf ("Error in config file %s reading. Returned code %d.\n", (const char *) argv[1], rc);
-                exit (-3);
-            }
-            if (pConfigManager->hasValue("aci.disservice.proxy.port")) {
-                ui16Port = (uint16) pConfigManager->getValueAsInt("aci.disservice.proxy.port");
-            }
-            if (pConfigManager->getValueAsBool("util.logger.enabled", true)) {
-                if (!pLogger) {
-                    pLogger = new Logger();
-                    if (pConfigManager->getValueAsBool("util.logger.out.screen.enabled", true)) {
-                        pLogger->enableScreenOutput();
-                    }
-                    if (pConfigManager->getValueAsBool("util.logger.out.file.enabled", true)) {
-                        pLogger->initLogFile (pConfigManager->getValue ("util.logger.out.file.path", "ds.log"), false);
-                        pLogger->enableFileOutput();
-                        pLogger->initErrorLogFile (pConfigManager->getValue ("util.logger.error.file.path", "dserror.log"), false);
-                        pLogger->enableErrorLogFileOutput();
-                    }
-                    uint8 ui8DbgDetLevel = (uint8) pConfigManager->getValueAsInt ("util.logger.detail", Logger::L_LowDetailDebug);
-                    switch (ui8DbgDetLevel) {
-                        case Logger::L_SevereError:
-                        case Logger::L_MildError:
-                        case Logger::L_Warning:
-                        case Logger::L_Info:
-                        case Logger::L_NetDetailDebug:
-                        case Logger::L_LowDetailDebug:
-                        case Logger::L_MediumDetailDebug:
-                        case Logger::L_HighDetailDebug:
-                            pLogger->setDebugLevel (ui8DbgDetLevel);
-                            pLogger->logMsg ("DisServiceLauncher::main", Logger::L_Info,
-                                             "Setting debug level to %d\n", ui8DbgDetLevel);
-                            break;
-                        default:
-                            pLogger->setDebugLevel(Logger::L_LowDetailDebug);
-                            pLogger->logMsg("DisServiceLauncher::main",
-                                            Logger::L_Info,
-                                            "Invalid Logger detail debug level. Setting it to %d\n",
-                                            Logger::L_LowDetailDebug);
-                    }
-                }
-            }
+    // Parse command line arguments
+    String confFile;
+    bool bShell = true;
+    for (uint8 i = 1; i < argc; i++) {
+        String opt (argv[i]);
+        if (opt == "--no-shell") {
+            bShell = false;
         }
         else {
-            printf ("The file at location: %s does not exist.\n", (const char *) argv[1]);
-            exit (-4);
+            confFile = argv[i];
         }
     }
 
-    if (pConfigManager == NULL) {
+    // Read Configuration
+    uint16 ui16Port = DIS_SVC_PROXY_SERVER_PORT_NUMBER;    
+    ConfigManager *pCfgMgr = NULL;
+    if (confFile.length() > 0) {
+        if (!FileUtils::fileExists (confFile)) {
+            printf ("The file at location: %s does not exist.\n", confFile.c_str());
+            exit (-4);
+        }
+        pCfgMgr = new ConfigManager();
+        pCfgMgr->init();
+        int rc;
+        if ((rc = pCfgMgr->readConfigFile (confFile)) != 0) {
+            printf ("Error in config file %s reading. Returned code %d.\n", confFile.c_str(), rc);
+            exit (-3);
+        }
+        Logger::configure (pCfgMgr);
+        if (pCfgMgr->hasValue ("aci.disservice.proxy.port")) {
+            ui16Port = (uint16) pCfgMgr->getValueAsInt("aci.disservice.proxy.port");
+        }
+        if (bShell && pCfgMgr->hasValue ("aci.disservice.shell")) {
+            // The shell command line option superseds the config file property
+            bShell = pCfgMgr->getValueAsBool ("aci.disservice.shell");
+        }
+    }
+
+    if (pCfgMgr == NULL) {
         // Default Logger conf
         if (!pLogger) {
             pLogger = new Logger();
@@ -137,7 +112,7 @@ int main (int argc, char *argv[])
     }
 
     //Initializing and starting DisService
-    DisseminationService * _pDisService = (pConfigManager ? new DisseminationService(pConfigManager) : new DisseminationService());
+    DisseminationService * _pDisService = (pCfgMgr ? new DisseminationService (pCfgMgr) : new DisseminationService());
     int rc;
     if (0 != (rc = _pDisService->init())) {
     	printf ("\nDisseminationService is failed to initialize\n");
@@ -154,10 +129,17 @@ int main (int argc, char *argv[])
 
     // Invoking the command processor
     pLogger->disableScreenOutput();
-    DisServiceCommandProcessor cmdProc (_pDisService);
-    cmdProc.setPrompt ("DisService");
-    cmdProc.enableNetworkAccess (5555);
-    cmdProc.run();
+    if (bShell) {
+        DisServiceCommandProcessor cmdProc (_pDisService);
+        cmdProc.setPrompt ("DisService");
+        cmdProc.enableNetworkAccess (5555);
+        cmdProc.run();
+    }
+    else {
+        while (!_terminated) {
+            sleepForMilliseconds (3000);
+        }
+    }
 
     printf ("\nDisService is terminating...\n");
     _pDisService->requestTerminationAndWait();
@@ -165,8 +147,8 @@ int main (int argc, char *argv[])
     _pDisService = NULL;
     delete pLogger;
     pLogger = NULL;
-    delete pConfigManager;
-    pConfigManager = NULL;
+    delete pCfgMgr;
+    pCfgMgr = NULL;
 
     return 0;
 }

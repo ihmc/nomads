@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_SEARCH_PROPERTIES_H
-#define	INCL_SEARCH_PROPERTIES_H
+#define INCL_SEARCH_PROPERTIES_H
 
 #include <stddef.h>
 #include "FTypes.h"
@@ -68,8 +68,8 @@ namespace IHMC_ACI
     };
 
     inline SearchProperties::SearchProperties (void)
-        : pszQueryId (NULL), pszQuerier (NULL), pszGroupName (NULL),
-          pszQueryType (NULL), pszQueryQualifiers (NULL), pQuery (NULL),
+        : pszQueryId (nullptr), pszQuerier (nullptr), pszGroupName (nullptr),
+          pszQueryType (nullptr), pszQueryQualifiers (nullptr), pQuery (nullptr),
           uiQueryLen (0U), i64TimeoutInMillis (0)
     {
     }
@@ -79,5 +79,4 @@ namespace IHMC_ACI
     }
 }
 
-#endif	/* INCL_SEARCH_PROPERTIES_H */
-
+#endif    /* INCL_SEARCH_PROPERTIES_H */

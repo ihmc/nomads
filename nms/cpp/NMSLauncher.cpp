@@ -1,16 +1,12 @@
 #include "NetworkMessageServiceProxyServer.h"
-
 #include "NMSCommandProcessor.h"
 #include "NMSProperties.h"
-
 #include "ConfigManager.h"
 #include "FileUtils.h"
 #include "StringTokenizer.h"
-
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 using namespace NOMADSUtil;
-
 /*
 int NMSProxyShell::processCmd (const void *pToken, char *pszCmdLine)
 {
@@ -85,12 +81,10 @@ int main (int argc, const char **ppszArgv)
         pLogger->enableFileOutput();
         pLogger->setDebugLevel (Logger::L_Info);
     }
-
     if (argc > 2) {
         printf ("Usage: %s <configFile>\n", ppszArgv[0]);
         return -1;
     }
-
     ConfigManager cfgMgr;
     cfgMgr.init();
     if (argc == 2) {
@@ -103,13 +97,11 @@ int main (int argc, const char **ppszArgv)
             return -3;
         }
     }
-
     NetworkMessageServiceProxyServer *pProxySrv = NetworkMessageService::getProxySvrInstance (&cfgMgr);
     if (pProxySrv == NULL) {
         checkAndLogMsg ("main", Logger::L_SevereError, "could not instantiate NetworkMessageServiceProxyServer correctly.\n");
         return -4;
     }
-
     checkAndLogMsg ("main", Logger::L_Info, "starting proxy server.\n");
     NetworkMessageService *pNMS = pProxySrv->getSvcInstace();
     if (pNMS == NULL) {
@@ -125,7 +117,5 @@ int main (int argc, const char **ppszArgv)
     pProxySrv->start();
     pCmdProc->setPrompt ("NMS");
     pCmdProc->run();
-
     return 0;
 }
-

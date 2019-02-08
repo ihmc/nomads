@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -188,7 +188,7 @@ void DisseminationServiceProxyAdaptor::run()
         }
         else if (strcmp (buf, "request") == 0) {
             bSuccess = doHistoryRequest (err);
-        }                      
+        }
         else if (strcmp (buf, "requestMoreChunks") == 0) {
             bSuccess = doRequestMoreChunks (err);
         }
@@ -316,11 +316,11 @@ bool DisseminationServiceProxyAdaptor::doGetPeerList (CommHelperError &err)
         for (unsigned int i = 0; (uiPeerCounterWritten < uiPeerCounter) && (ppszPeerList[i] != NULL); i++) {
             unsigned int uiStrLen = (unsigned int) strlen (ppszPeerList[i]);
             if (uiStrLen > 0) {
-                if ((pWriter->write32 (&uiStrLen) != 0) || 
+                if ((pWriter->write32 (&uiStrLen) != 0) ||
                     (pWriter->writeBytes (ppszPeerList[i], uiStrLen) != 0)) {
                     bSuccess = false;
                     break;
-                } 
+                }
                 uiPeerCounterWritten++;
             }
         }
@@ -396,7 +396,7 @@ bool DisseminationServiceProxyAdaptor::doGetDisServiceIds (CommHelperError &err)
 }
 
 /*
-int push (const char *pszGroupName, const void *pData, uint32 ui32Length, int64 i64ExpirationTime, 
+int push (const char *pszGroupName, const void *pData, uint32 ui32Length, int64 i64ExpirationTime,
           uint16 ui16HistoryWindow, uint16 ui16Tag, uint8 ui8Priority, char *pszIdBuf, uint32 ui32IdBufLen);
 */
 bool DisseminationServiceProxyAdaptor::doPushOrStore (CommHelperError &err, PublishOption pubOpt)
@@ -844,7 +844,7 @@ bool DisseminationServiceProxyAdaptor::doSubscribe_predicate (CommHelperError &e
     if (0 != pReader->read8 (&ui8Priority)) {
         return false;
     }
-        
+
     err = _adptProtHelper.readSubscriptionParameters (bGroupReliable, bMsgReliable, bSequenced);
     if (err != SimpleCommHelper2::None) {
         return false;
@@ -1027,13 +1027,13 @@ bool DisseminationServiceProxyAdaptor::doRetrieve (CommHelperError &err)
     else {
         return false;
     }
-    
+
     // read the timeout
     if (pReader->read64 (&ui64Timeout)) {
         err = SimpleCommHelper2::CommError;
         return false;
     }
-    
+
     int rc = _pDissSvc->retrieve (msgID, &pRetrievedData, &ui33RetrievedDataLen, ui64Timeout);
     if (rc > 0) {
         if (_pCommHelper->getWriterRef()->write32 (&ui33RetrievedDataLen) < 0) {
@@ -1107,13 +1107,13 @@ bool DisseminationServiceProxyAdaptor::doRetrieve_file (CommHelperError &err)
     else {
         return false;
     }
-    
+
     // read the timeout
     if (pReader->read64 (&ui64Timeout)) {
         err = SimpleCommHelper2::CommError;
         return false;
     }
-    
+
     int rc = _pDissSvc->retrieve (msgID, &pRetrievedData, &ui33RetrievedDataLen, ui64Timeout);
     if (rc >= 0) {
         _pCommHelper->sendLine (err, "OK");
@@ -1143,7 +1143,7 @@ bool DisseminationServiceProxyAdaptor::doHistoryRequest (CommHelperError &err)
     else {
         return false;
     }
-    
+
     // read the ui16Tag
     uint16 ui16Tag;
     if (pReader->read16 (&ui16Tag)) {
@@ -1764,7 +1764,7 @@ bool DisseminationServiceProxyAdaptor::dataAvailable (uint16 ui16ClientId, const
     if (err != SimpleCommHelper2::None) {
         return false;
     }
-    
+
     return true;
 } //dataAvailable()
 
@@ -1904,7 +1904,7 @@ void DisseminationServiceProxyAdaptor::volatileSearchReplyArrived (const char *p
 //------------------------------------------------------------------------------
 
 DisseminationServiceProxyProtocolHelper::DisseminationServiceProxyProtocolHelper (void)
-{    
+{
 }
 
 DisseminationServiceProxyProtocolHelper::~DisseminationServiceProxyProtocolHelper()
@@ -2073,7 +2073,7 @@ CommHelperError DisseminationServiceProxyProtocolHelper::readSubscriptionParamet
 
 CommHelperError DisseminationServiceProxyProtocolHelper::writeUI32Blob (const void *pBuf, uint32 uiBufLen)
 {
-    
+
     //send the metadata length
     if (0 != _pCallbackCommHelper->getWriterRef()->write32 (&uiBufLen)) {
         return SimpleCommHelper2::CommError;

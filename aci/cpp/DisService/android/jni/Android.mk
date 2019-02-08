@@ -138,6 +138,7 @@ LOCAL_SRC_FILES := AckController.cpp \
     ReceivedMessages.cpp \
     ReceivedMessagesInterface.cpp \
     RequestsState.cpp \
+    SessionId.cpp \
     Services.cpp \
     SQLMessageHeaderStorage.cpp \
     SQLMessageStorage.cpp \
@@ -169,7 +170,7 @@ LOCAL_SRC_FILES := AckController.cpp \
 # DisseminationServiceProxyCallbackHandler.cpp DisseminationServiceProxyServer.cpp
 
 LOCAL_MODULE    := disservice
-LOCAL_CPPFLAGS	:= -fexceptions -DUNIX -DLINUX -DANDROID -DLITTLE_ENDIAN_SYSTEM -DUSE_SQLITE -DENABLE_MUTEX_LOGGING
+LOCAL_CPPFLAGS	:= -fexceptions -DUNIX -DLINUX -DANDROID -DLITTLE_ENDIAN_SYSTEM -DUSE_SQLITE -DENABLE_MUTEX_LOGGING -std=c++11
 LOCAL_LDLIBS := -lz -ldl
 
 LOCAL_C_INCLUDES += \

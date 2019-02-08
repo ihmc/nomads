@@ -138,7 +138,7 @@ typedef struct {
                             // (default = 1). Pass to consultTree processTreeResults->trees[x], where trees[x] is the
                             // tree you want to consult.
      CError	* codeErrors;   // reports errors occurred
-} processTreeResults;					
+} processTreeResults;
 
 /********************************* results from processRules ************************************/
 

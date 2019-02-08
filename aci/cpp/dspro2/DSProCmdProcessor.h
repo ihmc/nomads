@@ -1,4 +1,4 @@
-/* 
+/*
  * DSProCmdProcessor.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_DSPRO_CMD_PROCESSOR_H
-#define	INCL_DSPRO_CMD_PROCESSOR_H
+#define INCL_DSPRO_CMD_PROCESSOR_H
 
 #include "CommandProcessor.h"
 
@@ -31,10 +31,17 @@
 #include "AtomicVar.h"
 #include "Logger.h"
 
+namespace IHMC_VOI
+{
+    class NodePath;
+}
+
 namespace IHMC_ACI
 {
+    class AMTDictator;
+    class DSProInterface;
+    class DSProImpl;
     class DSPro;
-    class NodePath;
 
     class DSProCmdProcessor : public NOMADSUtil::CommandProcessor,
                               public DSProListener,
@@ -42,9 +49,10 @@ namespace IHMC_ACI
     {
         public:
             explicit DSProCmdProcessor (DSPro *pDSPro);
+            explicit DSProCmdProcessor (DSProInterface *pDSPro, DSProImpl *pImpl=nullptr);
             ~DSProCmdProcessor (void);
 
-            bool pathRegistered (NodePath *pNodePath, const char *pszNodeId, const char *pszTeam,
+            bool pathRegistered (IHMC_VOI::NodePath *pNodePath, const char *pszNodeId, const char *pszTeam,
                                  const char *pszMission);
             bool positionUpdated (float fLatitude, float fLongitude, float fAltitude,
                                   const char *pszNodeId);
@@ -59,6 +67,11 @@ namespace IHMC_ACI
             int metadataArrived (const char *pszId, const char *pszGroupName, const char *pszReferredDataObjectId,
                                 const char *pszReferredDataInstanceId, const char *pszXMLMetadada, const char *pszReferredDataId,
                                 const char *pszQueryId);
+            int dataAvailable (const char *pszId, const char *pszGroupName,
+                               const char *pszReferredDataObjectId, const char *pszReferredDataInstanceId,
+                               const char *pszReferredDataId, const char *pszMimeType,
+                               const void *pMetadata, uint32 ui32MetadataLength,
+                               const char *pszQueryId);
 
             void searchArrived (const char* pszQueryId, const char* pszGroupName, const char* pszQuerier,
                                 const char* pszQueryType, const char* pszQueryQualifiers, const void* pszQuery,
@@ -69,15 +82,24 @@ namespace IHMC_ACI
                                              uint16 ui162ReplyLen, const char *pszMatchingNodeId);
 
             int processCmd (const void *pToken, char *pszCmdLine);
+            int processCmdFile (const char *pszFileName);
 
         protected:
             void displayGeneralHelpMsg (const void *pToken);
             void displayHelpMsgForCmd (const void *pToken, const char *pszCmdLine);
             void handleGetDataCmd (const void *pToken, const char *pszCmdLine);
+            void handleCancelByObjectAndInstanceId (const void *pToken, const char *pszCmdLine);
+            void handleConfigureRanksCmd (const void *pToken, const char *pszCmdLine);
+            void handleGetSessionId (const void *pToken, const char *pszCmdLine);
             void handleGetSProIdsCmd (const void *pToken, const char *pszCmdLine);
             void handlePeersCmd (const void *pToken, const char *pszCmdLine);
             void handleAddUserIdCmd (const void *pToken, const char *pszCmdLine);
+            void handleAddAreaOfInterestCmd (const void *pToken, const char *pszCmdLine);
+            void handleAddCustomPolicy (const void *pToken, const char *pszCmdLine);
             void handleRequestMoreChunks (const void *pToken, const char *pszCmdLine);
+            void handleAddMessageCmd (const void *pToken, const char *pszCmdLine);
+            void handleDisseminatedMessageCmd (const void *pToken, const char *pszCmdLine);
+            void handleSubscribe (const void *pToken, const char *pszCmdLine);
             void handleGenDataCmd (const void *pToken, const char *pszCmdLine);
             void handleGetDisServiceCmd (const void *pToken, const char *pszCmdLine);
             void handlePropCmd (const void *pToken, const char *pszCmdLine);
@@ -87,9 +109,24 @@ namespace IHMC_ACI
             void handleSearchReply (const void *pToken, const char *pszCmdLine);
             void handleVolatileSearchReply (const void *pToken, const char *pszCmdLine);
             void handleStoreIncomingData (const void *pToken, const char *pszCmdLine);
+            void handleLoadPath (const void *pToken, const char *pszCmdLine);
+            void handleSetCurrentPath (const void *pToken, const char *pszCmdLine);
+            void handeGetNodeContext (const void *pToken, const char *pszCmdLine);
+            void handleRankingWeigths (const void *pToken, const char *pszCmdLine);
+            void handleSetSelectivity (const void *pToken, const char *pszCmdLine);
+            void handleSetRangeOfInfluence (const void *pToken, const char *pszCmdLine);
+            void handleSetUsefulDistance (const void *pToken, const char *pszCmdLine);
+            void handeSetPosition (const void *pToken, const char *pszCmdLine);
+            void handleSetMission (const void *pToken, const char *pszCmdLine);
+            void handleSetRole (const void *pToken, const char *pszCmdLine);
+            void handleGenTrack (const void *pToken, const char *pszCmdLine);
+            void handleMist (const void *pToken, const char *pszCmdLine);
+            void handleSetSessionId (const void *pToken, const char *pszCmdLine);
 
         protected:
-            DSPro *_pDSPro;
+            DSProInterface *_pDSPro;
+            DSProImpl *_pDSProImpl;
+            AMTDictator *_pAMTDictator;
             NOMADSUtil::AtomicVar<bool> _bStoreIncomingData;
     };
 
@@ -97,4 +134,3 @@ namespace IHMC_ACI
 }
 
 #endif   // #ifndef INCL_DSPRO_CMD_PROCESSOR_H
-

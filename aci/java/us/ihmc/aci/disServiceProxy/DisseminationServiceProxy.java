@@ -20,6 +20,7 @@
 package us.ihmc.aci.disServiceProxy;
 
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -35,7 +36,7 @@ import us.ihmc.util.StringUtil;
  * Date: May 30, 2008
  * Time: 3:24:57 PM
  * @author  Maggie Breedy <Nomads Team>
- * @version $Revision: 1.93 $
+ * @version $Revision$
  *
  */
 public class DisseminationServiceProxy implements DisseminationServiceInterface
@@ -124,6 +125,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         _reinitializationAttemptInterval = reinitializationAttemptInterval;
     }
 
+    @Override
     public int init() throws Exception
     {
         int rc = 0;
@@ -165,6 +167,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return rc;
     }
 
+    @Override
     public void reinitialize()
     {
         new Thread(){
@@ -184,6 +187,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }.start();
     }
 
+    @Override
     public boolean isInitialized()
     {
         return _isInitialized.get();
@@ -214,10 +218,10 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
 
             _commHelper.receiveMatch("OK");
 
-            List<String> list = new LinkedList<String>();
+            List<String> list = new ArrayList<String>();
             byte[] b;
             while ((b = _commHelper.receiveBlock()) != null) {
-                list.add (new String (b));
+                list.add (new String (b, StandardCharsets.UTF_8));
             }
 
             _commHelper.receiveMatch("OK");
@@ -233,6 +237,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public String getNodeId() throws CommException
     {
         checkConcurrentModification ("getNodeId");
@@ -255,7 +260,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
             Logger.getLogger (DisseminationServiceProxy.class.getName()).log(Level.SEVERE, StringUtil.getStackTraceAsString(e), e);
         }
 
-	return null;
+        return null;
     }
 
     public String getSessionId() throws CommException
@@ -263,29 +268,26 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return null;
     }
 
-    public List<String> getPeerList()
-    {
+    @Override
+    public List<String> getPeerList() throws CommException {
         checkConcurrentModification ("getPeerList");
 
-        List<String> peerList = null;
+        List<String> peerList = new ArrayList<>();
         try {
             _commHelper.sendLine ("getPeerList");
             _commHelper.receiveMatch ("OK");
 
             int nPeers = _commHelper.read32();
             if (nPeers > 0) {
-                peerList = new LinkedList<String>();
                 for (int i = 0; i < nPeers; i++) {
                     int idLen = _commHelper.read32();
                     if (idLen > 0) {
                         byte[] buf = new byte[idLen];
                         _commHelper.receiveBlob(buf, 0, idLen);
-                        peerList.add(new String (buf));
+                        peerList.add(new String (buf, StandardCharsets.UTF_8));
                     }
                 }
-                return peerList;
             }
-            return null;
         }
         catch (Exception e) {
             if (e instanceof CommException) {
@@ -294,9 +296,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
             }
             Logger.getLogger (DisseminationServiceProxy.class.getName()).log(Level.SEVERE, null, e);
         }
-        finally {
-            return peerList;
-        }
+        return peerList;
     }
 
     /**
@@ -322,6 +322,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
      * @return 
      * @throws us.ihmc.comm.CommException 
      */
+    @Override
     public synchronized String store (String groupName, String applicationId, String instanceId,
                                       String mimeType, byte[] metaData, byte[] data, long expiration,
                                       short historyWindow, short tag, byte priority)
@@ -371,6 +372,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return msgId;
     }
 
+    @Override
     public synchronized void push (String msgId)
         throws CommException
     {
@@ -382,7 +384,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
 
         try {
             _commHelper.sendLine ("pushById");
-            _commHelper.sendBlock (msgId.getBytes());
+            _commHelper.sendBlock (msgId.getBytes(StandardCharsets.UTF_8));
 
             _commHelper.receiveMatch ("OK");
         }
@@ -418,6 +420,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
      * @return 
      * @throws us.ihmc.comm.CommException 
      */
+    @Override
     public synchronized String push (String groupName, String objectId, String instanceId, String mimeType,
                                      byte[] metaData, byte[] data, long expiration, short historyWindow,
                                      short tag, byte priority)
@@ -492,6 +495,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
      * @return 
      * @throws us.ihmc.comm.CommException 
      */
+    @Override
     public synchronized String makeAvailable (String groupName, String objectId, String instanceId, byte[] metadata,
                                               byte[] data, String dataMimeType, long expiration, short historyWindow,
                                               short tag, byte priority)
@@ -541,6 +545,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return msgId;
     }
 
+    @Override
     public synchronized void cancel (String id)
 	    throws CommException, ProtocolException
     {
@@ -564,8 +569,9 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized void cancel (short tag)
-	    throws CommException, ProtocolException
+        throws CommException, ProtocolException
     {
         checkConcurrentModification ("cancel - 1");
 
@@ -587,6 +593,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized boolean addFilter (String groupName, short tag)
         throws CommException
     {
@@ -610,6 +617,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return true;
     }
 
+    @Override
     public synchronized boolean removeFilter (String groupName, short tag)
         throws CommException
     {
@@ -633,6 +641,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return true;
     }
 
+    @Override
     public synchronized boolean requestMoreChunks (String groupName, String senderNodeId, int seqId)
         throws CommException
     {
@@ -657,6 +666,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return true;
     }
 
+    @Override
     public synchronized boolean requestMoreChunks (String messageId)
         throws CommException
     {
@@ -679,6 +689,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return true;
     }
 
+    @Override
     public synchronized byte[] retrieve (String id, int timeout)
         throws CommException
     {
@@ -712,12 +723,14 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         return buff;
     }
 
+    @Override
     public synchronized int retrieve (String id, String filePath)
     {
         //Not implemented yet
         return 0;
     }
 
+    @Override
     public synchronized boolean request (String groupName, short tag, short historyLength, long timeout)
         throws CommException
     {
@@ -768,6 +781,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized String search (String groupName, String queryType,
                                        String queryQualifiers, byte[] query)
         throws CommException
@@ -790,7 +804,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
 
             // read the ID assigned to the query
             byte[] b = _commHelper.receiveBlock();
-            String queryId = b != null ? new String (b) : null;
+            String queryId = b != null ? new String (b, StandardCharsets.UTF_8) : null;
  
             return queryId;
     	}
@@ -812,6 +826,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
      * @param disServiceMsgIds: the list of matching messages IDs
      * @throws CommException 
      */
+    @Override
     public synchronized void replyToSearch (String queryId, Collection<String> disServiceMsgIds)
             throws CommException
     {
@@ -845,6 +860,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized boolean subscribe (String groupName, byte priority, boolean groupReliable,
                                            boolean msgReliable, boolean sequenced)
         throws CommException
@@ -873,6 +889,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized boolean subscribe (String groupName, short tag, byte priority,
                                            boolean groupReliable, boolean msgReliable, boolean sequenced)
         throws CommException
@@ -901,6 +918,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized boolean subscribe (String groupName, byte predicateType, String predicate, byte priority,
                                            boolean groupReliable, boolean msgReliable, boolean sequenced) throws CommException
     {
@@ -929,6 +947,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized boolean unsubscribe (String groupName) throws CommException
     {
         checkConcurrentModification ("unscribe - 0");
@@ -950,6 +969,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public synchronized boolean unsubscribe (String groupName, short tag) throws CommException
     {
         checkConcurrentModification ("unsubscribe - 1");
@@ -973,6 +993,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
     }
 
     @SuppressWarnings("empty-statement")
+    @Override
     public void registerDisseminationServiceProxyListener (DisseminationServiceProxyListener listener) throws CommException
     {
         checkConcurrentModification ("registerDisseminationServiceProxyListener");
@@ -1002,6 +1023,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void registerDisseminationServiceProxyListener (short clientId, DisseminationServiceProxyListener listener)
             throws ListenerAlreadyRegisteredException
     {
@@ -1028,6 +1050,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void registerPeerStatusListener (PeerStatusListener listener)
     {
         checkConcurrentModification ("registerPeerStatusListener");
@@ -1050,7 +1073,8 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
             _peerStatusListeners.add (listener);
         }
     }
-	
+
+    @Override
     public void registerConnectionStatusListener (ConnectionStatusListener listener)
     {
         checkConcurrentModification ("registerConnectionStatusListener");
@@ -1063,6 +1087,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         _connectionStatusListeners.add (listener);
     }
 
+    @Override
     public void registerSearchListener (SearchListener listener)
     {
         checkConcurrentModification ("registerSearchListener");
@@ -1086,6 +1111,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public boolean resetTransmissionHistory() throws CommException
     {
         checkConcurrentModification ("resetTransmissionHistory");
@@ -1106,6 +1132,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void dataArrived (String msgId, String sender, String groupName, int seqNum,
                                 String objectId, String instanceId, String mimeType,
                                 byte[] data, int metadataLength, short tag,
@@ -1138,6 +1165,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void chunkArrived (String sender, String msgId, String groupName, int seqNum,
                               String objectId, String instanceId, String mimeType, byte[] data,
                               short nChunks, short totNChunks, String chunkMsgId, short tag,
@@ -1172,6 +1200,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void metadataArrived (String msgId, String sender, String groupName, int seqNum,
                                     String objectId, String instanceId, String mimeType, byte[] data,
                                     boolean dataChunk, short tag, byte priority, String queryId)
@@ -1202,6 +1231,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void dataAvailable (String msgId, String sender, String groupName, int seqNum,
                                   String objectId, String instanceId, String mimeType, String id,
                                   byte[] data, short tag, byte priority, String queryId)
@@ -1231,6 +1261,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void newPeer (String peerID)
     {
         newPeer (_peerStatusListeners, peerID);
@@ -1253,6 +1284,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void deadPeer (String peerID)
     {
         deadPeer (_peerStatusListeners, peerID);
@@ -1275,6 +1307,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void searchArrived (String queryId, String groupName, String querier, String queryType,
                                   String queryQualifiers, byte[] query)
     {
@@ -1294,6 +1327,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void searchReplyArrived (String queryId, Collection<String> mathingMessageIds, String respodnerNodeId)
     {
         searchReplyArrived (_searchListeners, queryId, mathingMessageIds, respodnerNodeId);
@@ -1311,6 +1345,7 @@ public class DisseminationServiceProxy implements DisseminationServiceInterface
         }
     }
 
+    @Override
     public void searchReplyArrived(String queryId, byte[] reply, String responderNodeId)
     {
         searchReplyArrived (_searchListeners, queryId, reply, responderNodeId);

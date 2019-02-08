@@ -5,8 +5,9 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import us.ihmc.aci.util.dspro.LogUtils;
 import us.ihmc.aci.util.dspro.MetadataElement;
-import us.ihmc.aci.disServiceProProxy.util.PointToBoundingBox;
 import us.ihmc.util.SortedProperties;
 
 /**
@@ -38,7 +39,7 @@ public class TrackUtils
 
     public static boolean isSoiMetadata (HashMap<String, Object> properties)
     {
-        String dataFormat = (String) properties.get(MetadataElement.Data_Format.toString());
+        String dataFormat = (String) properties.get(MetadataElement.dataFormat.toString());
         if (dataFormat == null) {
             return false;
         }
@@ -50,8 +51,7 @@ public class TrackUtils
     {
         Properties data = new SortedProperties();
 
-        Logger.getLogger(TrackUtils.class.getName()).log(Level.INFO,
-                "Position updated with latitude {0}, longitude {1} from {2}",
+        LogUtils.getLogger(TrackUtils.class).info("Position updated with latitude {0}, longitude {1} from {2}",
                 new Object[]{fLatitude, fLongitude, nodeId});
 
         //fill data
@@ -94,19 +94,16 @@ public class TrackUtils
         Properties metaDataProp = new Properties();
 
         //content, description and format fields
-        metaDataProp.put(MetadataElement.Data_Content.toString(), "Soi-" +
-                         DSProDescription.track.value() + "-" +
-                         trackAction + "-" + trackName);
-        metaDataProp.put(MetadataElement.Description.toString(), DSProDescription.track.value());
-//        metaDataProp.put(MetadataElement.Data_Format.toString(), TrackExchangeFormat.DSPRO_TRACK_MIME_TYPE);
-        metaDataProp.put(MetadataElement.Data_Format.toString(), DSProMimeType.trackInfo.value());
+        metaDataProp.put(MetadataElement.dataName.toString(), trackName);
+        metaDataProp.put(MetadataElement.description.toString(), DSProDescription.track.value());
+        metaDataProp.put(MetadataElement.dataFormat.toString(), DSProMimeType.soiTrackInfo.value());
 
         if (trackAction.equals(TrackExchangeFormat.Action.Delete.toString())) {
             //use the whole world as a bounding box
-            metaDataProp.put(MetadataElement.Left_Upper_Latitude.toString(), TrackExchangeFormat.DSPRO_MAX_LATITUDE);
-            metaDataProp.put(MetadataElement.Right_Lower_Latitude.toString(), TrackExchangeFormat.DSPRO_MIN_LATITUDE);
-            metaDataProp.put(MetadataElement.Left_Upper_Longitude.toString(), TrackExchangeFormat.DSPRO_MIN_LONGITUDE);
-            metaDataProp.put(MetadataElement.Right_Lower_Longitude.toString(), TrackExchangeFormat.DSPRO_MAX_LONGITUDE);
+            metaDataProp.put(MetadataElement.leftUpperLatitude.toString(), TrackExchangeFormat.DSPRO_MAX_LATITUDE);
+            metaDataProp.put(MetadataElement.rightLowerLatitude.toString(), TrackExchangeFormat.DSPRO_MIN_LATITUDE);
+            metaDataProp.put(MetadataElement.leftUpperLongitude.toString(), TrackExchangeFormat.DSPRO_MIN_LONGITUDE);
+            metaDataProp.put(MetadataElement.rightLowerLongitude.toString(), TrackExchangeFormat.DSPRO_MAX_LONGITUDE);
         }
         else {            
             //calculate bounding box
@@ -119,10 +116,10 @@ public class TrackUtils
                 leftUpperLong -= epsilon;
                 rightLowerLong += epsilon;
             }
-            metaDataProp.put(MetadataElement.Left_Upper_Latitude.toString(), (float) leftUpperLat);
-            metaDataProp.put(MetadataElement.Right_Lower_Latitude.toString(), (float) rightLowerLat);
-            metaDataProp.put(MetadataElement.Left_Upper_Longitude.toString(), (float) leftUpperLong);
-            metaDataProp.put(MetadataElement.Right_Lower_Longitude.toString(), (float) rightLowerLong);
+            metaDataProp.put(MetadataElement.leftUpperLatitude.toString(), (float) leftUpperLat);
+            metaDataProp.put(MetadataElement.rightLowerLatitude.toString(), (float) rightLowerLat);
+            metaDataProp.put(MetadataElement.leftUpperLongitude.toString(), (float) leftUpperLong);
+            metaDataProp.put(MetadataElement.rightLowerLongitude.toString(), (float) rightLowerLong);
         }
 
         return metaDataProp;

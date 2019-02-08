@@ -15,7 +15,7 @@ include $(MakefileArch)
 
 cpp = g++
 ARCH_FLAGS+=-DUNIX -DLITTLE_ENDIAN_SYSTEM
-LD_FLAGS = -lpthread -ldl
+LD_FLAGS = -lpthread -ldl 
 EXECUTABLE=NMSLauncher
 
 options=-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable
@@ -27,9 +27,12 @@ INCLUDES=-I..\
 	-isystem $(UTIL_HOME)/cpp \
         -isystem $(UTIL_HOME)/cpp/net \
         -isystem $(UTIL_HOME)/cpp/proxy \
-	-isystem $(SQLITE_HOME)/
+	-isystem $(SQLITE_HOME)/	\
+	-isystem $(UTIL_HOME)/cpp/security \
+	-I$(EXTERNALS)/include
 
-cppflags= -g -fPIC $(ARCH_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
+#sanitizer=-fsanitize=address -fno-omit-frame-pointer -fsanitize-address-use-after-scope -Wshadow
+cppflags= -g -fPIC $(ARCH_FLAGS) ${sanitizer} -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
 
 sources = $(filter-out ../NMSLauncher.cpp, $(wildcard ../*.cpp))
 objects = $(sources:../%.cpp=%.o)
@@ -47,8 +50,7 @@ proxycsources += $(wildcard ../proxy/client/*.cpp)
 proxycobjects += $(proxycsources:../proxy/client/%.cpp=%.o)
 
 LIBS=$(UTIL_HOME)/cpp/$(LIB_FOLDER)/libutil.a \
-     $(UTIL_HOME)/cpp/$(LIB_FOLDER)/libsecurity.a \
      $(JPEG_HOME)/linux/libjpeg.a \
-     $(EXTERNALS_LIB)/libcrypto.a \
      $(EXTERNALS_LIB)/libz.a \
+     $(EXTERNALS)/openssl/1.0.2h/linux/lib/libcrypto.a \
      -L/usr/local/lib/

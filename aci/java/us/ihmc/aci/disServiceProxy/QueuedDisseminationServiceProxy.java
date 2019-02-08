@@ -19,10 +19,7 @@
 
 package us.ihmc.aci.disServiceProxy;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import us.ihmc.comm.CommException;
@@ -302,6 +299,7 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
         notifyAll();
     }
 
+    @Override
     public synchronized void searchReplyArrived (String queryId, Collection<String> matchingNodeIds, String responderNodeId)
     {
         if (_queueArrivedSearchReply.get()) {
@@ -310,6 +308,7 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
         notifyAll();
     }
 
+    @Override
     public synchronized void searchReplyArrived (String queryId, byte[] reply, String responderNodeId)
     {
         if (_queueArrivedVolatileSearchReply.get()) {
@@ -438,11 +437,12 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
         return _proxy.getNodeId();
     }
 
-    public List<String> getPeerList()
-    {
+    @Override
+    public List<String> getPeerList() throws CommException {
         return _proxy.getPeerList();
     }
 
+    @Override
     public String store (String groupName, String objectId, String instanceId,
                          String mimeType, byte[] metaData, byte[] data, long expiration,
                          short historyWindow, short tag, byte priority) throws CommException
@@ -451,11 +451,13 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
                              expiration, historyWindow, tag, priority);
     }
 
+    @Override
     public void push (String msgId) throws CommException
     {
         _proxy.push (msgId);
     }
 
+    @Override
     public String push (String groupName, String objectId, String instanceId, String mimeType,
                         byte[] metaData, byte[] data, long expiration, short historyWindow,
                         short tag, byte priority)
@@ -465,6 +467,7 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
                             expiration, historyWindow, tag, priority);
     }
 
+    @Override
     public String makeAvailable (String groupName, String objectId, String instanceId, byte[] metadata,
                                  byte[] data, String dataMimeType, long expiration, short historyWindow,
                                  short tag, byte priority)
@@ -474,134 +477,157 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
                                      expiration, historyWindow, tag, priority);
     }
 
+    @Override
     public void cancel(String id)
         throws CommException, ProtocolException
     {
         _proxy.cancel(id);
     }
 
+    @Override
     public void cancel(short tag)
         throws CommException, ProtocolException
     {
         _proxy.cancel(tag);
     }
 
+    @Override
     public boolean addFilter(String groupName, short tag)
         throws CommException
     {
         return _proxy.addFilter(groupName, tag);
     }
 
+    @Override
     public boolean removeFilter(String groupName, short tag)
         throws CommException
     {
         return _proxy.removeFilter(groupName, tag);
     }
 
+    @Override
     public boolean requestMoreChunks(String groupName, String senderNodeId, int seqId)
         throws CommException
     {
         return _proxy.requestMoreChunks(groupName, senderNodeId, seqId);
     }
 
+    @Override
     public boolean requestMoreChunks(String messageId)
         throws CommException
     {
         return _proxy.requestMoreChunks(messageId);
     }
 
+    @Override
     public byte[] retrieve(String id, int timeout)
             throws CommException
     {
         return _proxy.retrieve(id, timeout);
     }
 
+    @Override
     public int retrieve(String id, String filePath)
     {
         return _proxy.retrieve(id, filePath);
     }
 
+    @Override
     public boolean request(String groupName, short tag, short historyLength, long timeout)
         throws CommException
     {
         return _proxy.request(groupName, tag, historyLength, timeout);
     }
 
+    @Override
     public String search(String groupName, String queryType, String queryQualifiers, byte[] query)
         throws CommException
     {
         return _proxy.search (groupName, queryType, queryQualifiers, query);
     }
 
+    @Override
     public void replyToSearch(String queryId, Collection<String> disServiceMsgIds)
         throws CommException
     {
         _proxy.replyToSearch (queryId, disServiceMsgIds);
     }
 
+    @Override
     public boolean subscribe(String groupName, byte priority, boolean groupReliable, boolean msgReliable, boolean sequenced)
         throws CommException
     {
         return _proxy.subscribe(groupName, priority, groupReliable, msgReliable, sequenced);
     }
 
+    @Override
     public boolean subscribe(String groupName, short tag, byte priority, boolean groupReliable, boolean msgReliable, boolean sequenced)
         throws CommException
     {
         return _proxy.subscribe(groupName, tag, priority, groupReliable, msgReliable, sequenced);
     }
 
+    @Override
     public boolean subscribe(String groupName, byte predicateType, String predicate, byte priority, boolean groupReliable, boolean msgReliable, boolean sequenced)
         throws CommException
     {
         return _proxy.subscribe(groupName, predicateType, predicate, priority, groupReliable, msgReliable, sequenced);
     }
 
+    @Override
     public boolean unsubscribe(String groupName)
         throws CommException
     {
         return _proxy.unsubscribe(groupName);
     }
 
+    @Override
     public boolean unsubscribe(String groupName, short tag)
         throws CommException
     {
         return _proxy.unsubscribe (groupName, tag);
     }
 
+    @Override
     public void registerDisseminationServiceProxyListener(DisseminationServiceProxyListener listener)
         throws CommException
     {
         _proxy.registerDisseminationServiceProxyListener (listener);
     }
 
+    @Override
     public void registerDisseminationServiceProxyListener (short clientId, DisseminationServiceProxyListener listener)
         throws ListenerAlreadyRegisteredException
     {
         _proxy.registerDisseminationServiceProxyListener (clientId, listener);
     }
 
+    @Override
     public void registerPeerStatusListener(PeerStatusListener listener)
     {
         _proxy.registerPeerStatusListener (listener);
     }
 
+    @Override
     public void registerConnectionStatusListener(ConnectionStatusListener listener)
     {
         _proxy.registerConnectionStatusListener (listener);
     }
 
+    @Override
     public void registerSearchListener(SearchListener listener)
     {
         _proxy.registerSearchListener (listener);
     }
 
+    @Override
     public boolean resetTransmissionHistory()
         throws CommException
     {
         return _proxy.resetTransmissionHistory();
     }
 
+    @Override
     public synchronized void newPeer(String peerID)
     {
         synchronized (_newPeers) {
@@ -611,6 +637,7 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
         notifyAll();
     }
 
+    @Override
     public synchronized void deadPeer(String peerID)
     {
         synchronized (_newPeers) {
@@ -628,16 +655,16 @@ public class QueuedDisseminationServiceProxy implements DisseminationServiceInte
     private final AtomicBoolean  _queueArrivedSearchReply = new AtomicBoolean (true);
     private final AtomicBoolean  _queueArrivedVolatileSearchReply = new AtomicBoolean (true);
 
-    private final Queue<QueuedArrivedData> _arrivedData = new LinkedList<QueuedArrivedData>();
-    private final Queue<QueuedAvailableData> _availableData = new LinkedList<QueuedAvailableData>();
-    private final Queue<QueuedArrivedChunk> _arrivedChunk = new LinkedList<QueuedArrivedChunk>();
-    private final Queue<QueuedArrivedMetadata> _arrivedMetadata = new LinkedList<QueuedArrivedMetadata>();
-    private final Queue<ArrivedSearch> _arrivedSearches = new LinkedList<ArrivedSearch>();
-    private final Queue<ArrivedSearchReply> _arrivedSearchReply = new LinkedList<ArrivedSearchReply>();
-    private final Queue<ArrivedVolatileSearchReply> _arrivedVolatileSearchReply = new LinkedList<ArrivedVolatileSearchReply>();
+    private final Queue<QueuedArrivedData> _arrivedData = new ArrayDeque<>();
+    private final Queue<QueuedAvailableData> _availableData = new ArrayDeque<>();
+    private final Queue<QueuedArrivedChunk> _arrivedChunk = new ArrayDeque<>();
+    private final Queue<QueuedArrivedMetadata> _arrivedMetadata = new ArrayDeque<>();
+    private final Queue<ArrivedSearch> _arrivedSearches = new ArrayDeque<>();
+    private final Queue<ArrivedSearchReply> _arrivedSearchReply = new ArrayDeque<>();
+    private final Queue<ArrivedVolatileSearchReply> _arrivedVolatileSearchReply = new ArrayDeque<>();
 
-    private final Queue<String> _newPeers = new LinkedList<String>();
-    private final Queue<String> _deadPeers = new LinkedList<String>();
+    private final Queue<String> _newPeers = new ArrayDeque<>();
+    private final Queue<String> _deadPeers = new ArrayDeque<>();
 
     protected final DisseminationServiceProxy _proxy;
 }

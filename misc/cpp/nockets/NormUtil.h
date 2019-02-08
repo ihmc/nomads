@@ -22,12 +22,16 @@
 #ifndef INCL_NORM_UTILS_H
 #define INCL_NORM_UTILS_H
 
-#include "normApi.h"
+    #ifdef USE_NORM
+        #include "normApi.h"
+    #endif
 
-namespace IHMC_MISC
-{
-    const char * getNormEventAsString (NormEventType e);
-}
+    namespace IHMC_MISC
+    {
+    #ifdef USE_NORM
+        const char * getNormEventAsString (NormEventType e);
+    #endif
+    }
 
 #endif  // INCL_NORM_UTILS_H
 

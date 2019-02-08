@@ -1,4 +1,4 @@
-/* 
+/*
  * DSLib.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -34,7 +34,7 @@
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
- 
+
 int readIntoString (Reader *pReader, uint32 ui32BufLen, char **ppszString);
 
 int DSLib::uint32ToString (char *pszBuf, int iBufLen, uint32 ui32Val)
@@ -46,31 +46,6 @@ int DSLib::uint32ToString (char *pszBuf, int iBufLen, uint32 ui32Val)
 int DSLib::floatToString (char *pszBuf, int iBufLen, float fVal)
 {
     snprintf (pszBuf, iBufLen, "%f", fVal);
-    return 0;
-}
-
-int DSLib::readBool (Reader *pReader, uint32 ui32MaxSize, bool &bValue)
-{
-    if (ui32MaxSize < 1) {
-        return -1;
-    }
-    uint8 ui8;
-    if (pReader->read8 (&ui8) < 0) {
-        return -2;
-    }
-    bValue = (ui8 == 1 ? true : false);
-    return 0;
-}
-
-int DSLib::writeBool (Writer *pWriter, uint32 ui32MaxSize, bool bValue)
-{
-    if (ui32MaxSize < 1) {
-        return -1;
-    }
-    uint8 ui8 = (bValue ? 1 : 0);
-    if (pWriter->write8 (&ui8) < 0) {
-        return -2;
-    }
     return 0;
 }
 
@@ -90,7 +65,7 @@ int DSLib::readString (Reader *pReader, uint32 ui32MaxSize, char *&pszStr, uint3
             return -3;
         }
         pszStr = (char *) calloc (sizeof (char), ui16Len + 1);
-        if (pszStr != NULL && (pReader->readBytes (pszStr, ui16Len) >= 0)) {
+        if (pszStr != nullptr && (pReader->readBytes (pszStr, ui16Len) >= 0)) {
             ui32BytesRead += ui16Len;
             return 0;
         }
@@ -100,14 +75,14 @@ int DSLib::readString (Reader *pReader, uint32 ui32MaxSize, char *&pszStr, uint3
 
 int DSLib::writeString (const char *pszStr, Writer *pWriter, uint32 ui32MaxSize, uint32 &ui32BytesWritten)
 {
-    return writeString (pszStr, pszStr == NULL ? 0 : strlen (pszStr), pWriter, ui32MaxSize, ui32BytesWritten);
+    return writeString (pszStr, pszStr == nullptr ? 0 : strlen (pszStr), pWriter, ui32MaxSize, ui32BytesWritten);
 }
 
 int DSLib::writeString (const char *pszStr, uint16 ui16StrLen, Writer *pWriter,
                         uint32 ui32MaxSize, uint32 &ui32BytesWritten)
 {
     ui32BytesWritten = 0;
-    if ((pszStr == NULL) && (ui16StrLen > (uint16)0)) {
+    if ((pszStr == nullptr) && (ui16StrLen > (uint16)0)) {
         return -1;
     }
     if (((uint16)(2 + ui16StrLen)) > ui32MaxSize) {
@@ -128,10 +103,10 @@ int DSLib::writeString (const char *pszStr, uint16 ui16StrLen, Writer *pWriter,
 
 int DSLib::readBufferIntoString (const void *pBuf, uint32 ui32BufLen, char **ppszString)
 {
-    if (pBuf == NULL || ui32BufLen == 0 || ppszString == NULL) {
+    if (pBuf == nullptr || ui32BufLen == 0 || ppszString == nullptr) {
         return -1;
     }
-    *ppszString = NULL;
+    *ppszString = nullptr;
     BufferReader reader (pBuf, ui32BufLen);
     if (readIntoString (&reader, ui32BufLen, ppszString) < 0) {
         return -5;
@@ -142,10 +117,10 @@ int DSLib::readBufferIntoString (const void *pBuf, uint32 ui32BufLen, char **pps
 
 int DSLib::readFileIntoString (const char *pszFileName, char **ppszString)
 {
-    if (pszFileName == NULL || ppszString == NULL || ppszString == NULL) {
+    if (pszFileName == nullptr || ppszString == nullptr || ppszString == nullptr) {
         return -1;
     }
-     *ppszString = NULL;
+     *ppszString = nullptr;
     if (!FileUtils::fileExists (pszFileName)) {
         return -2;
     }
@@ -154,7 +129,7 @@ int DSLib::readFileIntoString (const char *pszFileName, char **ppszString)
         return -3;
     }
     FILE *pFile = fopen ((const char *) pszFileName, "r");
-    if (pFile == NULL) {
+    if (pFile == nullptr) {
         return -4;
     }
     FileReader reader (pFile, true);
@@ -168,7 +143,7 @@ int DSLib::readFileIntoString (const char *pszFileName, char **ppszString)
 
 int readIntoString (Reader *pReader, uint32 ui32BufLen, char **ppszString)
 {
-    if (pReader == NULL || ui32BufLen == 0 || ppszString == NULL) {
+    if (pReader == nullptr || ui32BufLen == 0 || ppszString == nullptr) {
         return -1;
     }
     *ppszString = (char *) calloc (ui32BufLen + 1, sizeof (char));

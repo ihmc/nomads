@@ -32,30 +32,30 @@ using namespace NOMADSUtil;
 
 void SearchProperties::deallocate (SearchProperties &searchProp)
 {
-    if (searchProp.pszQueryId != NULL) {
+    if (searchProp.pszQueryId != nullptr) {
         free ((char *)searchProp.pszQueryId);
     }
-    
-    if (searchProp.pszGroupName != NULL) {
+
+    if (searchProp.pszGroupName != nullptr) {
         free ((char *)searchProp.pszGroupName);
     }
-    
-    if (searchProp.pszQueryType != NULL) {
+
+    if (searchProp.pszQueryType != nullptr) {
         free ((char *)searchProp.pszQueryType);
     }
-    
-    if (searchProp.pszQueryQualifiers != NULL) {
+
+    if (searchProp.pszQueryQualifiers != nullptr) {
         free ((char *)searchProp.pszQueryQualifiers);
     }
-    
-    if (searchProp.pQuery != NULL) {
+
+    if (searchProp.pQuery != nullptr) {
         free ((char *)searchProp.pQuery);
     }
 }
 
 int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
 
@@ -63,7 +63,7 @@ int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             searchProp.pszQueryId = (char *) calloc (ui16+1, sizeof (char));
-            if (searchProp.pszQueryId == NULL) {
+            if (searchProp.pszQueryId == nullptr) {
                 return -3;
             }
             if (pReader->readBytes ((char *)searchProp.pszQueryId, ui16) < 0) {
@@ -79,7 +79,7 @@ int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             searchProp.pszQuerier = (char *) calloc (ui16+1, sizeof (char));
-            if (searchProp.pszQuerier == NULL) {
+            if (searchProp.pszQuerier == nullptr) {
                 return -6;
             }
             if (pReader->readBytes ((char *)searchProp.pszQuerier, ui16) < 0) {
@@ -95,7 +95,7 @@ int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             searchProp.pszGroupName = (char *) calloc (ui16+1, sizeof (char));
-            if (searchProp.pszGroupName == NULL) {
+            if (searchProp.pszGroupName == nullptr) {
                 return -9;
             }
             if (pReader->readBytes ((char *)searchProp.pszGroupName, ui16)) {
@@ -111,7 +111,7 @@ int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             searchProp.pszQueryType = (char *) calloc (ui16+1, sizeof (char));
-            if (searchProp.pszQueryType == NULL) {
+            if (searchProp.pszQueryType == nullptr) {
                 return -12;
             }
             if (pReader->readBytes ((char *)searchProp.pszQueryType, ui16)) {
@@ -127,7 +127,7 @@ int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             searchProp.pszQueryQualifiers = (char *) calloc (ui16+1, sizeof (char));
-            if (searchProp.pszQueryQualifiers == NULL) {
+            if (searchProp.pszQueryQualifiers == nullptr) {
                 return -15;
             }
             if (pReader->readBytes ((char *)searchProp.pszQueryQualifiers, ui16)) {
@@ -143,7 +143,7 @@ int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
     if (pReader->read32 (&searchProp.uiQueryLen) == 0) {
         if (searchProp.uiQueryLen > 0) {
             searchProp.pQuery = malloc (searchProp.uiQueryLen);
-            if (searchProp.pQuery == NULL) {
+            if (searchProp.pQuery == nullptr) {
                 return -18;
             }
             if (pReader->readBytes ((char *)searchProp.pQuery, searchProp.uiQueryLen)) {
@@ -160,11 +160,11 @@ int SearchProperties::read (SearchProperties &searchProp, Reader *pReader)
 
 int SearchProperties::write (SearchProperties &searchProp, Writer *pWriter)
 {
-    if (pWriter == NULL) {
+    if (pWriter == nullptr) {
         return -1;
     }
 
-    uint16 ui16 = searchProp.pszQueryId == NULL ? 0 : strlen (searchProp.pszQueryId);
+    uint16 ui16 = searchProp.pszQueryId == nullptr ? 0 : strlen (searchProp.pszQueryId);
     if (pWriter->write16 (&ui16) < 0) {
         return -3;
     }
@@ -172,7 +172,7 @@ int SearchProperties::write (SearchProperties &searchProp, Writer *pWriter)
         return -4;
     }
 
-    ui16 = searchProp.pszQuerier == NULL ? 0 : strlen (searchProp.pszQuerier);
+    ui16 = searchProp.pszQuerier == nullptr ? 0 : strlen (searchProp.pszQuerier);
     if (pWriter->write16 (&ui16) < 0) {
         return -5;
     }
@@ -180,7 +180,7 @@ int SearchProperties::write (SearchProperties &searchProp, Writer *pWriter)
         return -6;
     }
 
-    ui16 = searchProp.pszGroupName == NULL ? 0 : strlen (searchProp.pszGroupName);
+    ui16 = searchProp.pszGroupName == nullptr ? 0 : strlen (searchProp.pszGroupName);
     if (pWriter->write16 (&ui16) < 0) {
         return -7;
     }
@@ -188,7 +188,7 @@ int SearchProperties::write (SearchProperties &searchProp, Writer *pWriter)
         return -8;
     }
 
-    ui16 = searchProp.pszQueryType == NULL ? 0 : strlen (searchProp.pszQueryType);
+    ui16 = searchProp.pszQueryType == nullptr ? 0 : strlen (searchProp.pszQueryType);
     if (pWriter->write16 (&ui16) < 0) {
         return -9;
     }
@@ -196,7 +196,7 @@ int SearchProperties::write (SearchProperties &searchProp, Writer *pWriter)
         return -10;
     }
 
-    ui16 = searchProp.pszQueryQualifiers == NULL ? 0 : strlen (searchProp.pszQueryQualifiers);
+    ui16 = searchProp.pszQueryQualifiers == nullptr ? 0 : strlen (searchProp.pszQueryQualifiers);
     if (pWriter->write16 (&ui16) < 0) {
         return -11;
     }
@@ -217,7 +217,7 @@ int SearchProperties::write (SearchProperties &searchProp, Writer *pWriter)
 int readCommomSearchProperties (char *&pszQueryId, char *&pszQuerier, char *&pszQueryType,
                                 char *&pszMatchingNode, Reader *pReader)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
 
@@ -226,7 +226,7 @@ int readCommomSearchProperties (char *&pszQueryId, char *&pszQuerier, char *&psz
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             pszQueryId = (char *) calloc (ui16 + 1, sizeof (char));
-            if (pszQueryId == NULL) {
+            if (pszQueryId == nullptr) {
                 checkAndLogMsg ("SearchProperties::read", memoryExhausted);
                 return -2;
             }
@@ -243,7 +243,7 @@ int readCommomSearchProperties (char *&pszQueryId, char *&pszQuerier, char *&psz
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             pszQuerier = (char *) calloc (ui16 + 1, sizeof (char));
-            if (pszQuerier == NULL) {
+            if (pszQuerier == nullptr) {
                 checkAndLogMsg ("SearchProperties::read", memoryExhausted);
                 return -5;
             }
@@ -260,7 +260,7 @@ int readCommomSearchProperties (char *&pszQueryId, char *&pszQuerier, char *&psz
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             pszQueryType = (char *) calloc (ui16 + 1, sizeof (char));
-            if (pszQueryType == NULL) {
+            if (pszQueryType == nullptr) {
                 checkAndLogMsg ("SearchProperties::read", memoryExhausted);
                 return -8;
             }
@@ -277,7 +277,7 @@ int readCommomSearchProperties (char *&pszQueryId, char *&pszQuerier, char *&psz
     if (pReader->read16 (&ui16) == 0) {
         if (ui16 > 0) {
             pszMatchingNode = (char *) calloc (ui16 + 1, sizeof (char));
-            if (pszMatchingNode == NULL) {
+            if (pszMatchingNode == nullptr) {
                 checkAndLogMsg ("SearchProperties::read", memoryExhausted);
                 return -12;
             }
@@ -304,11 +304,11 @@ int SearchProperties::read (char *&pszQueryId, char *&pszQuerier, char *&pszQuer
     unsigned int uiCount = 0;
     pReader->read16 (&uiCount);
     if (uiCount == 0) {
-        ppszMatchingMsgIds = NULL;
+        ppszMatchingMsgIds = nullptr;
     }
     else {
         ppszMatchingMsgIds = (char **) calloc (uiCount + 1, sizeof (char*));
-        if (ppszMatchingMsgIds == NULL) {
+        if (ppszMatchingMsgIds == nullptr) {
             checkAndLogMsg ("SearchProperties::read", memoryExhausted);
             return -11;
         }
@@ -317,13 +317,13 @@ int SearchProperties::read (char *&pszQueryId, char *&pszQuerier, char *&pszQuer
             pReader->read16 (&ui16);
             if (ui16 > 0) {
                 ppszMatchingMsgIds[i] = (char *) calloc (ui16 + 1, sizeof (char));
-                if (ppszMatchingMsgIds[i] != NULL) {
+                if (ppszMatchingMsgIds[i] != nullptr) {
                     pReader->readBytes (ppszMatchingMsgIds[i], ui16);
                     ppszMatchingMsgIds[i][ui16] = '\0';
                 }
             }
         }
-        ppszMatchingMsgIds[uiCount] = NULL;
+        ppszMatchingMsgIds[uiCount] = nullptr;
     }
 
     return 0;
@@ -332,10 +332,10 @@ int SearchProperties::read (char *&pszQueryId, char *&pszQuerier, char *&pszQuer
 int writeCommomSearchProperties (const char *pszQueryId, const char *pszQuerier, char *pszQueryType,
                                  const char *pszMatchingNode, Writer *pWriter)
 {
-    if (pWriter == NULL || pszQueryId == NULL) {
+    if (pWriter == nullptr || pszQueryId == nullptr) {
         return -1;
     }
-    uint16 ui16 = pszQueryId == NULL ? 0 : strlen (pszQueryId);
+    uint16 ui16 = pszQueryId == nullptr ? 0 : strlen (pszQueryId);
     if (pWriter->write16 (&ui16) < 0) {
         return -2;
     }
@@ -343,7 +343,7 @@ int writeCommomSearchProperties (const char *pszQueryId, const char *pszQuerier,
         return -3;
     }
 
-    ui16 = pszQuerier == NULL ? 0 : strlen (pszQuerier);
+    ui16 = pszQuerier == nullptr ? 0 : strlen (pszQuerier);
     if (pWriter->write16 (&ui16) < 0) {
         return -4;
     }
@@ -351,7 +351,7 @@ int writeCommomSearchProperties (const char *pszQueryId, const char *pszQuerier,
         return -5;
     }
 
-    ui16 = pszQueryType == NULL ? 0 : strlen (pszQueryType);
+    ui16 = pszQueryType == nullptr ? 0 : strlen (pszQueryType);
     if (pWriter->write16 (&ui16) < 0) {
         return -6;
     }
@@ -359,7 +359,7 @@ int writeCommomSearchProperties (const char *pszQueryId, const char *pszQuerier,
         return -7;
     }
 
-    ui16 = pszMatchingNode == NULL ? 0 : strlen (pszMatchingNode);
+    ui16 = pszMatchingNode == nullptr ? 0 : strlen (pszMatchingNode);
     if (pWriter->write16 (&ui16) < 0) {
         return -8;
     }
@@ -376,9 +376,9 @@ int SearchProperties::write (const char *pszQueryId, const char *pszQuerier, cha
         return -1;
     }
 
-    if (ppszMatchingMsgIds != NULL) {
+    if (ppszMatchingMsgIds != nullptr) {
         unsigned int uiCount = 0;
-        for (; ppszMatchingMsgIds[uiCount] != NULL; uiCount++);
+        for (; ppszMatchingMsgIds[uiCount] != nullptr; uiCount++);
         pWriter->write16 (&uiCount);
 
         for (unsigned int i = 0; i < uiCount; i++) {
@@ -410,7 +410,7 @@ int SearchProperties::read (char *&pszQueryId, char *&pszQuerier, char *&pszQuer
         return 0;
     }
     pReply = malloc (ui16ReplyLen);
-    if (pReply == NULL) {
+    if (pReply == nullptr) {
         return -3;
     }
     if (pReader->readBytes (pReply, ui16ReplyLen) < 0) {

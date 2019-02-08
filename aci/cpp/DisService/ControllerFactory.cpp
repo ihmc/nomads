@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -75,7 +75,7 @@ AckController * ControllerFactory::getAckControllerAndRegisterListeners()
         checkAndLogMsg (pszMethodName, listerRegistrationFailed, "pCtrler", "PeerStateListener");
         exit (-1);
     }
-    
+
     checkAndLogMsg (pszMethodName, Logger::L_Info,
                     "Acknowledgment enabled with timeout %u and ui8TransmissionWindow %d.\n",
                     ui32TimeOut, ui8TransmissionWindow);
@@ -134,7 +134,7 @@ DataCacheReplicationController * ControllerFactory::getRepControllerAndRegisterL
                         "Could not register controller.  Quitting.\n");
                 exit (-1);
             }
-            
+
         }
         else if (value == "TargetBased") {
             pCtrler = new TargetBasedReplicationController (pDisseminationService, pCfgMgr);
@@ -142,7 +142,7 @@ DataCacheReplicationController * ControllerFactory::getRepControllerAndRegisterL
         else {
             pCtrler = bAck ? new DefaultDataCacheReplicationController (pDisseminationService, bAck) :
                              new DefaultDataCacheReplicationController (pDisseminationService);
-        } 
+        }
     }
     else {
         pCtrler = bAck ? new DefaultDataCacheReplicationController (pDisseminationService, bAck) :
@@ -238,11 +238,11 @@ ForwardingController * ControllerFactory::getForwControllerAndRegisterListeners(
 SubscriptionForwardingController * ControllerFactory::getSubForwControllerAndRegisterListeners()
 {
     const char *pszMethodName = "ControllerFactory::SubscriptionForwardingControllerInstance";
-    
+
     SubscriptionForwardingController *pCtrler = NULL;
     String sValue = pCfgMgr->getValue ("aci.disService.forwarding.subscriptionForwarding");
-    
-    if (sValue != NULL && sValue == "ON") {    
+
+    if (sValue != NULL && sValue == "ON") {
         pCtrler = new SubscriptionForwardingController (pDisseminationService);
         if (pCtrler == NULL) {
             checkAndLogMsg (pszMethodName, Logger::L_SevereError,
@@ -254,7 +254,7 @@ SubscriptionForwardingController * ControllerFactory::getSubForwControllerAndReg
         unsigned int index;
         if (pDisseminationService->registerMessageListener (pCtrler, index) < 0) {
             checkAndLogMsg (pszMethodName, listerRegistrationFailed, "pCtrler", "MessageListener");
-            exit (-1); 
+            exit (-1);
         }
         checkAndLogMsg (pszMethodName, Logger::L_Info, "registered the message listener\n");
 
@@ -262,23 +262,23 @@ SubscriptionForwardingController * ControllerFactory::getSubForwControllerAndReg
             checkAndLogMsg (pszMethodName, listerRegistrationFailed, "pCtrler", "PeerStateListener");
             exit (-1);
         }
-        
+
         if (pCfgMgr->hasValue ("aci.disService.forwarding.subscriptionForwarding.advThreshold")) {
             uint16 ui16AdvThreshold = (uint16) pCfgMgr->getValueAsInt ("aci.disService.forwarding.subscriptionForwarding.advThreshold");
             pCtrler->setAdvertisementThreshold (ui16AdvThreshold);
         }
-        
+
         if (pCfgMgr->hasValue ("aci.disService.forwarding.subscriptionForwarding.advPeriod")) {
             int64 i64AdvPeriod = (int64) pCfgMgr->getValueAsInt64 ("aci.disService.forwarding.subscriptionForwarding.advPeriod", 5000);
             pCtrler->setAdvertisementPeriod (i64AdvPeriod);
         }
-        
+
         int64 i64LifeTimeUpdateTh = (int64) pCfgMgr->getValueAsInt64 ("aci.disService.forwarding.subscriptionForwarding.lifetimeUpdateThreshold", 60000);
         int64 i64SeqNoLifetimeExpirationThreshold = (int64) pCfgMgr->getValueAsInt64 ("aci.disService.forwarding.subscriptionForwarding.seqNumLifetimeExpirationThreshold", 600000);
         pCtrler->configureTable (i64LifeTimeUpdateTh, i64SeqNoLifetimeExpirationThreshold);
-        
+
     }
-    
+
     return pCtrler;
 }
 

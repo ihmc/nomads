@@ -1,4 +1,4 @@
-/* 
+/*
  * MatchmakingIntrumentation.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,20 +21,23 @@
  */
 
 #ifndef INCL_MATCHMAKING_INTRUMENTATION_H
-#define	INCL_MATCHMAKING_INTRUMENTATION_H
+#define INCL_MATCHMAKING_INTRUMENTATION_H
 
 #include "StrClass.h"
 #include "PtrLList.h"
 
-namespace IHMC_ACI
+namespace IHMC_VOI
 {
     struct Rank;
+}
 
+namespace IHMC_ACI
+{
     class MatchmakingIntrumentation
     {
         public:
-            MatchmakingIntrumentation (bool bSkipped, const char *pszLocalNodeId, Rank *pRank);
-            MatchmakingIntrumentation (bool bSkipped, const char *pszLocalNodeId, float fThreshold, Rank *pRank);
+            MatchmakingIntrumentation (bool bSkipped, const char *pszLocalNodeId, IHMC_VOI::Rank *pRank);
+            MatchmakingIntrumentation (bool bSkipped, const char *pszLocalNodeId, float fThreshold, IHMC_VOI::Rank *pRank);
             virtual ~MatchmakingIntrumentation (void);
 
             void setNextHopNodeId (const char *pszNextHopNodeID);
@@ -50,7 +53,7 @@ namespace IHMC_ACI
 
             const bool _bSkipped;
             const float _fThreshold;
-            Rank *_pRank;
+            IHMC_VOI::Rank *_pRank;
             const NOMADSUtil::String _localNodeId;
             NOMADSUtil::String _nextHopNodeId;
     };
@@ -58,5 +61,4 @@ namespace IHMC_ACI
     typedef NOMADSUtil::PtrLList<MatchmakingIntrumentation> Instrumentations;
 }
 
-#endif	/* INCL_MATCHMAKING_INTRUMENTATION_H */
-
+#endif    /* INCL_MATCHMAKING_INTRUMENTATION_H */

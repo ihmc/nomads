@@ -1,4 +1,4 @@
-/* 
+/*
  * SchedulerCache.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -22,28 +22,41 @@
 
 #include "SchedulerCache.h"
 
+#include "DSSFLib.h"
 #include "PropertyStoreInterface.h"
+#include "Voi.h"
 
 #include "NLFLib.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 const char * SchedulerCache::LATEST_MESSAGE_ID_PUSHED_TO_TARGET_PROPERTY = "latestMessagePushedToTarget";
 const char * SchedulerCache::LATEST_MESSAGE_TO_TARGET_SOURCE_TIMESTAMP_PROPERTY = "latestMessagePushedToTargetTStamp";
+const char * SchedulerCache::LATEST_RESET_MESSAGE_PROPERTY = "latestResetMessage";
 
-SchedulerCache::SchedulerCache (PropertyStoreInterface *pPropertyStore)
-    : _pPropertyStore (pPropertyStore)
+SchedulerCache::SchedulerCache (PropertyStoreInterface *pPropertyStore, IHMC_VOI::Voi *pVoi)
+    : _pPropertyStore (pPropertyStore),
+      _pVoi (pVoi)
 {
 }
 
-SchedulerCache::~SchedulerCache()
+SchedulerCache::~SchedulerCache (void)
 {
+}
+
+String SchedulerCache::getLatestResetMessageId (void)
+{
+    _m.lock();
+    String tmp (_pPropertyStore->get ("*", LATEST_RESET_MESSAGE_PROPERTY));
+    _m.unlock();
+    return tmp;
 }
 
 String SchedulerCache::getLatestMessageIdPushedToTarget (const char *pszTarget)
 {
-    if (pszTarget == NULL) {
+    if (pszTarget == nullptr) {
         String tmp; // empty string
         return tmp;
     }
@@ -54,9 +67,10 @@ String SchedulerCache::getLatestMessageIdPushedToTarget (const char *pszTarget)
     return tmp;
 }
 
-int SchedulerCache::setLatestMessageIdPushedToTarget (const char *pszTarget, const char *pszLatestMessageId)
+int SchedulerCache::setLatestMessageIdPushedToTarget (const char *pszTarget, const char *pszLatestMessageId,
+                                                      MetadataInterface *pMetadata)
 {
-    if (pszTarget == NULL || pszLatestMessageId == NULL) {
+    if (pszTarget == nullptr || pszLatestMessageId == nullptr) {
         return -1;
     }
 
@@ -73,13 +87,17 @@ int SchedulerCache::setLatestMessageIdPushedToTarget (const char *pszTarget, con
         rc = _pPropertyStore->update (pszTarget, LATEST_MESSAGE_ID_PUSHED_TO_TARGET_PROPERTY, pszLatestMessageId);
     }
 
+    setLatestResetMessageId (pszLatestMessageId);
+
+    _pVoi->addMetadataForPeer (pszTarget, pMetadata, nullptr, 0);
+
     _m.unlock();
     return rc;
 }
 
 int SchedulerCache::resetLatestMessageIdPushedToTarget (const char *pszTarget)
 {
-    if (pszTarget == NULL) {
+    if (pszTarget == nullptr) {
         return -1;
     }
 
@@ -98,7 +116,7 @@ int64 SchedulerCache::getMostRecentMessageTimestamp (const char *pszTarget, cons
 
 int SchedulerCache::setMostRecentMessageTimestamp (const char *pszTarget, const char *pszObjectId, int64 i64Timestamp)
 {
-    if (pszTarget == NULL || pszObjectId == NULL || i64Timestamp <= 0) {
+    if (pszTarget == nullptr || pszObjectId == nullptr || i64Timestamp <= 0) {
         return -1;
     }
 
@@ -128,7 +146,7 @@ int SchedulerCache::setMostRecentMessageTimestamp (const char *pszTarget, const 
 
 String SchedulerCache::getLatestMessageIdPushedToTargetInternal (const char *pszTarget)
 {
-    if (pszTarget == NULL) {
+    if (pszTarget == nullptr) {
         return String();    // empty string
     }
 
@@ -137,7 +155,7 @@ String SchedulerCache::getLatestMessageIdPushedToTargetInternal (const char *psz
 
 int64 SchedulerCache::getMostRecentMessageTimestampInternal (const char *pszTarget, const char *pszObjectId)
 {
-    if (pszTarget == NULL || pszObjectId == NULL) {
+    if (pszTarget == nullptr || pszObjectId == nullptr) {
         return -1;
     }
 
@@ -150,5 +168,28 @@ int64 SchedulerCache::getMostRecentMessageTimestampInternal (const char *pszTarg
         return atoi64 (val);
     }
     return -1;
+}
+
+int SchedulerCache::setLatestResetMessageId (const char *pszLatestResetMessageId)
+{
+    if (pszLatestResetMessageId == nullptr) {
+        return -1;
+    }
+    int rc = 0;
+    String group (extractGroupFromKey (pszLatestResetMessageId));
+    group.convertToLowerCase ();
+    if (wildcardStringCompare (group, "*reset")) {
+        const String anyNodeId ("*");
+        const String oldId (_pPropertyStore->get (anyNodeId, LATEST_RESET_MESSAGE_PROPERTY));
+        if (oldId.length () <= 0) {
+            // LATEST_MESSAGE_TO_TARGET_SOURCE_TIMESTAMP_PROPERTY was never added for pszTarget: set it
+            rc = _pPropertyStore->set (anyNodeId, LATEST_RESET_MESSAGE_PROPERTY, pszLatestResetMessageId);
+        }
+        else {
+            // LATEST_MESSAGE_TO_TARGET_SOURCE_TIMESTAMP_PROPERTY was already added for pszTarget: update it
+            rc = _pPropertyStore->update (anyNodeId, LATEST_RESET_MESSAGE_PROPERTY, pszLatestResetMessageId);
+        }
+    }
+    return rc;
 }
 

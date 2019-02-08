@@ -1,4 +1,4 @@
-/* 
+/*
  * NetworkMessageServiceProxyServer.h
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -21,7 +21,7 @@
  */
 
 #ifndef INCL_NETWORK_MESSAGE_SERVICE_PROXY_SERVER_H
-#define	INCL_NETWORK_MESSAGE_SERVICE_PROXY_SERVER_H
+#define    INCL_NETWORK_MESSAGE_SERVICE_PROXY_SERVER_H
 
 #include "Registry.h"
 
@@ -41,7 +41,7 @@ namespace NOMADSUtil
 
             bool registerCallback (uint16 ui16ApplicationId, SimpleCommHelper2 *pCommHelper,
                                    SimpleCommHelper2 *pCallbackCommHelper, SimpleCommHelper2::Error &error);
-            bool deregisterAllCallbacks (void);
+            bool deregisterAllCallbacks (uint16 ui16ApplicationId);
             bool deregisterCallback (uint16 ui16ApplicationId, CallbackExecutor *pCBackExec,
                                      SimpleCommHelper2 *pCommHelper, SimpleCommHelper2::Error &error);
 
@@ -53,5 +53,5 @@ namespace NOMADSUtil
     };
 }
 
-#endif	/* INCL_NETWORK_MESSAGE_SERVICE_PROXY_SERVER_H */
+#endif    /* INCL_NETWORK_MESSAGE_SERVICE_PROXY_SERVER_H */
 

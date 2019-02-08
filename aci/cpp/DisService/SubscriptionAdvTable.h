@@ -1,4 +1,4 @@
-/* 
+/*
  * SubscriptionAdvTable.h
  *
  * This file is part of the IHMC DisService Library/Component
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,8 +22,8 @@
  * The table has the following structure:
  * -----------------------------
  * | GroupName |  Table of NodeIDs | Lifetime, PathList  |
- * 
- * More specifically, for each group the table maintains a table of Subscribing Nodes which 
+ *
+ * More specifically, for each group the table maintains a table of Subscribing Nodes which
  * includes a NodeId and a list of Paths.
  * Each Subscribing Node is subjected to aging so it is removed from the table when its lifetime
  * is greater than _i64LifeTimeUpdateThreshold parameter.
@@ -54,7 +54,7 @@ namespace IHMC_ACI
         public:
             SubscribingNode (void);
             virtual ~SubscribingNode (void);
-            
+
             int addPath (NOMADSUtil::String *pszPath);
             int removePath (NOMADSUtil::String *pszPath);
             int removePathWithNode (NOMADSUtil::String *pszNodeId);
@@ -62,19 +62,19 @@ namespace IHMC_ACI
             int64 getLifeTime (void);
             void refreshLifeTime (void);
             void display (void);
-            
+
         private:
             NOMADSUtil::PtrLList<NOMADSUtil::String> *_pPathList;
             int64 _i64LifeTime;
     };
-    
-    
+
+
     class SubscriptionAdvTableEntry
     {
         public:
             SubscriptionAdvTableEntry (void);
             virtual ~SubscriptionAdvTableEntry (void);
-            
+
             int addSubscribingNode (const char *pszNodeId);
             int addPathToNode (const char *pszNodeId, NOMADSUtil::String *pszPath);
             bool hasSubscribingNode (const char *pszNodeId);
@@ -86,40 +86,40 @@ namespace IHMC_ACI
             bool isEmpty (void);
             int refreshLifeTime (const char *pszSubNodeId);
             void display (void);
-            
+
         private:
-            NOMADSUtil::StringHashtable<SubscribingNode> _subNodesTable;          
+            NOMADSUtil::StringHashtable<SubscribingNode> _subNodesTable;
     };
-    
+
     class SubscriptionAdvTable
     {
         public:
             SubscriptionAdvTable (void);
             virtual ~SubscriptionAdvTable (void);
-            
+
             int addSubscription (const char *pszGroupName);
             int addSubscribingNode (const char *pszGroupName, const char *pszNodeId);
             int addSubscribingNodePath (const char *pszGroupName, const char *pszNodeId,
                                         NOMADSUtil::String *pszPath);
-            
+
             bool hasSubscription (const char *pszGroupName);
             bool hasSubscribingNode (const char *pszGroupName, const char *pszNodeId);
             bool hasSubscribingNode (const char *pszNodeId);
             bool hasSubscribingNodePath (const char *pszGroupName, const char *pszNodeId,
                                          NOMADSUtil::String *pszPath);
-            
+
             SubscriptionAdvTableEntry * getTableEntry (const char *pszGroupName);
             int removeSubscription (const char *pszGroupName);
             int removeSubscribingNode (const char *pszGroupName, const char *pszNodeId);
             int removeSubscribingNodePath (const char *pszGroupName, const char *pszNodeId,
                                            NOMADSUtil::String *pszPath);
-            
+
             void configureTimers (int64 i64LifeTimeUpdateThreshold);
-            void display (void); 
+            void display (void);
             bool isEmpty (void);
             void refreshTable (void);
             void deadNode (const char *pszNodeId);
-            
+
         private:
             static const int64 DEFAULT_LIFETIME_UPDATE_THRESHOLD = 60000;   // Time in Milliseconds
             NOMADSUtil::StringHashtable<SubscriptionAdvTableEntry> _subAdvTable;

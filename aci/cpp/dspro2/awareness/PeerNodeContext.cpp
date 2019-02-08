@@ -25,17 +25,13 @@
 
 #include "C45DecisionTree.h"
 #include "C45AVList.h"
-#include "DSLib.h"
 
+#include "Json.h"
 #include "Logger.h"
-#include "NLFLib.h"
-#include "Reader.h"
-#include "Writer.h"
-#include "InstrumentedReader.h"
 #include <stdlib.h>
-#include <string.h>
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace IHMC_C45;
 using namespace NOMADSUtil;
 
@@ -45,27 +41,35 @@ namespace IHMC_ACI
     {
         return (bForceRead || (ui16RemoteVersion > ui16LocalVersion));
     }
+
+    void updatePart (Part &part, const JsonObject *pJson, bool readAll, uint16 &incomingVersion)
+    {
+        if (readAll) {
+            part.reset();
+        }
+        if (pJson != nullptr) {
+            if (readAll || (incomingVersion > part.getVersion())) {
+                if (part.fromJson (pJson) == 0) {
+                    part.setVersion (incomingVersion);
+                }
+            }
+            delete pJson;
+        }
+    }
 }
 
 PeerNodeContext::PeerNodeContext (const char *pszNodeID, IHMC_C45::C45AVList *pClassifierConfiguration,
                                   double dTooFarCoeff, double dApproxCoeff)
-    : NodeContext (pszNodeID, dTooFarCoeff, dApproxCoeff),
+    : NodeContextImpl (pszNodeID, dTooFarCoeff, dApproxCoeff),
       _reacheableThrough (false)
 {
     _pClassifier = new IHMC_C45::C45DecisionTree();
     _pClassifier->configureClassifier (pClassifierConfiguration);
-    _pCurrPath = NULL;
-    _pPastPath = NULL;
     _ui16ClassifierVersion = 0;
-    _pCurrActualPosition = NULL;
 }
 
-PeerNodeContext::~PeerNodeContext()
+PeerNodeContext::~PeerNodeContext (void)
 {
-    if (_pCurrPath != NULL) {
-        delete _pCurrPath;
-        _pCurrPath = NULL;
-    }
 }
 
 int PeerNodeContext::addAdaptor (AdaptorId adaptorId)
@@ -97,251 +101,6 @@ bool PeerNodeContext::isReacheableThrough (AdaptorId adaptorId)
     return _reacheableThrough[adaptorId];
 }
 
-int64 PeerNodeContext::readUpdates (Reader *pReader, uint32 ui32MaxSize, bool &bContextUnsynchronized)
-{
-    return readUpdatesInternal (pReader, ui32MaxSize, false, bContextUnsynchronized);
-}
-                                                         
-int64 PeerNodeContext::readAll (Reader *pReader, uint32 ui32MaxSize)
-{
-    bool bContextUnsynchronized = false;
-    return readUpdatesInternal (pReader, ui32MaxSize, true, bContextUnsynchronized);
-}
-
-int64 PeerNodeContext::readUpdatesInternal (Reader *pReader, uint32 ui32MaxSize,
-                                            bool bForceReadAll, bool &bContextUnsynchronized)
-{
-    const char *pszMethodName = "PeerNodeContext::readUpdatesInternal";
-    bContextUnsynchronized = false;
-
-    uint32 ui32TotLength = 0;
-    int8 rc;
-    uint32 ui32StartingTime;
-    uint16 ui16Version;
-    if (pReader == NULL) {
-        return -1;
-    }
-    checkAndLogMsg (pszMethodName, Logger::L_Info, "max size = %d\n", (int) ui32MaxSize);
-    // Read information
-    if (ui32MaxSize < (ui32TotLength + 4)) {
-        return -2;
-    }
-    rc = pReader->read32 (&ui32StartingTime);
-    if (rc < 0) {
-        return -3;
-    }
-    ui32TotLength += 4;
-    if (ui32StartingTime > _ui32StartingTime) {
-        if (!bForceReadAll) {
-            // if the ui32StartingTime has changed the node expects to receive a
-            // whole new context, if this is not the case there may be parts of
-            // the context that may be unsynchronized
-            bContextUnsynchronized = true;
-        }
-        _ui32StartingTime = ui32StartingTime;
-    }
-    else if (bForceReadAll && (ui32StartingTime <= _ui32StartingTime)) {
-        // It's an old whole message - just drop it!
-        return 1;
-    }
-
-    if (ui32MaxSize < (ui32TotLength + 2)) {
-        return -5;
-    }
-    rc = pReader->read16 (&ui16Version);
-    if (rc < 0) {
-        return -6;
-    }
-    ui32TotLength += 2;
-    if (ui32MaxSize < (ui32TotLength + 1)) {
-        return -7;
-    }
-
-    bool bReadTeamMissionRole;
-    if (DSLib::readBool (pReader, ui32MaxSize - ui32TotLength, bReadTeamMissionRole) < 0) {
-        return -8;
-    }
-    ui32TotLength += 1;
-
-    int64 i64;
-    if (bReadTeamMissionRole) {
-        checkAndLogMsg (pszMethodName, Logger::L_Info, "reading team, mission and role\n");
-        const bool bSkip = !updateNodeContext (bForceReadAll, _ui16CurrInfoVersion, ui16Version);
-        i64 = readLocalInformation (pReader, ui32MaxSize - ui32TotLength, bSkip);
-        if (i64 < 0) {
-            return i64;
-        }
-        if (!bSkip) {
-            _customPolicies.removeAll();
-        }
-        const int iCustumPoliciesBytes = bSkip ?
-                                         _customPolicies.skip (pReader, ui32MaxSize - ui32TotLength) :
-                                         _customPolicies.read (pReader, ui32MaxSize - ui32TotLength);
-        if (iCustumPoliciesBytes < 0) {
-            return iCustumPoliciesBytes;
-        }
-        ui32TotLength += (uint32) iCustumPoliciesBytes;
-
-        if (ui16Version > _ui16CurrInfoVersion) {
-            _ui16CurrInfoVersion = ui16Version;
-        }
-        ui32TotLength += (uint32) i64;
-    }
-
-    // Read path info
-    if (ui32MaxSize < (ui32TotLength + 2)) {
-        return -9;
-    }
-    if ((rc = pReader->read16 (&ui16Version)) < 0) {
-        return rc;
-    }
-    ui32TotLength += 2;
-
-    i64 = readPathInformation (pReader, ui32MaxSize - ui32TotLength,
-                               !updateNodeContext (bForceReadAll, _ui16CurrPathVersion, ui16Version));
-    if (i64 < 0) {
-        return i64;
-    }
-    ui32TotLength += (uint32) i64;
-    checkAndLogMsg (pszMethodName, Logger::L_Info, "usefulDistance = %u\n", _ui32DefaultUsefulDistance);
-
-    bool bReadPath;
-    bool bPathHasBeenRead = false;
-    if (DSLib::readBool (pReader, ui32MaxSize - ui32TotLength, bReadPath) < 0) {
-        return -10;
-    }
-    ui32TotLength += 1;
-    if ((ui16Version > 0) && updateNodeContext (bForceReadAll, _ui16CurrPathVersion, ui16Version)) {
-        if (bReadPath) {
-            _ui16CurrPathVersion = ui16Version;
-            if (_pCurrPath == NULL) {
-                _pCurrPath = new NodePath (NULL, 0, 0);
-            }
-            int64 pathLength = _pCurrPath->read (pReader, ui32MaxSize - ui32TotLength, false);
-            if (pathLength < 0) {
-                checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to read path; rc = %d\n", (int) pathLength);
-                return -22;
-            }
-            else {
-                checkAndLogMsg (pszMethodName, Logger::L_Info, "read path of length %d\n", _pCurrPath->getPathLength());
-            }
-            ui32TotLength += (uint32) pathLength;
-            bPathHasBeenRead = true;
-        }
-        else if (!bContextUnsynchronized) {
-            // The node expected to read the path, but it was not sent,
-            // which means it it was sent in a previous update message, that
-            // therefore must have been missed by the local node
-            bContextUnsynchronized = true;
-        }
-    }
-    else if (bReadPath) {
-        NodePath path;  // create fake path
-        int64 pathLength = path.read (pReader, ui32MaxSize - ui32TotLength, true);
-        if (pathLength < 0) {
-            checkAndLogMsg (pszMethodName, Logger::L_MildError, "failed to read path; rc = %d\n", (int) pathLength);
-            return -23;
-        }
-        else {
-            checkAndLogMsg (pszMethodName, Logger::L_Info, "read path of length %d\n", _pCurrPath->getPathLength());
-        }
-        ui32TotLength += (uint32) pathLength;
-    }
-
-    // Read Matchmaker Qualifiers
-    if (ui32MaxSize < (ui32TotLength + 2)) {
-        return -11;
-    }
-    if ((rc = pReader->read16 (&ui16Version)) < 0) {
-        return rc;
-    }
-    ui32TotLength += 2;
-    bool bReadCurrMatchmakerQualifier;
-    if (DSLib::readBool (pReader, ui32MaxSize - ui32TotLength, bReadCurrMatchmakerQualifier) < 0) {
-        return -12;
-    }
-    if (updateNodeContext (bForceReadAll, _ui16CurrMatchmakerQualifierVersion, ui16Version) && (ui16Version > 0)) {
-        if (bReadCurrMatchmakerQualifier) {
-            InstrumentedReader ir (pReader);
-            _qualifiers.read (&ir, ui32MaxSize - ui32TotLength);
-            ui32TotLength += ir.getBytesRead();
-        }
-        else if (!bContextUnsynchronized) {
-            // The node expected to read the matchmaker qualifiers, but they were
-            // not sent, which means they were sent in a previous update message,
-            // that therefore must have been missed by the local node
-            bContextUnsynchronized = true;
-        }
-    }
-    else if (bReadCurrMatchmakerQualifier) {
-        MatchmakingQualifiers qualifiers; // create fake path
-        InstrumentedReader ir (pReader);
-        qualifiers.read (&ir, ui32MaxSize - ui32TotLength);
-        ui32TotLength += ir.getBytesRead();
-    }
-
-    // Read decision tree
-    if (ui32MaxSize < (ui32TotLength + 2)) {
-        return -23;
-    }
-    rc = pReader->read16 (&ui16Version);
-    if (rc < 0) {
-        return -24;
-    }
-    ui32TotLength += 2;
-    bool bReadClassifier;
-    bool bClassifierHasBeenRead = false;
-    if (DSLib::readBool (pReader, ui32MaxSize - ui32TotLength, bReadClassifier) < 0) {
-        return -6;
-    }
-    ui32TotLength += 1;
-    if (updateNodeContext (bForceReadAll, _ui16ClassifierVersion, ui16Version) && (ui16Version > 0)) {
-        if (bReadClassifier) {
-            _ui16ClassifierVersion = ui16Version;
-            int64 treeLength = _pClassifier->read (pReader, ui32MaxSize - ui32TotLength);
-            if (treeLength < 0) {
-                return -25;
-            }
-            ui32TotLength += (uint32) treeLength;
-            bClassifierHasBeenRead = true;
-        }
-        else if (!bContextUnsynchronized) {
-            // The node expected to read the classifier, but it was not sent,
-            // which means it it was sent in a previous update message, that
-            // therefore must have been missed by the local node 
-            bContextUnsynchronized = true;
-        }
-    }
-    else if (bReadClassifier) {
-        int64 treeLength = _pClassifier->skip (pReader, ui32MaxSize - ui32TotLength);
-        if (treeLength < 0) {
-            return -26;
-        }
-        ui32TotLength += (uint32) treeLength;
-    }
-
-    if (bContextUnsynchronized && bReadTeamMissionRole &&
-        bPathHasBeenRead && bClassifierHasBeenRead) {
-        // The whole context was read anyway, the context can't be unsynchronized
-        bContextUnsynchronized = false;
-    }
-
-    if (bForceReadAll) {
-        rc = _pMetaDataRankerConf->read (pReader, ui32MaxSize - ui32TotLength); 
-        if (rc < 0) {
-            checkAndLogMsg (pszMethodName, Logger::L_Warning, "failed reading "
-                            "the metadata ranker configuration %d\n", rc);
-        }
-        else {
-            checkAndLogMsg (pszMethodName, Logger::L_Warning, "read "
-                            "metadata ranker configuration.\n");
-        }
-        ui32TotLength += _pMetaDataRankerConf->getLength();
-    }
-
-    return ui32TotLength;
-}
-
 uint16 PeerNodeContext::getClassifierVersion (void)
 {
     return _ui16ClassifierVersion;
@@ -349,41 +108,35 @@ uint16 PeerNodeContext::getClassifierVersion (void)
 
 int PeerNodeContext::getCurrentLatitude (float &latitude)
 {
-    if (_pCurrActualPosition == NULL) {
-        return -1;
-    }
-    latitude = _pCurrActualPosition->latitude;
+    float longitude, altitude;
+    const char *pszLocation, *pszNote;
+    uint64 timeStamp;
+    _locationInfo.getCurrentPosition (latitude, longitude, altitude, pszLocation, pszNote, timeStamp);
     return 0;
 }
 
 int PeerNodeContext::getCurrentLongitude (float &longitude)
 {
-    if (_pCurrActualPosition == NULL) {
-        return -1;
-    }
-    longitude = _pCurrActualPosition->longitude;
+    float latitude, altitude;
+    const char *pszLocation, *pszNote;
+    uint64 timeStamp;
+    _locationInfo.getCurrentPosition (latitude, longitude, altitude, pszLocation, pszNote, timeStamp);
     return 0;
 }
 
-int PeerNodeContext::getCurrentTimestamp (uint64 &timestamp)
+int PeerNodeContext::getCurrentTimestamp (uint64 &timeStamp)
 {
-    if (_pCurrActualPosition == NULL) {
-        return -1;
-    }
-    timestamp = _pCurrActualPosition->timeStamp;
+    float latitude, longitude, altitude;
+    const char *pszLocation, *pszNote;
+    _locationInfo.getCurrentPosition (latitude, longitude, altitude, pszLocation, pszNote, timeStamp);
     return 0;
 }
 
 int PeerNodeContext::getCurrentPosition (float &latitude, float &longitude, float &altitude)
 {
-    if (_pCurrActualPosition == NULL) {
-        return -1;
-    }
-
-    latitude = _pCurrActualPosition->latitude;
-    longitude = _pCurrActualPosition->longitude;
-    altitude = _pCurrActualPosition->altitude;
-
+    const char *pszLocation, *pszNote;
+    uint64 timeStamp;
+    _locationInfo.getCurrentPosition (latitude, longitude, altitude, pszLocation, pszNote, timeStamp);
     return 0;
 }
 
@@ -391,57 +144,8 @@ int PeerNodeContext::getCurrentPosition (float &latitude, float &longitude, floa
                                          const char *&pszLocation, const char *&pszNote,
                                          uint64 &timeStamp)
 {
-    if (_pCurrActualPosition == NULL) {
-        return -1;
-    }
-    if (getCurrentPosition (latitude, longitude, altitude) < 0) {
-        return -2;
-    }
-    pszLocation = _pCurrActualPosition->pszLocation;
-    pszNote = _pCurrActualPosition->pszNote;
-    timeStamp = _pCurrActualPosition->timeStamp;
-
+    _locationInfo.getCurrentPosition (latitude, longitude, altitude, pszLocation, pszNote, timeStamp);
     return 0;
-}
-
-bool PeerNodeContext::setCurrentPosition (float latitude, float longitude, float altitude,
-                                          const char *pszLocation, const char *pszNote,
-                                          uint64 timeStamp)
-{
-    bool rc = NodeContext::setCurrentPosition (latitude, longitude, altitude);
-    if (_pCurrActualPosition != NULL) {
-        if (!rc) {
-            if (!isApproximableToPoint (_pCurrActualPosition->latitude,
-                                        _pCurrActualPosition->longitude,
-                                        latitude, longitude)) {
-                rc = true;
-            }
-        }
-    }
-    else {
-        _pCurrActualPosition = new CurrentActualPosition;
-        if (_pCurrActualPosition == NULL) {
-            checkAndLogMsg ("PeerNodeContext::setCurrentPosition", memoryExhausted);
-            return rc;
-        }
-        // if _pCurrActualPosition, it is the first time that the position is
-        // set, return true
-        rc = true;
-    }
-
-    _pCurrActualPosition->latitude = latitude;
-    _pCurrActualPosition->longitude = longitude;
-    _pCurrActualPosition->altitude = altitude;
-
-    free ((char *)_pCurrActualPosition->pszLocation);
-    _pCurrActualPosition->pszLocation = (pszLocation != NULL ? strDup (pszLocation) : NULL);
-
-    free ((char *)_pCurrActualPosition->pszNote);
-    _pCurrActualPosition->pszNote = (pszNote != NULL ? strDup (pszNote) : NULL);
-
-    _pCurrActualPosition->timeStamp = timeStamp;
-
-    return rc;
 }
 
 void PeerNodeContext::setPeerPresence (bool active)
@@ -456,27 +160,67 @@ bool PeerNodeContext::isPeerActive (void)
 
 NodePath * PeerNodeContext::getPath (void)
 {
-    return _pCurrPath;
+    return _pathInfo.getPath();
 }
 
 bool PeerNodeContext::operator == (PeerNodeContext &rhsPeerNodeContext)
 {
-    return (0 == strcmp (_pszNodeId, rhsPeerNodeContext.getNodeId()));
+    const NOMADSUtil::String nodeId (getNodeId());
+    const NOMADSUtil::String rhsNodeId (rhsPeerNodeContext.getNodeId());
+    return (nodeId == rhsNodeId);
+}
+
+int PeerNodeContext::fromJson (const NOMADSUtil::JsonObject *pJson)
+{
+    if (pJson == nullptr) {
+        return -1;
+    }
+    Versions inVersions;
+    JsonObject *pVersions = pJson->getObject (Versions::VERSIONS_OBJECT_NAME);
+    if (pVersions == nullptr) {
+        // Versions are expected in all the messages
+        return -2;
+    }
+    if (inVersions.fromJson (pVersions) < 0) {
+        delete pVersions;
+        return -3;
+    }
+    if (inVersions._i64StartingTime < _i64StartingTime) {
+        // The incoming versions are stale
+        delete pVersions;
+        return -4;
+    }
+    const bool bReadAll = (inVersions._i64StartingTime > _i64StartingTime);
+
+    updatePart (_nodeInfo, pJson->getObject (NodeGenInfo::NODE_INFO_OBJECT_NAME), bReadAll,
+                inVersions._ui16InfoVersion);
+    updatePart (_pathInfo, pJson->getObject (PathInfo::PATH_INFO_OBJECT_NAME), bReadAll,
+                inVersions._ui16PathVersion);
+    updatePart (_matchmakingInfo, pJson->getObject (MatchmakingInfo::MATCHMAKING_INFO_OBJECT_NAME), bReadAll,
+                inVersions._ui16MatchmakerQualifierVersion);
+    updatePart (_areasOfInterestInfo, pJson->getObject (AreasOfInterestsInfo::AREAS_OF_INTEREST_OBJ),
+                bReadAll, inVersions._ui16AreasOfInterestVersion);
+    updatePart (_locationInfo, pJson->getObject (LocationInfo::LOCATION_INFO_OBJECT_NAME),
+                bReadAll, inVersions._ui16WaypointVersion);
+    if (bReadAll) {
+        _i64StartingTime = inVersions._i64StartingTime;
+    }
+    return 0;
 }
 
 // CurrentActualPosition
 
-PeerNodeContext::CurrentActualPosition::CurrentActualPosition()
+PeerNodeContext::CurrentActualPosition::CurrentActualPosition (void)
 {
-    pszLocation = NULL;
-    pszNote = NULL;
+    pszLocation = nullptr;
+    pszNote = nullptr;
 }
 
-PeerNodeContext::CurrentActualPosition::~CurrentActualPosition()
+PeerNodeContext::CurrentActualPosition::~CurrentActualPosition (void)
 {
     free ((char *)pszLocation);
-    pszLocation = NULL;
+    pszLocation = nullptr;
     free ((char *)pszNote);
-    pszNote = NULL;
+    pszNote = nullptr;
 }
 

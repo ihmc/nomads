@@ -38,7 +38,7 @@ const char * DataStore::PERSISTENCE_MODE = "dspro.persistence.mode";
 const char * DataStore::PERSISTENCE_FILE = "dspro.persistence.filename";
 const char * DataStore::PERSISTENCE_AUTOCOMMIT = "dspro.persistence.autocommit.enabled";
 
-DataStore * DataStore::_pDataStore = NULL;
+DataStore * DataStore::_pDataStore = nullptr;
 
 //------------------------------------------------------------------------------
 // DataStore
@@ -49,17 +49,17 @@ DataStore::DataStore (DataCacheInterface *pDataCache)
     _pDataCache = pDataCache;
 }
 
-DataStore::~DataStore()
+DataStore::~DataStore (void)
 {
 }
 
 DataStore * DataStore::getDataStore (ConfigManager *pCfgMgr, const char *pszSessionId)
 {
-    if (_pDataStore != NULL) {
+    if (_pDataStore != nullptr) {
         return _pDataStore;
     }
-    if (pCfgMgr == NULL) {
-        return NULL;
+    if (pCfgMgr == nullptr) {
+        return nullptr;
     }
     const String sessionId (pszSessionId);
 
@@ -78,11 +78,11 @@ DataStore * DataStore::getDataStore (ConfigManager *pCfgMgr, const char *pszSess
             default:
                 checkAndLogMsg ("DataStore::getDataStore", Logger::L_SevereError,
                                 "non valid storage mode %d", pCfgMgr->getValueAsInt (PERSISTENCE_MODE));
-                return NULL;
+                return nullptr;
         }
     }
 
-    const char *pszStorageFile = NULL;
+    const char *pszStorageFile = nullptr;
     if (bUseDSProSettings && mode == DataCacheInterface::PERSISTENT_MODE) {
         pszStorageFile = pCfgMgr->getValue (PERSISTENCE_FILE, "db.sqlite");
     }
@@ -93,15 +93,15 @@ DataStore * DataStore::getDataStore (ConfigManager *pCfgMgr, const char *pszSess
     DataCacheInterface *pDataCache = bUseDSProSettings ? DataCacheFactory::getDataCache (mode, storageFile, sessionId,
                                                                                          bUseTransactionTimer) :
                                                          DataCacheFactory::getDataCache (pCfgMgr);
-    if (pDataCache == NULL) {
+    if (pDataCache == nullptr) {
         checkAndLogMsg ("DataStore::getDataStore", memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     _pDataStore = new DisServiceDataStore (pDataCache);
-    if (_pDataStore == NULL) {
+    if (_pDataStore == nullptr) {
         checkAndLogMsg ("DataStore::getDataStore", memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     return _pDataStore;
@@ -113,7 +113,7 @@ int DataStore::insert (const char *pszId, const char *pszObjectId, const char *p
                        const void *pBuf, uint32 ui32Len, bool bIsMetadata, int64 i64ExpirationTimeout,
                        uint8 ui8ChunkId, uint8 ui8TotNChunks)
 {
-    if (pszId == NULL || pBuf == NULL || ui32Len == 0) {
+    if (pszId == nullptr || pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
 
@@ -127,10 +127,10 @@ int DataStore::insert (const char *pszId, const char *pszObjectId, const char *p
         // metadata messages can't be chunked
         return -4;
     }
-    assert (!((pszAnnotatedObjMsgId != NULL) && (pszReferredObjectId != NULL))); // only one of the two can be not null
+    assert (!((pszAnnotatedObjMsgId != nullptr) && (pszReferredObjectId != nullptr))); // only one of the two can be not null
                                                                                  // (it's either a metadata or an annotation)
 
-    DArray2<NOMADSUtil::String> fields (6U);
+    DArray2<String> fields (6U);
     int rc = 0;
     uint32 ui32FragmentOffset = 0;
     if (isAllChunksMessageID (pszId)) {
@@ -162,6 +162,10 @@ int DataStore::insert (const char *pszId, const char *pszObjectId, const char *p
         return -7;
     }
 
+    const String group (fields[MSG_ID_GROUP]);
+    const String referredObjectId (pszReferredObjectId);
+    bool bMetaData = ((!group.startsWith ("DSPro")) && referredObjectId.length () > 0);
+
     MessageHeader *pMH =
             MessageHeaderHelper::getMessageHeader (fields[MSG_ID_GROUP], fields[MSG_ID_SENDER],
                                                    atoui32 (fields[MSG_ID_SEQ_NUM]),
@@ -181,17 +185,17 @@ int DataStore::insert (const char *pszId, const char *pszObjectId, const char *p
                                                    0U,    // ui8Priority,
                                                    i64ExpirationTimeout,
                                                    false, // bAcknowledgment,
-                                                   false, // bMetaData,
+                                                   bMetaData, // bMetaData,
                                                    ui8TotNChunks,
                                                    pszReferredObjectId);
 
-    if (pMH == NULL) {
+    if (pMH == nullptr) {
         checkAndLogMsg ("DataStore::insert", memoryExhausted);
         return -8;
     }
 
-    if (pszAnnotatedObjMsgId != NULL) {
-        assert (pAnnotationMetadata != NULL);
+    if (pszAnnotatedObjMsgId != nullptr) {
+        assert (pAnnotationMetadata != nullptr);
         assert (ui32AnnotationMetdataLen > 0);
         pMH->setAnnotates (pszAnnotatedObjMsgId);
         pMH->setAnnotationMetadata (pAnnotationMetadata, ui32AnnotationMetdataLen);
@@ -211,20 +215,20 @@ int DataStore::insert (const char *pszId, const char *pszObjectId, const char *p
 NOMADSUtil::DArray<uint8> * DataStore::getCachedChunkIDs (const char *pszMsgId, uint8 &ui8TotalNumberOfChunks)
 {
     ui8TotalNumberOfChunks = 0;
-    if (pszMsgId == NULL || _pDataCache == NULL) {
-        return NULL;
+    if (pszMsgId == nullptr || _pDataCache == nullptr) {
+        return nullptr;
     }
 
     if (!isAllChunksMessageID (pszMsgId)) {
         checkAndLogMsg ("DataStore::getCachedChunkIDs", Logger::L_Warning,
                         "message id <%s> is not complete\n", pszMsgId);
-        return NULL;
+        return nullptr;
     }
     if (!isOnDemandDataID (pszMsgId)) {
         checkAndLogMsg ("DataStore::getCachedChunkIDs", Logger::L_Warning,
                         "message id <%s> is not on-demand, therefore it can't be chunked\n",
                         pszMsgId);
-        return NULL;
+        return nullptr;
     }
 
     DArray2<NOMADSUtil::String> fields (3U);
@@ -236,30 +240,30 @@ NOMADSUtil::DArray<uint8> * DataStore::getCachedChunkIDs (const char *pszMsgId, 
     }
 
     DArray<uint8> *pChunkIds = new DArray<uint8>();
-    if (pChunkIds == NULL) {
+    if (pChunkIds == nullptr) {
         checkAndLogMsg ("DataStore::getCachedChunkIDs", memoryExhausted);
-        return NULL;
+        return nullptr;
     }
 
     PtrLList<Message> *pList = _pDataCache->getCompleteMessages (fields[MSG_ID_GROUP],
                                                                  fields[MSG_ID_SENDER],
                                                                  atoui32 (fields[MSG_ID_SEQ_NUM].c_str()));
-    if (pList == NULL) {
+    if (pList == nullptr) {
         checkAndLogMsg ("DataStore::getCachedChunkIDs", Logger::L_Warning,
                         "could not find any complete message with id <%s>\n", pszMsgId);
-        return NULL;
+        return nullptr;
     }
     Message *pMsg = pList->getFirst();
-    if (pMsg == NULL) {
+    if (pMsg == nullptr) {
         checkAndLogMsg ("DataStore::getCachedChunkIDs", Logger::L_Warning,
                         "could not find any complete message with id <%s>\n", pszMsgId);
         _pDataCache->release (pList);
-        return NULL;
+        return nullptr;
     }
 
-    for (unsigned int i = 0; pMsg != NULL; i++) {
+    for (unsigned int i = 0; pMsg != nullptr; i++) {
         ChunkMsgInfo *pCMI = pMsg->getChunkMsgInfo();
-        if (pCMI != NULL) {
+        if (pCMI != nullptr) {
             ui8TotalNumberOfChunks = pCMI->getTotalNumberOfChunks();
             (*pChunkIds)[i] = pCMI->getChunkId();
         }
@@ -272,67 +276,66 @@ NOMADSUtil::DArray<uint8> * DataStore::getCachedChunkIDs (const char *pszMsgId, 
 
 Message * DataStore::getCompleteMessage (const char *pszMsgId)
 {
-    if (pszMsgId == NULL || _pDataCache == NULL) {
-        return NULL;
+    const char *pszMethodName = "DataStore::getCompleteMessage";
+    if (pszMsgId == nullptr || _pDataCache == nullptr) {
+        return nullptr;
     }
 
     if (!isAllChunksMessageID (pszMsgId)) {
-        checkAndLogMsg ("DataStore::getCompleteMessage", Logger::L_Warning,
-                        "message id <%s> is not complete\n", pszMsgId);
-        return NULL;
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "message id <%s> is not complete\n", pszMsgId);
+        return nullptr;
     }
     if (isOnDemandDataID (pszMsgId)) {
-        checkAndLogMsg ("DataStore::getCompleteMessage", Logger::L_Warning,
-                        "message id <%s> is on-demand, this method should be used "
-                        "only for non chunked messages\n", pszMsgId);
-        return NULL;
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "message id <%s> is on-demand, "
+                        "this method should be used only for non chunked messages\n", pszMsgId);
+        return nullptr;
     }
 
     DArray2<NOMADSUtil::String> fields (3U);
     int rc = convertKeyToField (pszMsgId, fields, 3, MSG_ID_GROUP, MSG_ID_SENDER,
                                 MSG_ID_SEQ_NUM);
     if (rc < 0) {
-        checkAndLogMsg ("DataStore::getCompleteMessage", Logger::L_Warning,
+        checkAndLogMsg (pszMethodName, Logger::L_Warning,
                         "could not parse message Id <%s>\n", pszMsgId);
     }
 
     PtrLList<Message> *pList = _pDataCache->getCompleteMessages (fields[MSG_ID_GROUP],
                                                                  fields[MSG_ID_SENDER],
                                                                  atoui32 (fields[MSG_ID_SEQ_NUM].c_str()));
-    if (pList == NULL) {
-        checkAndLogMsg ("DataStore::getCompleteMessage", Logger::L_Warning,
-                        "could not find any complete message with id <%s>\n", pszMsgId);
-        return NULL;
+    if (pList == nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not find "
+                        "any complete message with id <%s>\n", pszMsgId);
+        return nullptr;
     }
     Message *pMsg = pList->getFirst();
-    if (pMsg == NULL) {
-        checkAndLogMsg ("DataStore::getCompleteMessage", Logger::L_Warning,
+    if (pMsg == nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning,
                         "could not find any complete message with id <%s>\n", pszMsgId);
         _pDataCache->release (pList);
-        return NULL;
+        return nullptr;
     }
-    if (pList->getNext() != NULL) {
-        checkAndLogMsg ("DataStore::getCompleteMessage", Logger::L_Warning, "multiple message "
+    if (pList->getNext() != nullptr) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "multiple message "
                         "matching id <%s> were found, when only one was expected\n", pszMsgId);
         _pDataCache->release (pList);
-        return NULL;
+        return nullptr;
     }
 
-    if (pMsg->getMessageHeader() == NULL) {
+    if (pMsg->getMessageHeader() == nullptr) {
         _pDataCache->release (pList);
-        return NULL;
+        return nullptr;
     }
 
-    if (pMsg->getData() == NULL) {
+    if (pMsg->getData() == nullptr) {
         _pDataCache->release (pList);
-        return NULL;
+        return nullptr;
     }
 
     Message *pMsgCpy = pMsg->clone();
-    if (pMsgCpy == NULL) {
-        checkAndLogMsg ("DataStore::getCompleteMessage", memoryExhausted);
+    if (pMsgCpy == nullptr) {
+        checkAndLogMsg (pszMethodName, memoryExhausted);
         _pDataCache->release (pList);
-        return NULL;
+        return nullptr;
     }
 
     _pDataCache->release (pList);
@@ -341,20 +344,20 @@ Message * DataStore::getCompleteMessage (const char *pszMsgId)
 
 PtrLList<Message> * DataStore::getCompleteChunks (const char *pszMsgId)
 {
-    if (pszMsgId == NULL || _pDataCache == NULL) {
-        return NULL;
+    if (pszMsgId == nullptr || _pDataCache == nullptr) {
+        return nullptr;
     }
 
     if (!isAllChunksMessageID (pszMsgId)) {
         checkAndLogMsg ("DataStore::getCompleteChunks", Logger::L_Warning,
                         "message id <%s> is not complete\n", pszMsgId);
-        return NULL;
+        return nullptr;
     }
     if (!isOnDemandDataID (pszMsgId)) {
         checkAndLogMsg ("DataStore::getCompleteChunks", Logger::L_Warning,
                         "message id <%s> is not on-demand, therefore it can't be chunked\n",
                         pszMsgId);
-        return NULL;
+        return nullptr;
     }
 
     DArray2<NOMADSUtil::String> fields (3U);
@@ -368,17 +371,17 @@ PtrLList<Message> * DataStore::getCompleteChunks (const char *pszMsgId)
     PtrLList<Message> *pList = _pDataCache->getCompleteMessages (fields[MSG_ID_GROUP],
                                                                  fields[MSG_ID_SENDER],
                                                                  atoui32 (fields[MSG_ID_SEQ_NUM].c_str()));
-    if (pList == NULL) {
+    if (pList == nullptr) {
         checkAndLogMsg ("DataStore::getCompleteChunks", Logger::L_Warning,
                         "could not find any complete message with id <%s>\n", pszMsgId);
-        return NULL;
+        return nullptr;
     }
     Message *pMsg = pList->getFirst();
-    if (pMsg == NULL) {
+    if (pMsg == nullptr) {
         checkAndLogMsg ("DataStore::getCompleteChunks", Logger::L_Warning,
                         "could not find any complete message with id <%s>\n", pszMsgId);
         _pDataCache->release (pList);
-        return NULL;
+        return nullptr;
     }
 
     return pList;
@@ -386,7 +389,7 @@ PtrLList<Message> * DataStore::getCompleteChunks (const char *pszMsgId)
 
 int DataStore::releaseChunks (NOMADSUtil::PtrLList<Message> *pMessages)
 {
-    if (pMessages == NULL || _pDataCache == NULL) {
+    if (pMessages == nullptr || _pDataCache == nullptr) {
         return -1;
     }
 
@@ -395,15 +398,15 @@ int DataStore::releaseChunks (NOMADSUtil::PtrLList<Message> *pMessages)
 
 int DataStore::getData (const char *pszMsgId, void **ppData, uint32 &ui32DataLength)
 {
-    if (pszMsgId == NULL || ppData == NULL) {
+    if (pszMsgId == nullptr || ppData == nullptr) {
         return -1;
     }
-    *ppData = NULL;
+    *ppData = nullptr;
     ui32DataLength = 0;
 
     const void *pBuf = _pDataCache->getData (pszMsgId, ui32DataLength);
-    if (pBuf == NULL) {
-         checkAndLogMsg ("DataStore::getData", Logger::L_Info,
+    if (pBuf == nullptr) {
+         checkAndLogMsg ("DataStore::getData", Logger::L_LowDetailDebug,
                          "no data has been found in the cache %s\n", pszMsgId);
          ui32DataLength = 0;
          return 0;
@@ -414,7 +417,7 @@ int DataStore::getData (const char *pszMsgId, void **ppData, uint32 &ui32DataLen
                         "data found in the cache %s, but it's length is 0.\n", pszMsgId);
         return -2;
     }
-    checkAndLogMsg ("DataStore::getData", Logger::L_Info,
+    checkAndLogMsg ("DataStore::getData", Logger::L_MediumDetailDebug,
                     "data found in the cache %s\n", pszMsgId);
 
     (*ppData) = malloc (ui32DataLength);
@@ -427,7 +430,7 @@ int DataStore::getData (const char *pszMsgId, void **ppData, uint32 &ui32DataLen
 
 bool DataStore::hasData (const char *pszMsgId)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return false;
     }
 
@@ -465,14 +468,14 @@ bool DataStore::hasData (const char *pszMsgId)
             return _pDataCache->hasCompleteMessage (msgId.c_str());
         }
     }
-    // Checking whether a complete (non-chunked) message was received    
+    // Checking whether a complete (non-chunked) message was received
     return _pDataCache->hasCompleteMessage (pszMsgId);
 }
 
 char ** DataStore::getDSProIds (const char *pszObjectId, const char *pszInstanceId)
 {
-    if (pszObjectId == NULL) {
-        return NULL;
+    if (pszObjectId == nullptr) {
+        return nullptr;
     }
     return _pDataCache->getDisseminationServiceIds (pszObjectId, pszInstanceId);
 }
@@ -484,14 +487,14 @@ uint32 DataStore::getNextExpectedSeqId (const char *pszGroupName, const char *ps
 
 bool DataStore::isMetadataMessageStored (const char *pszMsgId)
 {
-    if (pszMsgId == NULL || _pDataCache == NULL) {
-        return NULL;
+    if (pszMsgId == nullptr || _pDataCache == nullptr) {
+        return false;
     }
 
     if (!isAllChunksMessageID (pszMsgId)) {
         checkAndLogMsg ("DataStore::getHeader", Logger::L_Warning,
                         "message id <%s> is not complete\n", pszMsgId);
-        return NULL;
+        return false;
     }
 
     uint8 ui8ChunkId = MessageHeader::UNDEFINED_CHUNK_ID;
@@ -501,7 +504,7 @@ bool DataStore::isMetadataMessageStored (const char *pszMsgId)
     if (rc < 0) {
         checkAndLogMsg ("DataStore::getHeader", Logger::L_Warning,
                         "message id <%s> could not be converted to fields \n", pszMsgId);
-        return NULL;
+        return false;
     }
 
     return _pDataCache->hasCompleteMessage (fields[MSG_ID_GROUP], fields[MSG_ID_SENDER],
@@ -510,8 +513,8 @@ bool DataStore::isMetadataMessageStored (const char *pszMsgId)
 
 PtrLList<MessageHeader> * DataStore::getMessageInfos (const char *pszSQLStatement)
 {
-    if (pszSQLStatement == NULL || _pDataCache == NULL) {
-        return NULL;
+    if (pszSQLStatement == nullptr || _pDataCache == nullptr) {
+        return nullptr;
     }
 
     return _pDataCache->getMessageInfos (pszSQLStatement);
@@ -520,6 +523,11 @@ PtrLList<MessageHeader> * DataStore::getMessageInfos (const char *pszSQLStatemen
 PropertyStoreInterface * DataStore::getPropertyStore (void)
 {
     return _pDataCache->getStorageInterface()->getPropertyStore();
+}
+
+IHMC_MISC::ChunkingManager * DataStore::getChunkingManager (void)
+{
+    return _pDataCache->getChunkingMgr();
 }
 
 void DataStore::lock (void)
@@ -551,32 +559,35 @@ int DisServiceDataStore::insert (const char *pszId, const char *pszObjectId, con
                                  const void *pBuf, uint32 ui32Len, bool bIsMetadata, int64 i64ExpirationTimeout,
                                  uint8 ui8NChunks, uint8 ui8TotNChunks)
 {
-    if (pszId == NULL || pBuf == NULL || ui32Len == 0) {
+    if (pszId == nullptr || pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
     if (ui8NChunks == MessageHeader::UNDEFINED_CHUNK_ID && ui8TotNChunks > 1) {
         return -2;
     }
-    if (ui8NChunks != MessageHeader::UNDEFINED_CHUNK_ID && (ui8TotNChunks == 0 || ui8TotNChunks == 1)) {
+    if (ui8NChunks > 1 && (ui8TotNChunks <= 1)) {
         return -3;
     }
 
     uint32 ui32NewLen = ui32Len;
-    void *pNewData = NULL;
+    void *pNewData = nullptr;
     if (ui8NChunks == MessageHeader::UNDEFINED_CHUNK_ID) {
         // Chunks do not need to be added the header
         ui32NewLen = 0;
         pNewData = MessageHeaders::addDSProHeader (pBuf, ui32Len, bIsMetadata, ui32NewLen);
-        if (pNewData == NULL) {
+        if (pNewData == nullptr) {
             return -4;
         }
     }
 
+    if ((ui8NChunks == 1) && (ui8TotNChunks == 1)) {
+        ui8NChunks = ui8TotNChunks = 0;
+    }
     int rc = DataStore::insert (pszId, pszObjectId, pszInstanceId, pszAnnotatedObjMsgId, pAnnotationMetadata,
                                 ui32AnnotationMetdataLen, pszMimeType, pszChecksum, pszReferredObjectId,
-                                (pNewData == NULL ? pBuf : pNewData), ui32NewLen, bIsMetadata, i64ExpirationTimeout,
+                                (pNewData == nullptr ? pBuf : pNewData), ui32NewLen, bIsMetadata, i64ExpirationTimeout,
                                 ui8NChunks, ui8TotNChunks);
-    if (pNewData != NULL) {
+    if (pNewData != nullptr) {
         free (pNewData);
     }
 
@@ -588,10 +599,10 @@ int DisServiceDataStore::getNumberOfReceivedChunks (const char *pszId, uint8 &ui
 {
     ui8NumberOfChunks = ui8TotalNumberOfChunks = 0;
 
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         return -1;
     }
- 
+
     const char *pszMethodName = "DisServiceDataStore::getNumberOfReceivedChunks";
 
     DArray2<NOMADSUtil::String> fields;
@@ -634,10 +645,10 @@ int DisServiceDataStore::getReceivedChunkIds (const char *pszId, DArray<uint8> &
 {
     ui8TotalNumberOfChunks = 0;
 
-    if (pszId == NULL) {
+    if (pszId == nullptr) {
         return -1;
     }
- 
+
     const char *pszMethodName = "DisServiceDataStore::getReceivedChunkIds";
 
     DArray2<NOMADSUtil::String> fields;
@@ -660,10 +671,10 @@ int DisServiceDataStore::getReceivedChunkIds (const char *pszId, DArray<uint8> &
     PtrLList<MessageHeader> *pChunks = _pDataCache->getCompleteChunkMessageInfos ((const char *) fields[MSG_ID_GROUP],
                                                                                   (const char *) fields[MSG_ID_SENDER],
                                                                                   ui32MsgSeqId);
-    if (pChunks != NULL) {
+    if (pChunks != nullptr) {
         MessageHeader *pNext = pChunks->getFirst();
         MessageHeader *pCurr;
-        for (unsigned int i = 0; (pCurr = pNext) != NULL; i++) {
+        for (unsigned int i = 0; (pCurr = pNext) != nullptr; i++) {
             if (i == 0) {
                 ui8TotalNumberOfChunks = pCurr->getTotalNumberOfChunks();
             }

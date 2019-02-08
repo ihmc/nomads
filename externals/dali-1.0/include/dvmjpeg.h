@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -128,7 +128,7 @@ extern "C" {
  * It is initialized using huffman table data from jpegHdr->ht.
  * This is used internally in JpegScanEncode, but we expose it
  * because it needs malloc and so we let the programmer explicitly
- * allocate and deallocate this structure.  (Plus, if we have 
+ * allocate and deallocate this structure.  (Plus, if we have
  * incremental encoder, we only need to initialized the table once)
  */
 

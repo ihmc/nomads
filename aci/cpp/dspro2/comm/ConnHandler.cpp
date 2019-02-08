@@ -35,29 +35,18 @@
 
 #include <stdlib.h>
 
-#define notifyCtrlMsgCtrl (pCtrlMsgNotifier != NULL) && pCtrlMsgNotifier
+#define notifyCtrlMsgCtrl (pCtrlMsgNotifier != nullptr) && pCtrlMsgNotifier
 
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
-
-ConnHandler::ConnHandler (const AdaptorProperties &adptProp, const char *pszRemotePeerId,
-                          uint16 ui16RemotePeerPort, CommAdaptorListener *pListener)
-    : _adptProp (adptProp), _pListener (pListener),
-      _ui16RemotePeerPort (ui16RemotePeerPort), _remotePeerId (pszRemotePeerId)
-{
-}
-
-ConnHandler::~ConnHandler()
-{
-    requestTermination();
-}
 
 void ConnHandler::run()
 {
     started();
 
-    for (BufferWrapper bw; !terminationRequested();) {
-        char *pszRemotePeerAddr = NULL;
+    BufferWrapper bw;
+    while (!terminationRequested()) {
+        char *pszRemotePeerAddr = nullptr;
         int rc = receive (bw, &pszRemotePeerAddr);
         if (rc > 0) {
             processPacket (bw.getBuffer(), bw.getBufferLength(), pszRemotePeerAddr);
@@ -93,7 +82,7 @@ int ConnHandler::doChunkMessageRequest (const char *pszPublisherId, Reader *pRea
     DArray<uint8> *pCachedChunks;
     if (ui8NChunks > 0) {
         pCachedChunks = new DArray<uint8>();
-        if (pCachedChunks == NULL) {
+        if (pCachedChunks == nullptr) {
             checkAndLogMsg ("ConnHandler::processCtrlPacket", memoryExhausted);
             return -17;
         }
@@ -107,7 +96,7 @@ int ConnHandler::doChunkMessageRequest (const char *pszPublisherId, Reader *pRea
         }
     }
     else {
-        pCachedChunks = NULL;
+        pCachedChunks = nullptr;
     }
 
     _pListener->chunkRequestMessageArrived (_adptProp.uiAdaptorId, _remotePeerId.c_str(),
@@ -115,7 +104,7 @@ int ConnHandler::doChunkMessageRequest (const char *pszPublisherId, Reader *pRea
     if (notifyCtrlMsgCtrl) {
         pCtrlMsgNotifier->chunkRequestMessageArrived (_remotePeerId.c_str(), pszPublisherId);
     }
-    if (pCachedChunks != NULL) {
+    if (pCachedChunks != nullptr) {
         delete pCachedChunks;
     }
 
@@ -126,14 +115,14 @@ ConnHandler::HandshakeResult ConnHandler::doHandshake (ConnEndPoint *pEndPoint, 
                                                        const char *pszSessionId, CommAdaptorListener *pListener)
 {
     HandshakeResult emptyResults ("", "");
-    if (pEndPoint == NULL || pListener == NULL || pszNodeId == NULL) {
+    if (pEndPoint == nullptr || pListener == nullptr || pszNodeId == nullptr) {
         return emptyResults;
     }
 
     const char *pszMethodName = "ConnHandler::doHandshake";
 
     uint32 uiNodeIdLen = strlen (pszNodeId);
-    uint32 uiSessionIdLen = (pszSessionId == NULL ? 0U : strlen (pszSessionId));
+    uint32 uiSessionIdLen = (pszSessionId == nullptr ? 0U : strlen (pszSessionId));
     const String remotePeerAddr = pEndPoint->getRemoteAddress();
     const uint8 ui8RemotePeerAddrLen = remotePeerAddr.length();
     BufferWriter bw ((4 + uiNodeIdLen) + (4 + uiSessionIdLen) + (1 + ui8RemotePeerAddrLen), 0);
@@ -178,8 +167,7 @@ ConnHandler::HandshakeResult ConnHandler::doHandshake (ConnEndPoint *pEndPoint, 
     }
 
     const String remotePeerSessionId (buf + 4, ui32SessionIdLen);
-    const SessionIdChecker sessionIdChecker (pszSessionId);
-    if (!sessionIdChecker.checkSessionId (remotePeerSessionId)) {
+    if (!checkSessionId (remotePeerSessionId)) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "received message from peer "
                         "with wrong session key: %s.\n", remotePeerSessionId.c_str());
         return emptyResults;
@@ -216,7 +204,7 @@ ConnHandler::HandshakeResult ConnHandler::doHandshake (ConnEndPoint *pEndPoint, 
 
 int ConnHandler::doMessageRequest (const char *pszPublisherId, Reader *pReader)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -11;
     }
     uint32 ui32MsgIdLen = 0;
@@ -235,9 +223,9 @@ int ConnHandler::doMessageRequest (const char *pszPublisherId, Reader *pReader)
         pCtrlMsgNotifier->messageRequestMessageArrived (_remotePeerId.c_str(), pszPublisherId);
     }
 
-    if (pszMsgId != NULL) {
+    if (pszMsgId != nullptr) {
         free (pszMsgId);
-        pszMsgId = NULL;
+        pszMsgId = nullptr;
     }
 
     return 0;
@@ -245,14 +233,14 @@ int ConnHandler::doMessageRequest (const char *pszPublisherId, Reader *pReader)
 
 int ConnHandler::doSearchReply (Reader *pReader)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
-    char *pszQueryId = NULL;
-    char *pszQuerier = NULL;
-    char *pszQueryType = NULL;
-    char **ppszMatchingMsgIds = NULL;
-    char *pszMatchingNode = NULL;
+    char *pszQueryId = nullptr;
+    char *pszQuerier = nullptr;
+    char *pszQueryType = nullptr;
+    char **ppszMatchingMsgIds = nullptr;
+    char *pszMatchingNode = nullptr;
 
     if (SearchProperties::read (pszQueryId, pszQuerier, pszQueryType, ppszMatchingMsgIds, pszMatchingNode, pReader) == 0) {
         _pListener->searchReplyMessageArrived (_adptProp.uiAdaptorId, _remotePeerId.c_str(), (const char *)pszQueryId,
@@ -262,22 +250,22 @@ int ConnHandler::doSearchReply (Reader *pReader)
         }
     }
 
-    if (pszQueryId != NULL) {
+    if (pszQueryId != nullptr) {
         free (pszQueryId);
     }
-    if (pszQuerier != NULL) {
+    if (pszQuerier != nullptr) {
         free (pszQuerier);
     }
-    if (pszQueryType != NULL) {
+    if (pszQueryType != nullptr) {
         free (pszQueryType);
     }
-    if (ppszMatchingMsgIds != NULL) {
-        for (unsigned int i = 0; ppszMatchingMsgIds[i] != NULL; i++) {
+    if (ppszMatchingMsgIds != nullptr) {
+        for (unsigned int i = 0; ppszMatchingMsgIds[i] != nullptr; i++) {
             free (ppszMatchingMsgIds[i]);
         }
         free (ppszMatchingMsgIds);
     }
-    if (pszMatchingNode != NULL) {
+    if (pszMatchingNode != nullptr) {
         free (pszMatchingNode);
     }
 
@@ -286,14 +274,14 @@ int ConnHandler::doSearchReply (Reader *pReader)
 
 int ConnHandler::doVolatileSearchReply (Reader *pReader)
 {
-    if (pReader == NULL) {
+    if (pReader == nullptr) {
         return -1;
     }
-    char *pszQueryId = NULL;
-    char *pszQuerier = NULL;
-    char *pszQueryType = NULL;
-    char *pszMatchingNode = NULL;
-    void *pReply = NULL;
+    char *pszQueryId = nullptr;
+    char *pszQuerier = nullptr;
+    char *pszQueryType = nullptr;
+    char *pszMatchingNode = nullptr;
+    void *pReply = nullptr;
     uint16 ui16ReplyLen = 0;
 
     if (SearchProperties::read (pszQueryId, pszQuerier, pszQueryType, pReply, ui16ReplyLen, pszMatchingNode, pReader) == 0) {
@@ -304,19 +292,19 @@ int ConnHandler::doVolatileSearchReply (Reader *pReader)
         }
     }
 
-    if (pszQueryId != NULL) {
+    if (pszQueryId != nullptr) {
         free (pszQueryId);
     }
-    if (pszQuerier != NULL) {
+    if (pszQuerier != nullptr) {
         free (pszQuerier);
     }
-    if (pszQueryType != NULL) {
+    if (pszQueryType != nullptr) {
         free (pszQueryType);
     }
-    if (pReply != NULL) {
+    if (pReply != nullptr) {
         free (pReply);
     }
-    if (pszMatchingNode != NULL) {
+    if (pszMatchingNode != nullptr) {
         free (pszMatchingNode);
     }
 
@@ -325,7 +313,7 @@ int ConnHandler::doVolatileSearchReply (Reader *pReader)
 
 int ConnHandler::processPacket (const void *pBuf, uint32 ui32BufSize, char *pszRemotePeerAddr)
 {
-    if (pBuf == NULL || ui32BufSize == 0 || pszRemotePeerAddr == NULL) {
+    if (pBuf == nullptr || ui32BufSize == 0 || pszRemotePeerAddr == nullptr) {
         return -1;
     }
 
@@ -365,7 +353,7 @@ int ConnHandler::processPacket (const void *pBuf, uint32 ui32BufSize, char *pszR
 int ConnHandler::processCtrlPacket (MessageHeaders::MsgType type, BufferReader &br, const void *pBuf,
                                     uint32 ui32BufSize, unsigned int &uiShift)
 {
-    char *pszPublisherId = NULL;
+    char *pszPublisherId = nullptr;
     uint32 ui32PublisherLen = 0;
     if (br.read32 (&ui32PublisherLen) < 0) {
         return -10;
@@ -374,7 +362,7 @@ int ConnHandler::processCtrlPacket (MessageHeaders::MsgType type, BufferReader &
 
     if (ui32PublisherLen > 0) {
         pszPublisherId = (char *) calloc (ui32PublisherLen+1, sizeof (char));
-        if (pszPublisherId == NULL) {
+        if (pszPublisherId == nullptr) {
             checkAndLogMsg ("ConnHandler::processCtrlPacket", memoryExhausted);
             return -11;
         }
@@ -401,7 +389,7 @@ int ConnHandler::processCtrlPacket (MessageHeaders::MsgType type, BufferReader &
         {
             SearchProperties searchProp;
             BufferReader br (pBufForListener, ui32BufSize-uiShift);
-            if (SearchProperties::read (searchProp, &br) == 0) { 
+            if (SearchProperties::read (searchProp, &br) == 0) {
                 _pListener->searchMessageArrived (_adptProp.uiAdaptorId, _remotePeerId.c_str(),
                                                   &searchProp);
                 if (notifyCtrlMsgCtrl) {
@@ -525,25 +513,27 @@ int ConnHandler::processCtrlPacket (MessageHeaders::MsgType type, BufferReader &
                             "Unknown message arrived\n");
     }
 
-    if (pszPublisherId != NULL) {
+    if (pszPublisherId != nullptr) {
         free (pszPublisherId);
-        pszPublisherId = NULL;
+        pszPublisherId = nullptr;
     }
     return 0;
 }
 
 int ConnHandler::processDataPacket (MessageHeaders::MsgType type, BufferReader &br, uint32 ui32BufSize)
 {
+    const char *pszMethodName = "ConnHandler::processDataPacket";
+
     // Read Message Header
-    MessageHeader *pMH = NULL;
+    MessageHeader *pMH = nullptr;
     if (type == MessageHeaders::ChunkedData) {
         pMH = new ChunkMsgInfo();
     }
     else {
         pMH = new MessageInfo();
     }
-    if (pMH == NULL) {
-        checkAndLogMsg ("ConnHandler::processDataPacket", memoryExhausted);
+    if (pMH == nullptr) {
+        checkAndLogMsg (pszMethodName, memoryExhausted);
         return -4;
     }
 
@@ -559,8 +549,8 @@ int ConnHandler::processDataPacket (MessageHeaders::MsgType type, BufferReader &
     }
 
     void *pDataPayload = calloc (ui32PayloadLen, 1);
-    if (pDataPayload == NULL) {
-        checkAndLogMsg ("ConnHandler::processDataPacket", memoryExhausted);
+    if (pDataPayload == nullptr) {
+        checkAndLogMsg (pszMethodName, memoryExhausted);
         delete pMH;
         return -7;
     }
@@ -570,7 +560,7 @@ int ConnHandler::processDataPacket (MessageHeaders::MsgType type, BufferReader &
     MessageProperties msgProp (pMH->getPublisherNodeId(), pMH->getLargeObjectId(),
                                pMH->getObjectId(), pMH->getInstanceId(),
                                pMH->getAnnotates(), pAnnotationMetadataBuf, ui32AnnotationMetadataLen,
-                               pMH->getMimeType(), pMH->getChecksum(), NULL, pMH->getExpiration());
+                               pMH->getMimeType(), pMH->getChecksum(), nullptr, pMH->getExpiration());
 
     if (pMH->isChunk()) {
         if (br.readBytes (pDataPayload, ui32PayloadLen) < 0) {
@@ -580,8 +570,8 @@ int ConnHandler::processDataPacket (MessageHeaders::MsgType type, BufferReader &
         }
         ChunkMsgInfo *pCMI = (ChunkMsgInfo*) pMH;
 
-        checkAndLogMsg ("ConnHandler::processDataPacket", Logger::L_Info,
-                        "received message chunk with id %s,\n", pMH->getMsgId());
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "received message "
+                        "chunk with id %s, \n", pMH->getMsgId());
 
         _pListener->dataArrived (&_adptProp, &msgProp, pDataPayload,
                                  ui32PayloadLen, pMH->getChunkId(),
@@ -602,21 +592,20 @@ int ConnHandler::processDataPacket (MessageHeaders::MsgType type, BufferReader &
         }
 
         if (ui8Type == MessageHeaders::Data) {
-            checkAndLogMsg ("ConnHandler::processDataPacket", Logger::L_Info,
+            checkAndLogMsg (pszMethodName, Logger::L_Info,
                             "received message with id %s,\n", pMH->getMsgId());
             _pListener->dataArrived (&_adptProp, &msgProp, pDataPayload,
                                      ui32PayloadLen, 0, 0);
         }
         else if (ui8Type == MessageHeaders::Metadata) {
-            checkAndLogMsg ("ConnHandler::processDataPacket", Logger::L_Info,
+            checkAndLogMsg (pszMethodName, Logger::L_Info,
                             "received metadata message with id %s,\n", pMH->getMsgId());
 
             _pListener->metadataArrived (&_adptProp, &msgProp, pDataPayload,
-                                         ui32PayloadLen, NULL);
+                                         ui32PayloadLen, nullptr);
         }
         else {
-            checkAndLogMsg ("ConnHandler::processDataPacket", Logger::L_Warning,
-                            "can't parse data message\n");
+            checkAndLogMsg (pszMethodName, Logger::L_Warning, "can't parse data message\n");
             delete pMH;
             free (pDataPayload);
             return -11;
@@ -630,25 +619,25 @@ int ConnHandler::processDataPacket (MessageHeaders::MsgType type, BufferReader &
 
 ConnHandler::BufferWrapper::BufferWrapper (void)
 {
-    _pBuf = NULL;
+    _pBuf = nullptr;
     _ui32BufSize = 0L;
     _bDeleteWhenDone = false;
 }
 
 ConnHandler::BufferWrapper::~BufferWrapper (void)
 {
-    if (_bDeleteWhenDone && _pBuf != NULL) {
+    if (_bDeleteWhenDone && _pBuf != nullptr) {
         free (_pBuf);
-        _pBuf = NULL;
+        _pBuf = nullptr;
         _ui32BufSize = 0U;
     }
 }
 
 int ConnHandler::BufferWrapper::init (void *pBuf, uint32 ui32BufSize, bool bDeleteWhenDone)
 {
-    if (_bDeleteWhenDone && _pBuf != NULL) {
+    if (_bDeleteWhenDone && _pBuf != nullptr) {
         free (_pBuf);
-        _pBuf = NULL;
+        _pBuf = nullptr;
         _ui32BufSize = 0U;
     }
     _pBuf = pBuf;

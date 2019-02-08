@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -97,7 +97,7 @@ void ReceivedMessages::construct()
 
 int64 ReceivedMessages::getGrpPubRowId (const char *pszGroupName,
                                         const char *pszPublisherNodeId)
-{    
+{
     if (!bind (pszGroupName, pszPublisherNodeId, _psqlSelectGrpPubRowId)) {
         return -1;
     }
@@ -121,13 +121,13 @@ int64 ReceivedMessages::getGrpPubRowId (const char *pszGroupName,
 int ReceivedMessages::init()
 {
     const char *pszMethodName = "ReceivedMessages::init";
-    Database *pDB = Database::getDatabase (Database::SQLite);
+    DatabasePtr *pDB = Database::getDatabase (Database::SQLite);
     if (pDB == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                         "Database::getDatabase returned NULL pointer.\n");
         return -1;
     }
-    if (pDB->open (_pszStorageFile) != 0) {
+    if ((*pDB)->open (_pszStorageFile) != 0) {
         return -2;
     }
 
@@ -140,7 +140,7 @@ int ReceivedMessages::init()
                +           GRP_NAME + " TEXT, "
                +           PUBLISHER_NODE_ID + " TEXT, "
                +           "UNIQUE (" + GRP_NAME + ", " + PUBLISHER_NODE_ID + "));";
-    if (pDB->execute (sql.c_str()) != 0) {
+    if ((*pDB)->execute (sql.c_str()) != 0) {
         _m.unlock();
         return -3;
     }
@@ -150,7 +150,7 @@ int ReceivedMessages::init()
                +    GROUP_AND_PUBLISHER_ID + " INTEGER, "
                +    "FOREIGN KEY (" + GROUP_AND_PUBLISHER_ID + ") REFERENCES " + TABLE_GROUP_AND_PUBLISHER + "(" + GROUP_AND_PUBLISHER_ROW_ID + "), "
                +    "UNIQUE (" + MESSAGE_SEQUENCE_ID + ", " + GROUP_AND_PUBLISHER_ID + "));";
-    if (pDB->execute (sql.c_str()) != 0) {
+    if ((*pDB)->execute (sql.c_str()) != 0) {
         _m.unlock();
         return -4;
     }
@@ -159,7 +159,7 @@ int ReceivedMessages::init()
 
     sql = (String) "INSERT INTO " + TABLE_GROUP_AND_PUBLISHER
         +          " (" + GRP_NAME + "," + PUBLISHER_NODE_ID + ") VALUES (?,?);";
-    _psqlInsertGrpPub = pDB->prepare (sql.c_str());
+    _psqlInsertGrpPub = (*pDB)->prepare (sql.c_str());
     if (_psqlInsertGrpPub == NULL) {
         _m.unlock();
         return -5;
@@ -167,7 +167,7 @@ int ReceivedMessages::init()
 
     sql = (String) "INSERT INTO " + MESSAGE_SEQUENCE_ID_TABLE
         +          " (" + MESSAGE_SEQUENCE_ID + ", " + GROUP_AND_PUBLISHER_ID + ") VALUES (?,?);";
-    _psqlInsertMsgSeqId = pDB->prepare (sql.c_str());
+    _psqlInsertMsgSeqId = (*pDB)->prepare (sql.c_str());
     if (_psqlInsertMsgSeqId == NULL) {
         _m.unlock();
         return -6;
@@ -181,7 +181,7 @@ int ReceivedMessages::init()
          +         " AND "    + MESSAGE_SEQUENCE_ID + " = ?3 "
          +         " AND "    + TABLE_GROUP_AND_PUBLISHER + "." + GROUP_AND_PUBLISHER_ROW_ID + " = "
                               + MESSAGE_SEQUENCE_ID_TABLE + "." + GROUP_AND_PUBLISHER_ID +";";
-    _psqlSelectGrpPubSeqCount = pDB->prepare (sql.c_str());
+    _psqlSelectGrpPubSeqCount = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectGrpPubSeqCount == NULL) {
         _m.unlock();
         return -7;
@@ -194,7 +194,7 @@ int ReceivedMessages::init()
          +         " AND "    + MESSAGE_SEQUENCE_ID + " = ?3 "
          +         " AND "    + TABLE_GROUP_AND_PUBLISHER + "." + GROUP_AND_PUBLISHER_ROW_ID + " = "
                               + MESSAGE_SEQUENCE_ID_TABLE + "." + GROUP_AND_PUBLISHER_ID +";";
-    _psqlSelectGrpPubSeq = pDB->prepare (sql.c_str());
+    _psqlSelectGrpPubSeq = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectGrpPubSeq == NULL) {
         _m.unlock();
         return -8;
@@ -206,7 +206,7 @@ int ReceivedMessages::init()
          +         " AND "    + PUBLISHER_NODE_ID + " = ?2 "
          +         " AND "    + TABLE_GROUP_AND_PUBLISHER + "." + GROUP_AND_PUBLISHER_ROW_ID + " = "
                               + MESSAGE_SEQUENCE_ID_TABLE + "." + GROUP_AND_PUBLISHER_ID +";";
-    _psqlSelectGrpPubSeqMax = pDB->prepare (sql.c_str());
+    _psqlSelectGrpPubSeqMax = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectGrpPubSeqMax == NULL) {
         _m.unlock();
         return -7;
@@ -217,7 +217,7 @@ int ReceivedMessages::init()
          +         " WHERE "  + TABLE_GROUP_AND_PUBLISHER + "." + GROUP_AND_PUBLISHER_ROW_ID + " = "
                               + MESSAGE_SEQUENCE_ID_TABLE + "." + GROUP_AND_PUBLISHER_ID + " "
          +         " ORDER BY " + GRP_NAME + ", " + PUBLISHER_NODE_ID + ";";
-    _psqlSelectGrpPubSeqAll = pDB->prepare (sql.c_str());
+    _psqlSelectGrpPubSeqAll = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectGrpPubSeqAll == NULL) {
         _m.unlock();
         return -9;
@@ -227,7 +227,7 @@ int ReceivedMessages::init()
          +         " FROM "   + TABLE_GROUP_AND_PUBLISHER
          +         " WHERE "  + GRP_NAME + " = ?1 "
          +         " AND "    + PUBLISHER_NODE_ID + " = ?2;";
-    _psqlSelectGrpPubRowId = pDB->prepare (sql.c_str());
+    _psqlSelectGrpPubRowId = (*pDB)->prepare (sql.c_str());
     if (_psqlSelectGrpPubRowId == NULL) {
         _m.unlock();
         return -10;
@@ -298,7 +298,7 @@ int ReceivedMessages::contains (const char *pszGroupName, const char *pszPublish
     }
 
     bContains = _psqlSelectGrpPubSeq->next (NULL);
-   
+
     _psqlSelectGrpPubSeq->reset();
     _m.unlock();
     return 0;
@@ -348,7 +348,7 @@ StringHashtable<ReceivedMessages::ReceivedMsgsByGrp> * ReceivedMessages::getRece
         return NULL;
     }
 
-    StringHashtable<ReceivedMessages::ReceivedMsgsByGrp> *pMsgs = NULL;   
+    StringHashtable<ReceivedMessages::ReceivedMsgsByGrp> *pMsgs = NULL;
     while (_psqlSelectGrpPubSeqAll->next (pRow)) {
         if (pMsgs == NULL) {
             pMsgs = new StringHashtable<ReceivedMessages::ReceivedMsgsByGrp>();

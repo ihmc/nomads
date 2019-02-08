@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -12,7 +12,7 @@
  *
  * mpegaudio.c
  *
- * Functions that manipulate Mpeg Audio 
+ * Functions that manipulate Mpeg Audio
  *
  *----------------------------------------------------------------------
  */
@@ -2007,7 +2007,7 @@ MpegAudioL3Parse(bp, abp, hdr, data)
     BitParserSeek(abp, 0);
 
     /*
-       if (buf->lastByte + num_of_slots >= 4096 ) 
+       if (buf->lastByte + num_of_slots >= 4096 )
        fprintf(stderr, "danger. danger. buffer overflow.\n");
 
        currbuf = &(buf->buffer[buf->lastByte]);
@@ -2060,11 +2060,11 @@ MpegAudioL3Parse(bp, abp, hdr, data)
    for (i = 0; i < 8206; i++)
    base_table[i] = pow(i, (double)4/3);
 
-   for (p = 0; p < 12; p++) 
-   for (m = 0; m < 6; m++) 
+   for (p = 0; p < 12; p++)
+   for (m = 0; m < 6; m++)
    cos_table_long[p][m] = cos (MY_PI/24 * (2*p+7)*(2*m+1));
-   for (p = 0; p < 36; p++) 
-   for (m = 0; m < 18; m++) 
+   for (p = 0; p < 36; p++)
+   for (m = 0; m < 18; m++)
    cos_table_short[p][m] = cos (MY_PI/72 * (((2*p+19) * (2*m+1)) % 144));
    for (i = 0; i < 36; i++)
    sin_window[0][i] = sin (MY_PI / 36.0 * (i + 0.5));
@@ -2094,7 +2094,7 @@ MpegAudioL3Parse(bp, abp, hdr, data)
 
    for (i = 0; i < 64; i++)
    for (m = 0; m < 32; m++)  {
-   if ((filter_table[i][m] = 
+   if ((filter_table[i][m] =
    1e9*cos((double)((MY_PI/64*i + MY_PI/4)*(2*m + 1)))))
    modf (filter_table[i][m] + 0.5, &filter_table[i][m]);
    else

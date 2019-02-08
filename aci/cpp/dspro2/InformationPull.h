@@ -22,6 +22,7 @@
 
 #include "MatchmakingIntrumentation.h"
 
+#include "DArray2.h"
 #include "FTypes.h"
 #include "PtrLList.h"
 #include "StringHashtable.h"
@@ -32,13 +33,17 @@ namespace NOMADSUtil
     class Writer;
 }
 
+namespace IHMC_VOI
+{
+    struct MetadataRankerLocalConfiguration;
+    struct Rank;
+}
+
 namespace IHMC_ACI
 {
     class InformationStore;
     class MetaData;
-    struct MetadataRankerLocalConfiguration;
     class NodeContextManager;
-    struct Rank;
 
     class InformationPull
     {
@@ -50,7 +55,7 @@ namespace IHMC_ACI
             static const char * ENFORCE_TIMING_PROPERTY;
             static const char * LIMIT_PRESTAGING_TO_LOCAL_DATA_PROPERTY;
 
-            InformationPull (const char *pszNodeId, MetadataRankerLocalConfiguration *pMetaDataRankerLocalConf,
+            InformationPull (const char *pszNodeId, IHMC_VOI::MetadataRankerLocalConfiguration *pMetaDataRankerLocalConf,
                              NodeContextManager *pNodeContextManager, InformationStore *pInformationStore,
                              float infoPullRankThreashold);
             virtual ~InformationPull (void);
@@ -69,9 +74,9 @@ namespace IHMC_ACI
             /**
              * Returns the list of the peers to send the message to.
              */
-            const char ** remoteSearchForMetadata (NOMADSUtil::Writer *pWriter, const char *pszGroupName, const char **ppszReferencedDataIDs);
-            const char ** remoteSearchForMetadata (NOMADSUtil::Writer *pWriter, const char *pszGroupName, const char *pszReferencedDataID);
-            const char ** remoteSearch (NOMADSUtil::Writer *pWriter, const char *pszGroupName, const char *pszQuery);
+            NOMADSUtil::DArray2<NOMADSUtil::String> * remoteSearchForMetadata (NOMADSUtil::Writer *pWriter, const char *pszGroupName, const char **ppszReferencedDataIDs);
+            NOMADSUtil::DArray2<NOMADSUtil::String> * remoteSearchForMetadata (NOMADSUtil::Writer *pWriter, const char *pszGroupName, const char *pszReferencedDataID);
+            NOMADSUtil::DArray2<NOMADSUtil::String> * remoteSearch (NOMADSUtil::Writer *pWriter, const char *pszGroupName, const char *pszQuery);
 
             /**
              * pData is the payload of the ControllerToController message, and
@@ -90,7 +95,7 @@ namespace IHMC_ACI
             const NOMADSUtil::String _nodeId;
             NodeContextManager *_pNodeContextManager;
             InformationStore *_pInformationStore;
-            MetadataRankerLocalConfiguration *_pMetaDataRankerLocalConf;
+            IHMC_VOI::MetadataRankerLocalConfiguration *_pMetaDataRankerLocalConf;
             NOMADSUtil::StringHashtable<uint32> _latestSearchIdRcvdByPeer;
     };
 }

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -34,7 +34,7 @@ using namespace NOMADSUtil;
 WorldStateForwardingController::WorldStateForwardingController (DisseminationService *pDisService)
     : ForwardingController (FC_WS, pDisService)
 {
-}        
+}
 
 WorldStateForwardingController::~WorldStateForwardingController()
 {
@@ -54,13 +54,13 @@ void WorldStateForwardingController::newLinkToNeighbor (const char *pszNodeUID,
                                                         const char *pszPeerRemoteAddr,
                                                         const char *pszIncomingInterface)
 {
-    
+
 }
 
 void WorldStateForwardingController::droppedLinkToNeighbor (const char *pszNodeUID,
                                                             const char *pszPeerRemoteAddr)
 {
-    
+
 }
 
 void WorldStateForwardingController::stateUpdateForPeer (const char *pszNodeUID, PeerStateUpdateInterface *pUpdate)
@@ -77,7 +77,7 @@ void WorldStateForwardingController::newIncomingMessage (const void *pMsgMetaDat
     if (pDSMsg->getType() != DisServiceMsg::DSMT_Data) {
         return;
     }
-    DisServiceDataMsg *pDSDMsg = (DisServiceDataMsg*)pDSMsg;     
+    DisServiceDataMsg *pDSDMsg = (DisServiceDataMsg*)pDSMsg;
     MessageHeader *pMH = pDSDMsg->getMessageHeader();
     const char *pszActualSenderNodeId = pDSDMsg->getSenderNodeId();
     const char *pForwardingTarget = NULL;       // Fix this

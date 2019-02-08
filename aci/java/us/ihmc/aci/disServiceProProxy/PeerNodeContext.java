@@ -1,6 +1,8 @@
 package us.ihmc.aci.disServiceProProxy;
 
-import java.util.logging.Logger;
+import java.nio.charset.StandardCharsets;
+
+import us.ihmc.aci.util.dspro.LogUtils;
 import us.ihmc.comm.CommHelper;
 import us.ihmc.util.StringUtil;
 
@@ -46,21 +48,21 @@ public class PeerNodeContext
 
         try {
             int len;
-            nodeID = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len)) : null;
-            teamID = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len)) : null;
-            missionID = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len)) : null;
-            role = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len)) : null;
+            nodeID = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len), StandardCharsets.UTF_8) : null;
+            teamID = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len), StandardCharsets.UTF_8) : null;
+            missionID = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len), StandardCharsets.UTF_8) : null;
+            role = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len), StandardCharsets.UTF_8) : null;
             isPeerActive = (commHelper.read8() == 1 ? true : false);
             usefulDistance = commHelper.read32();
             currWayPointInPath = commHelper.read32();
-            matchmakingFilter = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len)) : null;
+            matchmakingFilter = ((len = commHelper.read32()) > 0) ? new String (commHelper.receiveBlob(len), StandardCharsets.UTF_8) : null;
             currInformationVersion = commHelper.read16();
             currPathVersion = commHelper.read16();
             currWayPointVersion = commHelper.read16();
             classifierVersion = commHelper.read16();
         }
         catch (Exception e) {
-            _LOGGER.severe (StringUtil.getStackTraceAsString (e));
+            _LOGGER.warn (StringUtil.getStackTraceAsString (e));
         }
 
         return new PeerNodeContext (nodeID, teamID, missionID, role,  matchmakingFilter, currInformationVersion,
@@ -82,5 +84,5 @@ public class PeerNodeContext
     public int _usefulDistance;
     public boolean _isPeerActive;
 
-    private static final Logger _LOGGER = Logger.getLogger (PeerNodeContext.class.getName());
+    private static final org.slf4j.Logger _LOGGER = LogUtils.getLogger(PeerNodeContext.class);
 }

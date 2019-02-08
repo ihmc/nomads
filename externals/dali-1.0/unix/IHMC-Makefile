@@ -3,7 +3,7 @@ all: checkMakefile libdali
 checkMakefile: 
 	if test -e ./Makefile; \
                 then echo Makefile exists; \
-                else (chmod +x configure; CXXFLAGS="-fPIC" ./configure); \
+                else (chmod +x configure; CXXFLAGS="-fPIC"; CFLAGS="-fPIC" ./configure); \
         fi
 
 libdali: checkMakefile

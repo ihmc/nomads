@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -81,7 +81,7 @@ int Analytics::init()
     //           +          "WHERE " + pszTArrival + " > " + tWin + " ) "
         +          "GROUP BY " + pszGrp + ";";
 
-    _pGetSubscriptionStats = _pDB->prepare ((const char *)sql);
+    _pGetSubscriptionStats = (*_pDB)->prepare ((const char *)sql);
     if (_pGetSubscriptionStats != NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_Info,
                         "Preparing statement for insert query into the main table\n<%s>\nrun successfully\n",
@@ -90,7 +90,7 @@ int Analytics::init()
     else {
         checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                         "Preparing statement for insert query into the main table\n<%s>\nfailed\n",
-                        (const char *)sql); 
+                        (const char *)sql);
         _pGetSubscriptionStats = NULL;
         return -1;
     }
@@ -111,7 +111,7 @@ int Analytics::init()
 
     query = (String) sql + "(" + messages + ");";
 
-    _pPercRcvdBytes = _pDB->prepare ((const char *) query);
+    _pPercRcvdBytes = (*_pDB)->prepare ((const char *) query);
     if (_pPercRcvdBytes != NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_Info,
                         "Preparing statement for insert query into the main table\n<%s>\nrun successfully\n",
@@ -130,7 +130,7 @@ int Analytics::init()
     messages += (String) "AND " + pszSender + " = ? "; // Add condition
     query = (String) sql + "(" + messages + ");";
 
-    _pPercRcvdBytesByGrpSdr = _pDB->prepare ((const char *)query);
+    _pPercRcvdBytesByGrpSdr = (*_pDB)->prepare ((const char *)query);
     if (_pPercRcvdBytesByGrpSdr != NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_Info,
                         "Preparing statement for insert query into the main table\n<%s>\nrun successfully\n",
@@ -144,12 +144,11 @@ int Analytics::init()
         return -1;
     }
 
-    // ---
 
     messages += (String) "AND " + pszMsgSeqID + " = ? "; // Add condition
     query = (String) sql + "(" + messages + ");";
 
-    _pPercRcvdBytes = _pDB->prepare ((const char *) query);
+    _pPercRcvdBytes = (*_pDB)->prepare ((const char *) query);
     if (_pPercRcvdBytes != NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_Info,
                         "Preparing statement for insert query into the main table\n<%s>\nrun successfully\n",

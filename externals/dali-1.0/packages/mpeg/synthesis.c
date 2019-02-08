@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -12,7 +12,7 @@
  *
  * mpegaudio.c
  *
- * Functions that manipulate Mpeg Audio 
+ * Functions that manipulate Mpeg Audio
  *
  *----------------------------------------------------------------------
  */
@@ -26,7 +26,7 @@ extern double filter_table[64][32];
 // extern double decode_window[512];
 extern double decode_window[512];
 
-void 
+void
 SubBandSynthesis(syndata, fraction, pcm)
     MpegAudioSynData *syndata;
     double *fraction;
@@ -121,7 +121,7 @@ SubBandSynthesis(syndata, fraction, pcm)
            **pcm = 32767;
            else if (sum < -134217728)
            **pcm = -32768;
-           else 
+           else
            **pcm = ((long)sum)/4096 ; // div by 4096
          */
         longpcm = (int) (sum * 32768);

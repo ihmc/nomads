@@ -185,9 +185,6 @@
     <ClCompile Include="..\packages\basic\scarith.c">
       <Filter>Source Files\basic</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\packages\basic\sctobyte.c">
-      <Filter>Source Files\basic</Filter>
-    </ClCompile>
     <ClCompile Include="..\packages\basic\vector.c">
       <Filter>Source Files\basic</Filter>
     </ClCompile>
@@ -265,6 +262,9 @@
     </ClCompile>
     <ClCompile Include="..\packages\mpeg\tables.c">
       <Filter>Source Files\mpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\packages\basic\sctobyte.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

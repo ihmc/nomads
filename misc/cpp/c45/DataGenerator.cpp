@@ -3,7 +3,7 @@
  *
  * This file is part of the IHMC Misc Library
  * Copyright (c) IHMC. All Rights Reserved.
- * 
+ *
  * Usage restricted to not-for-profit use only.
  * Contact IHMC for other types of licenses.
  */
@@ -876,7 +876,7 @@ int DataGenerator::configureGenerator(const char * fileName)
 		strcat(_pszErrorMessage, "error: the passed file name is a NULL pointer. Unable to configure the data generator. \0");
         if(pLogger) pLogger->logMsg("DataGenerator::configureGenerator", Logger::L_MildError,
             "%s\n", _pszErrorMessage);
-		return -1; 
+		return -1;
 	}
 	FILE * pDFile;
 	if(!(pDFile = fopen(fileName, "r"))) {

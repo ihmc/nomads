@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -31,7 +31,7 @@
 
 /*
  *--------------------------------------------------------------------
- * Interface functions for motion vector searching 
+ * Interface functions for motion vector searching
  *
  * Jiesang Song     Aug 98
  *---------------------------------------------------------------------
@@ -45,7 +45,7 @@
     (curr_vector)->right = r;\
 }
 
-static void 
+static void
 COPY_LUMBLOCK(currentBlock, blockStartPos, byteImage)
     LumBlock currentBlock;
     unsigned char *blockStartPos;

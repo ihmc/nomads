@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -465,7 +465,7 @@ uint8 ConfigFileReader::getMemoryFactor()
                         "Memory factor set to <%d>.\n", iValue);
         return intToUI8 ("getMemoryFactor", iValue);
     }
-    return DisseminationService::DEFAULT_MEMORY_FACTOR;    
+    return DisseminationService::DEFAULT_MEMORY_FACTOR;
 }
 
 uint8 ConfigFileReader::getNumOfClasses()
@@ -596,7 +596,7 @@ char ** ConfigFileReader::parseNetIFs (const char *pszPropertyValue)
 bool ConfigFileReader::getSubscriptionsExchangeEnabled (void)
 {
     const char *pszPropertyName = "aci.disService.worldstate.subscriptionsExchange.enabled";
-    bool bEnabled = _pCfgMgr->getValueAsBool (pszPropertyName, 
+    bool bEnabled = _pCfgMgr->getValueAsBool (pszPropertyName,
                                               DisseminationService::DEFAULT_SUBSCRIPTIONS_EXCHANGE_ENABLED);
     checkAndLogMsg ("ConfigFileReader::getSubscriptionsExchangeEnabled", Logger::L_Info,
                     "Subscriptions exchange %s.\n" , bEnabled ? "enabled" : "disabled");
@@ -611,10 +611,10 @@ uint32 ConfigFileReader::getSubscriptionsExchangePeriod (void)
         if (_pCfgMgr->hasValue (pszPropertyName)) {
             ui32Ret = _pCfgMgr->getValueAsUInt32 (pszPropertyName);
         }
-        else { 
+        else {
             ui32Ret = DisseminationService::DEFAULT_SUBSCRIPTIONS_EXCHANGE_PERIOD;
         }
-        checkAndLogMsg ("ConfigFileReader::getSubscriptionsExchangePeriod", Logger::L_Info, 
+        checkAndLogMsg ("ConfigFileReader::getSubscriptionsExchangePeriod", Logger::L_Info,
                         "Subscriptions exchange period set to <%d>.\n" , ui32Ret);
     }
     return ui32Ret;
@@ -623,9 +623,9 @@ uint32 ConfigFileReader::getSubscriptionsExchangePeriod (void)
 bool ConfigFileReader::getTopologyExchangeEnabled (void)
 {
     const char *pszPropertyName = "aci.disService.worldstate.topologyExchange.enabled";
-    bool bEnabled = _pCfgMgr->getValueAsBool (pszPropertyName, 
+    bool bEnabled = _pCfgMgr->getValueAsBool (pszPropertyName,
                                               DisseminationService::DEFAULT_TOPOLOGY_EXCHANGE_ENABLED);
-    checkAndLogMsg ("ConfigFileReader::getTopologyExchangeEnabled", Logger::L_Info, 
+    checkAndLogMsg ("ConfigFileReader::getTopologyExchangeEnabled", Logger::L_Info,
                     "Topology exchange %s.\n" , bEnabled ? "enabled" : "disabled");
     return bEnabled;
 }
@@ -637,10 +637,10 @@ uint32 ConfigFileReader::getTopologyExchangePeriod (void)
     if (getTopologyExchangeEnabled()) {
         if (_pCfgMgr->hasValue (pszPropertyName)) {
             ui32Ret = _pCfgMgr->getValueAsUInt32 (pszPropertyName);
-        } else { 
+        } else {
             ui32Ret = DisseminationService::DEFAULT_TOPOLOGY_EXCHANGE_PERIOD;
         }
-        checkAndLogMsg ("ConfigFileReader::getTopologyExchangePeriod", Logger::L_Info, 
+        checkAndLogMsg ("ConfigFileReader::getTopologyExchangePeriod", Logger::L_Info,
                         "Topology exchange period set to <%d>.\n" , ui32Ret);
     }
     return ui32Ret;
@@ -648,7 +648,7 @@ uint32 ConfigFileReader::getTopologyExchangePeriod (void)
 
 float ConfigFileReader::getProbContact (void)
 {
-    const char *pszPropertyName = "aci.disService.topology.prob_contact"; 
+    const char *pszPropertyName = "aci.disService.topology.prob_contact";
     float fRet;
     if (getTopologyExchangeEnabled()) {
         if (_pCfgMgr->hasValue (pszPropertyName)) {
@@ -656,7 +656,7 @@ float ConfigFileReader::getProbContact (void)
         } else {
             fRet = DisseminationService::DEFAULT_PROB_CONTACT;
         }
-        checkAndLogMsg ("ConfigFileReader::getProbContact", Logger::L_Info, 
+        checkAndLogMsg ("ConfigFileReader::getProbContact", Logger::L_Info,
                         "Prob contact set to <%f>.\n", fRet);
     }
     return fRet;
@@ -664,7 +664,7 @@ float ConfigFileReader::getProbContact (void)
 
 float ConfigFileReader::getProbThreshold (void)
 {
-    const char *pszPropertyName = "aci.disService.topology.prob_threshold"; 
+    const char *pszPropertyName = "aci.disService.topology.prob_threshold";
     float fRet;
     if (getTopologyExchangeEnabled()) {
         if (_pCfgMgr->hasValue (pszPropertyName)) {
@@ -672,7 +672,7 @@ float ConfigFileReader::getProbThreshold (void)
         } else {
             fRet = DisseminationService::DEFAULT_PROB_THRESHOLD;
         }
-        checkAndLogMsg ("ConfigFileReader::getProbThreshold", Logger::L_Info, 
+        checkAndLogMsg ("ConfigFileReader::getProbThreshold", Logger::L_Info,
                         "Prob threshold set to <%f>.\n", fRet);
     }
     return fRet;
@@ -680,7 +680,7 @@ float ConfigFileReader::getProbThreshold (void)
 
 float ConfigFileReader::getAddParam (void)
 {
-    const char *pszPropertyName = "aci.disService.topology.add_param"; 
+    const char *pszPropertyName = "aci.disService.topology.add_param";
     float fRet;
     if (getTopologyExchangeEnabled()) {
         if (_pCfgMgr->hasValue (pszPropertyName)) {
@@ -688,7 +688,7 @@ float ConfigFileReader::getAddParam (void)
         } else {
             fRet = DisseminationService::DEFAULT_ADD_PARAM;
         }
-        checkAndLogMsg ("ConfigFileReader::getAddParam", Logger::L_Info, 
+        checkAndLogMsg ("ConfigFileReader::getAddParam", Logger::L_Info,
                         "Add param set to <%f>.\n", fRet);
     }
     return fRet;
@@ -696,7 +696,7 @@ float ConfigFileReader::getAddParam (void)
 
 float ConfigFileReader::getAgeParam (void)
 {
-    const char *pszPropertyName = "aci.disService.topology.age_param"; 
+    const char *pszPropertyName = "aci.disService.topology.age_param";
     float fRet;
     if (getTopologyExchangeEnabled()) {
         if (_pCfgMgr->hasValue (pszPropertyName)) {
@@ -704,7 +704,7 @@ float ConfigFileReader::getAgeParam (void)
         } else {
             fRet = DisseminationService::DEFAULT_AGE_PARAM;
         }
-        checkAndLogMsg ("ConfigFileReader::getAgeParam", Logger::L_Info, 
+        checkAndLogMsg ("ConfigFileReader::getAgeParam", Logger::L_Info,
                         "Age param set to <%f>.\n", fRet);
     }
     return fRet;

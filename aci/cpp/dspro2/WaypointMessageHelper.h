@@ -1,4 +1,4 @@
-/* 
+/*
  * WaypointMessageHelper.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,9 +21,8 @@
  */
 
 #ifndef INCL_WAYPOINT_MESSAGE_HELPER_H
-#define	INCL_WAYPOINT_MESSAGE_HELPER_H
+#define INCL_WAYPOINT_MESSAGE_HELPER_H
 
-#include "Defs.h"
 #include "PreviousMessageIds.h"
 
 namespace IHMC_ACI
@@ -40,5 +39,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_WAYPOINT_MESSAGE_HELPER_H */
-
+#endif    /* INCL_WAYPOINT_MESSAGE_HELPER_H */

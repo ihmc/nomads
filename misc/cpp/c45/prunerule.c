@@ -221,7 +221,7 @@ void FindTables(short NCond, ClassNo TargetClass)
     ForEach(d, 0, NCond) {
 		Total[d] = Errors[d] = 0;
     }
-    // Set distributions 
+    // Set distributions
     ForEach(i, 0, MaxItem) {
 		Misses = 0;
 		CorrectClass = IsTarget(Item[i]);

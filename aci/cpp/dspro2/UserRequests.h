@@ -1,4 +1,4 @@
-/* 
+/*
  * UserRequests.h
  *
  * Cache to memorize the data that was explicitely requested by the user
@@ -23,7 +23,7 @@
  */
 
 #ifndef INCL_REQUESTED_DATA_CACHE_H
-#define	INCL_REQUESTED_DATA_CACHE_H
+#define INCL_REQUESTED_DATA_CACHE_H
 
 #include "LoggingMutex.h"
 #include "RangeDLList.h"
@@ -79,5 +79,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* INCL_REQUESTED_DATA_CACHE_H */
-
+#endif    /* INCL_REQUESTED_DATA_CACHE_H */

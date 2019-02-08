@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -55,7 +55,7 @@ namespace IHMC_ACI
             void requestTerminationAndWait (void);
 
     private:
-            NOMADSUtil::TCPSocket *_pServerSock;			
+            NOMADSUtil::TCPSocket *_pServerSock;
             DisseminationService *_pDissSvc;
 
         private:
@@ -67,7 +67,7 @@ namespace IHMC_ACI
 
     class DSProxyServerConnHandler : public NOMADSUtil::ManageableThread
     {
-        public: 
+        public:
             DSProxyServerConnHandler (DisseminationServiceProxyServer *pDSPS, NOMADSUtil::SimpleCommHelper2 *pCommHelper);
             ~DSProxyServerConnHandler (void);
 

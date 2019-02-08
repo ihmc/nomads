@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -56,7 +56,7 @@ void BandwidthSharing::adjustBandwidthShare (uint8 ui8Importance)
             checkAndLogMsg ("BandwidthSharing::adjustBandwidthShare", Logger::L_Warning,
                                             "Rate limit: %u \n",
                                             ui32RateLimit);
-            _pTrSvc->setTransmitRateLimit (ppszInterfaces[i], (uint32) 0, ui32RateLimit);
+            _pTrSvc->setTransmitRateLimit (ppszInterfaces[i], NULL, ui32RateLimit);
             free (ppszInterfaces[i]);
             ppszInterfaces[i] = NULL;
         }

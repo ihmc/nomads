@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -16,7 +16,7 @@
  * on the source code from Berkeley MPEG decoder.
  *
  * Copyright (c) 1995 The Regents of the University of California.
- * All rights reserved.  
+ * All rights reserved.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation for any purpose, without fee, and without written agreement is
@@ -57,7 +57,7 @@ static int count = 0;
 
 #endif
 
-void 
+void
 Next23BitsIsZero(bp, code)
     BitParser *bp;
     int *code;
@@ -83,7 +83,7 @@ Next23BitsIsZero(bp, code)
  * macroblock address and quantization scale, so that what's left are pure
  * scblock information.
  */
-void 
+void
 ParseIMacroBlockHdr(bp, prev_mb_addr, curr_mb_addr, quant_scale)
     BitParser *bp;
     int *prev_mb_addr;
@@ -144,7 +144,7 @@ ParseIMacroBlockHdr(bp, prev_mb_addr, curr_mb_addr, quant_scale)
     }                                                                        \
 }
 
-void 
+void
 ParsePMacroBlockHdr(bp, prev_mb_addr, curr_mb_addr, i, quant_scale)
     BitParser *bp;
     int *prev_mb_addr;
@@ -334,7 +334,7 @@ unsigned int bitTest[] =
     0x00000008, 0x00000004, 0x00000002, 0x00000001};
 
 
-static void 
+static void
 GetDctCoeff(bp, table, run, level)
     BitParser *bp;
     unsigned short *table;
@@ -366,7 +366,7 @@ GetDctCoeff(bp, table, run, level)
             break;
         }
         *run = value >> RUN_SHIFT;
-        // *run = (value & RUN_MASK) >> RUN_SHIFT; 
+        // *run = (value & RUN_MASK) >> RUN_SHIFT;
         *level = (value & LEVEL_MASK) >> LEVEL_SHIFT;
         numbits = (value & NUM_MASK) + 1;
         Bp_FlushBits(bp, numbits);
@@ -376,7 +376,7 @@ GetDctCoeff(bp, table, run, level)
     } else {
         value = table[index];
         *run = value >> RUN_SHIFT;
-        // *run = (value & RUN_MASK) >> RUN_SHIFT; 
+        // *run = (value & RUN_MASK) >> RUN_SHIFT;
         if (*run == EOB) {
             *level = EOB;
             return;
@@ -691,7 +691,7 @@ MpegPicIParse(bp, seq_hdr, pic_hdr, y, u, v)
             /*
              * For each macroblock, we parse sc data into 4 y blocks 1 u block
              * and 1 v block.  after each macroblock we always check if we hit
-             * the slice header, if yes, then parse off the slice header and 
+             * the slice header, if yes, then parse off the slice header and
              * continue, if unfortunately we hit the sequence end code then
              * we return (sorry!)
              */
@@ -823,14 +823,14 @@ MpegPicPParse(bp, seq_hdr, pic_hdr, y, u, v, mv)
             /*
              * For each macroblock, we parse sc data into 4 y blocks 1 u block
              * and 1 v block.  after each macroblock we always check if we hit
-             * the slice hdr, if yes, then parse off the slice hdr and 
+             * the slice hdr, if yes, then parse off the slice hdr and
              * continue. if we hit the sequence end code then the last few
              * blocks are skipped.
-             * P Frame might have skipped-macroblock.  I use skip_count to 
+             * P Frame might have skipped-macroblock.  I use skip_count to
              * indicate :
              *   skip_count == 0   : no skip block.  everything's fine.
              *   skip_count >  1   : this is a skip block. skip it.
-             *   skip_count == 1   : last block is a skip block.  but this 
+             *   skip_count == 1   : last block is a skip block.  but this
              *                       block is not. however the "header" info
              *                       have been parse off. don't need to parse
              *                       again.
@@ -985,7 +985,7 @@ MpegPicPParse(bp, seq_hdr, pic_hdr, y, u, v, mv)
                 Bp_FlushBits(bp, cbp[data].num_of_bits);
             } else if (!mbp[index].intracoded) {
                 /*
-                 * If there is no pattern, and it is not intracoded, there is 
+                 * If there is no pattern, and it is not intracoded, there is
                  * nothing we can do !
                  */
                 SKIP_MACROBLOCK(curr_y1, curr_y2, curr_u, curr_v);
@@ -1161,14 +1161,14 @@ MpegPicBParse(bp, seq_hdr, pic_hdr, y, u, v, fwd_mv, bwd_mv)
             /*
              * For each macroblock, we parse sc data into 4 y blocks 1 u block
              * and 1 v block.  after each macroblock we always check if we hit
-             * the slice hdr, if yes, then parse off the slice hdr and 
+             * the slice hdr, if yes, then parse off the slice hdr and
              * continue. if we hit the sequence end code then the last few
              * blocks are skipped.
-             * P Frame might have skipped-macroblock.  I use skip_count to 
+             * P Frame might have skipped-macroblock.  I use skip_count to
              * indicate :
              *   skip_count == 0   : no skip block.  everything's fine.
              *   skip_count >  1   : this is a skip block. skip it.
-             *   skip_count == 1   : last block is a skip block.  but this 
+             *   skip_count == 1   : last block is a skip block.  but this
              *                       block is not. however the "header" info
              *                       have been parse off. don't need to parse
              *                       again.
@@ -1264,7 +1264,7 @@ MpegPicBParse(bp, seq_hdr, pic_hdr, y, u, v, fwd_mv, bwd_mv)
             }
 
             /*
-             * If forward motion vector exists, read off the forward motion 
+             * If forward motion vector exists, read off the forward motion
              * vector. else set the vector to previous vector
              */
             if (mbb[index].macroblock_motion_forward) {
@@ -1294,7 +1294,7 @@ MpegPicBParse(bp, seq_hdr, pic_hdr, y, u, v, fwd_mv, bwd_mv)
             curr_fwd_vector++;
 
             /*
-             * If backward motion vector exists, read off the backward motion 
+             * If backward motion vector exists, read off the backward motion
              * vector. else set the vector to previous vector
              */
             if (mbb[index].macroblock_motion_backward) {
@@ -1330,7 +1330,7 @@ MpegPicBParse(bp, seq_hdr, pic_hdr, y, u, v, fwd_mv, bwd_mv)
                 Bp_FlushBits(bp, cbp[data].num_of_bits);
             } else if (!mbb[index].intracoded) {
                 /*
-                 * If there is no pattern, and it is not intracoded, there is 
+                 * If there is no pattern, and it is not intracoded, there is
                  * nothing we can do !
                  */
                 SKIP_ALL_BLOCKS(curr_y1, curr_y2, curr_u, curr_v);

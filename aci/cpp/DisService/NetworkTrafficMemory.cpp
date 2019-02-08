@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -48,7 +48,7 @@ int NetworkTrafficMemory::add (MessageHeader *pMI, int64 ui64ReceivingTime)
 {
     if (_ui16IgnoreRequestTime == 0) {
         // _ui16IgnoreRequestTime == 0 means the filtering is not enabled, thus
-        // there is no need to store    
+        // there is no need to store
         return 0;
     }
 
@@ -210,7 +210,7 @@ void NetworkTrafficMemory::cleanUp (void)
         if (pMG->getCount() == 0) {
             // DArray2::operator[] instantiate a new string, and
             // string makes a copy of the assigned const char *
-            groupsToRemove[uiGroupsToRemove] = i.getKey();  
+            groupsToRemove[uiGroupsToRemove] = i.getKey();
             uiGroupsToRemove++;
         }
     }

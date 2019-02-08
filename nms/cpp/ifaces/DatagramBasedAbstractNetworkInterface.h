@@ -73,7 +73,7 @@ namespace NOMADSUtil
 
     protected:
         const PROPAGATION_MODE _mode;
-        
+
         bool _bIsAvailable;
         String _networkAddr;
         DatagramSocket *_pDatagramSocket;

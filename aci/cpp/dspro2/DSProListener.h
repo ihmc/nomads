@@ -1,4 +1,4 @@
-/* 
+/*
  * DisServiceProListener.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,14 +21,17 @@
  */
 
 #ifndef INCL_DSPRO_LISTENER_H
-#define	INCL_DSPRO_LISTENER_H
+#define INCL_DSPRO_LISTENER_H
 
 #include "FTypes.h"
 
-namespace IHMC_ACI
+namespace IHMC_VOI
 {
     class NodePath;
+}
 
+namespace IHMC_ACI
+{
     class DSProListener
     {
         public:
@@ -38,7 +41,7 @@ namespace IHMC_ACI
             /**
              * Notify the application that a peer registered a new path.
              */
-            virtual bool pathRegistered (NodePath *pNodePath, const char *pszNodeId,
+            virtual bool pathRegistered (IHMC_VOI::NodePath *pNodePath, const char *pszNodeId,
                                          const char *pszTeam, const char *pszMission) = 0;
 
             /**
@@ -71,9 +74,10 @@ namespace IHMC_ACI
              * - pszQueryId: a dspro-opaque, application-defined parameter passed by mean of getData(),
              *               or requestMoreChunks().
              */
-            virtual int dataArrived (const char *pszId, const char *pszGroupName, const char *pszObjectId,
-                                     const char *pszInstanceId, const char *pszAnnotatedObjMsgId, const char *pszMimeType,
-                                     const void *pBuf, uint32 ui32Len, uint8 ui8NChunks, uint8 ui8TotNChunks,
+            virtual int dataArrived (const char *pszId, const char *pszGroupName,
+                                     const char *pszObjectId, const char *pszInstanceId,
+                                     const char *pszAnnotatedObjMsgId, const char *pszMimeType,
+                                     const void *pBuf, uint32 ui32Len, uint8 ui8ChunkIndex, uint8 ui8TotNChunks,
                                      const char *pszCallbackParameter) = 0;
 
             /**
@@ -88,11 +92,17 @@ namespace IHMC_ACI
              * - pszQueryId: if the data was delivered as a result of a search activity, then the id
              *               of the matching query is returned.
              */
-            virtual int metadataArrived (const char *pszId, const char *pszGroupName, const char *pszReferredDataObjectId,
-                                         const char *pszReferredDataInstanceId, const char *pszXMLMetadada,
-                                         const char *pszReferredDataId, const char *pszQueryId) = 0;
+            virtual int metadataArrived (const char *pszId, const char *pszGroupName,
+                                         const char *pszReferredDataObjectId, const char *pszReferredDataInstanceId,
+                                         const char *pszXMLMetadada, const char *pszReferredDataId,
+                                         const char *pszQueryId) = 0;
+
+            virtual int dataAvailable (const char *pszId, const char *pszGroupName,
+                                       const char *pszReferredDataObjectId, const char *pszReferredDataInstanceId,
+                                       const char *pszReferredDataId, const char *pszMimeType,
+                                       const void *pMetadata, uint32 ui32MetadataLength,
+                                       const char *pszQueryId) = 0;
     };
 }
 
-#endif	/* INCL_DSPRO_LISTENER_H */
-
+#endif    /* INCL_DSPRO_LISTENER_H */

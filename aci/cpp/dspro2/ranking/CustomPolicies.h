@@ -1,5 +1,5 @@
-/* 
- * CustumRanker.h
+/*
+ * CustomPolicies.h
  *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
@@ -21,13 +21,15 @@
  */
 
 #ifndef INCL_CUSTUM_RANKER_H
-#define	INCL_CUSTUM_RANKER_H
+#define INCL_CUSTUM_RANKER_H
 
+#include "CustomPolicy.h"
 #include "Match.h"
 
 #include "PtrLList.h"
 #include "StrClass.h"
 #include "StringHashtable.h"
+#include "Json.h"
 
 class TiXmlElement;
 
@@ -38,11 +40,14 @@ namespace NOMADSUtil
     class Writer;
 }
 
-namespace IHMC_ACI
+namespace IHMC_VOI
 {
     class MetadataInterface;
+}
 
-    class CustomPolicy
+namespace IHMC_ACI
+{
+    class CustomPolicyImpl : public IHMC_VOI::CustomPolicy
     {
         public:
             enum Type
@@ -52,64 +57,69 @@ namespace IHMC_ACI
                 ONTOLOGY = 0x03
             };
 
-            virtual ~CustomPolicy (void);
+            virtual ~CustomPolicyImpl (void);
 
             virtual int init (TiXmlElement *pXmlField) = 0;
 
             const char * getAttribute (void) const;
             float getRankWeight (void) const;
             Type getType (void) const;
-            int operator == (const CustomPolicy &rhsPolicy) const;
+            int operator == (const CustomPolicyImpl &rhsPolicy) const;
 
-            virtual Match rank (MetadataInterface *pMetadata) = 0;
+            virtual IHMC_VOI::Match rank (IHMC_VOI::MetadataInterface *pMetadata) = 0;
 
-            virtual int read (NOMADSUtil::Reader *pReader, uint32 i32MaxLen, bool bSkip);
-            virtual int write (NOMADSUtil::Writer *pWriter, uint32 i32MaxLen);
-            virtual int writeLength (void);
+            virtual int read (NOMADSUtil::Reader *pReader, bool bSkip);
+            virtual int write (NOMADSUtil::Writer *pWriter);
+
+            virtual int fromJson (NOMADSUtil::JsonArray *pMatches) = 0;
+            virtual NOMADSUtil::JsonObject * toJson (void) const = 0;
 
         protected:
-            CustomPolicy (Type type);
-            CustomPolicy (Type type, float rankWeight, const NOMADSUtil::String &attributeName);
+            explicit CustomPolicyImpl (Type type);
+            CustomPolicyImpl (Type type, float rankWeight, const NOMADSUtil::String &attributeName);
 
         private:
             const Type _type;
             float _fRankWeight;
 
-        protected:               
+        protected:
             NOMADSUtil::String _attributeName;
     };
 
-    class CustomPolicies : public NOMADSUtil::PtrLList<CustomPolicy>
+    class CustomPolicies : public NOMADSUtil::PtrLList<CustomPolicyImpl>
     {
         public:
             CustomPolicies (void);
             ~CustomPolicies (void);
 
+            int add (CustomPolicyImpl *pPolicy);
             int add (const char *pszCustomPolicyXML);
             int init (NOMADSUtil::ConfigManager *pCfgMgr);
 
-            void prepend (CustomPolicy *pPolicy);
+            void prepend (CustomPolicyImpl *pPolicy);
             void removeAll (void);
 
-            int skip (NOMADSUtil::Reader *pReader, uint32 i32MaxLen);
-            int read (NOMADSUtil::Reader *pReader, uint32 i32MaxLen);
-            int write (NOMADSUtil::Writer *pWriter, uint32 i32MaxLen);
-            int getWriteLength (void);
+            int skip (NOMADSUtil::Reader *pReader);
+            int read (NOMADSUtil::Reader *pReader);
+            int write (NOMADSUtil::Writer *pWriter);
+
+            int fromJson (const NOMADSUtil::JsonObject *pJson);
+            NOMADSUtil::JsonObject * toJson (void) const;
 
         private:
             // Hide these functions
-            void append (CustomPolicy *pel);
-            void insert (CustomPolicy *pel);
-            int readInternal (NOMADSUtil::Reader *pReader, uint32 i32MaxLen, bool bSkip);
-            CustomPolicy * remove (CustomPolicy *pel);
-            CustomPolicy * getTail (void);
-            CustomPolicy * search (const CustomPolicy * const pel) const;
+            void append (IHMC_VOI::CustomPolicy *pel);
+            void insert (IHMC_VOI::CustomPolicy *pel);
+            int readInternal (NOMADSUtil::Reader *pReader, bool bSkip);
+            CustomPolicyImpl * remove (CustomPolicyImpl *pel);
+            CustomPolicyImpl * getTail (void) const;
+            CustomPolicyImpl * search (const CustomPolicyImpl * const pel) const;
 
         private:
             uint8 _ui8Count;
     };
 
-    class StaticPolicy : public CustomPolicy
+    class StaticPolicy : public CustomPolicyImpl
     {
         public:
             StaticPolicy (void);
@@ -118,11 +128,13 @@ namespace IHMC_ACI
 
             int init (TiXmlElement *pXmlField);
 
-            Match rank (MetadataInterface *pMetadata);
+            IHMC_VOI::Match rank (IHMC_VOI::MetadataInterface *pMetadata);
 
-            int read (NOMADSUtil::Reader *pReader, uint32 i32MaxLen, bool bSkip);
-            int write (NOMADSUtil::Writer *pWriter, uint32 i32MaxLen);
-            int writeLength (void);
+            int read (NOMADSUtil::Reader *pReader, bool bSkip);
+            int write (NOMADSUtil::Writer *pWriter);
+
+            int fromJson (NOMADSUtil::JsonArray *pMatches);
+            NOMADSUtil::JsonObject * toJson (void) const;
 
         private:
             struct Rank
@@ -136,5 +148,4 @@ namespace IHMC_ACI
     };
 }
 
-#endif	/* CUSTUMRANKER_H */
-
+#endif    /* CUSTUMRANKER_H */

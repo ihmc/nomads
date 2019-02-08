@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -28,6 +28,8 @@
 #include "MessageInfo.h"
 #include "PersistentDataCache.h"
 
+#include "ChunkingManager.h"
+
 #include "ConfigManager.h"
 #include "File.h"
 #include "NLFLib.h"
@@ -37,20 +39,22 @@ using namespace NOMADSUtil;
 
 const bool DataCacheInterface::DEFAULT_IS_NOT_TARGET = false;
 
-DataCacheInterface::DataCacheInterface()
+DataCacheInterface::DataCacheInterface (void)
+    : _ui32CacheLimit (DEFAULT_MAX_CACHE_SIZE),
+      _secRange (DEFAULT_CACHE_SECURITY_THREASHOLD),
+      _ui32CurrentCacheSize (0U),
+      _pChunkingMgr (new IHMC_MISC::ChunkingManager()),
+      _pDB (NULL)
 {
-    _ui32CacheLimit = DEFAULT_MAX_CACHE_SIZE;
-    _secRange = DEFAULT_CACHE_SECURITY_THREASHOLD;
-    _ui32CurrentCacheSize = 0;
 }
 
-DataCacheInterface::~DataCacheInterface()
+DataCacheInterface::~DataCacheInterface (void)
 {
     delete _pDB;
     _pDB = NULL;
 }
 
-int DataCacheInterface::deregisterAllDataCacheListeners()
+int DataCacheInterface::deregisterAllDataCacheListeners (void)
 {
     return _notifier.deregisterAllListeners();
 }
@@ -372,6 +376,11 @@ void * DataCacheInterface::getAnnotationMetadata (const char *pszGroupName, cons
     return _pDB->getAnnotationMetadata (pszGroupName, pszSenderNodeId, ui32MsgSeqId, ui32Len);
 }
 
+IHMC_MISC::ChunkingManager * DataCacheInterface::getChunkingMgr (void)
+{
+    return _pChunkingMgr;
+}
+
 bool DataCacheInterface::cleanCache (uint32 ui32Length, MessageHeader *pMH, void *pData)
 {
     _m.lock (30);
@@ -412,15 +421,15 @@ bool DataCacheInterface::cleanCache (uint32 ui32Length, MessageHeader *pMH, void
 //==============================================================================
 //  Result
 //==============================================================================
-DataCacheInterface::Result::Result()
+DataCacheInterface::Result::Result (void)
+    : ui8StorageType (NOSTORAGETYPE),
+      ui8NChunks (1), ui8TotalNChunks (1),
+      ui32Length (0), pData (NULL)
 {
-    ui8StorageType = NOSTORAGETYPE;
-    ui32Length = 0;
-    pData = NULL;
 }
 
-DataCacheInterface::Result::~Result()
-{    
+DataCacheInterface::Result::~Result (void)
+{
 }
 
 ////////////////////////////// DataCacheFactory ////////////////////////////////
@@ -456,6 +465,37 @@ DataCacheInterface * DataCacheFactory::getDataCache (ConfigManager *pCfgMgr)
     return getDataCache (mode, storageFile, sessionId, bUseTransactionTimer);
 }
 
+#include "SessionId.h"
+
+namespace DATA_CACHE_FACTORY
+{
+    class ClearTable : public SessionIdListener
+    {
+        public:
+            ClearTable (DataCacheInterface *pDataCacheInterface)
+                : _pDataCacheInterface (pDataCacheInterface)
+            {
+            }
+
+            ~ClearTable (void)
+            {
+                _pDataCacheInterface = NULL;
+            }
+
+            void sessionIdChanged (void)
+            {
+                if (_pDataCacheInterface != NULL) {
+                    _pDataCacheInterface->clear();
+                }
+            }
+
+        private:
+            DataCacheInterface *_pDataCacheInterface;
+    };
+}
+
+static DATA_CACHE_FACTORY::ClearTable * pClearTable = NULL;
+
 DataCacheInterface * DataCacheFactory::getDataCache (DataCacheInterface::StorageMode mode,
                                                      const String &storageDBName, const String &sessionId,
                                                      bool bUseTransactionTimer)
@@ -484,6 +524,9 @@ DataCacheInterface * DataCacheFactory::getDataCache (DataCacheInterface::Storage
         default:
             _pDataCache = new DataCache();
     }
+
+    pClearTable = new DATA_CACHE_FACTORY::ClearTable (_pDataCache);
+    SessionId::getInstance()->registerSessionIdListener (pClearTable);
 
     return _pDataCache;
 }

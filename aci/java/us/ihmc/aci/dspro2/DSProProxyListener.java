@@ -18,12 +18,12 @@ import us.ihmc.aci.util.dspro.NodePath;
  */
 public interface DSProProxyListener
 {
-    public boolean pathRegistered (NodePath path, String nodeId, String teamId, String mission);
+    boolean pathRegistered (NodePath path, String nodeId, String teamId, String mission);
     
-    public boolean positionUpdated (float latitude, float longitude, float altitude, String nodeId);
+    boolean positionUpdated (float latitude, float longitude, float altitude, String nodeId);
 
-    public void newNeighbor (String peerID);
-    public void deadNeighbor (String peerID);
+    void newNeighbor (String peerID);
+    void deadNeighbor (String peerID);
 
      /**
      * Callback function that is invoked when new data arrives.
@@ -40,10 +40,9 @@ public interface DSProProxyListener
      * @param callbackParameters
      * @return
      */
-    public boolean dataArrived (String dsproId, String groupName, String objectId,
-                                String instanceId, String annotatedObjMsgId,
-                                String mimeType, byte[] data, short chunkNumber,
-                                short totChunksNumber, String callbackParameters);
+    boolean dataArrived (String dsproId, String groupName, String objectId, String instanceId,
+                         String annotatedObjMsgId, String mimeType, byte[] data, short chunkNumber,
+                         short totChunksNumber, String callbackParameters);
 
     /**
      * Callback function that is invoked when new metadata arrives.
@@ -54,11 +53,14 @@ public interface DSProProxyListener
      * @param referredDataInstanceId
      * @param callbackParameters
      * @groupName - the name of the group the metadata message belongs to.
-     * @param XMLMetadata - the XML metadata.
+     * @param jsonMetadata - the JSON metadata.
      * @param referredDataDsproId - referred data id of the message.
      * @return
      */
-    public boolean metadataArrived (String dsproId, String groupName, String referredDataObjectId,
-                                    String referredDataInstanceId, String XMLMetadata,
-                                    String referredDataDsproId, String callbackParameters);
+    boolean metadataArrived (String dsproId, String groupName, String referredDataObjectId,
+                             String referredDataInstanceId, String jsonMetadata,
+                             String referredDataDsproId, String callbackParameters);
+
+    boolean dataAvailable (String id, String groupName, String objectId, String instanceId,
+                           String referredDataId, String mimeType, byte[] metadata, String queryId);
 }

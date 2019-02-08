@@ -1,5 +1,5 @@
-/* 
- * InformationStoreHelper.cpp
+/*
+ * MatchmakingHelper.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
@@ -24,7 +24,7 @@
 
 #include "DSPro.h"
 #include "InformationStore.h"
-#include "NodeContext.h"
+#include "NodeContextImpl.h"
 #include "NodePath.h"
 #include "TransmissionHistoryInterface.h"
 #include "Topology.h"
@@ -33,7 +33,39 @@
 #include "StrClass.h"
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
+
+namespace MATCHMAKING_HELPER
+{
+    BoundingBox getMaximumArea (NodeContext *pNodeContext)
+    {
+        const uint32 ui32Padding = pNodeContext->getMaximumUsefulDistance() +
+            pNodeContext->getMaximumRangeOfInfluence();
+        AreaOfInterestList *pAreasOfInterest = pNodeContext->getAreasOfInterest();
+        NodePath *pNodePath = pNodeContext->getPath();
+        if ((pAreasOfInterest == nullptr) || (pAreasOfInterest->isEmpty())) {
+            if (pAreasOfInterest != nullptr) delete pAreasOfInterest;
+            if (pNodePath == nullptr) {
+                return BoundingBox();
+            }
+            // Only NodePath
+            return pNodePath->getBoundingBox (ui32Padding);
+        }
+        BoundingBoxAccumulator acc (pAreasOfInterest->getFirst()->getBoundingBox());
+        for (AreaOfInterest *pArea; (pArea = pAreasOfInterest->getNext()) != nullptr;) {
+            const BoundingBox tmp (pArea->getBoundingBox());
+            acc += tmp;
+        }
+        if (pNodePath != nullptr) {
+            const BoundingBox tmp (pNodePath->getBoundingBox (ui32Padding));
+            acc += tmp;
+        }
+        pAreasOfInterest->removeAll (true);
+        delete pAreasOfInterest;
+        return acc.getBoundingBox();
+    }
+}
 
 MatchmakingHelper::MatchmakingHelper (InformationStore *pInfoStore, Topology *pTopology,
                                       TransmissionHistoryInterface *pTrHistory)
@@ -43,42 +75,38 @@ MatchmakingHelper::MatchmakingHelper (InformationStore *pInfoStore, Topology *pT
 {
 }
 
-MatchmakingHelper::~MatchmakingHelper()
+MatchmakingHelper::~MatchmakingHelper (void)
 {
 }
 
-MetadataList * MatchmakingHelper::getMetadataToMatchmake (NodeContext *pNodeContext, const char *pszSenderNodeId,
-                                                          bool bEnableTopologyExchange)
+MetadataList * MatchmakingHelper::getMetadataToMatchmake (NodeContextImpl *pNodeContext, const char *pszSenderNodeId,
+                                                          bool bEnableTopologyExchange, bool bLocalMatchmakingOnly) const
 {
     // Get the messages to be matched against the new node context
-    const char **ppszMessageIdFilters = _pTrHistory->getMessageList (pNodeContext->getNodeId(), pszSenderNodeId);
-    PtrLList<String> *pPedigreeFilters = NULL;
+    const String nodeId (pNodeContext->getNodeId());
+    const char **ppszMessageIdFilters = _pTrHistory->getMessageList (nodeId, pszSenderNodeId);
+    PtrLList<String> *pPedigreeFilters = nullptr;
     if (bEnableTopologyExchange) {
-        pPedigreeFilters = _pTopology->getNeighbors (pNodeContext->getNodeId());
-        if (pPedigreeFilters == NULL || pPedigreeFilters->getFirst() == NULL) {
+        pPedigreeFilters = _pTopology->getNeighbors (nodeId);
+        if (pPedigreeFilters == nullptr || pPedigreeFilters->getFirst() == nullptr) {
             pPedigreeFilters = new PtrLList<String>();
-            if (pPedigreeFilters != NULL) {
+            if (pPedigreeFilters != nullptr) {
                 String *pSender = new String (pszSenderNodeId);
-                if (pSender != NULL) {
+                if (pSender != nullptr) {
                     pPedigreeFilters->prepend (pSender);
                 }
             }
         }
     }
 
-    float fMaxLat, fMinLat, fMaxLong, fMinLong;
-    uint32 ui32UsefulDistance = pNodeContext->getMaximumUsefulDistance();
-    NodePath *pNodePath = pNodeContext->getPath();
-    MetadataList *pMetadataList = NULL;
-    if ((pNodePath != NULL) &&
-        (ui32UsefulDistance > 0) &&
-        (pNodePath->getBoundingBox (fMaxLat, fMinLat, fMaxLong, fMinLong, (float) ui32UsefulDistance) == 0)) {
+    MetadataList *pMetadataList = nullptr;
+    BoundingBox area (MATCHMAKING_HELPER::getMaximumArea (pNodeContext));
+    if (area.isValid()) {
         pMetadataList = _pInfoStore->getAllMetadataInArea (pNodeContext->getMatchmakingQualifiers(),
-                                                           ppszMessageIdFilters,
-                                                           fMaxLat, fMinLat, fMaxLong, fMinLong);
+                                                           ppszMessageIdFilters, area, bLocalMatchmakingOnly);
         // pMetadataList = _pInfoStore->getAllMetadataInArea (pNodeContext->getMatchmakingQualifiers(),
         //                                                   ppszMessageIdFilters, pszSenderNodeId, pPedigreeFilters,
-        //                                                   fMaxLat, fMinLat, fMaxLong, fMinLong);
+        //                                                   area);
     }
     else {
         pMetadataList = _pInfoStore->getAllMetadata (ppszMessageIdFilters, true);
@@ -93,11 +121,11 @@ MetadataList * MatchmakingHelper::getMetadataToMatchmake (NodeContext *pNodeCont
 void MatchmakingHelper::deallocateMetadataToMatchmake (MetadataList *pMetadataList)
 {
     MetadataInterface *pNext = pMetadataList->getFirst();
-    for (MetadataInterface *pCurr; (pCurr = pNext) != NULL;) {
+    for (MetadataInterface *pCurr; (pCurr = pNext) != nullptr;) {
         delete pMetadataList->remove (pCurr);
         pNext = pMetadataList->getNext();
     }
     delete pMetadataList;
-    pMetadataList = NULL;
+    pMetadataList = nullptr;
 }
 

@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -107,7 +107,7 @@ namespace IHMC_ACI
             void setMsgSeqId (uint32 ui32MsgSeqId);
             void setPriority (uint8 ui8Priority);
             void setTotalMessageLength (uint32 ui32TotalMessageLength);
-            virtual uint8 getTotalNumberOfChunks (void) = 0;
+            virtual uint8 getTotalNumberOfChunks (void) const = 0;
 
             bool isCompleteMessage (void) const;
             bool isChunk (void) const;
@@ -212,7 +212,7 @@ namespace IHMC_ACI
             bool isMetaData (void) const;
             bool isMetaDataWrappedInData (void) const;
 
-            uint8 getTotalNumberOfChunks (void);
+            uint8 getTotalNumberOfChunks (void) const;
 
         private:
             // Masks to read and write MessageInfo flags
@@ -257,7 +257,7 @@ namespace IHMC_ACI
 
             virtual ~ChunkMsgInfo (void);
 
-            uint8 getTotalNumberOfChunks (void);
+            uint8 getTotalNumberOfChunks (void) const;
 
             int read (NOMADSUtil::Reader *pReader, uint32 ui32MaxSize);
             int write (NOMADSUtil::Writer *pWriter, uint32 ui32MaxSize);
@@ -359,14 +359,14 @@ namespace IHMC_ACI
                 (_ui32MetaDataLength < getTotalMessageLength()));
     }
 
-    inline uint8 MessageInfo::getTotalNumberOfChunks (void)
+    inline uint8 MessageInfo::getTotalNumberOfChunks (void) const
     {
         return 1;
     }
 
     // ---- ChunkMsgInfo -------------------------------------------------------
 
-    inline uint8 ChunkMsgInfo::getTotalNumberOfChunks (void)
+    inline uint8 ChunkMsgInfo::getTotalNumberOfChunks (void) const
     {
         return _ui8TotalNumOfChunks;
     }

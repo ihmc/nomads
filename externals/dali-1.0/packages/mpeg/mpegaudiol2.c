@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -12,7 +12,7 @@
  *
  * mpegaudio.c
  *
- * Functions that manipulate Mpeg Audio 
+ * Functions that manipulate Mpeg Audio
  *
  *----------------------------------------------------------------------
  */
@@ -427,10 +427,10 @@ MpegAudioL2StereoParse(bp, hdr, left, right)
     bound = (hdr->mode == MPEG_AUDIO_JOINT_STEREO ?
         (hdr->mode_extension << 2) + 4 : sblimit);
 
-    /* 
+    /*
      * Based partially on mpegaudio's decode.c
-     * Everything from sblimit..32, or has allocation == 0 will not 
-     * be initialized 
+     * Everything from sblimit..32, or has allocation == 0 will not
+     * be initialized
      */
 
     table_entry = alloc_table_table[table];
@@ -667,10 +667,10 @@ MpegAudioL2StereoEncode(left, right, hdr, bp)
     bound = (hdr->mode == MPEG_AUDIO_JOINT_STEREO ?
         (hdr->mode_extension << 2) + 4 : sblimit);
 
-    /* 
+    /*
      * Based partially on mpegaudio's decode.c
-     * Everything from sblimit..32, or has allocation == 0 will not 
-     * be initialized 
+     * Everything from sblimit..32, or has allocation == 0 will not
+     * be initialized
      */
 
     table_entry = alloc_table_table[table];

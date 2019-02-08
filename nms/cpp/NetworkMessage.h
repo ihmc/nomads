@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -22,6 +22,7 @@
 
 #include "FTypes.h"
 #include "SequentialArithmetic.h"
+#include "CRC.h"
 
 namespace NOMADSUtil
 {
@@ -55,7 +56,7 @@ namespace NOMADSUtil
 
             uint8 getVersion (void) const;
             uint8 getType (void) const;
-            
+
             uint16 getLength (void) const;
             uint8 getMsgType (void) const;
             uint32 getSourceAddr (void) const;
@@ -63,12 +64,16 @@ namespace NOMADSUtil
             uint16 getSessionId (void) const;
 
             uint16 getMsgId (void) const;
-            
+
             uint8 getHopCount  (void) const;
             uint8 getTTL (void) const;
             uint8 getChunkType (void) const;
-            
+
             bool isReliableMsg (void) const;
+            bool isEncrypted (void) const;
+
+            uint16 getMsgChecksum (void) const;
+            void setMsgChecksum (const uint16 ui16Checksum);
 
             virtual void * getMetaData (void) const;
             virtual uint16 getMetaDataLen (void) const;
@@ -77,6 +82,8 @@ namespace NOMADSUtil
 
             void * getBuf(void) const;
             void incrementHopCount(void);
+
+            void setEncrypted (void);
 
             void setTargetAddress (uint32 ui32TargetAddress);
 
@@ -92,11 +99,13 @@ namespace NOMADSUtil
             bool operator > (NetworkMessage &rhsMessageInfo);
             bool operator < (NetworkMessage &rhsMessageInfo);
 
-            static const uint16 FIXED_HEADER_LENGTH = 20;
+            //increasing the header size of 2 bytes
+            static const uint16 FIXED_HEADER_LENGTH = 22;
             static const uint16 MAX_BUF_SIZE = 2048;
 
         protected:
             NetworkMessage (void);
+            uint16 calculateChecksum (const void * pBuf, const uint16 ui16BufLen);
 
         private:
             NetworkMessage (const NetworkMessage& nm);
@@ -115,9 +124,12 @@ namespace NOMADSUtil
             static const uint16 TTL_FIELD_OFFSET = 17;
             static const uint16 CHUNK_TYPE_FIELD = 18;
             static const uint16 RELIABLE_FIELD = 19;
+            static const uint16 CHECKSUM_FIELD = 20;
 
             char *_pBuf;
             uint16 _ui16NetMsgLen;     // Size of the complete network message including all the header fields
+            //CRC calculator
+            CRC _crc;
     };
 
     inline bool NetworkMessage::operator == (NetworkMessage &rhsMessageInfo)
@@ -141,6 +153,8 @@ namespace NOMADSUtil
         //return *((uint16*)(_pBuf + LENGTH_FIELD_OFFSET));
         return _ui16NetMsgLen;
     }
+
+
 }
 
 #endif   // #ifndef INCL_NETWORK_MESSAGE_INTERFACE_H

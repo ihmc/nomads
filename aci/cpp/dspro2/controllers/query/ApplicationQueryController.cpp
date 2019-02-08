@@ -31,7 +31,7 @@ using namespace NOMADSUtil;
 const char * const ApplicationQueryController::SUPPORTED_QUERY_TYPE = "dspro-application-query";
 
 ApplicationQueryController::ApplicationQueryController (DSProImpl *pDSPro, DataStore *pDataStore,
-                                                        InformationStore *pInfoStore) 
+                                                        InformationStore *pInfoStore)
     : QueryController ("ApplicationQueryController", SUPPORTED_QUERY_TYPE, pDSPro, pDataStore, pInfoStore)
 {
 }
@@ -45,7 +45,7 @@ void ApplicationQueryController::searchArrived (const char *pszQueryId, const ch
                                                 const void *pQuery, unsigned int uiQueryLen)
 {
     const char *pszMethodName = "ApplicationQueryController::searchArrived";
-    if (pQuery == NULL || uiQueryLen == 0) {
+    if (pQuery == nullptr || uiQueryLen == 0) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "Received null query\n");
     }
     QueryController::searchArrived (pszQueryId, pszGroupName, pszQuerier, pszQueryType,
@@ -58,4 +58,5 @@ void ApplicationQueryController::searchReplyArrived (const char *pszQueryId, con
 {
     QueryController::searchReplyArrived (pszQueryId, ppszMatchingMessageIds, pszMatchingNodeId);
 }
+
 

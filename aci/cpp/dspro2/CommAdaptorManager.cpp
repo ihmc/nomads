@@ -24,13 +24,17 @@
 #include "DisServiceAdaptor.h"
 #include "DSPro.h"
 #include "MocketsAdaptor.h"
+#include "NatsAdaptor.h"
 #include "Targets.h"
 #include "TCPAdaptor.h"
-#include "UInt32Hashtable.h"
+#include "UDPAdaptor.h"
 
 #include "ConfigManager.h"
-#include "Logger.h"
 #include "SearchProperties.h"
+#include "SessionId.h"
+
+#include "Logger.h"
+#include "UInt32Hashtable.h"
 
 #define unconfiguredAdaptor Logger::L_Warning, "could not configure adaptor %s. Returned error code %d.\n"
 
@@ -41,12 +45,12 @@ namespace IHMC_ACI
 {
     void mergeTargetsByAdaptorId (Targets **ppTargets, UInt32Hashtable<Targets> &ht)
     {
-        if (ppTargets == NULL) {
+        if (ppTargets == nullptr) {
             return;
         }
-        for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+        for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
             Targets *pTarget = ht.get (ppTargets[i]->adaptorId);
-            if (pTarget == NULL) {
+            if (pTarget == nullptr) {
                 Targets *pTarget = new Targets (*(ppTargets[i]));
                 ht.put (ppTargets[i]->adaptorId, pTarget);
             }
@@ -54,7 +58,7 @@ namespace IHMC_ACI
                 pTarget->subsume (*(ppTargets[i]));
             }
         }
-    }    
+    }
 }
 
 const AdaptorId CommAdaptorManager::DISSERVICE_ADAPTOR_ID = 0;
@@ -62,7 +66,7 @@ const AdaptorId CommAdaptorManager::DISSERVICE_ADAPTOR_ID = 0;
 CommAdaptorManager::CommAdaptorManager (const char *pszNodeId)
     : _m (MutexId::CommAdaptoManager_m, LOG_MUTEX),
       _nodeId (pszNodeId),
-      _pPropertyStore (NULL)
+      _pPropertyStore (nullptr)
 {
 }
 
@@ -70,16 +74,16 @@ CommAdaptorManager::~CommAdaptorManager (void)
 {
     stopAdaptors();
     for (unsigned int uiIndex = 0; uiIndex < _adaptors.size(); uiIndex++) {
-        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != NULL) {
+        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != nullptr) {
             delete _adaptors[uiIndex].pAdaptor;
-            _adaptors[uiIndex].pAdaptor = NULL;
+            _adaptors[uiIndex].pAdaptor = nullptr;
         }
     }
 }
 
 int CommAdaptorManager::init (NOMADSUtil::ConfigManager *pCfgMgr, const char *pszSessionId, Controller *pController, PropertyStoreInterface *pPropertyStore)
 {
-    if (pCfgMgr == NULL || pController == NULL || pPropertyStore == NULL) {
+    if (pCfgMgr == nullptr || pController == nullptr || pPropertyStore == nullptr) {
         return -1;
     }
 
@@ -93,105 +97,164 @@ int CommAdaptorManager::init (NOMADSUtil::ConfigManager *pCfgMgr, const char *ps
         return -2;
     }
 
+    // Instantiate adaptors
+
+    bool bUseDisservice = pCfgMgr->getValueAsBool (DSPro::ENABLE_DISSERVICE_ADAPTOR, false);
+    const bool bUseMockets = pCfgMgr->getValueAsBool (DSPro::ENABLE_MOCKETS_ADAPTOR, false);
+    const bool bUseTCP = pCfgMgr->getValueAsBool (DSPro::ENABLE_TCP_ADAPTOR, false);
+    const bool bUseUDP = pCfgMgr->getValueAsBool (DSPro::ENABLE_UDP_ADAPTOR, false);
+    const bool bUseNats = pCfgMgr->getValueAsBool (DSPro::ENABLE_NATS_ADAPTOR, false);
+
+    if (!(bUseMockets || bUseTCP || bUseNats || bUseUDP)) {
+        // Make sure that Disservice is used as default, if no other adaptor is selected
+        bUseDisservice = true;
+    }
+
     _mSessionId.lock();
 
-    // Instantiate adaptors
+    const String sessionId (SessionId::getSessionId (pCfgMgr));
 
     // -------------------------------------------------------------------------
     // DisService
     // -------------------------------------------------------------------------
 
-    if (pCfgMgr->hasValue (DSPro::ENABLE_DISSERVICE_ADAPTOR) &&
-        pCfgMgr->getValueAsBool (DSPro::ENABLE_DISSERVICE_ADAPTOR)) {
+    if (bUseDisservice) {
 
         // Enable DisService
         _adaptors[DISSERVICE_ADAPTOR_ID].uiId = DISSERVICE_ADAPTOR_ID;
-        _adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor = DisServiceAdaptor::getDisServiceAdaptor (DISSERVICE_ADAPTOR_ID,
-                                                                                             _nodeId, pszSessionId,
+        _adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor = DisServiceAdaptor::getDisServiceAdaptor (DISSERVICE_ADAPTOR_ID, _nodeId,
                                                                                              &_commListenerNotifier, pCfgMgr);
-        if (_adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor == NULL) {
+        if (_adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor == nullptr) {
             checkAndLogMsg (pszMethodName, Logger::L_MildError,
                             "could not create DisServiceAdaptor.\n");
             _mSessionId.unlock();
             return -3;
         }
-        else {
-            checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created DisServiceAdaptor: "
-                            "nodeId: <%s> sessionKey: <%s>.\n", _adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor->getNodeId().c_str(),
-                            _adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor->getSessionId().c_str());
-        }
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created DisServiceAdaptor: "
+                        "nodeId: <%s> sessionKey: <%s>.\n", _adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor->getNodeId().c_str(),
+                        sessionId.c_str());
+    }
+    else {
+        SessionId::getInstance()->setSessionId (sessionId, 0);
     }
 
     // -------------------------------------------------------------------------
     // Mockets
     // -------------------------------------------------------------------------
 
-    if (pCfgMgr->hasValue (DSPro::ENABLE_MOCKETS_ADAPTOR) &&
-        pCfgMgr->getValueAsBool (DSPro::ENABLE_MOCKETS_ADAPTOR)) {
+    if (bUseMockets) {
 
         // Enable mockets
         unsigned int uiIndex = _adaptors.firstFree();
         _adaptors[uiIndex].uiId = uiIndex;
         uint16 ui16MocketsPort = (uint16) pCfgMgr->getValueAsInt ("aci.dspro.adaptor.mockets.port",
                                                                   MocketsAdaptor::DEFAULT_PORT);
-        _adaptors[uiIndex].pAdaptor = new MocketsAdaptor (uiIndex, _nodeId, pszSessionId,
-                                                          &_commListenerNotifier, ui16MocketsPort);
-        if (_adaptors[uiIndex].pAdaptor == NULL) {
+        _adaptors[uiIndex].pAdaptor = new MocketsAdaptor (uiIndex, _nodeId, &_commListenerNotifier, ui16MocketsPort);
+        if (_adaptors[uiIndex].pAdaptor == nullptr) {
             checkAndLogMsg (pszMethodName, memoryExhausted);
             _mSessionId.unlock();
             return -4;
         }
-        else {
-            checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created MocketsAdaptor: "
-                            "nodeId: <%s> sessionKey: <%s>.\n", _adaptors[uiIndex].pAdaptor->getNodeId().c_str(),
-                            _adaptors[uiIndex].pAdaptor->getSessionId().c_str());
-        }
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created MocketsAdaptor: "
+                        "nodeId: <%s> sessionKey: <%s>.\n", _adaptors[uiIndex].pAdaptor->getNodeId().c_str(),
+                        sessionId.c_str());
     }
 
     // -------------------------------------------------------------------------
     // TCP
     // -------------------------------------------------------------------------
 
-    if (pCfgMgr->hasValue (DSPro::ENABLE_TCP_ADAPTOR) &&
-        pCfgMgr->getValueAsBool (DSPro::ENABLE_TCP_ADAPTOR)) {
+    if (bUseTCP) {
 
         // Enable TCP
         unsigned int uiIndex = _adaptors.firstFree();
         _adaptors[uiIndex].uiId = uiIndex;
         uint16 ui16TCPPort = (uint16) pCfgMgr->getValueAsInt ("aci.dspro.adaptor.tcp.port",
                                                               TCPAdaptor::DEFAULT_PORT);
-        _adaptors[uiIndex].pAdaptor = new TCPAdaptor (uiIndex, _nodeId, pszSessionId,
+        _adaptors[uiIndex].pAdaptor = new TCPAdaptor (uiIndex, _nodeId,
                                                       &_commListenerNotifier, ui16TCPPort);
-        if (_adaptors[uiIndex].pAdaptor == NULL) {
+        if (_adaptors[uiIndex].pAdaptor == nullptr) {
             checkAndLogMsg (pszMethodName, memoryExhausted);
             _mSessionId.unlock();
-            return -4;
+            return -5;
         }
-        else {
-            checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created TCPAdaptor: "
-                            "nodeId: <%s> sessionKey: <%s>", _adaptors[uiIndex].pAdaptor->getNodeId().c_str(),
-                            _adaptors[uiIndex].pAdaptor->getSessionId().c_str());
-        }
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created TCPAdaptor: "
+                        "nodeId: <%s> sessionKey: <%s>", _adaptors[uiIndex].pAdaptor->getNodeId().c_str(),
+                        sessionId.c_str());
     }
 
-    _sessionId = pszSessionId;
+    // -------------------------------------------------------------------------
+    // UDP
+    // -------------------------------------------------------------------------
+
+    if (bUseUDP) {
+
+        // Enable UDP
+        unsigned int uiIndex = _adaptors.firstFree();
+        _adaptors[uiIndex].uiId = uiIndex;
+        uint16 ui16UDPPort = (uint16)pCfgMgr->getValueAsInt ("aci.dspro.adaptor.udp.port",
+                                                             UDPAdaptor::DEFAULT_PORT);
+        _adaptors[uiIndex].pAdaptor = new UDPAdaptor (uiIndex, &_commListenerNotifier, _nodeId, ui16UDPPort);
+        if (_adaptors[uiIndex].pAdaptor == nullptr) {
+            checkAndLogMsg (pszMethodName, memoryExhausted);
+            _mSessionId.unlock();
+            return -6;
+        }
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created UDPAdaptor: "
+                        "nodeId: <%s> sessionKey: <%s>", _adaptors[uiIndex].pAdaptor->getNodeId().c_str(),
+                        sessionId.c_str());
+    }
+
+    // -------------------------------------------------------------------------
+    // NATS
+    // -------------------------------------------------------------------------
+
+    if (bUseNats) {
+
+        // Enable NATS
+        unsigned int uiIndex = _adaptors.firstFree();
+        _adaptors[uiIndex].uiId = uiIndex;
+        _adaptors[uiIndex].pAdaptor = new NatsAdaptor (uiIndex, &_commListenerNotifier, _nodeId);
+        if (_adaptors[uiIndex].pAdaptor == nullptr) {
+            checkAndLogMsg (pszMethodName, memoryExhausted);
+            _mSessionId.unlock();
+            return -7;
+        }
+        checkAndLogMsg (pszMethodName, Logger::L_Info, "successfully created NatsAdaptor: "
+                        "nodeId: <%s> sessionKey: <%s>", _adaptors[uiIndex].pAdaptor->getNodeId().c_str(),
+                        sessionId.c_str());
+    }
+
     _mSessionId.unlock();
 
     // Initialize all the adaptors
     int rc = 0;
     for (unsigned int uiIndex = 0; uiIndex < _adaptors.size(); uiIndex++) {
-        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != NULL) {
+        if (_adaptors.used (uiIndex) && (_adaptors[uiIndex].pAdaptor != nullptr)) {
             int rcTmp = _adaptors[uiIndex].pAdaptor->init (pCfgMgr);
             if (rcTmp < 0) {
                 checkAndLogMsg (pszMethodName, unconfiguredAdaptor,
                                 _adaptors[uiIndex].pAdaptor->getAdaptorAsString(), rc);
                 if (rc == 0) {
-                    rc = -5;
+                    rc = -8;
                 }
             }
         }
     }
 
+    return rc;
+}
+
+int CommAdaptorManager::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    _m.lock (2061);
+    int rc = 0;
+    for (unsigned int i = 0; i < _adaptors.size(); i++) {
+        if (_adaptors.used (i) && (_adaptors[i].pAdaptor != nullptr)) {
+            rc += _adaptors[i].pAdaptor->changeEncryptionKey (pchKey, ui32Len);
+        }
+    }
+    _m.unlock (2061);
     return rc;
 }
 
@@ -204,22 +267,13 @@ CommAdaptor * CommAdaptorManager::getAdaptorByType (AdaptorType type)
             return _adaptors[i].pAdaptor;
         }
     }
-
     _m.unlock (2061);
-    return NULL;
-}
-
-String CommAdaptorManager::getSessionId (void) const
-{
-    _mSessionId.lock();
-    String sessionId (_sessionId);
-    _mSessionId.unlock();
-    return sessionId;
+    return nullptr;
 }
 
 int CommAdaptorManager::registerCommAdaptorListener (CommAdaptorListener *pListener, unsigned int &uiListenerId)
 {
-    if (pListener == NULL) {
+    if (pListener == nullptr) {
         return -1;
     }
     _m.lock (2040);
@@ -244,7 +298,7 @@ int CommAdaptorManager::startAdaptors (void)
     int rc = 0;
     _m.lock (2042);
     for (unsigned int uiIndex = 0; uiIndex < _adaptors.size(); uiIndex++) {
-        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != NULL) {
+        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiIndex].pAdaptor->startAdaptor();
             if (rcTmp < 0) {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not start adaptor\n",
@@ -268,7 +322,7 @@ int CommAdaptorManager::stopAdaptors (void)
     int rc = 0;
     _m.lock (2042);
     for (unsigned int uiIndex = 0; uiIndex < _adaptors.size(); uiIndex++) {
-        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != NULL) {
+        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiIndex].pAdaptor->stopAdaptor();
             if (rcTmp < 0) {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not stop adaptor\n",
@@ -294,7 +348,7 @@ int CommAdaptorManager::connectToPeer (AdaptorType type, const char *pszRemoteAd
 {
     const char *pszMethodName = "CommAdaptorManager::connectToPeer";
 
-    if (pszRemoteAddr == NULL) {
+    if (pszRemoteAddr == nullptr) {
         return -1;
     }
     switch (type) {
@@ -302,18 +356,22 @@ int CommAdaptorManager::connectToPeer (AdaptorType type, const char *pszRemoteAd
         case TCP:
             break;
 
+        case UDP:
+            return 0;
+
         default:
             checkAndLogMsg (pszMethodName, Logger::L_Warning,
-                            "only MOCKETS, and TCP adaptors support direct connections\n");
+                            "only MOCKETS and TCP adaptors support direct connections\n");
             return -2;
     }
 
-    for (unsigned int uiIndex = 0; uiIndex < _adaptors.size(); uiIndex++) {
-        if (_adaptors.used (uiIndex) && _adaptors[uiIndex].pAdaptor != NULL &&
+    for (unsigned int uiIndex = 0; uiIndex < _adaptors.size(); ++uiIndex) {
+        if (_adaptors.used (uiIndex) && (_adaptors[uiIndex].pAdaptor != nullptr) &&
+            (_adaptors[uiIndex].pAdaptor->getAdaptorType() == type) &&
             _adaptors[uiIndex].pAdaptor->supportsDirectConnection()) {
 
             ConnCommAdaptor *pConnCommAdpt = (ConnCommAdaptor*)_adaptors[uiIndex].pAdaptor;
-            int rc = pConnCommAdpt->connectToPeer(pszRemoteAddr, ui16Port);
+            int rc = pConnCommAdpt->connectToPeer (pszRemoteAddr, ui16Port);
             if (rc < 0) {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not connect to %s:%u. Returned %d.\n",
                                 pszRemoteAddr, ui16Port, rc);
@@ -329,7 +387,7 @@ void CommAdaptorManager::resetTransmissionCounters (void)
 {
     _m.lock (2043);
     for (unsigned int uiId = 0; uiId < _adaptors.size(); uiId++) {
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             _adaptors[uiId].pAdaptor->resetTransmissionCounters();
         }
     }
@@ -338,10 +396,10 @@ void CommAdaptorManager::resetTransmissionCounters (void)
 
 int CommAdaptorManager::sendContextUpdateMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -349,9 +407,9 @@ int CommAdaptorManager::sendContextUpdateMessage (const void *pBuf, uint32 ui32L
 
     _m.lock (2044);
     int rc = 0;
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendContextUpdateMessage (pBuf, ui32Len,
                                                                            (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                            (const char **) ppTargets[i]->getInterfaces());
@@ -371,10 +429,10 @@ int CommAdaptorManager::sendContextUpdateMessage (const void *pBuf, uint32 ui32L
 
 int CommAdaptorManager::sendContextVersionMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -382,9 +440,9 @@ int CommAdaptorManager::sendContextVersionMessage (const void *pBuf, uint32 ui32
 
     int rc = 0;
     _m.lock (2045);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendContextVersionMessage (pBuf, ui32Len,
                                                                             (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                             (const char **) ppTargets[i]->getInterfaces());
@@ -402,12 +460,34 @@ int CommAdaptorManager::sendContextVersionMessage (const void *pBuf, uint32 ui32
     return rc;
 }
 
+int CommAdaptorManager::broadcastDataMessage (Message *pMsg)
+{
+    const char *pszMethodName = "CommAdaptorManager::broadcastDataMessage";
+    int rc = 0;
+    _m.lock (2046);
+    const unsigned int uiLen = _adaptors.size();
+    for (unsigned int uiId = 0; uiId < uiLen; uiId++) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
+            int rcTmp = _adaptors[uiId].pAdaptor->sendDataMessage (pMsg, nullptr, nullptr);
+            if (rcTmp < 0) {
+                checkAndLogMsg (pszMethodName, unconfiguredAdaptor,
+                                _adaptors[uiId].pAdaptor->getAdaptorAsString(), rcTmp);
+                if (rc == 0) {
+                    rc = -1;
+                }
+            }
+        }
+    }
+    _m.unlock (2046);
+    return rc;
+}
+
 int CommAdaptorManager::sendDataMessage (Message *pMsg, Targets **ppTargets)
 {
-    if (pMsg == NULL) {
+    if (pMsg == nullptr) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -418,14 +498,12 @@ int CommAdaptorManager::sendDataMessage (Message *pMsg, Targets **ppTargets)
 
     int rc = 0;
     _m.lock (2046);
-    UInt32Hashtable<Targets>::Iterator iter = ht.getAllElements();
-    for (; !iter.end(); iter.nextElement()) {
-    // for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (auto iter = ht.getAllElements(); !iter.end(); iter.nextElement()) {
         const AdaptorId uiId = iter.getValue()->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendDataMessage (pMsg,
-                                                                   (const char **) iter.getValue()->getTargetNodeIds(),
-                                                                   (const char **) iter.getValue()->getInterfaces());
+                                                                   const_cast<const char **> (iter.getValue()->getTargetNodeIds()),
+                                                                   const_cast<const char **> (iter.getValue()->getInterfaces()));
             if (rcTmp < 0) {
                 checkAndLogMsg (pszMethodName, unconfiguredAdaptor,
                                 _adaptors[uiId].pAdaptor->getAdaptorAsString(), rcTmp);
@@ -442,10 +520,10 @@ int CommAdaptorManager::sendDataMessage (Message *pMsg, Targets **ppTargets)
 
 int CommAdaptorManager::sendChunkedMessage (Message *pMsg, const char *pszDataMimeType, Targets **ppTargets)
 {
-    if (pMsg == NULL || pszDataMimeType == NULL) {
+    if (pMsg == nullptr || pszDataMimeType == nullptr) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -453,9 +531,9 @@ int CommAdaptorManager::sendChunkedMessage (Message *pMsg, const char *pszDataMi
 
     int rc = 0;
     _m.lock (2047);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendChunkedMessage (pMsg, pszDataMimeType,
                                                                       (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                       (const char **) ppTargets[i]->getInterfaces());
@@ -475,10 +553,10 @@ int CommAdaptorManager::sendChunkedMessage (Message *pMsg, const char *pszDataMi
 
 int CommAdaptorManager::sendMessageRequestMessage (const char *pszMsgId, const char *pszPublisherNodeId, Targets **ppTargets)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -486,9 +564,9 @@ int CommAdaptorManager::sendMessageRequestMessage (const char *pszMsgId, const c
 
     int rc = 0;
     _m.lock (2048);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendMessageRequestMessage (pszMsgId, pszPublisherNodeId,
                                                                              (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                              (const char **) ppTargets[i]->getInterfaces());
@@ -506,13 +584,13 @@ int CommAdaptorManager::sendMessageRequestMessage (const char *pszMsgId, const c
     return rc;
 }
 
-int CommAdaptorManager::sendChunkRequestMessage (const char *pszMsgId, NOMADSUtil::DArray<uint8> *pCachedChunks,
+int CommAdaptorManager::sendChunkRequestMessage (const char *pszMsgId, DArray<uint8> *pCachedChunks,
                                                  const char *pszPublisherNodeId, Targets **ppTargets)
 {
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -520,9 +598,9 @@ int CommAdaptorManager::sendChunkRequestMessage (const char *pszMsgId, NOMADSUti
 
     int rc = 0;
     _m.lock (2049);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendChunkRequestMessage (pszMsgId, pCachedChunks, pszPublisherNodeId,
                                                                            (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                            (const char **) ppTargets[i]->getInterfaces());
@@ -542,7 +620,7 @@ int CommAdaptorManager::sendChunkRequestMessage (const char *pszMsgId, NOMADSUti
 
 int CommAdaptorManager::sendSearchMessage (SearchProperties &searchProp, Targets **ppTargets)
 {
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -554,9 +632,9 @@ int CommAdaptorManager::sendSearchMessage (SearchProperties &searchProp, Targets
 
     // If DisService is running, DisService should be called first, so that it
     // can generate the ID for the search query
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL &&
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr &&
             _adaptors[uiId].pAdaptor->getAdaptorType() == DISSERVICE) {
 
             int rcTmp = _adaptors[uiId].pAdaptor->sendSearchMessage (searchProp,
@@ -569,7 +647,7 @@ int CommAdaptorManager::sendSearchMessage (SearchProperties &searchProp, Targets
                     rc = -1;
                 }
             }
-            if (searchProp.pszQueryId == NULL) {
+            if (searchProp.pszQueryId == nullptr) {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning,
                                 "the disservice adaptor did not generate the search query id");
             }
@@ -577,18 +655,18 @@ int CommAdaptorManager::sendSearchMessage (SearchProperties &searchProp, Targets
         }
     }
 
-    if (searchProp.pszQueryId == NULL) {
+    if (searchProp.pszQueryId == nullptr) {
         searchProp.pszQueryId = SearchService::getSearchId (searchProp.pszGroupName, _nodeId.c_str(), _pPropertyStore);
-        if (searchProp.pszQueryId == NULL) {
+        if (searchProp.pszQueryId == nullptr) {
             checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not generate the search query id");
             _m.unlock (2050);
             return -2;
         }
     }
 
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL &&
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr &&
             _adaptors[uiId].pAdaptor->getAdaptorType() != DISSERVICE) {
 
             int rcTmp = _adaptors[uiId].pAdaptor->sendSearchMessage (searchProp,
@@ -612,10 +690,10 @@ int CommAdaptorManager::sendSearchReplyMessage (const char *pszQueryId, const ch
                                                 const char *pszTarget,  const char *pszMatchingNode,
                                                 Targets **ppTargets)
 {
-    if (pszQueryId == NULL || ppszMatchingMsgIds == NULL || pszMatchingNode == NULL) {
+    if (pszQueryId == nullptr || ppszMatchingMsgIds == nullptr || pszMatchingNode == nullptr) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -623,9 +701,9 @@ int CommAdaptorManager::sendSearchReplyMessage (const char *pszQueryId, const ch
 
     int rc = 0;
     _m.lock (2051);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendSearchReplyMessage (pszQueryId, ppszMatchingMsgIds, pszTarget, pszMatchingNode,
                                                                           (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                           (const char **) ppTargets[i]->getInterfaces());
@@ -647,10 +725,10 @@ int CommAdaptorManager::sendSearchReplyMessage (const char *pszQueryId, const vo
                                                 const char *pszTarget, const char *pszMatchingNode,
                                                 Targets **ppTargets)
 {
-    if (pszQueryId == NULL || pReply == NULL || ui16ReplyLen == 0 || pszMatchingNode == NULL) {
+    if (pszQueryId == nullptr || pReply == nullptr || ui16ReplyLen == 0 || pszMatchingNode == nullptr) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -658,9 +736,9 @@ int CommAdaptorManager::sendSearchReplyMessage (const char *pszQueryId, const vo
 
     int rc = 0;
     _m.lock (2051);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendVolatileSearchReplyMessage (pszQueryId, pReply, ui16ReplyLen,
                                                                                   pszTarget, pszMatchingNode,
                                                                                   (const char **) ppTargets[i]->getTargetNodeIds(),
@@ -681,10 +759,10 @@ int CommAdaptorManager::sendSearchReplyMessage (const char *pszQueryId, const vo
 
 int CommAdaptorManager::sendPositionMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -692,9 +770,9 @@ int CommAdaptorManager::sendPositionMessage (const void *pBuf, uint32 ui32Len, T
 
     int rc = 0;
     _m.lock (2052);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendPositionMessage (pBuf, ui32Len,
                                                                       (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                       (const char **) ppTargets[i]->getInterfaces());
@@ -714,10 +792,10 @@ int CommAdaptorManager::sendPositionMessage (const void *pBuf, uint32 ui32Len, T
 
 int CommAdaptorManager::sendTopologyReplyMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -725,9 +803,10 @@ int CommAdaptorManager::sendTopologyReplyMessage (const void *pBuf, uint32 ui32L
 
     int rc = 0;
     _m.lock (2053);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    // TODO: check if possible to optimize the process in case of the DisService adaptor to send only one TopologyReplyMessage
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendTopologyReplyMessage (pBuf, ui32Len,
                                                                             (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                             (const char **) ppTargets[i]->getInterfaces());
@@ -747,10 +826,10 @@ int CommAdaptorManager::sendTopologyReplyMessage (const void *pBuf, uint32 ui32L
 
 int CommAdaptorManager::sendTopologyRequestMessage (const void *pBuf, uint32 ui32Len, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -758,9 +837,9 @@ int CommAdaptorManager::sendTopologyRequestMessage (const void *pBuf, uint32 ui3
 
     int rc = 0;
     _m.lock (2054);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendTopologyRequestMessage (pBuf, ui32Len,
                                                                               (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                               (const char **) ppTargets[i]->getInterfaces());
@@ -780,20 +859,20 @@ int CommAdaptorManager::sendTopologyRequestMessage (const void *pBuf, uint32 ui3
 
 int CommAdaptorManager::sendUpdateMessage (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
     const char *pszMethodName = "CommAdaptorManager::sendUpdateMessage";
-    
+
     int rc = 0;
     _m.lock (2055);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendUpdateMessage (pBuf, ui32Len, pszPublisherNodeId,
                                                                      (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                      (const char **) ppTargets[i]->getInterfaces());
@@ -813,10 +892,10 @@ int CommAdaptorManager::sendUpdateMessage (const void *pBuf, uint32 ui32Len, con
 
 int CommAdaptorManager::sendVersionMessage (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -824,9 +903,9 @@ int CommAdaptorManager::sendVersionMessage (const void *pBuf, uint32 ui32Len, co
 
     int rc = 0;
     _m.lock (2056);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendVersionMessage (pBuf, ui32Len, pszPublisherNodeId,
                                                                       (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                       (const char **) ppTargets[i]->getInterfaces());
@@ -846,10 +925,10 @@ int CommAdaptorManager::sendVersionMessage (const void *pBuf, uint32 ui32Len, co
 
 int CommAdaptorManager::sendWaypointMessage (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -863,7 +942,7 @@ int CommAdaptorManager::sendWaypointMessage (const void *pBuf, uint32 ui32Len, c
     UInt32Hashtable<Targets>::Iterator iter = ht.getAllElements();
     for (; !iter.end(); iter.nextElement()) {
         AdaptorId uiId = iter.getValue()->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && (_adaptors[uiId].pAdaptor != nullptr)) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendWaypointMessage (pBuf, ui32Len, pszPublisherNodeId,
                                                                        (const char **) iter.getValue()->getTargetNodeIds(),
                                                                        (const char **) iter.getValue()->getInterfaces());
@@ -883,10 +962,10 @@ int CommAdaptorManager::sendWaypointMessage (const void *pBuf, uint32 ui32Len, c
 
 int CommAdaptorManager::sendWholeMessage (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, Targets **ppTargets)
 {
-    if (pBuf == NULL || ui32Len == 0) {
+    if (pBuf == nullptr || ui32Len == 0) {
         return -1;
     }
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 0;
     }
 
@@ -894,9 +973,9 @@ int CommAdaptorManager::sendWholeMessage (const void *pBuf, uint32 ui32Len, cons
 
     int rc = 0;
     _m.lock (2058);
-    for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
+    for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
         AdaptorId uiId = ppTargets[i]->adaptorId;
-        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != NULL) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
             int rcTmp = _adaptors[uiId].pAdaptor->sendWholeMessage (pBuf, ui32Len, pszPublisherNodeId,
                                                                     (const char **) ppTargets[i]->getTargetNodeIds(),
                                                                     (const char **) ppTargets[i]->getInterfaces());
@@ -912,6 +991,49 @@ int CommAdaptorManager::sendWholeMessage (const void *pBuf, uint32 ui32Len, cons
 
     _m.unlock (2058);
     return rc;
+}
+
+int CommAdaptorManager::notifyEvent (const void *pBuf, uint32 ui32Len, const char *pszPublisherNodeId, const char *pszTopic)
+{
+    if ((pBuf == nullptr) || (ui32Len == 0)) {
+        return -1;
+    }
+
+    const char *pszMethodName = "CommAdaptorManager::notifyEvent";
+
+    int rc = 0;
+    _m.lock (2063);
+    for (unsigned int uiId = 0; uiId < _adaptors.size (); uiId++) {
+
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
+            int rcTmp = _adaptors[uiId].pAdaptor->notifyEvent (pBuf, ui32Len, pszPublisherNodeId, pszTopic, nullptr);
+            if (rcTmp < 0) {
+                checkAndLogMsg (pszMethodName, unconfiguredAdaptor,
+                                _adaptors[uiId].pAdaptor->getAdaptorAsString(), rcTmp);
+                if (rc == 0) {
+                    rc = -1;
+                }
+            }
+        }
+    }
+
+    _m.unlock (2063);
+    return rc;
+}
+
+int CommAdaptorManager::subscribe (CommAdaptor::Subscription &sub)
+{
+    unsigned int uiCount = 0;
+    _m.lock (2062);
+    const unsigned int uiLen = _adaptors.size();
+    for (unsigned int uiId = 0; uiId < uiLen; uiId++) {
+        if (_adaptors.used (uiId) && _adaptors[uiId].pAdaptor != nullptr) {
+            _adaptors[uiId].pAdaptor->subscribe (sub);
+            uiCount++;
+        }
+    }
+    _m.unlock (2062);
+    return (uiCount > 0 ? 0 : -1);
 }
 
 bool CommAdaptorManager::adaptorSupportsCaching (AdaptorId adaptorId)
@@ -953,4 +1075,3 @@ int CommAdaptorManager::getDisServiceAdaptorId (AdaptorId &adaptorId)
     adaptorId = DISSERVICE_ADAPTOR_ID;
     return 0;
 }
-

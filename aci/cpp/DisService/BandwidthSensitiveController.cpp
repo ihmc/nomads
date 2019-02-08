@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -114,6 +114,10 @@ void BandwidthSensitiveController::networkQuiescent (const char **pszInterfaces)
     _mPeers.unlock (333);
 }
 
+void BandwidthSensitiveController::messageCountUpdate (const char *, const char *, const char *, uint64, uint64)
+{
+}
+
 void BandwidthSensitiveController::dataCacheUpdated (MessageHeader *pMH, const void *pPayLoad)
 {
     _mData.lock (1);
@@ -181,7 +185,7 @@ void BandwidthSensitiveController::disServiceControlMsgArrived (DisServiceCtrlMs
 }
 
 void BandwidthSensitiveController::disServiceDataMsgArrived (DisServiceDataMsg *pDataMsg)
-{ 
+{
 }
 
 bool BandwidthSensitiveController::newData()

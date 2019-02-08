@@ -43,10 +43,10 @@ namespace IHMC_ACI
      */
     bool hasMoreChunks (DArray<uint8> *pLocallyCachedChunkIds, DArray<uint8> *pPeersCachedChunkIds)
     {
-        if (pLocallyCachedChunkIds == NULL) {
+        if (pLocallyCachedChunkIds == nullptr) {
             return false;
         }
-        if (pPeersCachedChunkIds == NULL || pPeersCachedChunkIds->size() == 0) {
+        if (pPeersCachedChunkIds == nullptr || pPeersCachedChunkIds->size() == 0) {
             return (pLocallyCachedChunkIds->size() > 0);
         }
 
@@ -68,7 +68,7 @@ namespace IHMC_ACI
     String getId (const char *pszMsgId, DArray<uint8> *pCachedChunks)
     {
         String id (pszMsgId);
-        if (pCachedChunks != NULL) {
+        if (pCachedChunks != nullptr) {
             char buf[4];
             buf[3] = '\0';
 
@@ -78,7 +78,7 @@ namespace IHMC_ACI
                 id += buf;
             }
         }
-        
+
         return id;
     }
 }
@@ -101,7 +101,7 @@ MessageForwardingController::~MessageForwardingController()
 
 int MessageForwardingController::init (ConfigManager *pCfgMgr)
 {
-    if (pCfgMgr == NULL) {
+    if (pCfgMgr == nullptr) {
         return -1;
     }
     _bContextForwardingEnabled = pCfgMgr->getValueAsBool ("aci.dspro.dsprorepctrl.contextForwarding.enabled", true);
@@ -115,11 +115,11 @@ int MessageForwardingController::messageRequestMessageArrived (AdaptorId uiAdapt
 {
     const char *pszMethodName = "MessageForwardingController::messageRequestMessageArrived";
 
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
 
-    String id = getId (pszMsgId, NULL);
+    String id = getId (pszMsgId, nullptr);
 
     if (!_bContextForwardingEnabled || _recentlyRequestedMessages.containsKey (id) || _pDataStore->hasData (pszMsgId)) {
         // Forwarding disabled, or no need to forward
@@ -127,10 +127,10 @@ int MessageForwardingController::messageRequestMessageArrived (AdaptorId uiAdapt
     }
 
     Targets **ppTargets = _pTopology->getForwardingTargets (_nodeId, pszSenderNodeId);
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         return 2;
     }
-    if (ppTargets[0] == NULL) {
+    if (ppTargets[0] == nullptr) {
         Targets::deallocateTargets (ppTargets);
         return 3;
     }
@@ -159,7 +159,7 @@ int MessageForwardingController::chunkRequestMessageArrived (AdaptorId uiAdaptor
 {
     const char *pszMethodName = "MessageForwardingController::chunkRequestMessageArrived";
 
-    if (pszMsgId == NULL) {
+    if (pszMsgId == nullptr) {
         return -1;
     }
 
@@ -175,11 +175,11 @@ int MessageForwardingController::chunkRequestMessageArrived (AdaptorId uiAdaptor
     }
 
     Targets **ppTargets = _pTopology->getForwardingTargets (_nodeId, pszSenderNodeId);
-    if (ppTargets == NULL) {
+    if (ppTargets == nullptr) {
         delete pLocallyCachedChunkIds;
         return 2;
     }
-    if (ppTargets[0] == NULL) {
+    if (ppTargets[0] == nullptr) {
         delete pLocallyCachedChunkIds;
         Targets::deallocateTargets (ppTargets);
         return 3;
@@ -194,7 +194,7 @@ int MessageForwardingController::chunkRequestMessageArrived (AdaptorId uiAdaptor
     }
     else {
         String chunkIds ("[");
-        if (pCachedChunks != NULL) {
+        if (pCachedChunks != nullptr) {
             for (unsigned int i = 0; i < pCachedChunks->size(); i++) {
                 chunkIds += ((uint32) (*pCachedChunks)[i]);
                 chunkIds += " ";
@@ -202,7 +202,7 @@ int MessageForwardingController::chunkRequestMessageArrived (AdaptorId uiAdaptor
         }
         chunkIds += "]";
         String myChunkIds ("[");
-        if (pLocallyCachedChunkIds != NULL) {
+        if (pLocallyCachedChunkIds != nullptr) {
             for (unsigned int i = 0; i < pLocallyCachedChunkIds->size(); i++) {
                 myChunkIds += ((uint32) (*pLocallyCachedChunkIds)[i]);
                 myChunkIds += " ";
@@ -231,10 +231,10 @@ int MessageForwardingController::searchMessageArrived (unsigned int uiAdaptorId,
     }
 
     Targets **ppTargets = _pTopology->getForwardingTargets (_nodeId, pszSenderNodeId);
-    if (ppTargets != NULL) {
+    if (ppTargets != nullptr) {
         return 2;
     }
-    if (ppTargets[0] == NULL) {
+    if (ppTargets[0] == nullptr) {
         Targets::deallocateTargets (ppTargets);
         return 3;
     }
@@ -277,10 +277,10 @@ int MessageForwardingController::searchReplyMessageArrived (AdaptorId, const cha
     int rc;
     if (querier.length() <= 0) {
         Targets **ppTargets = _pTopology->getForwardingTargets (_nodeId, pszSenderNodeId);
-        if (ppTargets == NULL) {
+        if (ppTargets == nullptr) {
             return 2;
         }
-        if (ppTargets[0] == NULL) {
+        if (ppTargets[0] == nullptr) {
             Targets::deallocateTargets (ppTargets);
             return 3;
         }
@@ -290,8 +290,8 @@ int MessageForwardingController::searchReplyMessageArrived (AdaptorId, const cha
         Targets::deallocateTargets (ppTargets);
     }
     else {
-        TargetPtr targets[2] = {_pTopology->getNextHopAsTarget (querier), NULL};
-        if (targets[0] == NULL) {
+        TargetPtr targets[2] = {_pTopology->getNextHopAsTarget (querier), nullptr};
+        if (targets[0] == nullptr) {
             return 3;
         }
         rc = _pAdaptMgr->sendSearchReplyMessage (pszQueryId, ppszMatchingMsgIds,
@@ -332,7 +332,7 @@ int MessageForwardingController::waypointMessageArrived (AdaptorId adaptorId, co
     // Waypoint messages are sent periodically and unreliably, therefore they always need to be forwarded
     int rc = 0;
     Targets **ppTargets = _pTopology->getForwardingTargets (_nodeId, pszSenderNodeId);
-    if (ppTargets != NULL && ppTargets[0] != NULL) {
+    if ((ppTargets != nullptr) && (ppTargets[0] != nullptr)) {
         uint32 ui32TotalLen = 0;
         static PreviousMessageIds LATEST_MESSAGE_SENT_TO_TARGETS_UNSET; // the latest message that was sent is only set between neighboring
                                                                         // nodes. Even if a node sends a message to a non-neighboring node
@@ -341,7 +341,7 @@ int MessageForwardingController::waypointMessageArrived (AdaptorId adaptorId, co
                                                                         // it is the only one that can know what was the laster message that was
                                                                         // sent to it
         void *pData = WaypointMessageHelper::writeWaypointMessageForTarget (LATEST_MESSAGE_SENT_TO_TARGETS_UNSET, pBuf, ui32Len, ui32TotalLen);
-        if (pData != NULL) {
+        if (pData != nullptr) {
             rc = _pAdaptMgr->sendWaypointMessage (pData, ui32TotalLen, pszPublisherNodeId, ppTargets);
             if (rc < 0) {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning,  "failed to forward waypoint message from %s and "

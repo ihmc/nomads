@@ -51,21 +51,21 @@ void DisServiceQueryController::searchArrived (const char *pszQueryId, const cha
 
     // A search arrived from the application
     const char *pszMethodName = "DisServiceQueryController::searchArrived";
-   
-    if (pQuery == NULL || pszQueryType == NULL) {
+
+    if (pQuery == nullptr || pszQueryType == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "some of the needed parameters are null\n");
         return;
     }
 
     if (!supportsQueryType (pszQueryType)) {
-        checkAndLogMsg (pszMethodName, Logger::L_Warning, "query type %s not supported\n", pszQueryType);
+        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "query type %s not supported\n", pszQueryType);
         return;
     }
 
     String query ((char *)pQuery, uiQueryLen);
 
     DArray2<NOMADSUtil::String> *pDArray2MessageIds = _pDataCacheInterface->getMessageIDs (query.c_str());
-    if (pDArray2MessageIds == NULL) {
+    if (pDArray2MessageIds == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "problems in retrieving the message ids from the data cache\n");
         return;
     }
@@ -77,7 +77,7 @@ void DisServiceQueryController::searchArrived (const char *pszQueryId, const cha
     }
 
     char **ppszMatchingMsgIds = (char **) calloc (uiNResults+1, sizeof (char*));
-    if (ppszMatchingMsgIds == NULL) {
+    if (ppszMatchingMsgIds == nullptr) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "problems in creating the array with the results\n");
         return;
     }
@@ -85,7 +85,7 @@ void DisServiceQueryController::searchArrived (const char *pszQueryId, const cha
     for (unsigned int i = 0; i < uiNResults; i++) {
         ppszMatchingMsgIds[i] = (*pDArray2MessageIds)[i].r_str();
     }
-    ppszMatchingMsgIds[uiNResults] = NULL;
+    ppszMatchingMsgIds[uiNResults] = nullptr;
 
     int rc = notifySearchReply (pszQueryId, pszQuerier, (const char **)ppszMatchingMsgIds, getDSPro()->getNodeId());
     if (rc < 0) {

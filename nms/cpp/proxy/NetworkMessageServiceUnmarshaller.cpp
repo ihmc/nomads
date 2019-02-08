@@ -1,4 +1,4 @@
-/* 
+/*
  * NetworkMessageServiceUnmarshaller.cpp
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -26,7 +26,6 @@
 #include "NetworkMessageServiceProxy.h"
 #include "SerializationUtil.h"
 
-#include "CommHelper2.h"
 #include "DArray.h"
 #include "Writer.h"
 
@@ -718,6 +717,61 @@ namespace NOMADSUtil
         return true;
     }
 
+    bool doGetKeyHash (uint16 ui16ClientId, NetworkMessageService *pNMS,
+                       SimpleCommHelper2 *pCommHelper, SimpleCommHelper2::Error &error)
+    {
+        error = SimpleCommHelper2::None;
+        Writer *pWriter = pCommHelper->getWriterRef();
+        const String hash (pNMS->getEncryptionKeyHash());
+        if (pWriter->writeString (hash) < 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+        return true;
+    }
+
+    bool doChangeKey (uint16 ui16ClientId, NetworkMessageService *pNMS,
+                      SimpleCommHelper2 *pCommHelper, SimpleCommHelper2::Error &error)
+    {
+        error = SimpleCommHelper2::None;
+        Reader *pReader = pCommHelper->getReaderRef();
+        Writer *pWriter = pCommHelper->getWriterRef();
+        if ((pReader == NULL) || (pWriter == NULL)) {
+            return false;
+        }
+
+        uint32 ui32KeyLen = 0U;
+        if (pReader->read32 (&ui32KeyLen) < 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+        if (ui32KeyLen == 0U) {
+            error = SimpleCommHelper2::ProtocolError;
+            return false;
+        }
+        unsigned char *pchKey = (unsigned char*) malloc (ui32KeyLen);
+        if (pchKey == NULL) {
+            error = SimpleCommHelper2::ProtocolError;
+            return false;
+        }
+        if (pReader->readBytes (pchKey, ui32KeyLen) < 0) {
+            error = SimpleCommHelper2::CommError;
+            if (pchKey != NULL) {
+                free (pchKey);
+            }
+            return false;
+        }
+
+        int8 rc = pNMS->changeEncryptionKey (pchKey, ui32KeyLen);
+
+        free (pchKey);
+        if (pWriter->write8 (&rc) < 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+        return true;
+    }
+
     bool doPing (uint16 ui16ClientId, NetworkMessageService *pNMS, SimpleCommHelper2 *pCommHelper, SimpleCommHelper2::Error &error)
     {
         pCommHelper->sendLine (error, "pong");
@@ -768,6 +822,12 @@ namespace NOMADSUtil
 
         uint8 ui8TTL = 0U;
         if (pReader->readUI8 (&ui8TTL) < 0) {
+            error = SimpleCommHelper2::CommError;
+            return false;
+        }
+
+        bool bIsUnicast = false;
+        if (pReader->readBool (&bIsUnicast) < 0) {
             error = SimpleCommHelper2::CommError;
             return false;
         }
@@ -826,9 +886,33 @@ namespace NOMADSUtil
             return false;
         }
 
+        uint64 ui64GroupMsgCount = 0U;
+        if (pReader->read64 (&ui64GroupMsgCount) < 0) {
+            error = SimpleCommHelper2::CommError;
+            if (pMetadata != NULL) {
+                free (pMetadata);
+            }
+            if (pMsg != NULL) {
+                free (pMsg);
+            }
+            return false;
+        }
+
+        uint64 ui64UnicastMsgCount = 0U;
+        if (pReader->read64 (&ui64UnicastMsgCount) < 0) {
+            error = SimpleCommHelper2::CommError;
+            if (pMetadata != NULL) {
+                free (pMetadata);
+            }
+            if (pMsg != NULL) {
+                free (pMsg);
+            }
+            return false;
+        }
+
         pNMSProxy->messageArrived (incomingIface, ui32SourceIPAddress, ui8MsgType, ui16MsgId,
-                                   ui8HopCount, ui8TTL, pMetadata, ui16MsgMetaDataLen,
-                                   pMsg, ui16MsgLen, i64Timestamp);
+                                   ui8HopCount, ui8TTL, bIsUnicast, pMetadata, ui16MsgMetaDataLen,
+                                   pMsg, ui16MsgLen, i64Timestamp, ui64GroupMsgCount, ui64UnicastMsgCount);
         if (pMetadata != NULL) {
             free (pMetadata);
         }
@@ -870,6 +954,9 @@ const String NetworkMessageServiceUnmarshaller::GET_LINK_CAPACITY_METHOD = "getL
 const String NetworkMessageServiceUnmarshaller::SET_LINK_CAPACITY_METHOD = "setLinkCapacity";
 const String NetworkMessageServiceUnmarshaller::GET_NEIGHBOR_QUEUE_LENGTH_METHOD = "getNeighborQueueLength";
 const String NetworkMessageServiceUnmarshaller::CLEAR_TO_SEND_METHOD = "clearToSend";
+const String NetworkMessageServiceUnmarshaller::GET_ENCRYPTION_KEY_HASH = "getEncryptionKeyHash";
+const String NetworkMessageServiceUnmarshaller::CHANGE_KEY_METHOD = "changeEncryptionKey";
+
 const String NetworkMessageServiceUnmarshaller::PING_METHOD = "ping";
 
 const String NetworkMessageServiceUnmarshaller::REGISTER_LISTENER_METHOD = "registerListener";
@@ -882,91 +969,92 @@ bool NetworkMessageServiceUnmarshaller::methodInvoked (uint16 ui16ClientId, cons
                                                        SimpleCommHelper2::Error &error)
 {
     if (BROADCAST_METHOD == methodName) {
-        return doBroadcast (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+        return doBroadcast (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (TRANSMIT_METHOD == methodName) {
-        return doTransmit (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (TRANSMIT_METHOD == methodName) {
+        return doTransmit (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (TRANSMIT_RELIABLE_METHOD == methodName) {
-        return doTransmitReliable (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (TRANSMIT_RELIABLE_METHOD == methodName) {
+        return doTransmitReliable (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (SET_TRANSMISSION_TIMEOUT_METHOD == methodName) {
-        return doSetRetransmissionTimeout (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (SET_TRANSMISSION_TIMEOUT_METHOD == methodName) {
+        return doSetRetransmissionTimeout (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (SET_PRIMARY_INTERFACE_METHOD == methodName) {
-        return doSetPrimaryInterface (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (SET_PRIMARY_INTERFACE_METHOD == methodName) {
+        return doSetPrimaryInterface (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (START_METHOD == methodName) {
-        return doStart (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (START_METHOD == methodName) {
+        return doStart (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (STOP_METHOD == methodName) {
-        return doStop (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (STOP_METHOD == methodName) {
+        return doStop (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_MIN_MTU_METHOD == methodName) {
-        return doGetMinMTU (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_MIN_MTU_METHOD == methodName) {
+        return doGetMinMTU (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_ACTIVE_NIC_AS_STRING_METHOD == methodName) {
-        return doGetActiveNICsInfoAsStringForDestination (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_ACTIVE_NIC_AS_STRING_METHOD == methodName) {
+        return doGetActiveNICsInfoAsStringForDestination (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_PROPAGATION_MODE_METHOD == methodName) {
-        return goGetPropagationMode (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_PROPAGATION_MODE_METHOD == methodName) {
+        return goGetPropagationMode (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_DELIVERY_QUEUE_SIZE_METHOD == methodName) {
-        return doGetDeliveryQueueSize (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_DELIVERY_QUEUE_SIZE_METHOD == methodName) {
+        return doGetDeliveryQueueSize (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_RECEIVE_RATE_METHOD == methodName) {
-        return doGetReceiveRate (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_RECEIVE_RATE_METHOD == methodName) {
+        return doGetReceiveRate (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_TRANSMISSION_QUEUE_SIZE_METHOD == methodName) {
-        return doGetTransmissionQueueSize (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_TRANSMISSION_QUEUE_SIZE_METHOD == methodName) {
+        return doGetTransmissionQueueSize (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_RESCALED_TRANSMISSION_QUEUE_MAX_SIZE_METHOD == methodName) {
-        return doGetRescaledTransmissionQueueSize (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_RESCALED_TRANSMISSION_QUEUE_MAX_SIZE_METHOD == methodName) {
+        return doGetRescaledTransmissionQueueSize (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_TRANSMISSION_QUEUE_MAX_SIZE_METHOD == methodName) {
-        return doGetTransmissionQueueMaxSize (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_TRANSMISSION_QUEUE_MAX_SIZE_METHOD == methodName) {
+        return doGetTransmissionQueueMaxSize (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_TRANSMISSION_RATE_LIMIT_METHOD == methodName) {
-        return doGetTransmitRateLimit (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_TRANSMISSION_RATE_LIMIT_METHOD == methodName) {
+        return doGetTransmitRateLimit (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (SET_TRANSMISSION_QUEUE_MAX_SIZE_METHOD == methodName) {
-        return doSetTransmissionQueueMaxSize (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (SET_TRANSMISSION_QUEUE_MAX_SIZE_METHOD == methodName) {
+        return doSetTransmissionQueueMaxSize (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (SET_TRANSMIT_RATE_LIMIT_METHOD == methodName) {
-        return doSetTransmitRateLimit (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (SET_TRANSMIT_RATE_LIMIT_METHOD == methodName) {
+        return doSetTransmitRateLimit (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_LINK_CAPACITY_METHOD == methodName) {
-        return doGetLinkCapacity (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_LINK_CAPACITY_METHOD == methodName) {
+        return doGetLinkCapacity (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (SET_LINK_CAPACITY_METHOD == methodName) {
-        return doSetLinkCapacity (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (SET_LINK_CAPACITY_METHOD == methodName) {
+        return doSetLinkCapacity (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (GET_NEIGHBOR_QUEUE_LENGTH_METHOD == methodName) {
-        return doGetNeighborQueueLength (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_NEIGHBOR_QUEUE_LENGTH_METHOD == methodName) {
+        return doGetNeighborQueueLength (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (CLEAR_TO_SEND_METHOD == methodName) {
-        return doClearToSend (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (CLEAR_TO_SEND_METHOD == methodName) {
+        return doClearToSend (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else if (PING_METHOD == methodName) {
-        return doPing (ui16ClientId, (NetworkMessageService *) pNMS, pCommHelper, error);
+    if (GET_ENCRYPTION_KEY_HASH == methodName) {
+        return doGetKeyHash (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
-    else {
-        return false;
+    if (CHANGE_KEY_METHOD == methodName) {
+        return doChangeKey (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
+    }
+    if (PING_METHOD == methodName) {
+        return doPing (ui16ClientId, static_cast<NetworkMessageService *>(pNMS), pCommHelper, error);
     }
     return false;
 }
 
 bool NetworkMessageServiceUnmarshaller::methodArrived (uint16 ui16ClientId, const String &methodName,
-                                                       void *pNMSProxy, SimpleCommHelper2 *pCommHelper)
+                                                       Stub *pNMSProxy, SimpleCommHelper2 *pCommHelper)
 {
     if (MESSAGE_ARRIVED == methodName) {
         return doMessageArrived (ui16ClientId, (NetworkMessageServiceProxy *) pNMSProxy, pCommHelper);
     }
-    else if (PONG_ARRIVED == methodName) {
+    if (PONG_ARRIVED == methodName) {
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 

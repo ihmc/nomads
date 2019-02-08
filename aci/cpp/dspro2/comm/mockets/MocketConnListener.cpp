@@ -1,4 +1,4 @@
-/* 
+/*
  * MocketConnListener.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -30,13 +30,24 @@
 using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
+namespace MOCKET_CONN_LISTENER
+{
+    bool enableDtls (const char *pszCertFile, const char *pszKeyFile)
+    {
+        return (pszCertFile != nullptr) && (pszKeyFile != nullptr);
+    }
+}
+
+using namespace MOCKET_CONN_LISTENER;
+
 MocketConnListener::MocketConnListener (const char *pszListenAddr, uint16 ui16Port,
                                         const char *pszNodeId, const char *pszSessionId,
                                         const char *pszMocketConfigFile,
                                         CommAdaptorListener *pListener,
-                                        ConnCommAdaptor *pConnCommAdaptor)
+                                        ConnCommAdaptor *pConnCommAdaptor,
+                                        const char *pszCertFile, const char *pszKeyFile)
     : ConnListener (pszListenAddr, ui16Port, pszNodeId, pszSessionId, pListener, pConnCommAdaptor),
-      _servMocket (pszMocketConfigFile)
+      _servMocket (pszMocketConfigFile, nullptr, false, enableDtls (pszCertFile, pszKeyFile), pszCertFile, pszKeyFile)
 {
 }
 
@@ -49,7 +60,7 @@ void MocketConnListener::requestTermination (void)
 {
     _servMocket.close();
     if (isRunning()) {
-        ConnListener::requestTerminationAndWait();
+        ConnListener::requestTermination();
     }
 }
 
@@ -67,7 +78,7 @@ void MocketConnListener::run()
     sThreadName += _listenAddr;
     setName (sThreadName.c_str());
 
-    // Then listen on the socket    
+    // Then listen on the socket
     _servMocket.listen (_ui16Port, _listenAddr.c_str());
 
     ConnListener::run();
@@ -75,19 +86,21 @@ void MocketConnListener::run()
 
 ConnHandler * MocketConnListener::getConnHandler (ConnEndPoint *pEndPoint, const String &remotePeer)
 {
-    if (pEndPoint == NULL) {
-        return NULL;
+    if (pEndPoint == nullptr) {
+        return nullptr;
     }
-    MocketEndPoint *pMocketEndPoint = (MocketEndPoint *) pEndPoint;
-    if (pMocketEndPoint == NULL) {
-        return NULL;
+    MocketEndPoint *pMocketEndPoint = dynamic_cast<MocketEndPoint *> (pEndPoint);
+    if (pMocketEndPoint == nullptr) {
+        return nullptr;
     }
-    assert (pMocketEndPoint->_pMocket != NULL);
+    assert (pMocketEndPoint->_pMocket != nullptr);
+
     const AdaptorProperties *pAdaptProp = _pCommAdaptor->getAdaptorProperties();
     MocketConnHandler *pHandler = new MocketConnHandler (*pAdaptProp, remotePeer, _pListener, pMocketEndPoint->_pMocket);
-    if (pHandler == NULL) {
+    if (pHandler == nullptr) {
         checkAndLogMsg ("MocketConnListener::getConnHandler", memoryExhausted);
     }
+
     return pHandler;
 }
 
@@ -95,12 +108,12 @@ ConnEndPoint * MocketConnListener::acceptConnection (void)
 {
     // Receive connection
     Mocket *pMocket = _servMocket.accept();
-    if (pMocket == NULL) {
+    if (pMocket == nullptr) {
         checkAndLogMsg ("MocketConnListener::getEndPoint", memoryExhausted);
-        return NULL;
+        return nullptr;
     }
     ConnEndPoint *pEndPoint = new MocketEndPoint (pMocket, ConnEndPoint::DEFAULT_TIMEOUT);
-    if (pEndPoint == NULL) {
+    if (pEndPoint == nullptr) {
         checkAndLogMsg ("MocketConnListener::getEndPoint", memoryExhausted);
     }
     return pEndPoint;

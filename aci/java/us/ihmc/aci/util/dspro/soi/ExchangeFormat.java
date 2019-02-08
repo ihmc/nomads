@@ -33,6 +33,8 @@ abstract public class ExchangeFormat
     public static final String DSPRO_SEQUENCE_ID = "dspro.sequenceID";
     public static final String DSPRO_SESSION_ID = "dspro.sessionID";
     public static final String SOI_MESSAGE = "soi.message";
+    public static final String FED_MESSAGE_ID_ROOT = "fed.message.id.root";
+    public static final String FED_MESSAGE_ID = "fed.message.id";
 
     // dspro values used to fill metadata added to the SortedProperties
     public static final String DESCRIPTION = "description";

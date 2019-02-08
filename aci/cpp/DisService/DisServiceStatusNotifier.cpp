@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -34,7 +34,16 @@ using namespace msgpack;
 DisServiceStatusNotifier::DisServiceStatusNotifier (const char *pszNodeId, const char *pszNotifyAddr)
     : _packer (_bufWriter), _nodeId (pszNodeId)
 {
-    _localHostAddr.setIPAddress (pszNotifyAddr);
+    const char * pszLocalAddress = "127.0.0.1";
+    _remoteHostAddr.setIPAddress (pszNotifyAddr);
+    _localHostAddr.setIPAddress (pszLocalAddress);
+    if (pszNotifyAddr != NULL) {
+        if (!strcmp(pszNotifyAddr, pszLocalAddress)) {
+            _bStatsMultiplex = false;
+        } else {
+            _bStatsMultiplex = true;
+        }
+    }
 }
 
 DisServiceStatusNotifier::~DisServiceStatusNotifier (void)
@@ -51,6 +60,7 @@ int DisServiceStatusNotifier::init (uint16 ui16StatsPort)
     }
     checkAndLogMsg ("DisServiceStatusNotifier::init", Logger::L_Info,
                      "initialized DatagramSocket on port %d\n", (int) ui16StatsPort);
+
     _ui16StatsPort = ui16StatsPort;
     return 0;
 }
@@ -184,10 +194,18 @@ int DisServiceStatusNotifier::sendDetailedStats (DisServiceStats *pStats)
 
 int DisServiceStatusNotifier::sendPacket (void)
 {
-    int rc = _statSocket.sendTo (_localHostAddr.getIPAddress(), _ui16StatsPort,
+    int rc = _statSocket.sendTo (_remoteHostAddr.getIPAddress(), _ui16StatsPort,
                                  _bufWriter.data(), _bufWriter.size());
     if (rc < 0) {
         return rc;
+    }
+    /* Send the statistics also locally */
+    if (_bStatsMultiplex) {
+        rc = _statSocket.sendTo (_localHostAddr.getIPAddress(), _ui16StatsPort,
+                                 _bufWriter.data(), _bufWriter.size());
+        if (rc < 0) {
+            return rc;
+        }
     }
     return 0;
 }

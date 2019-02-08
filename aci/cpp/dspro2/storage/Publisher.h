@@ -21,10 +21,15 @@
  */
 
 #ifndef INCL_DSPRO_PUBLISHER_H
-#define	INCL_DSPRO_PUBLISHER_H
+#define INCL_DSPRO_PUBLISHER_H
 
 #include "ChunkingAdaptor.h"
 #include "MessageIdGenerator.h"
+
+namespace IHMC_VOI
+{
+    class MetadataInterface;
+}
 
 namespace NOMADSUtil
 {
@@ -35,7 +40,6 @@ namespace IHMC_ACI
 {
     class DataStore;
     class InformationStore;
-    class MetadataInterface;
 
     class ThreadSafePublisher
     {
@@ -45,7 +49,7 @@ namespace IHMC_ACI
 
             virtual int addMetadata (const char *pszId, const char *pszObjectId, const char *pszInstanceId,
                                      const char *pszMimeType, const char *pszChecksum, const char *pszReferredObjectId,
-                                     const void *pBuf, uint32 ui32Len, int64 i64Expiration) = 0;
+                                     const void *pBuf, uint32 ui32Len, int64 i64Expiration, bool bDisServiceMetadata = false) = 0;
 
             virtual int addData (const char *pszId, const char *pszObjectId, const char *pszInstanceId,
                                  const char *pszAnnotatedObjMsgId, const void *pAnnotationMetadata,
@@ -82,8 +86,8 @@ namespace IHMC_ACI
              *
              * NOTE: it modifies pMetadata!
              */
-            int setAndAddMetadata (PublicationInfo &pubInfo, MetadataInterface *pMetadata,
-                                   NOMADSUtil::String &msgId, bool bStoreInInfoStore);
+            int setAndAddMetadata (PublicationInfo &pubInfo, IHMC_VOI::MetadataInterface *pMetadata,
+                                   NOMADSUtil::String &msgId, bool bStoreInInfoStore, bool bDisseminate);
 
             /**
              * It chunks the data message and stores it into the DataStore
@@ -91,15 +95,18 @@ namespace IHMC_ACI
             int chunkAndAddData (PublicationInfo &pubInfo, const char *pszAnnotatedObjMsgId,
                                  const void *pszAnnotationMetadata, uint32 ui32AnnotationMetdataLen,
                                  const void *pData, uint32 ui32DataLen, const char *pszDataMimeType,
-                                 char **ppszId, bool bDoNotChunk);
+                                 char **ppszId, uint8 ui8NChunks, bool bDisseminate);
 
             /**
              * It stores the metadata message into the DataStore
              * @threadsafe
              */
+            char * assignIdAndAddMetadata (const char *pszGroupName, const char *pszObjectId, const char *pszInstanceId,
+                                           const char *pszMimeType, const char *pszChecksum, const char *pszReferredObjectId,
+                                           const void *pBuf, uint32 ui32Len, int64 i64Expiration, bool bDisseminate);
             int addMetadata (const char *pszId, const char *pszObjectId, const char *pszInstanceId,
                              const char *pszMimeType, const char *pszChecksum, const char *pszReferredObjectId,
-                             const void *pBuf, uint32 ui32Len, int64 i64Expiration);
+                             const void *pBuf, uint32 ui32Len, int64 i64Expiration, bool bDSProMetadata);
 
             /**
              * It stores the data message into the DataStore
@@ -111,9 +118,17 @@ namespace IHMC_ACI
                          const char *pszChecksum, const void *pBuf, uint32 ui32Len,
                          int64 i64Expiration, uint8 ui8NChunks = 0, uint8 ui8TotNChunks = 0);
 
+            /**
+             * It stores the data chunks into the DataStore
+             * @threadsafe
+             */
+            int addChunkedData (PublicationInfo &pubInfo, NOMADSUtil::PtrLList<IHMC_MISC::Chunker::Fragment> *pChunks,
+                                const char *pszDataMimeType, bool bDisseminate, char *&pszLargeObjectId);
+            int addChunkedData (const char *pszLargeObjectId, PublicationInfo &pubInfo, IHMC_MISC::Chunker::Fragment *pChunk,
+                                const char *pszDataMimeType);
+
         private:
             const NOMADSUtil::String _nodeId;
-            ChunkingConfiguration _chunkingConf;
             MessageIdGenerator _idGen;
             DataStore *_pDataStore;
             InformationStore *_pInfoStore;
@@ -121,4 +136,3 @@ namespace IHMC_ACI
 }
 
 #endif    // INCL_DSPRO_PUBLISHER_H
-

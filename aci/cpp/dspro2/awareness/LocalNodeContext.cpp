@@ -21,7 +21,7 @@
 
 #include "C45LocalNodeContext.h"
 #include "Defs.h"
-#include "MetadataConfiguration.h"
+#include "MetadataConfigurationImpl.h"
 #include "MetadataRankerConfiguration.h"
 #include "NodePath.h"
 #include "NonClassifyingLocalNodeContext.h"
@@ -32,73 +32,42 @@
 #include "Logger.h"
 #include "NLFLib.h"
 #include "ConfigManager.h"
-#include "StringTokenizer.h"
-#include "MetaDataRanker.h"
-#include "MatchmakingQualifier.h"
-
-#include <string.h>
+#include "StrClass.h"
 
 using namespace NOMADSUtil;
 using namespace IHMC_C45;
+using namespace IHMC_VOI;
 using namespace IHMC_ACI;
+using namespace IHMC_MISC_MIL_STD_2525;
 
-const unsigned short int LocalNodeContext::ACTUAL_COVERED_PATH_INDEX = 0;
-
-const char * LocalNodeContext::TEAM_ID_PROPERTY = "aci.dspro.localNodeContext.pszTeamID";
-const char * LocalNodeContext::MISSION_ID_PROPERTY = "aci.dspro.localNodeContext.pszMissionID";
-const char * LocalNodeContext::ROLE_PROPERTY = "aci.dspro.localNodeContext.pszRole";
-const char * LocalNodeContext::USEFUL_DISTANCE_PROPERTY = "aci.dspro.localNodeContext.usefulDistance";
-const char * LocalNodeContext::USEFUL_DISTANCE_BY_TYPE_PROPERTY = "aci.dspro.localNodeContext.usefulDistanceByType";
+const char * LocalNodeContext::TEAM_ID_PROPERTY = "aci.dspro.localNodeContext.teamId";
+const char * LocalNodeContext::MISSION_ID_PROPERTY = "aci.dspro.localNodeContext.missionId";
+const char * LocalNodeContext::ROLE_PROPERTY = "aci.dspro.localNodeContext.role";
+const char * LocalNodeContext::NODE_TYPE_PROPERTY = "aci.dspro.localNodeContext.nodeType";
 const char * LocalNodeContext::LIMIT_PRESTAGING_TO_LOCAL_DATA_PROPERTY = "aci.dspro.localNodeContext.limitPrestagingToLocalData";
 const char * LocalNodeContext::MATCHMAKING_QUALIFIERS = "aci.dspro.localNodeContext.mathcmakingQualifiers";
 
-LocalNodeContext::LocalNodeContext (const char *pszNodeID, Classifier *pClassifier,
+LocalNodeContext::LocalNodeContext (const char *pszNodeId, Classifier *pClassifier,
                                     double dTooFarCoeff, double dApproxCoeff)
-    : NodeContext (pszNodeID, dTooFarCoeff, dApproxCoeff)
+    : NodeContextImpl (pszNodeId, dTooFarCoeff, dApproxCoeff)
 {
-    _ui16PathsNumber = 1;
-
-    int64 i64Time = getTimeInMilliseconds(); 
-    _ui32StartingTime = (i64Time > 0 ? (uint32) i64Time : 0); 
-
-    _pPaths = new DArray2<NodePath *>(_ui16PathsNumber);
-    _pPaths->setDefIncr (1);
-
-    NodePath *pPastPath = new NodePath (NodePath::PAST_PATH, 0, 0);
-    (*_pPaths)[_ui16PathsNumber - 1] = pPastPath;
-
-    _iCurrPath = -1;
-
-    _pClassifier = pClassifier;
-    assert (_pClassifier != NULL);
-    if (_pClassifier == NULL) {
-        checkAndLogMsg ("LocalNodeContext::LocalNodeContext", Logger::L_SevereError,
-                        "Could not initialize classifier.");
-    }
+    _i64StartingTime = getTimeInMilliseconds();
 }
 
 LocalNodeContext::~LocalNodeContext (void)
 {
-    if (_pPaths != NULL) {
-        for (int i = 0; i < _ui16PathsNumber; i ++) {
-            delete (*_pPaths)[i];
-            (*_pPaths)[i] = NULL;
-        }
-        delete _pPaths;
-        _pPaths = NULL;
-    }
 }
 
 LocalNodeContext * LocalNodeContext::getInstance (const char *pszNodeId, ConfigManager *pCfgMgr,
-                                                  MetadataConfiguration *pMetadataConf)
+                                                  MetadataConfigurationImpl *pMetadataConf)
 {
-    if (pCfgMgr == NULL) {
-        return NULL;
+    if (pCfgMgr == nullptr) {
+        return nullptr;
     }
 
     const char *pszMethodName = "LocalNodeContext::getInstance";
 
-    LocalNodeContext *_pLocalNodeContext = NULL;
+    LocalNodeContext *_pLocalNodeContext = nullptr;
     NOMADSUtil::String classifier = pCfgMgr->getValue ("aci.dspro.localNodeContext.classifier.type",
                                                        NonClassifyingLocalNodeContext::TYPE);
 
@@ -110,7 +79,7 @@ LocalNodeContext * LocalNodeContext::getInstance (const char *pszNodeId, ConfigM
 
         // Configure classifier
         int rc = 0;
-        if (pCfgMgr != NULL) {
+        if (pCfgMgr != nullptr) {
             NOMADSUtil::String algorithm = pCfgMgr->getValue ("aci.dspro.localNodeContext.classification.algorithm",
                                                               C45LocalNodeContext::WINDOW_ALGORITHM);
             int iInitWinSize = pCfgMgr->getValueAsInt ("aci.dspro.localNodeContext.classification.algorithm.win.size.init", 30);
@@ -130,8 +99,8 @@ LocalNodeContext * LocalNodeContext::getInstance (const char *pszNodeId, ConfigM
             else {
                 checkAndLogMsg (pszMethodName, Logger::L_SevereError,
                                 "C4.5 Classifier configuration failed. Algorithm of unknown type (%s)\n",
-                                (const char *) algorithm);
-                return NULL;
+                                algorithm.c_str());
+                return nullptr;
             }
         }
         else {
@@ -153,21 +122,20 @@ LocalNodeContext * LocalNodeContext::getInstance (const char *pszNodeId, ConfigM
                                                                  NodeContext::APPROXIMABLE_TO_POINT_COEFF);
     }
     else {
-        checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                        "Classifier configuration failed. The classifier of unknown type (%s)\n",
-                        (const char *) classifier);
+        checkAndLogMsg (pszMethodName, Logger::L_SevereError, "Classifier configuration failed. "
+                        "The classifier of unknown type (%s)\n", classifier.c_str());
     }
 
-    _pLocalNodeContext->setDefaultUsefulDistance (pCfgMgr->hasValue (LocalNodeContext::USEFUL_DISTANCE_PROPERTY) ?
-                                                  pCfgMgr->getValueAsUInt32 (LocalNodeContext::USEFUL_DISTANCE_PROPERTY) :
-                                                  NodeContext::DEFAULT_USEFUL_DISTANCE);
-    if (pCfgMgr->hasValue (LocalNodeContext::USEFUL_DISTANCE_BY_TYPE_PROPERTY)) {
-        _pLocalNodeContext->parseAndSetUsefulDistanceByType (pCfgMgr->getValue (LocalNodeContext::USEFUL_DISTANCE_BY_TYPE_PROPERTY));
+    if (pCfgMgr->hasValue (UsefulDistance::USEFUL_DISTANCE_PROPERTY)) {
+        _pLocalNodeContext->setDefaultUsefulDistance (atoui32(pCfgMgr->getValue (UsefulDistance::USEFUL_DISTANCE_PROPERTY)));
+    }
+    if (pCfgMgr->hasValue (UsefulDistance::USEFUL_DISTANCE_BY_TYPE_PROPERTY)) {
+        _pLocalNodeContext->parseAndSetUsefulDistanceByType (pCfgMgr->getValue (UsefulDistance::USEFUL_DISTANCE_BY_TYPE_PROPERTY));
     }
 
     if (pCfgMgr->hasValue (LocalNodeContext::MATCHMAKING_QUALIFIERS)) {
-        if (_pLocalNodeContext->_qualifiers.parseAndAddQualifiers (pCfgMgr->getValue (LocalNodeContext::MATCHMAKING_QUALIFIERS)) == 0) {
-            _pLocalNodeContext->_ui16CurrMatchmakerQualifierVersion++;
+        if (MatchmakingInfoHelper::parseAndAddQualifiers (&(_pLocalNodeContext->_matchmakingInfo), pCfgMgr->getValue (LocalNodeContext::MATCHMAKING_QUALIFIERS)) == 0) {
+            _pLocalNodeContext->_matchmakingInfo.incrementVersion();
         }
     }
 
@@ -183,20 +151,20 @@ LocalNodeContext * LocalNodeContext::getInstance (const char *pszNodeId, ConfigM
         // obsolete property name, keep it only for retro-compatibility
         bLimitPrestagingToLocalData = pCfgMgr->getValueAsBool ("aci.dspro.informationPush.limitPrestagingToLocalData");
     }
-    _pLocalNodeContext->setLimitToLocalMatchmakingOnly (bLimitPrestagingToLocalData);
+    _pLocalNodeContext->_matchmakingInfo.setLimitToLocalMatchmakingOnly (bLimitPrestagingToLocalData);
 
     float fMatchmakingThreshold = 6.0f;
     if (pCfgMgr->hasValue ("aci.dspro.localNodeContext.rankThreshold")) {
-        fMatchmakingThreshold = (float) atof (pCfgMgr->getValue ("aci.dspro.localNodeContext.rankThreshold"));
+        fMatchmakingThreshold = static_cast<float>(atof (pCfgMgr->getValue ("aci.dspro.localNodeContext.rankThreshold")));
     }
     else if (pCfgMgr->hasValue ("aci.dspro.informationPush.rankThreshold")) {
         // obsolete property name, keep it only for retro-compatibility
-        fMatchmakingThreshold = (float) atof (pCfgMgr->getValue ("aci.dspro.informationPush.rankThreshold"));
+        fMatchmakingThreshold = static_cast<float>(atof (pCfgMgr->getValue ("aci.dspro.informationPush.rankThreshold")));
     }
     _pLocalNodeContext->setMatchmakingThreshold (fMatchmakingThreshold);
 
-    if (_pLocalNodeContext->_customPolicies.init (pCfgMgr) < 0) {
-        return NULL;
+    if (_pLocalNodeContext->_matchmakingInfo.init (pCfgMgr) < 0) {
+        return nullptr;
     }
 
     return _pLocalNodeContext;
@@ -204,93 +172,95 @@ LocalNodeContext * LocalNodeContext::getInstance (const char *pszNodeId, ConfigM
 
 int LocalNodeContext::addCustomPolicies (const char **ppszCustomPoliciesXML)
 {
-    if (ppszCustomPoliciesXML == NULL) {
+    if (ppszCustomPoliciesXML == nullptr) {
         return 0;
     }
-    for (unsigned int i = 0; ppszCustomPoliciesXML[i] != NULL; i++) {
-        int rc = _customPolicies.add (ppszCustomPoliciesXML[i]);
-        if (rc < 0) {
+    for (unsigned int i = 0; ppszCustomPoliciesXML[i] != nullptr; i++) {
+        if (!_matchmakingInfo.setCustomPolicy (ppszCustomPoliciesXML[i])) {
             checkAndLogMsg ("LocalNodeContext::addCustomPolicies", Logger::L_Warning,
-                            "could not add policy: %s. The returned code was: %d.\n",
-                            ppszCustomPoliciesXML[i], rc);
+                            "could not add policy: %s.\n", ppszCustomPoliciesXML[i]);
             return -1;
         }
     }
-    _ui16CurrInfoVersion++;
+    _matchmakingInfo.incrementVersion();
+    return 0;
+}
+
+int LocalNodeContext::addCustomPolicy (CustomPolicyImpl *pPolicy)
+{
+    if (pPolicy == nullptr) {
+        return 0;
+    }
+    if (_matchmakingInfo.setCustomPolicy (pPolicy)) {
+        _matchmakingInfo.incrementVersion();
+    }
     return 0;
 }
 
 int LocalNodeContext::configure (ConfigManager *pCfgMgr)
 {
-    if (pCfgMgr == NULL) {
+    if (pCfgMgr == nullptr) {
         return -1;
     }
+
+    // Init node info
+    bool bAnyNodeInfo = false;
     if (pCfgMgr->hasValue (TEAM_ID_PROPERTY)) {
         const char *pszValue = pCfgMgr->getValue (TEAM_ID_PROPERTY);
-        free (_pszTeamID);
-        checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Warning,
-                        "%s set to %s\n", TEAM_ID_PROPERTY, (pszValue == NULL ? "NULL" : pszValue));
-        _pszTeamID = (pszValue != NULL ? strDup (pszValue) : NULL);
-        if (pszValue != NULL && _pszTeamID == NULL) {
-            checkAndLogMsg ("LocalNodeContext::configure", memoryExhausted);
+        if (!_nodeInfo.setTeamId (pszValue)) {
             return -2;
         }
+        bAnyNodeInfo = true;
+        checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Warning,
+                        "%s set to %s\n", TEAM_ID_PROPERTY, (pszValue == nullptr ? "NULL" : pszValue));
     }
     if (pCfgMgr->hasValue (MISSION_ID_PROPERTY)) {
         const char *pszValue = pCfgMgr->getValue (MISSION_ID_PROPERTY);
-        free (_pszMissionID);
-        checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Warning,
-                        "%s set to %s\n", MISSION_ID_PROPERTY, (pszValue == NULL ? "NULL" : pszValue));
-        _pszMissionID = (pszValue != NULL ? strDup (pszValue) : NULL);
-        if (pszValue != NULL && _pszMissionID == NULL) {
-            checkAndLogMsg ("LocalNodeContext::configure", memoryExhausted);
+        if (!_nodeInfo.setMisionId (pszValue)) {
             return -3;
         }
+        bAnyNodeInfo = true;
+        checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Warning,
+                        "%s set to %s\n", MISSION_ID_PROPERTY, (pszValue == nullptr ? "NULL" : pszValue));
     }
     if (pCfgMgr->hasValue (ROLE_PROPERTY)) {
         const char *pszValue = pCfgMgr->getValue (ROLE_PROPERTY);
-        free (_pszRole);
-        checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Warning,
-                        "%s set to %s\n", ROLE_PROPERTY, (pszValue == NULL ? "NULL" : pszValue));
-        _pszRole = (pszValue != NULL ? strDup (pszValue) : NULL);
-        if (pszValue != NULL && _pszRole == NULL) {
-            checkAndLogMsg ("LocalNodeContext::configure", memoryExhausted);
+        if (!_nodeInfo.setRole (pszValue)) {
             return -4;
         }
-    }
-
-    if (_pszTeamID != NULL || _pszMissionID != NULL || _pszRole != NULL) {
-        _ui16CurrInfoVersion++;
-    }
-
-    if (pCfgMgr->hasValue (USEFUL_DISTANCE_PROPERTY)) {
-        _ui32DefaultUsefulDistance = pCfgMgr->getValueAsUInt32 (USEFUL_DISTANCE_PROPERTY);
-        checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Info,
-                        "ui16UsefulDistance is set to %u\n", _ui32DefaultUsefulDistance);
-    }
-    if (pCfgMgr->hasValue (USEFUL_DISTANCE_BY_TYPE_PROPERTY)) {
-        parseAndSetUsefulDistanceByType (pCfgMgr->getValue (USEFUL_DISTANCE_BY_TYPE_PROPERTY));
-    }
-
-    int rc = configureMetadataRanker (pCfgMgr);
-    if (rc < 0) {
+        bAnyNodeInfo = true;
         checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Warning,
-                        "could not configure MetadataRanker. Return code %d.\n", rc);
-        return -5;
+                        "%s set to %s\n", ROLE_PROPERTY, (pszValue == nullptr ? "NULL" : pszValue));
+    }
+    if (pCfgMgr->hasValue (NODE_TYPE_PROPERTY)) {
+        const char *pszValue = pCfgMgr->getValue (NODE_TYPE_PROPERTY);
+        if (!_nodeInfo.setNodeType (pszValue)) {
+            return -5;
+        }
+        bAnyNodeInfo = true;
+        checkAndLogMsg ("LocalNodeContext::configure", Logger::L_Warning,
+            "%s set to %s\n", NODE_TYPE_PROPERTY, (pszValue == nullptr ? "NULL" : pszValue));
+    }
+    if (bAnyNodeInfo) {
+        _nodeInfo.incrementVersion();
+    }
+
+    // Init Useful distance
+    bool bAnyLocationInfo = false;
+    if (MatchmakingInfoHelper::parseAndSetUsefulDistanceByType (&_matchmakingInfo, pCfgMgr->getValue (UsefulDistance::USEFUL_DISTANCE_BY_TYPE_PROPERTY))) {
+        bAnyLocationInfo = true;
+    }
+    if (MatchmakingInfoHelper::parseAndSetRangesOfInfluence (&_matchmakingInfo, pCfgMgr->getValue (RangeOfInfluence::RANGE_OF_INFLUENCE_BY_MILSTD2525_SYMBOL_CODE))) {
+        bAnyLocationInfo = true;
+    }
+    if (_matchmakingInfo.setMetadataRankerParameters (pCfgMgr)) {
+        bAnyLocationInfo = true;
+    }
+    if (bAnyLocationInfo) {
+        _matchmakingInfo.incrementVersion();
     }
 
     return 0;
-}
-
-int LocalNodeContext::configureMetadataRanker (ConfigManager *pCfgMgr)
-{
-    if (pCfgMgr == NULL) {
-        return -1;
-    }
-    if (_pMetaDataRankerConf == NULL) {
-        return -2;
-    }
-    return _pMetaDataRankerConf->configure (pCfgMgr);
 }
 
 int LocalNodeContext::configureMetadataRanker (float coordRankWeight, float timeRankWeight,
@@ -299,77 +269,42 @@ int LocalNodeContext::configureMetadataRanker (float coordRankWeight, float time
                                                float predRankWeight, float targetWeight, bool bStrictTarget,
                                                bool bConsiderFuturePathSegmentForMatchmacking)
 {
-    if (_pMetaDataRankerConf == NULL) {
-        return -1;
+    if (_matchmakingInfo.setMetadataRankerParameters (coordRankWeight, timeRankWeight, expirationRankWeight,
+                                                      impRankWeight, sourceReliabilityRankWeigth, informationContentRankWeigth,
+                                                      predRankWeight, targetWeight, bStrictTarget, bConsiderFuturePathSegmentForMatchmacking)) {
+        _matchmakingInfo.incrementVersion();
     }
-    return _pMetaDataRankerConf->configure (coordRankWeight, timeRankWeight, expirationRankWeight,
-                                            impRankWeight, sourceReliabilityRankWeigth, informationContentRankWeigth,
-                                            predRankWeight, targetWeight, bStrictTarget, bConsiderFuturePathSegmentForMatchmacking);
+    return 0;
 }
 
 int LocalNodeContext::parseAndSetUsefulDistanceByType (const char *pszUsefulDistanceValues)
 {
-    if (pszUsefulDistanceValues == NULL) {
-        return 0;
+    if (MatchmakingInfoHelper::parseAndSetUsefulDistanceByType (&_matchmakingInfo, pszUsefulDistanceValues)) {
+        _matchmakingInfo.incrementVersion();
     }
-    int rc = 0;
-    StringTokenizer tokenizer (pszUsefulDistanceValues, ';', ';');
-    StringTokenizer innerTokenizer;
-    for (const char *pszUsefulDistanceByType = tokenizer.getNextToken();
-         pszUsefulDistanceByType != NULL;
-         pszUsefulDistanceByType = tokenizer.getNextToken()) {
-        innerTokenizer.init (pszUsefulDistanceByType, ',', ',');
-        const char *pszType = innerTokenizer.getNextToken();
-        const char *pszUsefulDistance = innerTokenizer.getNextToken();
-        if (pszType != NULL && pszUsefulDistance != NULL) {
-            setUsefulDistance (pszType, atoui32 (pszUsefulDistance));
-        }
-        else {
-            checkAndLogMsg ("LocalNodeContext::parseUsefulDistanceByType", Logger::L_Warning,
-                            "misconfiguration: type <%s> useful distance <%s>",
-                            pszType != NULL ? pszType : "NULL",
-                            pszUsefulDistance != NULL ? pszUsefulDistance : "NULL");
-            rc--;
-        }
-    }
-    return rc;
+    return 0;
 }
 
-void LocalNodeContext::configureNodeContext (const char *pszTeamID, const char *pszMissionID, const char *pszRole)
+void LocalNodeContext::configureNodeContext (const char *pszTeamId, const char *pszMissionId, const char *pszRole)
 {
-    free (_pszTeamID);
-    _pszTeamID = (pszTeamID != NULL ? strDup (pszTeamID) : NULL);
+    const char *pszMethodName = "LocalNodeContext::configureNodeContext";
+    if (_nodeInfo.setTeamId (pszTeamId) || _nodeInfo.setMisionId (pszMissionId) || _nodeInfo.setRole (pszRole)) {
+        _nodeInfo.incrementVersion();
+    }
 
-    free (_pszMissionID);
-    _pszMissionID = (pszMissionID != NULL ? strDup (pszMissionID) : NULL);
-
-    free (_pszRole);
-    _pszRole = (pszRole != NULL ? strDup (pszRole) : NULL);
-
-    _ui16CurrInfoVersion++;
-    checkAndLogMsg ("LocalNodeContext::configureNodeContext", Logger::L_Info,
-                    "local node context configured: team ID = <%s>; mission ID = <%s>; role = <%s>\n",
-                    _pszTeamID != NULL ? _pszTeamID : "null",
-                    _pszMissionID != NULL ? _pszMissionID : "null",
-                    _pszRole != NULL ? _pszRole : "null");
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "local node context configured: team ID = <%s>; mission ID = <%s>; "
+                    "role = <%s>\n", pszTeamId != nullptr ? pszTeamId : "NULL", pszMissionId != nullptr ? pszMissionId : "NULL",
+                    pszRole != nullptr ? pszRole : "NULL");
 }
 
-NodePath * LocalNodeContext::getPath (const char *pszPathID)
+NodePath * LocalNodeContext::getPath (const char *pszPathId)
 {
-    for (int i = 0; i < _ui16PathsNumber; i ++) {
-        if (0 == strcmp (pszPathID, (*_pPaths)[i]->getPathID())) {
-            return (*_pPaths)[i];
-        }
-    }
-    return NULL;
+    return _pathInfo.getPath (pszPathId);
 }
 
 NodePath * LocalNodeContext::getPath (void)
 {
-    if (_iCurrPath == -1) {
-        return NULL;
-    }
-    return (*_pPaths)[_iCurrPath];
+    return _pathInfo.getPath();
 }
 
 uint16 LocalNodeContext::getClassifierVersion (void)
@@ -377,179 +312,107 @@ uint16 LocalNodeContext::getClassifierVersion (void)
     return _pClassifier->getVersion();
 }
 
+int64 LocalNodeContext::getStartTime (void) const
+{
+    return _i64StartingTime;
+}
+
 int LocalNodeContext::getCurrentLatitude (float &latitude)
 {
-    if (!_pPaths->used (ACTUAL_COVERED_PATH_INDEX)) {
-        return -1;
-    }
-    NodePath *pCoveredPath = (*_pPaths)[ACTUAL_COVERED_PATH_INDEX];
-    if (pCoveredPath == NULL) {
-        return -2;
-    }
-    
-    // The current way point in the covered path, is always the last one
-    int iCurrWayPointInPath = pCoveredPath->getPathLength() - 1;
-    if (iCurrWayPointInPath < 0) {
-        return -3;
-    }
-
-    latitude = pCoveredPath->getLatitude (iCurrWayPointInPath);
-    return 0;
+    float longitude, altitude;
+    const char *pszLocation, *pszNote;
+    uint64 timestamp;
+    return _locationInfo.getCurrentPosition (latitude, longitude, altitude,
+                                             pszLocation, pszNote, timestamp);
 }
 
 int LocalNodeContext::getCurrentLongitude (float &longitude)
 {
-    if (!_pPaths->used (ACTUAL_COVERED_PATH_INDEX)) {
-        return -1;
-    }
-    NodePath *pCoveredPath = (*_pPaths)[ACTUAL_COVERED_PATH_INDEX];
-    if (pCoveredPath == NULL) {
-        return -2;
-    }
-    
-    // The current way point in the covered path, is always the last one
-    int iCurrWayPointInPath = pCoveredPath->getPathLength() - 1;
-    if (iCurrWayPointInPath < 0) {
-        return -3;
-    }
-
-    longitude = pCoveredPath->getLongitude (iCurrWayPointInPath);
-    return 0;
+    float latitude, altitude;
+    const char *pszLocation, *pszNote;
+    uint64 timestamp;
+    return _locationInfo.getCurrentPosition (latitude, longitude, altitude,
+                                             pszLocation, pszNote, timestamp);
 }
 
 int LocalNodeContext::getCurrentTimestamp (uint64 &timestamp)
 {
-    if (!_pPaths->used (ACTUAL_COVERED_PATH_INDEX)) {
-        return -1;
-    }
-    NodePath *pCoveredPath = (*_pPaths)[ACTUAL_COVERED_PATH_INDEX];
-    if (pCoveredPath == NULL) {
-        return -2;
-    }
-    
-    // The current way point in the covered path, is always the last one
-    int iCurrWayPointInPath = pCoveredPath->getPathLength() - 1;
-    if (iCurrWayPointInPath < 0) {
-        return -3;
-    }
-
-    timestamp = pCoveredPath->getTimeStamp (iCurrWayPointInPath);
-    return 0;
+    float latitude, longitude, altitude;
+    const char *pszLocation, *pszNote;
+    return _locationInfo.getCurrentPosition (latitude, longitude, altitude,
+                                             pszLocation, pszNote, timestamp);
 }
 
 int LocalNodeContext::getCurrentPosition (float &latitude, float &longitude, float &altitude,
                                           const char *&pszLocation, const char *&pszNote,
                                           uint64 &timeStamp)
 {
-    if (!_pPaths->used (ACTUAL_COVERED_PATH_INDEX)) {
-        return -1;
-    }
-    NodePath *pCoveredPath = (*_pPaths)[ACTUAL_COVERED_PATH_INDEX];
-    if (pCoveredPath == NULL) {
-        return -2;
-    }
-    
-    // The current way point in the covered path, is always the last one
-    int iCurrWayPointInPath = pCoveredPath->getPathLength() - 1;
-    if (iCurrWayPointInPath < 0) {
-        return -3;
-    }
-
-    latitude = pCoveredPath->getLatitude (iCurrWayPointInPath);
-    longitude = pCoveredPath->getLongitude (iCurrWayPointInPath);
-    altitude = pCoveredPath->getAltitude (iCurrWayPointInPath);
-    pszLocation = pCoveredPath->getLocation (iCurrWayPointInPath);
-    pszNote = pCoveredPath->getNote (iCurrWayPointInPath);
-    timeStamp = pCoveredPath->getTimeStamp (iCurrWayPointInPath);
-
-    return 0;
+    return _locationInfo.getCurrentPosition (latitude, longitude, altitude,
+                                             pszLocation, pszNote, timeStamp);
 }
 
-bool LocalNodeContext::isPeerActive()
+LocationInfo * LocalNodeContext::getLocationInfo (void)
+{
+    return &_locationInfo;
+}
+
+bool LocalNodeContext::isPeerActive (void)
 {
     return true;
 }
 
-int LocalNodeContext::setPathProbability (const char *pszPathID, float probability)
+int LocalNodeContext::setPathProbability (const char *pszPathId, float probability)
 {
-    if (pszPathID == NULL) {
+    if (pszPathId == nullptr) {
         return -1;
     }
-    for (int i = 1; i < _ui16PathsNumber; i++) {
-        if (0 == strcmp (pszPathID, (*_pPaths)[i]->getPathID())) {
-            return (*_pPaths)[i]->setProbability (probability);
-        }
+    if (_pathInfo.setPathProbability (pszPathId, probability)) {
+        return 0;
     }
-    return -1;
+    return -2;
 }
 
-int LocalNodeContext::setCurrentPath (const char *pszPathID)
+int LocalNodeContext::setCurrentPath (const char *pszPathId)
 {
-    if (pszPathID == NULL) {
+    if (pszPathId == nullptr) {
         return -1;
     }
-checkAndLogMsg ("LocalNodeContext::setCurrentPath", Logger::L_Info,
-                "pszPathID = <%s>\n", pszPathID);
-    for (int i = 1; i < _ui16PathsNumber; i ++) {
-        if (0 == strcmp (pszPathID, (*_pPaths)[i]->getPathID())) {
-            _iCurrPath = i;
-checkAndLogMsg ("LocalNodeContext::setCurrentPath", Logger::L_Info,
-                "setting _icurrPath to %d\n", _iCurrPath);
-            _ui16CurrPathVersion ++;
-            _ui16CurrWaypointVersion ++;
-            NodePath * pCurrPath = (*_pPaths)[_iCurrPath];
-            if ((*_pPaths)[_iCurrPath]->getPathType() == NodePath::FIXED_LOCATION) {
-                _iCurrWayPointInPath = 0;
-                (*_pPaths)[ACTUAL_COVERED_PATH_INDEX]->appendWayPoint (pCurrPath->getLatitude (0),
-                                                                       pCurrPath->getLongitude (0),
-                                                                       pCurrPath->getAltitude (0),
-                                                                       pCurrPath->getLocation (0),
-                                                                       pCurrPath->getNote (0),
-                                                                       pCurrPath->getTimeStamp (0));
-            }
-            else {
-                /*NodePath * pCoveredPath = (*_pPaths)[ACTUAL_COVERED_PATH_INDEX];
-                // The current way point in the covered path, is always the last one
-                int iCurrWayPointInPath = (*_pPaths)[ACTUAL_COVERED_PATH_INDEX]->getPathLength() - 1;
-                _iCurrWayPointInPath = calculateCurrentWayPointInPath(pCoveredPath->getLatitude(iCurrWayPointInPath),
-                                                                      pCoveredPath->getLongitude(iCurrWayPointInPath),
-                                                                      pCoveredPath->getAltitude(iCurrWayPointInPath));*/
-                _iCurrWayPointInPath = 0;
-            }
-            _closestPointOnPathLat = pCurrPath->getLatitude (0);
-            _closestPointOnPathLong = pCurrPath->getLongitude (0);
-            _status = ON_WAY_POINT;
+    if (_pathInfo.setCurrentPath (pszPathId)) {
+        _pathInfo.incrementVersion();
 
-            return 0;
+        // Also set first position if the path is a fixed location
+        NodePath *pPath = _pathInfo.getPath (pszPathId);
+        if (pPath == nullptr) {
+            return -2;
         }
+        if (pPath->getPathType() == NodePath::FIXED_LOCATION) {
+            _locationInfo.setCurrentPosition (pPath, pPath->getLatitude (0),
+                                              pPath->getLongitude (0), pPath->getAltitude (0),
+                                              _matchmakingInfo.getMaximumUsefulDistance());
+        }
+
+        _locationInfo.setCurrentPath (pPath->getLatitude (0), pPath->getLongitude (0));
+        _locationInfo.incrementVersion();
+        return 0;
     }
-    return -1;
-}
-            
-int LocalNodeContext::addPath (NodePath *pNodePath)
-{
-    if (pNodePath == NULL) {
-        return -1;
-    }
-    _ui16PathsNumber++;
-    (*_pPaths)[_ui16PathsNumber - 1] = pNodePath;
     return 0;
 }
-            
-int LocalNodeContext::deletePath (const char *pszPathID)
+
+int LocalNodeContext::addPath (NodePath *pNodePath)
 {
-    for (int i = 1; i < _ui16PathsNumber; i++) {
-        if (0 == strcmp (pszPathID, (*_pPaths)[i]->getPathID())) {
-            if(_iCurrPath == i) {
-                return -1;
-            }
-            for (int j = i; j < _ui16PathsNumber - 1; j++) {
-                (*_pPaths)[j] = (*_pPaths)[j + 1];
-            }
-            _pPaths->clear (_ui16PathsNumber - 1);
-            _ui16PathsNumber --;
-            return 0;
-        }
+    if (pNodePath == nullptr) {
+        return -1;
+    }
+    if (_pathInfo.addPath (pNodePath)) {
+        return 0;
+    }
+    return -1;
+}
+
+int LocalNodeContext::deletePath (const char *pszPathId)
+{
+    if (_pathInfo.deletePath (pszPathId)) {
+        return 0;
     }
     return -1;
 }
@@ -557,47 +420,91 @@ int LocalNodeContext::deletePath (const char *pszPathID)
 bool LocalNodeContext::setCurrentPosition (float latitude, float longitude, float altitude,
                                            const char *pszLocation, const char *pszNote, uint64 timeStamp)
 {
-    bool bRet = NodeContext::setCurrentPosition (latitude, longitude, altitude);
-    if (!bRet && _pPaths->used (ACTUAL_COVERED_PATH_INDEX)) {
-        int iLen = (*_pPaths)[ACTUAL_COVERED_PATH_INDEX]->getPathLength();
-        if (iLen > 0) {
-            if (!isApproximableToPoint ((*_pPaths)[ACTUAL_COVERED_PATH_INDEX]->getLatitude (iLen-1),
-                                        (*_pPaths)[ACTUAL_COVERED_PATH_INDEX]->getLongitude (iLen-1),
-                                        latitude, longitude)) {
-                bRet = true;
-            }
-            (*_pPaths)[ACTUAL_COVERED_PATH_INDEX]->getLatitude (iLen);
-        }
-        else {
-            // if iLen <= 0, it means it is the first time that the position is
-            // set, return true
-            bRet = true;
-        }
+    if (_locationInfo.setCurrentPosition (_pathInfo.getPath(), latitude, longitude, altitude,
+                                          _matchmakingInfo.getMaximumUsefulDistance())) {
+        _locationInfo.incrementVersion();
+        return true;
     }
-    (*_pPaths)[ACTUAL_COVERED_PATH_INDEX]->appendWayPoint (latitude, longitude, altitude, pszLocation, pszNote, timeStamp);
-    return bRet;
+    return false;
+}
+
+bool LocalNodeContext::setMatchmakingThreshold (float fMatchmakingThreshold)
+{
+    const char *pszMethodName = "LocalNodeContext::setMatchmakingThreshold";
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "setting matchmaking threshould %f\n", fMatchmakingThreshold);
+    if (_matchmakingInfo.setMatchmakingThreshold (fMatchmakingThreshold)) {
+        _matchmakingInfo.incrementVersion();
+        return true;
+    }
+    return false;
+}
+
+void LocalNodeContext::setBatteryLevel (uint8 ui8BatteryLevel)
+{
+    if (_nodeInfo.setBatteryLevel (ui8BatteryLevel)) {
+        _nodeInfo.incrementVersion();
+    }
+}
+
+void LocalNodeContext::setMemoryAvailable (uint8 ui8MemoryAvailable)
+{
+    if (_nodeInfo.setMemoryAvailable (ui8MemoryAvailable)) {
+        _nodeInfo.incrementVersion();
+    }
+}
+
+void LocalNodeContext::setMissionId (const char *pszMissionId)
+{
+    if (_nodeInfo.setMisionId (pszMissionId)) {
+        _nodeInfo.incrementVersion();
+    }
+}
+
+void LocalNodeContext::setTeam (const char *pszTeam)
+{
+    if (_nodeInfo.setTeamId (pszTeam)) {
+        _nodeInfo.incrementVersion();
+    }
+}
+
+void LocalNodeContext::setRole (const char *pszRole)
+{
+    if (_nodeInfo.setRole (pszRole)) {
+        _nodeInfo.incrementVersion();
+    }
+}
+
+void LocalNodeContext::setNodeType (const char *pszType)
+{
+    if (_nodeInfo.setNodeType (pszType)) {
+        _nodeInfo.incrementVersion();
+    }
 }
 
 void LocalNodeContext::setDefaultUsefulDistance (uint32 ui32UsefulDistanceInMeters)
 {
-    checkAndLogMsg ("LocalNodeContext::setDefaultUsefulDistance", Logger::L_Info,
-                    "setting default useful distance to %u\n", ui32UsefulDistanceInMeters);
-    _ui32DefaultUsefulDistance = ui32UsefulDistanceInMeters;
+    const char *pszMethodName = "LocalNodeContext::setDefaultUsefulDistance";
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "setting default useful distance to %u\n", ui32UsefulDistanceInMeters);
+    if (_matchmakingInfo.setDefaultUsefulDistance (ui32UsefulDistanceInMeters)) {
+        _matchmakingInfo.incrementVersion();
+    }
 }
 
 void LocalNodeContext::setUsefulDistance (const char *pszDataMIMEType, uint32 ui32UsefulDistanceInMeters)
 {
-    if (pszDataMIMEType == NULL) {
-        return;
+    const char *pszMethodName = "LocalNodeContext::setDefaultUsefulDistance";
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "setting useful distance for %s to %u\n", pszDataMIMEType, ui32UsefulDistanceInMeters);
+    if (_matchmakingInfo.setUsefulDistance (pszDataMIMEType, ui32UsefulDistanceInMeters)) {
+        _matchmakingInfo.incrementVersion();
     }
-    uint32 *pui32 = (uint32*) calloc (1, sizeof (uint32));
-    *pui32 = ui32UsefulDistanceInMeters;
-    checkAndLogMsg ("LocalNodeContext::setUsefulDistance", Logger::L_Info,
-                    "setting %s useful distance to %u\n",
-                    pszDataMIMEType, ui32UsefulDistanceInMeters);
-    uint32 *pui32Old = _usefulDistanceByMimeType.put (pszDataMIMEType, pui32);
-    if (pui32Old != NULL) {
-        free (pui32Old);
+}
+
+void LocalNodeContext::setRangeOfInfluence (const char *pszNodeType, uint32 ui32RangeOfInfluenceInMeters)
+{
+    const char *pszMethodName = "LocalNodeContext::setRangeOfInfluence";
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "setting range of influence for %s to %u\n", pszNodeType, ui32RangeOfInfluenceInMeters);
+    if (_matchmakingInfo.setRangeOfInfluence (pszNodeType, ui32RangeOfInfluenceInMeters)) {
+        _matchmakingInfo.incrementVersion();
     }
 }
 

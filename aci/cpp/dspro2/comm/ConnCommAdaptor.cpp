@@ -24,6 +24,8 @@
 
 #include "Defs.h"
 
+#include "SessionId.h"
+
 #include "BufferWriter.h"
 #include "Logger.h"
 #include "NetUtils.h"
@@ -33,14 +35,13 @@ using namespace IHMC_ACI;
 using namespace NOMADSUtil;
 
 ConnCommAdaptor::ConnCommAdaptor (AdaptorId uiId, AdaptorType adaptorType, bool bSupportsCaching,
-                                  const char *pszNodeId, const char *pszSessionId,
-                                  CommAdaptorListener *pListener, uint16 ui16Port)
-    : CommAdaptor (uiId, adaptorType, bSupportsCaching, true, pszNodeId, pszSessionId, pListener),
+                                  const char *pszNodeId, CommAdaptorListener *pListener, uint16 ui16Port)
+    : CommAdaptor (uiId, adaptorType, bSupportsCaching, true, pszNodeId, pListener),
       _ui16Port (ui16Port)
 {
 }
 
-ConnCommAdaptor::~ConnCommAdaptor()
+ConnCommAdaptor::~ConnCommAdaptor (void)
 {
     requestTerminationAndWait();
 }
@@ -48,26 +49,27 @@ ConnCommAdaptor::~ConnCommAdaptor()
 int ConnCommAdaptor::init (char **ppIfaces)
 {
     bool bDeallocateIFs = false;
-    if (ppIfaces == NULL) {
+    if (ppIfaces == nullptr) {
         // If not network interfaces are specified, use all of them
         NICInfo **ppNICs = NetUtils::getNICsInfo();
-        if (ppNICs != NULL) {
+        if (ppNICs != nullptr) {
             unsigned int i = 0;
-            for (; ppNICs[i] != NULL; i++);
+            for (; ppNICs[i] != nullptr; i++);
             ppIfaces = (char **) calloc (i+1, sizeof (char *));
-            for (i = 0; ppNICs[i] != NULL; i++) {
+            for (i = 0; ppNICs[i] != nullptr; i++) {
                 ppIfaces[i] = ppNICs[i]->getIPAddrAsString().r_str();
             }
             NetUtils::freeNICsInfo (ppNICs);
             bDeallocateIFs = true;
         }
     }
-    if (ppIfaces != NULL) {
-        for (unsigned int i = 0; ppIfaces[i] != NULL; i++) {
+    if (ppIfaces != nullptr) {
+        const String sessionId (SessionId::getInstance()->getSessionId());
+        for (unsigned int i = 0; ppIfaces[i] != nullptr; i++) {
             ConnListener *pConnListener = getConnListener (ppIfaces[i], _ui16Port,
-                                                           _nodeId.c_str(), _sessionId,
+                                                           _nodeId.c_str(), sessionId,
                                                            _pListener, this);
-            if (pConnListener == NULL) {
+            if (pConnListener == nullptr) {
                 checkAndLogMsg ("ConnCommAdaptor::init", memoryExhausted);
             }
             else {
@@ -91,28 +93,29 @@ int ConnCommAdaptor::init (char **ppIfaces)
 
 void ConnCommAdaptor::addHandler (ConnHandler *pHandler)
 {
-    if (pHandler == NULL) {
+    if (pHandler == nullptr) {
         return;
     }
 
     _mHandlers.lock();
     ConnHandler *pOldHandler = _handlersByPeerId.put (pHandler->getRemotePeerNodeId(), pHandler);
     _mHandlers.unlock();
-    if (pOldHandler != NULL) {
-        pOldHandler->requestTerminationAndWait();
+    if (pOldHandler != nullptr) {
+        pOldHandler->abortConnHandler();
         delete pOldHandler;
     }
-    checkAndLogMsg ("ConnCommAdaptor::addHandler", Logger::L_Info, "a ConnHandler was "
-                    "for peer %s was added to the list of handlers\n", pHandler->getRemotePeerNodeId());
-
     _pListener->newPeer (&_adptorProperties, pHandler->getRemotePeerNodeId(),
                          pHandler->getRemotePeerAddress(),
                          pHandler->getLocalPeerAddress());
+
+    checkAndLogMsg ("ConnCommAdaptor::addHandler", Logger::L_Info,
+                    "a ConnHandler for peer %s was added to the list of handlers\n",
+                    pHandler->getRemotePeerNodeId());
 }
 
 int ConnCommAdaptor::connectToPeer (const char *pszRemotePeerAddr, uint16 ui16Port)
 {
-    if (pszRemotePeerAddr == NULL) {
+    if (pszRemotePeerAddr == nullptr) {
         return -1;
     }
 
@@ -159,16 +162,16 @@ void ConnCommAdaptor::run()
     for (DisconnectedPeer discPeer; !terminationRequested();) {
         _mDisconnectedPeers.lock();
         _mHandlers.lock();
-        // Check whether any of the current handlers disconnected
+        // Check whether any of the current handlers got disconnected
         ConnHandlers::Iterator handlerIter = _handlersByPeerId.getAllElements();
         for (; !handlerIter.end(); handlerIter.nextElement()) {
             if (!handlerIter.getValue()->isConnected()) {
                 _handlersToReconnectToByIPAddr.resetGet();
-                // If the handler disconnected, check whether I am the end in charge of re-connecting
+                // If the handler got disconnected, check whether this is the end in charge of re-connecting
                 for (DisconnectedPeer handlerToReconn; _handlersToReconnectToByIPAddr.getNext (handlerToReconn) == 1; ) {
                     if (handlerToReconn.peerAddr == handlerIter.getValue()->getRemotePeerAddress()) {
                         if (_disconnectedHandlers.search (handlerToReconn) == 0) {
-                            checkAndLogMsg ("ConnCommAdaptor::run", Logger::L_Info, "%s (%s) added to the list of the disconnected handler.\n",
+                            checkAndLogMsg ("ConnCommAdaptor::run", Logger::L_Info, "%s (%s) added to the list of disconnected handlers.\n",
                                             handlerToReconn.peerAddr.c_str(), handlerIter.getValue()->getRemotePeerNodeId());
                             _disconnectedHandlers.add (handlerToReconn);
                         }
@@ -200,6 +203,17 @@ void ConnCommAdaptor::run()
     }
 
     terminating();
+}
+
+int ConnCommAdaptor::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    // TODO: implement this
+    return 0;
+}
+
+int ConnCommAdaptor::subscribe (Subscription &sub)
+{
+    return 0;
 }
 
 int ConnCommAdaptor::startAdaptor (void)
@@ -245,12 +259,12 @@ int ConnCommAdaptor::sendMessage (MessageHeaders::MsgType type,
 {
     const char *pszMethodName = "ConnCommAdaptor::sendMessage";
 
-    if (pBuf == NULL || ui32BufLen == 0 || ppszRecipientNodeIds == NULL) {
+    if (pBuf == nullptr || ui32BufLen == 0 || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
     // Add the publisher - if necessary
-    uint32 ui32PubLen = (pszPublisherNodeId == NULL ? 0 : strlen (pszPublisherNodeId));
+    uint32 ui32PubLen = (pszPublisherNodeId == nullptr ? 0 : strlen (pszPublisherNodeId));
     BufferWriter bw (1U + 4U + ui32PubLen + ui32BufLen, 128U);
 
     bw.reset();
@@ -272,9 +286,9 @@ int ConnCommAdaptor::sendMessage (MessageHeaders::MsgType type,
     }
 
     _mHandlers.lock();
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         ConnHandler *pHandler = _handlersByPeerId.get (ppszRecipientNodeIds[i]);
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             int rc = pHandler->send (bw.getBuffer(), bw.getBufferLength(), ui8Priority);
             uint8 ui8Type = type;
             if (rc < 0) {
@@ -305,7 +319,7 @@ ConnCommAdaptor::DisconnectedPeer::DisconnectedPeer (void)
     : ui16PeerPort (0),
       peerAddr ("0.0.0.0")
 {
-    
+
 }
 
 ConnCommAdaptor::DisconnectedPeer::DisconnectedPeer (const char *pszRemotePeerAddr, uint16 ui16Port)

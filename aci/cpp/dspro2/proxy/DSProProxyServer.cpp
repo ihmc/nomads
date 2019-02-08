@@ -31,26 +31,12 @@
 using namespace NOMADSUtil;
 using namespace IHMC_ACI;
 
-// //////////////////////////////////////////////////////////////////////////////////////
-// DisServicePro //////////////////////////////////////////////////////
-// //////////////////////////////////////////////////////////////////////////////////////
-
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
 
 const String DSProProxyServer::SERVICE = "dspro";
-const String DSProProxyServer::VERSION = "20160120";
+const String DSProProxyServer::VERSION = "20170206";
 
-DSProProxyServer::DSProProxyServer()
-    : _proxies (true,   // bCaseSensitiveKeys
-                true,   // bCloneKeys
-                true,   // bDeleteKeys
-                true)   // bDeleteValues
-{
-    _pServerSock = NULL;
-    _pDSPro = NULL;
-}
-
-DSProProxyServer::~DSProProxyServer()
+DSProProxyServer::~DSProProxyServer (void)
 {
     if (isRunning()) {
         requestTerminationAndWait();
@@ -59,16 +45,14 @@ DSProProxyServer::~DSProProxyServer()
         _disServiceProxySrv.requestTerminationAndWait();
     }
     delete _pServerSock;
-    _pServerSock = NULL;
+    _pServerSock = nullptr;
 
     // Close adaptors' connections, and deallocated them
     StringHashtable<DSProProxyAdaptor>::Iterator iter = _proxies.getAllElements();
     for (; !iter.end(); iter.nextElement()) {
         iter.getValue()->requestTermination();
     }
-    iter = _proxies.getAllElements();
-    for (; !iter.end(); iter.nextElement()) {
-        iter.getValue()->isRunning();
+    for (iter = _proxies.getAllElements(); !iter.end(); iter.nextElement()) {
         iter.getValue()->requestTerminationAndWait();
     }
     _proxies.removeAll();
@@ -76,7 +60,7 @@ DSProProxyServer::~DSProProxyServer()
 
 int DSProProxyServer::init (DSPro *pDisSvcPro, const char *pszProxyServerInterface, uint16 ui16ProxyServerPortNum)
 {
-    if (pDisSvcPro == NULL) {
+    if (pDisSvcPro == nullptr) {
         return -1;
     }
 
@@ -101,10 +85,10 @@ int DSProProxyServer::initDisseminationServiceProxyServer (DisseminationService 
                                                            const char *pszProxyServerInterface,
                                                            uint16 ui16PortNum)
 {
-    if (pDisService == NULL) {
+    if (pDisService == nullptr) {
         return -1;
     }
-    if ((_pServerSock != NULL) && (_pServerSock->getLocalPort() == ui16PortNum)) {
+    if ((_pServerSock != nullptr) && (_pServerSock->getLocalPort() == ui16PortNum)) {
         // Port conflict!
         return -2;
     }
@@ -127,7 +111,7 @@ void DSProProxyServer::run (void)
         // Get next connection, or abort if it fails
         TCPSocket *pClientSock = (TCPSocket*) _pServerSock->accept();
 
-        if (NULL == pClientSock) {
+        if (nullptr == pClientSock) {
             checkAndLogMsg ("DSProProxyServer::run", Logger::L_MildError,
                             "failed to accept a connection\n");
         }
@@ -145,13 +129,12 @@ void DSProProxyServer::run (void)
                 checkAndLogMsg ("DSProProxyServer::run", Logger::L_MildError,
                                 "could not initialize CommHelper; rc = %d\n", rc);
                 delete pCommHelper;
-                pCommHelper = NULL;
+                pCommHelper = nullptr;
                 terminating();
                 return;
             }
 
-            DSPProxyServerConnHandler *pConnHandler;
-            pConnHandler = new DSPProxyServerConnHandler (this, pCommHelper);
+            auto * pConnHandler = new DSPProxyServerConnHandler (this, pCommHelper, _bStrictHandshake);
             pConnHandler->start();
         }
     }
@@ -160,7 +143,7 @@ void DSProProxyServer::run (void)
 
 void DSProProxyServer::requestTermination (void)
 {
-    if (_pServerSock != NULL) {
+    if (_pServerSock != nullptr) {
         _pServerSock->disableReceive();
     }
     ManageableThread::requestTermination();
@@ -168,7 +151,7 @@ void DSProProxyServer::requestTermination (void)
 
 void DSProProxyServer::requestTerminationAndWait (void)
 {
-    if (_pServerSock != NULL) {
+    if (_pServerSock != nullptr) {
         _pServerSock->disableReceive();
     }
     ManageableThread::requestTerminationAndWait();
@@ -178,33 +161,21 @@ void DSProProxyServer::requestTerminationAndWait (void)
 // DisServiceProProxyAdaptor        /////////////////////////////////////////////////////
 // //////////////////////////////////////////////////////////////////////////////////////
 
-DSPProxyServerConnHandler::DSPProxyServerConnHandler (DSProProxyServer *pDisSvcPPS, SimpleCommHelper2 *pCommHelper)
-{
-    _pCommHelper = pCommHelper;
-    _pDisSvcProProxyServer = pDisSvcPPS;
-}
-
-DSPProxyServerConnHandler::~DSPProxyServerConnHandler()
-{
-    _pCommHelper->setDeleteUnderlyingSocket (true);
-    delete _pCommHelper;
-}
-
 void DSPProxyServerConnHandler::run()
 {
     const char *pszMethodName = "DSPProxyServerConnHandler::run";
 
     // Initial handshake
-    SimpleCommHelper2::Error error = doHandshake (_pCommHelper);
+    SimpleCommHelper2::Error error = doHandshake (_pCommHelper, _bStrictHandshake);
     if (error == SimpleCommHelper2::None) {
         // Register the client
         const char **ppszBuf = _pCommHelper->receiveParsedSpecific ("1 1", error);
         if (error == SimpleCommHelper2::None) {
             if (0 == stricmp (ppszBuf[0], "RegisterProxy")) {
-                error = doRegisterProxy (_pCommHelper, atoi(ppszBuf[1]));
+                error = doRegisterProxy (_pCommHelper, atoi (ppszBuf[1]));
             }
             else if (0 == stricmp (ppszBuf[0], "RegisterProxyCallback")) {
-                error = doRegisterProxyCallback (_pCommHelper, atoi(ppszBuf[1]));
+                error = doRegisterProxyCallback (_pCommHelper, atoi (ppszBuf[1]));
             }
         }
 
@@ -226,20 +197,17 @@ void DSPProxyServerConnHandler::run()
 
             default:
                 assert (false);
-        }   
+        }
     }
 
     terminating();
 }
 
-SimpleCommHelper2::Error DSPProxyServerConnHandler::doHandshake (SimpleCommHelper2 *pCommHelper)
+SimpleCommHelper2::Error DSPProxyServerConnHandler::doHandshake (SimpleCommHelper2 *pCommHelper, bool bStrict)
 {
     const char *pszMethodName = "DSPProxyServerConnHandler::doHandshake";
     SimpleCommHelper2::Error error = SimpleCommHelper2::None;
-    pCommHelper->sendLine (error, "%s %s", DSProProxyServer::SERVICE.c_str() , DSProProxyServer::VERSION.c_str());
-    if (error != SimpleCommHelper2::None) {
-        return error;
-    }
+
 
     // Check whether the client is expecting to connect to this service, and that
     // the protocol is the same
@@ -252,10 +220,21 @@ SimpleCommHelper2::Error DSPProxyServerConnHandler::doHandshake (SimpleCommHelpe
         return SimpleCommHelper2::ProtocolError;
     }
 
-    if ((DSProProxyServer::SERVICE != ppszBuf[0]) || (DSProProxyServer::VERSION != ppszBuf[1])) {
+    String svc (bStrict ? DSProProxyServer::SERVICE.c_str() : ppszBuf[0]);
+    String ver (bStrict ? DSProProxyServer::VERSION.c_str() : ppszBuf[1]);
+    svc.trim();
+    ver.trim();
+
+    pCommHelper->sendLine (error, "%s %s", svc.c_str(), ver.c_str());
+    if (error != SimpleCommHelper2::None) {
+        return error;
+    }
+    if ((DSProProxyServer::SERVICE != svc) || (DSProProxyServer::VERSION != ver)) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "service mismatch: received %s %s, while expecting %s %s.\n",
-                        ppszBuf[0], ppszBuf[1], DSProProxyServer::SERVICE.c_str() , DSProProxyServer::VERSION.c_str());
-        return SimpleCommHelper2::ProtocolError;
+                        svc.c_str(), ver.c_str(), DSProProxyServer::SERVICE.c_str() , DSProProxyServer::VERSION.c_str());
+        if (bStrict) {
+            return SimpleCommHelper2::ProtocolError;
+        }
     }
     return error;
 }
@@ -296,7 +275,7 @@ CommHelperError DSPProxyServerConnHandler::doRegisterProxyCallback (SimpleCommHe
 
     DSProProxyAdaptor *pAdaptor = _pDisSvcProProxyServer->_proxies.get (szProxyId);
 
-    if (pAdaptor != NULL) {
+    if (pAdaptor != nullptr) {
         pAdaptor->setCallbackCommHelper (pCommHelper);
         pCommHelper->sendLine (error, "OK");
     }

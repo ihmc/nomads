@@ -45,7 +45,7 @@ namespace IHMC_ACI
     class DSProProxyServer : public NOMADSUtil::ManageableThread
     {
         public:
-            DSProProxyServer (void);
+            DSProProxyServer (bool bStrictHandshake);
             virtual ~DSProProxyServer (void);
 
             DSPro * getDisServiceProRef (void);
@@ -67,7 +67,8 @@ namespace IHMC_ACI
             static const NOMADSUtil::String VERSION;
 
         private:
-            NOMADSUtil::TCPSocket *_pServerSock;            
+            const bool _bStrictHandshake;
+            NOMADSUtil::TCPSocket *_pServerSock;
             DSPro *_pDSPro;
 
         private:
@@ -80,25 +81,47 @@ namespace IHMC_ACI
 
     class DSPProxyServerConnHandler : public NOMADSUtil::ManageableThread
     {
-        public: 
-            DSPProxyServerConnHandler (DSProProxyServer *pDSPPS, NOMADSUtil::SimpleCommHelper2 *pCommHelper);
+        public:
+            DSPProxyServerConnHandler (DSProProxyServer *pDSPPS, NOMADSUtil::SimpleCommHelper2 *pCommHelper, bool bStrictHandshake);
             ~DSPProxyServerConnHandler (void);
 
             void run (void);
 
         private:
-            CommHelperError doHandshake (NOMADSUtil::SimpleCommHelper2 *pCommHelper);
+            CommHelperError doHandshake (NOMADSUtil::SimpleCommHelper2 *pCommHelper, bool bStrict);
             CommHelperError doRegisterProxy (NOMADSUtil::SimpleCommHelper2 *pCommHelper, uint16 ui16ApplicationID);
             CommHelperError doRegisterProxyCallback (NOMADSUtil::SimpleCommHelper2 *pCommHelper, uint16 ui16ApplicationID);
 
         private:
+            const bool _bStrictHandshake;
             NOMADSUtil::SimpleCommHelper2 *_pCommHelper;
             DSProProxyServer *_pDisSvcProProxyServer;
     };
 
+
+    inline DSProProxyServer::DSProProxyServer (bool bStrictHandshake) :
+        _bStrictHandshake (bStrictHandshake), _pServerSock (nullptr), _pDSPro (nullptr),
+        _proxies (true,   // bCaseSensitiveKeys
+                  true,   // bCloneKeys
+                  true,   // bDeleteKeys
+                  true)   // bDeleteValues
+    { }
+
     inline DSPro * DSProProxyServer::getDisServiceProRef (void)
     {
         return _pDSPro;
+    }
+
+    inline DSPProxyServerConnHandler::DSPProxyServerConnHandler (DSProProxyServer *pDisSvcPPS,
+                                                                 NOMADSUtil::SimpleCommHelper2 *pCommHelper,
+                                                                 bool bStrictHandshake) :
+        _bStrictHandshake (bStrictHandshake), _pCommHelper (pCommHelper), _pDisSvcProProxyServer (pDisSvcPPS)
+    { }
+
+    inline DSPProxyServerConnHandler::~DSPProxyServerConnHandler()
+    {
+        _pCommHelper->setDeleteUnderlyingSocket (true);
+        delete _pCommHelper;
     }
 }
 

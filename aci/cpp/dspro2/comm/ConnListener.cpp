@@ -1,4 +1,4 @@
-/* 
+/*
  * ConnListener.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -28,6 +28,8 @@
 #include "ConnHandler.h"
 #include "Defs.h"
 
+#include "SessionId.h"
+
 #include "Logger.h"
 
 using namespace IHMC_ACI;
@@ -41,8 +43,7 @@ ConnListener::ConnListener (const char *pszListenAddr, uint16 ui16Port,
       _listenAddr (pszListenAddr),
       _pCommAdaptor (pCommAdaptor),
       _pListener (pListener),
-      _nodeId (pszNodeId),
-      _sessionId (pszSessionId)
+      _nodeId (pszNodeId)
 {
 }
 
@@ -67,15 +68,15 @@ void ConnListener::run (void)
     }
 
     while (!terminationRequested()) {
-
         // Receive connection
         ConnEndPoint *pEndPoint = acceptConnection();
-        if (pEndPoint == NULL) {
+        if (pEndPoint == nullptr) {
             continue;
         }
 
         // Do handshake
-        const ConnHandler::HandshakeResult handshake (ConnHandler::doHandshake (pEndPoint, _nodeId, _sessionId, _pListener));
+        const String sessionId (SessionId::getInstance()->getSessionId());
+        const ConnHandler::HandshakeResult handshake (ConnHandler::doHandshake (pEndPoint, _nodeId, sessionId, _pListener));
         if (handshake._remotePeerId.length() <= 0) {
             checkAndLogMsg (pszMethodName, Logger::L_Info, "handshake failed\n");
             pEndPoint->close();
@@ -85,7 +86,7 @@ void ConnListener::run (void)
 
         // Handshake successful: create handler and delegate connection handling
         ConnHandler *pHandler = getConnHandler (pEndPoint, handshake._remotePeerId);
-        if (pHandler == NULL) {
+        if (pHandler == nullptr) {
             checkAndLogMsg (pszMethodName, memoryExhausted);
             pEndPoint->close();
         }
@@ -102,4 +103,3 @@ void ConnListener::run (void)
 
     terminating();
 }
-

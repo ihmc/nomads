@@ -1,4 +1,4 @@
-/* 
+/*
  * Controller.h
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -21,12 +21,12 @@
  */
 
 #ifndef INCL_CONTROLLER_H
-#define	INCL_CONTROLLER_H
+#define INCL_CONTROLLER_H
 
 #include "MatchmakingHelper.h"
 #include "MessageForwardingController.h"
 #include "MessageForwardingPolicy.h"
-#include "MetadataRankerConfiguration.h"
+#include "MetadataRankerLocalConfigurationImpl.h"
 
 #include "LoggingMutex.h"
 #include "StringHashset.h"
@@ -35,6 +35,11 @@ namespace NOMADSUtil
 {
     class BufferWriter;
     class ConfigManager;
+}
+
+namespace IHMC_VOI
+{
+    class Voi;
 }
 
 namespace IHMC_ACI
@@ -53,11 +58,11 @@ namespace IHMC_ACI
         public:
             Controller (DSProImpl *pDSPro, LocalNodeContext *pLocalNodeCtxt,
                         Scheduler *pScheduler, InformationStore *pInfoStore,
-                        Topology *pTopology, TransmissionHistoryInterface *pTrHistory);
+                        Topology *pTopology);
             virtual ~Controller (void);
 
             int init (NOMADSUtil::ConfigManager *pCfgMgr, InformationPushPolicy *pInfoPushPolicy,
-                      Scheduler *pScheduler);
+                      Scheduler *pScheduler, IHMC_VOI::Voi *pVoi);
 
             int contextUpdateMessageArrived (AdaptorId uiAdaptorId, const char *pszSenderNodeId,
                                              const void *pBuf, uint32 ui32Len);
@@ -66,7 +71,7 @@ namespace IHMC_ACI
 
             // New data from the network
             int dataArrived (const AdaptorProperties *pAdaptorProperties, const MessageProperties *pProperties,
-                             const void *pBuf, uint32 ui32Len, uint8 ui8NChunks, uint8 ui8TotNChunks);
+                             const void *pBuf, uint32 ui32Len, uint8 ui8ChunkId, uint8 ui8TotNChunks);
 
             // New metadata from the network
             int metadataArrived (const AdaptorProperties *pAdaptorProperties, const MessageProperties *pProperties,
@@ -102,8 +107,7 @@ namespace IHMC_ACI
                                      const char *pszPublisherNodeId, const void *pBuf, uint32 ui32Len);
 
             void newPeer (const AdaptorProperties *pAdaptorProperties, const char *pszDstPeerId,
-                          const char *pszPeerRemoteAddress,
-                          const char *pszIncomingInterface);
+                          const char *pszPeerRemoteAddress, const char *pszIncomingInterface);
             void deadPeer (const AdaptorProperties *pAdaptorProperties, const char *pszDstPeerId);
 
             void newLinkToPeer (const AdaptorProperties *pAdaptorProperties, const char *pszNodeUID, const char *pszPeerRemoteAddr,
@@ -112,9 +116,14 @@ namespace IHMC_ACI
 
             // New metadata from the client app
             int metadataPush (const char *pszId, MetaData *pMetadata,
-                              const char *pszPreviusHop=NULL);
+                              const char *pszPreviusHop = nullptr);
 
         private:
+            int dspMetadataArrived (const AdaptorProperties *pAdaptorProperties, const MessageProperties *pProperties,
+                                    const void *pBuf, uint32 ui32Len, const char *pszReferredDataId);
+            int dsMetadataArrived (const AdaptorProperties *pAdaptorProperties, const MessageProperties *pProperties,
+                                   const void *pBuf, uint32 ui32Len, const char *pszReferredDataId);
+
             int dataPull (const char *pszMetadataId, const NOMADSUtil::String &referredObjId, MetaData *pMetadata);
             int previousMetadataPull (MetaData *pMetadata);
 
@@ -130,12 +139,11 @@ namespace IHMC_ACI
             NOMADSUtil::LoggingMutex _m;
             const NOMADSUtil::String _nodeId;
             MessageForwardingController _fwdCtrl;
-            NOMADSUtil::StringHashset _deliveredMsgs;
+            NOMADSUtil::StringHashset _deliveredMsgs;                   // Set of messages already received and processed
             MessageForwardingPolicy _msgFwdPolicy;
-            MetadataRankerLocalConfiguration _rankerLocalConf;
+            MetadataRankerLocalConfigurationImpl _rankerLocalConf;
             MatchmakingHelper _matchmakingHelper;
     };
 }
 
-#endif	/* INCL_CONTROLLER_H */
-
+#endif    /* INCL_CONTROLLER_H */

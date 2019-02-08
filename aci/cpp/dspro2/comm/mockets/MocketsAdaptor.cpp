@@ -1,4 +1,4 @@
-/* 
+/*
  * MocketsAdaptor.cpp
  *
  * This file is part of the IHMC DSPro Library/Component
@@ -28,6 +28,7 @@
 #include "SearchProperties.h"
 
 #include "Mocket.h"
+#include "SessionId.h"
 
 #include "BufferWriter.h"
 #include "ConfigManager.h"
@@ -39,20 +40,33 @@ using namespace NOMADSUtil;
 
 const unsigned short MocketsAdaptor::DEFAULT_PORT = 6688;
 
-MocketsAdaptor::MocketsAdaptor (AdaptorId uiId, const char *pszNodeId, const char *pszSessionId,
+namespace MOCKETS_ADAPTOR
+{
+    String createMocketId (const String& nodeId, const String &remoteNodeId)
+    {
+        String mocketId ("dspro:");
+        mocketId += nodeId;
+        mocketId += "-";
+        mocketId += remoteNodeId;
+
+        return mocketId;
+    }
+}
+
+MocketsAdaptor::MocketsAdaptor (AdaptorId uiId, const char *pszNodeId,
                                 CommAdaptorListener *pListener, uint16 ui16Port)
-    : ConnCommAdaptor (uiId, MOCKETS, false, pszNodeId, pszSessionId, pListener, ui16Port),
+    : ConnCommAdaptor (uiId, MOCKETS, false, pszNodeId, pListener, ui16Port),
       _ui16DefaultPriority (0)
 {
 }
 
-MocketsAdaptor::~MocketsAdaptor()
+MocketsAdaptor::~MocketsAdaptor (void)
 {
 }
 
 int MocketsAdaptor::init (ConfigManager *pCfgMgr)
 {
-    if (pCfgMgr == NULL) {
+    if (pCfgMgr == nullptr) {
         return -1;
     }
     setName ("IHMC_ACI::MocketsAdaptor");
@@ -63,19 +77,39 @@ int MocketsAdaptor::init (ConfigManager *pCfgMgr)
         if (mocketsCfgFile.length() > 0) {
             if (FileUtils::fileExists (mocketsCfgFile)) {
                 checkAndLogMsg ("MocketsAdaptor::init", Logger::L_Info, "found mockets "
-                                "config file: %s.\n", (const char *)_mocketsCfgFile);
+                                "config file: %s.\n", _mocketsCfgFile.c_str());
                 _mocketsCfgFile = mocketsCfgFile;
             }
             else {
                 checkAndLogMsg ("MocketsAdaptor::init", Logger::L_Warning, "mockets "
-                                "config file %s was not found.\n", (const char *)_mocketsCfgFile);
+                                "config file %s was not found.\n", _mocketsCfgFile.c_str());
             }
         }
     }
 
-    char **ppszNetIfs = ConfigFileReader::parseNetIFs (pCfgMgr->getValue("aci.dspro.mockets.netIFs"));
+    if (_mocketsCfgFile.length() > 0) {
+        ConfigManager mocketsCfg;
+        mocketsCfg.init();
+        if (mocketsCfg.readConfigFile (_mocketsCfgFile) >= 0) {
+            if (mocketsCfg.getValueAsBool ("DTLS", false)) {
+                const char *pszCert = pCfgMgr->getValue ("aci.dspro.mockets.encryption.cert");
+                const char *pszKey = pCfgMgr->getValue ("aci.dspro.mockets.encryption.key");
+                if ((pszCert != nullptr) && (pszKey != nullptr)) {
+                    _mocketsCert = pszCert;
+                    _mocketsKey = pszKey;
+                }
+                else {
+                    checkAndLogMsg ("MocketsAdaptor::init", Logger::L_Warning,
+                                     "could not find %s and/or %s. DTLS will not be configured.\n",
+                                     pszCert, pszKey);
+                }
+            }
+        }
+    }
+
+    char **ppszNetIfs = ConfigFileReader::parseNetIFs (pCfgMgr->getValue ("aci.dspro.mockets.netIFs"));
     int rc = ConnCommAdaptor::init (ppszNetIfs);
-    if (ppszNetIfs != NULL) {
+    if (ppszNetIfs != nullptr) {
         // deallocate
     }
 
@@ -86,12 +120,14 @@ int MocketsAdaptor::connectToPeerInternal (const char *pszRemotePeerAddr, uint16
 {
     const char *pszMethodName = "MocketsAdaptor::connectToPeerInternal";
 
-    if (pszRemotePeerAddr == NULL) {
+    if (pszRemotePeerAddr == nullptr) {
         return -1;
     }
 
-    Mocket *pMocket = new Mocket (_mocketsCfgFile);
-    if (pMocket == NULL) {
+    const bool bDeleteCIWhenDone = false;
+    const bool bEnableDtls = _mocketsCert.length() > 0 && _mocketsKey.length() > 0;
+    Mocket *pMocket = new Mocket (_mocketsCfgFile, nullptr, bDeleteCIWhenDone, bEnableDtls, _mocketsCert, _mocketsKey);
+    if (pMocket == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
         return -2;
     }
@@ -106,30 +142,32 @@ int MocketsAdaptor::connectToPeerInternal (const char *pszRemotePeerAddr, uint16
 
     // Create handler and delegate pMocket handling
     MocketEndPoint endPoint (pMocket, ConnEndPoint::DEFAULT_TIMEOUT);
-    const ConnHandler::HandshakeResult handshake (ConnHandler::doHandshake (&endPoint, _nodeId, _sessionId, _pListener));
+    const String sessionId (SessionId::getInstance()->getSessionId());
+    const ConnHandler::HandshakeResult handshake (ConnHandler::doHandshake (&endPoint, _nodeId, sessionId, _pListener));
     if (handshake._remotePeerId.length() <= 0) {
         checkAndLogMsg (pszMethodName, Logger::L_Info, "handshake failed\n");
         pMocket->close();
         delete pMocket;
         return -4;
     }
+    const String mocketId (MOCKETS_ADAPTOR::createMocketId (_nodeId, handshake._remotePeerId));
+    pMocket->setIdentifier (mocketId);
 
     MocketConnHandler *pHandler = new MocketConnHandler (_adptorProperties, handshake._remotePeerId,
                                                          _pListener, pMocket);
-    if (pHandler == NULL) {
+    if (pHandler == nullptr) {
         checkAndLogMsg (pszMethodName, memoryExhausted);
         pMocket->close();
         delete pMocket;
         return -5;
     }
-    else {
-        pHandler->init();
-        pHandler->start();
-        checkAndLogMsg (pszMethodName, Logger::L_Info, "a MocketConnHandler was "
-                        "created for peer %s.\n", pHandler->getRemotePeerNodeId());
-        addHandler (pHandler);
-        return 0;
-    }
+
+    pHandler->init();
+    pHandler->start();
+    checkAndLogMsg (pszMethodName, Logger::L_Info, "a MocketConnHandler was "
+                    "created for peer %s.\n", pHandler->getRemotePeerNodeId());
+    addHandler (pHandler);
+    return 0;
 }
 
 ConnListener * MocketsAdaptor::getConnListener (const char *pszListenAddr, uint16 ui16Port,
@@ -138,20 +176,21 @@ ConnListener * MocketsAdaptor::getConnListener (const char *pszListenAddr, uint1
                                                 ConnCommAdaptor *pCommAdaptor)
 {
     return new MocketConnListener (pszListenAddr, ui16Port, pszNodeId, pszSessionId,
-                                   _mocketsCfgFile, pListener, pCommAdaptor);
+                                   _mocketsCfgFile, pListener, pCommAdaptor, _mocketsCert,
+                                   _mocketsKey);
 }
 
 int MocketsAdaptor::disconnectFromPeer (const char *pszRemotePeerNodeId,
                                         const char *pszRemotePeerAddr)
 {
-    if (pszRemotePeerNodeId== NULL || pszRemotePeerAddr == NULL) {
+    if (pszRemotePeerNodeId== nullptr || pszRemotePeerAddr == nullptr) {
         return -1;
     }
 
     _mHandlers.lock();
     ConnHandler *pHandler = _handlersByPeerId.remove (pszRemotePeerNodeId);
     _mHandlers.unlock();
-    if (pHandler == NULL) {
+    if (pHandler == nullptr) {
         return -2;
     }
 
@@ -167,7 +206,7 @@ void MocketsAdaptor::resetTransmissionCounters()
     ConnHandlers::Iterator iter = _handlersByPeerId.getAllElements();
     for  (; !iter.end(); iter.nextElement()) {
         ConnHandler *pHandler = iter.getValue();
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             pHandler->resetTransmissionCounters();
         }
     }
@@ -191,7 +230,7 @@ int MocketsAdaptor::sendContextVersionMessage (const void *pBuf, uint32 ui32Len,
 int MocketsAdaptor::sendDataMessage (Message *pMsg, const char **ppszRecipientNodeIds,
                                      const char **ppszInterfaces)
 {
-    if (pMsg == NULL || pMsg->getMessageHeader() == NULL || ppszRecipientNodeIds == NULL) {
+    if (pMsg == nullptr || pMsg->getMessageHeader() == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -204,9 +243,9 @@ int MocketsAdaptor::sendDataMessage (Message *pMsg, const char **ppszRecipientNo
 
     int rc = 0;
     _mHandlers.lock();
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         MocketConnHandler *pHandler = (MocketConnHandler *) _handlersByPeerId.get (ppszRecipientNodeIds[i]);
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             int rcTmp = pHandler->sendDataMessage (bw.getBuffer(), bw.getBufferLength(),
                                                    pMsg->getMessageHeader()->getPriority());
             if (rcTmp != 0) {
@@ -223,7 +262,7 @@ int MocketsAdaptor::sendDataMessage (Message *pMsg, const char **ppszRecipientNo
             else {
                 checkAndLogMsg ("MocketsAdaptor::sendDataMessage", Logger::L_Info,
                                 "message %s sent to %s.\n", pMsg->getMessageHeader()->getMsgId(),
-                                pHandler->getRemotePeerAddress(), rcTmp); 
+                                pHandler->getRemotePeerAddress(), rcTmp);
             }
         }
     }
@@ -238,7 +277,7 @@ int MocketsAdaptor::sendChunkedMessage (Message *pMsg, const char *pszDataMimeTy
                                         const char **ppszRecipientNodeIds,
                                         const char **ppszInterfaces)
 {
-    if (pMsg == NULL || ppszRecipientNodeIds == NULL) {
+    if (pMsg == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -252,9 +291,9 @@ int MocketsAdaptor::sendChunkedMessage (Message *pMsg, const char *pszDataMimeTy
 
     int rc = 0;
     _mHandlers.lock();
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         MocketConnHandler *pHandler = (MocketConnHandler *) _handlersByPeerId.get (ppszRecipientNodeIds[i]);
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             int rcTmp = pHandler->sendDataMessage (bw.getBuffer(), bw.getBufferLength(),
                                                    pMsg->getMessageHeader()->getPriority());
             if (rcTmp != 0) {
@@ -271,7 +310,7 @@ int MocketsAdaptor::sendChunkedMessage (Message *pMsg, const char *pszDataMimeTy
             else {
                 checkAndLogMsg ("MocketsAdaptor::sendChunkedMessage", Logger::L_Info,
                                 "message %s sent to %s.\n", pMsg->getMessageHeader()->getMsgId(),
-                                pHandler->getRemotePeerAddress(), rcTmp); 
+                                pHandler->getRemotePeerAddress(), rcTmp);
             }
         }
     }
@@ -286,7 +325,7 @@ int MocketsAdaptor::sendMessageRequestMessage (const char *pszMsgId, const char 
                                                const char **ppszRecipientNodeIds,
                                                const char **ppszInterfaces)
 {
-    if (pszMsgId == NULL || ppszRecipientNodeIds == NULL) {
+    if (pszMsgId == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -309,7 +348,7 @@ int MocketsAdaptor::sendChunkRequestMessage (const char *pszMsgId,
                                              const char **ppszRecipientNodeIds,
                                              const char **ppszInterfaces)
 {
-    if (pszMsgId == NULL || ppszRecipientNodeIds == NULL) {
+    if (pszMsgId == nullptr || ppszRecipientNodeIds == nullptr) {
         return -1;
     }
 
@@ -318,7 +357,7 @@ int MocketsAdaptor::sendChunkRequestMessage (const char *pszMsgId,
         return -2;
     }
 
-    uint8 ui8NCachedChunks = pCachedChunks == NULL ? 0 : pCachedChunks->size();
+    uint8 ui8NCachedChunks = pCachedChunks == nullptr ? 0 : pCachedChunks->size();
 
     BufferWriter bw (4+ui32IdLen+(ui8NCachedChunks+1), 64);
     bw.write32 (&ui32IdLen);
@@ -339,7 +378,7 @@ int MocketsAdaptor::sendPositionMessage (const void *pBuf, uint32 ui32Len,
                                          const char **ppszRecipientNodeIds,
                                          const char **ppszInterfaces)
 {
-    return sendMessage (MessageHeaders::Position, pBuf, ui32Len, NULL,
+    return sendMessage (MessageHeaders::Position, pBuf, ui32Len, nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui16DefaultPriority);
 }
 
@@ -349,7 +388,7 @@ int MocketsAdaptor::sendSearchMessage (SearchProperties &searchProp,
 {
     BufferWriter bw (searchProp.uiQueryLen + 128, 128);
     SearchProperties::write (searchProp, &bw);
-    return sendMessage (MessageHeaders::Search, bw.getBuffer(), bw.getBufferLength(), NULL,
+    return sendMessage (MessageHeaders::Search, bw.getBuffer(), bw.getBufferLength(), nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui16DefaultPriority);
 }
 
@@ -360,7 +399,7 @@ int MocketsAdaptor::sendSearchReplyMessage (const char *pszQueryId,
                                             const char **ppszRecipientNodeIds,
                                             const char **ppszInterfaces)
 {
-    if (pszQueryId == NULL) {
+    if (pszQueryId == nullptr) {
         return -1;
     }
     uint16 ui16 = strlen (pszQueryId);
@@ -368,12 +407,12 @@ int MocketsAdaptor::sendSearchReplyMessage (const char *pszQueryId,
         return -2;
     }
     BufferWriter bw (256, 128);
-    if (SearchProperties::write (pszQueryId, pszTarget, NULL, // pszQueryType
+    if (SearchProperties::write (pszQueryId, pszTarget, nullptr, // pszQueryType
                                  ppszMatchingMsgIds, pszMatchingNode, &bw) < 0) {
         return -3;
     }
 
-    return sendMessage (MessageHeaders::SearchReply, bw.getBuffer(), bw.getBufferLength(), NULL,
+    return sendMessage (MessageHeaders::SearchReply, bw.getBuffer(), bw.getBufferLength(), nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui16DefaultPriority);
 }
 
@@ -382,7 +421,7 @@ int MocketsAdaptor::sendVolatileSearchReplyMessage (const char *pszQueryId, cons
                                                     const char **ppszRecipientNodeIds,
                                                     const char **ppszInterfaces)
 {
-    if (pszQueryId == NULL) {
+    if (pszQueryId == nullptr) {
         return -1;
     }
     uint16 ui16 = strlen (pszQueryId);
@@ -390,12 +429,12 @@ int MocketsAdaptor::sendVolatileSearchReplyMessage (const char *pszQueryId, cons
         return -2;
     }
     BufferWriter bw (256, 128);
-    if (SearchProperties::write (pszQueryId, pszTarget, NULL, // pszQueryType
+    if (SearchProperties::write (pszQueryId, pszTarget, nullptr, // pszQueryType
                                  pReply, ui16ReplyLen, pszMatchingNode, &bw) < 0) {
         return -3;
     }
 
-    return sendMessage (MessageHeaders::VolSearchReply, bw.getBuffer(), bw.getBufferLength(), NULL,
+    return sendMessage (MessageHeaders::VolSearchReply, bw.getBuffer(), bw.getBufferLength(), nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui16DefaultPriority);
 }
 
@@ -403,7 +442,7 @@ int MocketsAdaptor::sendTopologyReplyMessage (const void *pBuf, uint32 ui32BufLe
                                               const char **ppszRecipientNodeIds,
                                               const char **ppszInterfaces)
 {
-    return sendMessage (MessageHeaders::TopoReply, pBuf, ui32BufLen, NULL,
+    return sendMessage (MessageHeaders::TopoReply, pBuf, ui32BufLen, nullptr,
                         ppszRecipientNodeIds, ppszInterfaces, _ui16DefaultPriority);
 }
 
@@ -430,7 +469,7 @@ int MocketsAdaptor::sendVersionMessage (const void *pBuf, uint32 ui32Len,
                                         const char **ppszInterfaces)
 {
     // Add the publisher - if necessary
-    uint32 ui32PubLen = (pszPublisherNodeId == NULL ? 0 : strlen (pszPublisherNodeId));
+    uint32 ui32PubLen = (pszPublisherNodeId == nullptr ? 0 : strlen (pszPublisherNodeId));
     BufferWriter bw (1U + 4U + ui32PubLen + ui32Len, 128U);
 
     bw.reset();
@@ -452,9 +491,9 @@ int MocketsAdaptor::sendVersionMessage (const void *pBuf, uint32 ui32Len,
     }
 
     _mHandlers.lock();
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         MocketConnHandler *pHandler = static_cast<MocketConnHandler *>(_handlersByPeerId.get (ppszRecipientNodeIds[i]));
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             int rc = pHandler->sendVersionMessage (bw.getBuffer(), bw.getBufferLength(),
                                                    _ui16DefaultPriority);
             if (rc < 0) {
@@ -482,7 +521,7 @@ int MocketsAdaptor::sendWaypointMessage (const void *pBuf, uint32 ui32Len,
                                          const char **ppszInterfaces)
 {
     // Add the publisher - if necessary
-    uint32 ui32PubLen = (pszPublisherNodeId == NULL ? 0 : strlen (pszPublisherNodeId));
+    uint32 ui32PubLen = (pszPublisherNodeId == nullptr ? 0 : strlen (pszPublisherNodeId));
     BufferWriter bw (1U + 4U + ui32PubLen + ui32Len, 128U);
 
     bw.reset();
@@ -504,12 +543,12 @@ int MocketsAdaptor::sendWaypointMessage (const void *pBuf, uint32 ui32Len,
     }
 
     _mHandlers.lock();
-    for (unsigned int i = 0; ppszRecipientNodeIds[i] != NULL; i++) {
+    for (unsigned int i = 0; ppszRecipientNodeIds[i] != nullptr; i++) {
         MocketConnHandler *pHandler = (MocketConnHandler *) _handlersByPeerId.get (ppszRecipientNodeIds[i]);
-        if (pHandler != NULL) {
+        if (pHandler != nullptr) {
             int rc = pHandler->sendWaypointMessage (bw.getBuffer(), bw.getBufferLength(),
                                                     _ui16DefaultPriority,
-                                                    pszPublisherNodeId == NULL ? _nodeId.c_str() : pszPublisherNodeId);
+                                                    pszPublisherNodeId == nullptr ? _nodeId.c_str() : pszPublisherNodeId);
             if (rc < 0) {
                 checkAndLogMsg ("MocketsAdaptor::sendWaypointMessage", Logger::L_Warning,
                                 "could not send waypoint message.  Returned code: %d\n", rc);
@@ -539,3 +578,9 @@ int MocketsAdaptor::sendWholeMessage (const void *pBuf, uint32 ui32Len,
                         ppszInterfaces, _ui16DefaultPriority);
 }
 
+int MocketsAdaptor::notifyEvent (const void *pBuf, uint32 ui32Len,
+                                 const char *pszPublisherNodeId,
+                                 const char *pszTopic, const char **ppszInterfaces)
+{
+    return 0;
+}

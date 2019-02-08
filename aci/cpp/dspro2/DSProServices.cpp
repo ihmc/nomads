@@ -98,8 +98,8 @@ int MessagingSvc::sendSearchReplyMessage (const char *pszQueryId, const void *pR
 
 // ------------------------------------------------------------------------
 // ApplicationNotificationSvc
-
 // ------------------------------------------------------------------------
+
 ApplicationNotificationSvc::ApplicationNotificationSvc (DSProImpl *pDSPro)
     : _pDSPro (pDSPro)
 {

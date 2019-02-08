@@ -10,7 +10,7 @@
   *
   * U.S. Government agencies and organizations may redistribute
   * and/or modify this program under terms equivalent to
-  * "Government Purpose Rights" as defined by DFARS 
+  * "Government Purpose Rights" as defined by DFARS
   * 252.227-7014(a)(12) (February 2014).
   *
   * Alternative licenses that allow for use within commercial products may be
@@ -45,7 +45,7 @@ using namespace NOMADSUtil;
 
 SQLiteStatementRow::SQLiteStatementRow()
 {
-    init (NULL, 0, 0, 0); 
+    init (NULL, 0, 0, 0);
 }
 
 SQLiteStatementRow::~SQLiteStatementRow()
@@ -438,7 +438,7 @@ int  SQLitePreparedStatementRow::getValue (unsigned short usColumnIdx, char **pp
             *ppszVal = (char *) calloc (iFloatToStringBufLen, sizeof (char));
             if (*ppszVal == NULL) {
                 return -1;
-            } 
+            }
             snprintf (*ppszVal, iFloatToStringBufLen, "%f", fValue);
             return 0;
         }
@@ -507,7 +507,7 @@ int SQLitePreparedStatementRow::getValue (unsigned short usColumnIdx, void **ppB
     if (iLen == 0) {
         ppBuf = NULL;
         iLen = 0;
-        return -1;
+        return 0;
     }
 
     *ppBuf = malloc (iLen);

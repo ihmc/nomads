@@ -1,4 +1,4 @@
-/* 
+/*
  * MessageProcessor.h
  *
  * Given the metadata that were selected for the pre-staging, InformationPushPolicy
@@ -29,14 +29,18 @@
  */
 
 #ifndef INCL_MESSAGE_PROCESSOR_H
-#define	INCL_MESSAGE_PROCESSOR_H
+#define INCL_MESSAGE_PROCESSOR_H
 
 #include "Rank.h"
+
+namespace IHMC_VOI
+{
+    class MetaDataInterface;
+}
 
 namespace IHMC_ACI
 {
     class InformationStore;
-    class MetaDataInterface;
 
     class InformationPushPolicy
     {
@@ -46,17 +50,17 @@ namespace IHMC_ACI
 
             virtual ~InformationPushPolicy (void);
 
-            /** 
+            /**
              * Returns a new PtrLList of ranks with the elements to be pre-staged
              */
-            Ranks * process (Ranks *pRanks);
-            virtual Ranks * process (Rank *pRank) = 0;
+            IHMC_VOI::Ranks * process (IHMC_VOI::Ranks *pRanks);
+            virtual IHMC_VOI::Ranks * process (IHMC_VOI::Rank *pRank) = 0;
 
             static InformationPushPolicy * getPolicy (const char *pszType, InformationStore *pInformationStore);
 
         protected:
             explicit InformationPushPolicy (InformationStore *pInformationStore);
-            MetadataInterface * getMetadata (const char *pszMessageID);
+            IHMC_VOI::MetadataInterface * getMetadata (const char *pszMessageID);
 
         protected:
             InformationStore *_pInformationStore;
@@ -72,7 +76,7 @@ namespace IHMC_ACI
             explicit ProactivePush (InformationStore *pInformationStore);
             virtual ~ProactivePush (void);
 
-            Ranks * process (Rank *pRank);
+            IHMC_VOI::Ranks * process (IHMC_VOI::Rank *pRank);
     };
 
     /**
@@ -84,9 +88,8 @@ namespace IHMC_ACI
             explicit ReactivePush (InformationStore *pInformationStore);
             virtual ~ReactivePush (void);
 
-            Ranks * process (Rank *pRank);
+            IHMC_VOI::Ranks * process (IHMC_VOI::Rank *pRank);
     };
 }
 
-#endif	// INCL_MESSAGE_PROCESSOR_H
-
+#endif    // INCL_MESSAGE_PROCESSOR_H

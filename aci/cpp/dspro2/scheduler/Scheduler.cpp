@@ -1,6 +1,6 @@
-/* 
+/*
  * Scheduler.cpp
- * 
+ *
  * This file is part of the IHMC DSPro Library/Component
  * Copyright (c) 2008-2016 IHMC.
  *
@@ -28,9 +28,9 @@
 #include "DataStore.h"
 #include "Defs.h"
 #include "DSLib.h"
-#include "MetadataRankerConfiguration.h"
 #include "NodeContextManager.h"
 #include "SchedulerPolicies.h"
+#include "Stats.h"
 #include "Targets.h"
 #include "Topology.h"
 #include "TransmissionHistoryInterface.h"
@@ -42,9 +42,10 @@
 #include "Logger.h"
 #include "StringTokenizer.h"
 
-#define isInstrumented (pInstrumentator != NULL) && pInstrumentator->isEnabled()
+#define isInstrumented (pInstrumentator != nullptr) && pInstrumentator->isEnabled()
 
 using namespace IHMC_ACI;
+using namespace IHMC_VOI;
 using namespace NOMADSUtil;
 
 const unsigned int Scheduler::DEFAULT_MAX_N_OUTGOING_MSGS = 5;
@@ -70,54 +71,52 @@ Scheduler::Scheduler (bool bEnforceTiming, bool bUseSizeOverUtilityRatio,
                       Topology *pTopology, TransmissionHistoryInterface *pTrHistory,
                       const QueueReplacementPolicy *pReplacementPolicy,
                       const MetadataMutationPolicy *pMutatorPolicy,
-                      PrevPushedMsgInfoMode preStagingSessionAwarePrevMsgID)
+                      PrevPushedMsgInfoMode preStagingSessionAwarePrevMsgID, Voi *pVoi)
     : _bEnforceTiming (bEnforceTiming),
       _bUseSizeOverUtilityRatio (bUseSizeOverUtilityRatio),
       _preStagingSessionAwarePrevMsgID (preStagingSessionAwarePrevMsgID),
       _uiMaxNMsgPerSession (uiMaxNMsgPerSession),
       _uiOutgoingQueueSizeThreashold (uiOutgoingQueueSizeThreashold),
+      _pReplacementPolicy (pReplacementPolicy),
+      _pMMutationPolicy (pMutatorPolicy),
+      _pAdaptorMgr (pAdaptorMgr),
+      _pDataStore (pDataStore),
+      _pNodeCtxtMgr (pNodeCtxtMgr),
+      _pTopology (pTopology),
+      _pTrHistory (pTrHistory),
       _msgReqSrv (pDataStore),
       _m (MutexId::Scheduler_m, LOG_MUTEX),
       _mQueues (MutexId::Scheduler_mQueues, LOG_MUTEX),
+      _mEnqueuedDisseminations (MutexId::Scheduler_mDiss, LOG_MUTEX),
       _mEnqueuedRequests (MutexId::Scheduler_mRequests, LOG_MUTEX),
       _mEnqueuedMessageIdWrappers (MutexId::Scheduler_mMessageIdWrappers, LOG_MUTEX),
-      _enqueuedMessageIdWrappers (true,  // bCaseSensitiveKeys
-                                  true,  // bCloneKeys
-                                  true,  // bDeleteKeys
-                                  true), // bDeleteValues
+      _enqueuedMessageIdWrappersByPeerId (true,  // bCaseSensitiveKeys
+                                          true,  // bCloneKeys
+                                          true,  // bDeleteKeys
+                                          true), // bDeleteValues
       _queues (true,    // bCaseSensitiveKeys
                true,    // bCloneKeys
                true,    // bDeleteKeys
                true),   // bDeleteValues
-      _latestMsgPushedByTarget (pDataStore->getPropertyStore()) // bDeleteValues
-      
-{
-    _pAdaptorMgr = pAdaptorMgr;
-    _pDataStore = pDataStore;
-    _pNodeCtxtMgr = pNodeCtxtMgr;
-    _pTopology = pTopology;
-    _pTrHistory = pTrHistory;
-    _pReplacementPolicy = pReplacementPolicy;
-    _pMMutationPolicy = pMutatorPolicy;
+      _latestMsgPushedByTarget (pDataStore->getPropertyStore(), pVoi) // bDeleteValues
 
-    if (_pReplacementPolicy == NULL) {
+{
+    if (_pReplacementPolicy == nullptr) {
         checkAndLogMsg ("Scheduler::Scheduler", Logger::L_SevereError,
-                        "Can not set the QueueReplacementPolicy to NULL.  Quitting.\n");
+                        "Can not set the QueueReplacementPolicy to nullptr. Quitting.\n");
         exit (-1);
     }
-    else {
-        checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_bEnforceTiming = <%s>\n", (_bEnforceTiming ? "true" : "false"));
-        String sPpreStagingSessionAwarePrevMsgID;
-        switch (_preStagingSessionAwarePrevMsgID) {
-            case PREV_PUSH_MSG_INFO_DISABLED: sPpreStagingSessionAwarePrevMsgID = "PREV_PUSH_MSG_INFO_DISABLED"; break;
-            case PREV_PUSH_MSG_INFO_SESSION_AWARE: sPpreStagingSessionAwarePrevMsgID = "PREV_PUSH_MSG_INFO_SESSION_AWARE"; break;
-            case PREV_PUSH_MSG_INFO_SESSIONLESS: sPpreStagingSessionAwarePrevMsgID = "PREV_PUSH_MSG_INFO_SESSIONLESS"; break;
-            default: sPpreStagingSessionAwarePrevMsgID = "UNKNOWN"; exit (-1);
-        }
-        checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_preStagingSessionAwarePrevMsgID = <%s>\n", sPpreStagingSessionAwarePrevMsgID.c_str());
-        checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_uiMaxNMsgPerSession = <%u>\n", _uiMaxNMsgPerSession);
-        checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_uiOutgoingQueueSizeThreashold = <%u>\n", _uiOutgoingQueueSizeThreashold);
+    checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_bEnforceTiming = <%s>\n", (_bEnforceTiming ? "true" : "false"));
+    String sPpreStagingSessionAwarePrevMsgID;
+    switch (_preStagingSessionAwarePrevMsgID) {
+        case PREV_PUSH_MSG_INFO_DISABLED: sPpreStagingSessionAwarePrevMsgID = "PREV_PUSH_MSG_INFO_DISABLED"; break;
+        case PREV_PUSH_MSG_INFO_SESSION_AWARE: sPpreStagingSessionAwarePrevMsgID = "PREV_PUSH_MSG_INFO_SESSION_AWARE"; break;
+        case PREV_PUSH_MSG_INFO_SESSIONLESS: sPpreStagingSessionAwarePrevMsgID = "PREV_PUSH_MSG_INFO_SESSIONLESS"; break;
+        default: sPpreStagingSessionAwarePrevMsgID = "UNKNOWN"; exit (-1);
     }
+    checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_preStagingSessionAwarePrevMsgID = <%s>\n", sPpreStagingSessionAwarePrevMsgID.c_str ());
+    checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_uiMaxNMsgPerSession = <%u>\n", _uiMaxNMsgPerSession);
+    checkAndLogMsg ("Scheduler::Scheduler", Logger::L_Info, "_uiOutgoingQueueSizeThreashold = <%u>\n", _uiOutgoingQueueSizeThreashold);
 }
 
 Scheduler::~Scheduler (void)
@@ -130,26 +129,27 @@ Scheduler::~Scheduler (void)
 Scheduler * Scheduler::getScheduler (ConfigManager *pCfgMgr, DSProImpl *pDSPro,
                                      CommAdaptorManager *pAdaptorMgr, DataStore *pDataStore,
                                      NodeContextManager *pNodeCtxtMgr, InformationStore *pInfoStore,
-                                     Topology *pTopology)
+                                     Topology *pTopology, Voi *pVoi)
 {
-    if (pCfgMgr == NULL || pInfoStore == NULL || pTopology == NULL) {
-        return NULL;
+    if (pCfgMgr == nullptr || pInfoStore == nullptr || pTopology == nullptr) {
+        return nullptr;
     }
 
     QueueReplacementPolicy *pReplacementPolicy = QueueReplacementPolicyFactory::getQueueReplacementPolicy (pCfgMgr);
-    if (pReplacementPolicy == NULL) {
-        return NULL;
+    if (pReplacementPolicy == nullptr) {
+        return nullptr;
     }
 
     Scheduler::PrevPushedMsgInfoMode prevPushedMsgInfo;
     MetadataMutationPolicy *pMutatorPolicy = MetadataMutationPolicyFactory::getMetadataMutationPolicy (pCfgMgr, pDSPro,
                                                                                                        pInfoStore,
                                                                                                        prevPushedMsgInfo);
-    if (pMutatorPolicy == NULL) {
+    if (pMutatorPolicy == nullptr) {
         delete pReplacementPolicy;
-        return NULL;
+        return nullptr;
     }
 
+    // Force priority based on estimated use time (if we expect something to be useful before something else)
     bool bEnforceTiming = DEFAULT_ENFORCE_RANK_BY_TIME;
     if (pCfgMgr->hasValue (ENFORCE_TIMING_PROPERTY)) {
         bEnforceTiming = pCfgMgr->getValueAsBool (ENFORCE_TIMING_PROPERTY);
@@ -158,10 +158,14 @@ Scheduler * Scheduler::getScheduler (ConfigManager *pCfgMgr, DSProImpl *pDSPro,
         // obsolete property name - also check this for back-compatibility
         bEnforceTiming = pCfgMgr->getValueAsBool ("aci.dspro.informationPush.enforceTiming");
     }
-    bool bUseSizeOverUtilityRatio = pCfgMgr->getValueAsBool ("aci.dspro.scheduler.sortBySize", false);
+    // Force priority based on the utility over size ratio of the data
+    bool bUseUtilityOverSizeRatio = pCfgMgr->getValueAsBool ("aci.dspro.scheduler.sortBySize", false);
 
     checkAndLogMsg ("Scheduler::getScheduler", Logger::L_Info,
                     "EnforceTiming: %s\n", bEnforceTiming ? "true" : "false");
+
+    checkAndLogMsg ("Scheduler::getScheduler", Logger::L_Info,
+                    "UtilityOverSizeRatio: %s\n", bUseUtilityOverSizeRatio ? "true" : "false");
 
     unsigned int maxNMsgPerSess = pCfgMgr->getValueAsUInt32 (PRESTAGING_MESSAGE_THRESHOLD_PROPERTY,
                                                              DEFAULT_MAX_N_OUTGOING_MSGS);
@@ -169,15 +173,15 @@ Scheduler * Scheduler::getScheduler (ConfigManager *pCfgMgr, DSProImpl *pDSPro,
                                                                             DEFAULT_OUTGOING_QUEUE_SIZE_THREASHOLD);
 
     TransmissionHistoryInterface *pTrHistory = TransmissionHistoryInterface::getTransmissionHistory();
-    if (pTrHistory == NULL) {
-        return NULL;
+    if (pTrHistory == nullptr) {
+        return nullptr;
     }
 
-    Scheduler *pSched = new Scheduler (bEnforceTiming, bUseSizeOverUtilityRatio, maxNMsgPerSess,
+    Scheduler *pSched = new Scheduler (bEnforceTiming, bUseUtilityOverSizeRatio, maxNMsgPerSess,
                                        uiOutgoingQueueSizeThreashold, pAdaptorMgr, pDataStore,
                                        pNodeCtxtMgr, pTopology, pTrHistory, pReplacementPolicy,
-                                       pMutatorPolicy, prevPushedMsgInfo);
-    if (pSched == NULL) {
+                                       pMutatorPolicy, prevPushedMsgInfo, pVoi);
+    if (pSched == nullptr) {
         delete pReplacementPolicy;
         delete pMutatorPolicy;
     }
@@ -192,7 +196,7 @@ Scheduler * Scheduler::getScheduler (ConfigManager *pCfgMgr, DSProImpl *pDSPro,
 
 void Scheduler::configure (ConfigManager *pCfgMgr)
 {
-    if (pCfgMgr == NULL) {
+    if (pCfgMgr == nullptr) {
         return;
     }
     _m.lock (1070);
@@ -216,7 +220,7 @@ void Scheduler::configure (ConfigManager *pCfgMgr)
     String timeSensitiveMIMETypes (pCfgMgr->getValue (TIME_SENSITIVE_MIME_TYPES_PROPERTY));
     if (timeSensitiveMIMETypes.length() > 0) {
         StringTokenizer tokenizer (timeSensitiveMIMETypes, ';', ';');
-        for (const char *pszToken; (pszToken = tokenizer.getNextToken()) != NULL;) {
+        for (const char *pszToken; (pszToken = tokenizer.getNextToken()) != nullptr; ) {
             _timeSensitiveMIMETypes.put (pszToken);
         }
     }
@@ -227,9 +231,9 @@ void Scheduler::configure (ConfigManager *pCfgMgr)
 int Scheduler::addMessageRequest (const char *pszRequestingPeer, const char *pszMsgId,
                                   DArray<uint8> *pCachedChunks)
 {
-    if (pszRequestingPeer == NULL || pszMsgId == NULL) {
+    if (pszRequestingPeer == nullptr || pszMsgId == nullptr) {
         checkAndLogMsg ("Scheduler::addMessageRequest", Logger::L_Warning,
-                        "pszID or pszMsgId is NULL.\n");
+                        "pszID or pszMsgId is nullptr.\n");
         return -1;
     }
 
@@ -237,24 +241,24 @@ int Scheduler::addMessageRequest (const char *pszRequestingPeer, const char *psz
                     "called for requesting node %s\n", pszRequestingPeer);
 
     ChunkIdWrapper *pWr = new ChunkIdWrapper (pszRequestingPeer, pszMsgId);
-    if (pWr == NULL) {
+    if (pWr == nullptr) {
         checkAndLogMsg ("Scheduler::addMessageRequest", memoryExhausted);
         return -2;
     }
 
     pWr->pChunkIds = new ChunkIds;
-    if (pWr->pChunkIds == NULL) {
+    if (pWr->pChunkIds == nullptr) {
         checkAndLogMsg ("Scheduler::addMessageRequest", memoryExhausted);
         return -3;
     }
 
-    if (pCachedChunks == NULL) {
+    if (pCachedChunks == nullptr) {
         pWr->pChunkIds->uiSize = 0;
-        pWr->pChunkIds->pIDs = NULL;
+        pWr->pChunkIds->pIDs = nullptr;
     }
     else {
         pWr->pChunkIds->pIDs = (uint8*) calloc (pCachedChunks->size()+1, sizeof (uint8));
-        if (pWr->pChunkIds->pIDs == NULL) {
+        if (pWr->pChunkIds->pIDs == nullptr) {
             checkAndLogMsg ("Scheduler::addMessageRequest", memoryExhausted);
             pWr->pChunkIds->uiSize = 0U;
         }
@@ -266,14 +270,14 @@ int Scheduler::addMessageRequest (const char *pszRequestingPeer, const char *psz
 
     _mEnqueuedRequests.lock (1074);
     ChunkIdWrapper *pOldWr = _enqueuedMessageRequests.search (pWr);
-    if (pOldWr != NULL) {
-        if (pOldWr->pChunkIds->pIDs != NULL) {
+    if (pOldWr != nullptr) {
+        if (pOldWr->pChunkIds->pIDs != nullptr) {
             free (pOldWr->pChunkIds->pIDs);
         }
         pOldWr->pChunkIds->uiSize = pWr->pChunkIds->uiSize;
         pOldWr->pChunkIds->pIDs = pWr->pChunkIds->pIDs;
         delete pWr;
-        pWr = NULL;
+        pWr = nullptr;
     }
     else {
         _enqueuedMessageRequests.insert (pWr);
@@ -283,11 +287,20 @@ int Scheduler::addMessageRequest (const char *pszRequestingPeer, const char *psz
     return 0;
 }
 
+int Scheduler::addMessageToDisseminated (const char *pszMsgId)
+{
+    _mEnqueuedDisseminations.lock (1077);
+    String s (pszMsgId);
+    _disseminate.add (s);
+    _mEnqueuedDisseminations.unlock (1077);
+    return 0;
+}
+
 void Scheduler::addToCurrentPreStaging (Rank *pRank)
 {
-    if (pRank == NULL) {
+    if (pRank == nullptr) {
         checkAndLogMsg ("Scheduler::addToCurrentPreStaging", Logger::L_Warning,
-                        "pRank is NULL.\n");
+                        "pRank is nullptr.\n");
         return;
     }
 
@@ -295,7 +308,7 @@ void Scheduler::addToCurrentPreStaging (Rank *pRank)
     setIndexes (pRank, fPrimaryIndex, fSecondaryIndex);
     if (pRank->_msgId.length() <= 0) {
         checkAndLogMsg ("Scheduler::addToCurrentPreStaging", Logger::L_Warning,
-                        "pszID is NULL.\n");
+                        "pszID is nullptr.\n");
         return;
     }
     checkIndexes (fPrimaryIndex, fSecondaryIndex);
@@ -313,21 +326,21 @@ void Scheduler::addToCurrentPreStaging (Rank *pRank)
         else {
             pMsgdIdWr = new BiIndexMsgIDWrapper (pRank, fPrimaryIndex, fSecondaryIndex);
         }
-        if (pMsgdIdWr == NULL) {
+        if (pMsgdIdWr == nullptr) {
             checkAndLogMsg ("Scheduler::addToCurrentPreStaging", memoryExhausted);
             return;
         }
 
         _mEnqueuedMessageIdWrappers.lock (1068);
-        PtrLList<MsgIDWrapper> *pWrappers = _enqueuedMessageIdWrappers.get (iter.getKey());
-        if (pWrappers == NULL) {
+        PtrLList<MsgIDWrapper> *pWrappers = _enqueuedMessageIdWrappersByPeerId.get (iter.getKey());
+        if (pWrappers == nullptr) {
             pWrappers = new PtrLList<MsgIDWrapper>();
-            if (pWrappers == NULL) {
+            if (pWrappers == nullptr) {
                 _mEnqueuedMessageIdWrappers.unlock (1068);
                 checkAndLogMsg ("Scheduler::addToCurrentPreStaging", memoryExhausted);
                 return;
             }
-            _enqueuedMessageIdWrappers.put (iter.getKey(), pWrappers);
+            _enqueuedMessageIdWrappersByPeerId.put (iter.getKey(), pWrappers);
             checkAndLogMsg ("Scheduler::addToCurrentPrestaging", Logger::L_Info,
                             "message %s added to the queue for peer %s.\n",
                             pRank->_msgId.c_str(), iter.getKey());
@@ -341,7 +354,7 @@ void Scheduler::startNewPreStagingForPeer (const char *pszTargetNodeId, Ranks *p
 {
     const char *pszMethodName = "Scheduler::startNewPreStagingForPeer";
 
-    if (pszTargetNodeId == NULL || pRanks == NULL || pRanks->getFirst() == NULL) {
+    if (pszTargetNodeId == nullptr || pRanks == nullptr || pRanks->getFirst() == nullptr) {
         return;
     }
 
@@ -351,10 +364,10 @@ void Scheduler::startNewPreStagingForPeer (const char *pszTargetNodeId, Ranks *p
     _mQueues.unlock (1072);
 
     bool bNewPeerQueue = false;
-    if (pPeerQueue == NULL) {        
+    if (pPeerQueue == nullptr) {
         // Create new queue for the peer if it does not already exist
         pPeerQueue = new PeerQueue (_pReplacementPolicy);
-        if (pPeerQueue == NULL) {
+        if (pPeerQueue == nullptr) {
             return;
         }
         bNewPeerQueue = true;
@@ -366,12 +379,12 @@ void Scheduler::startNewPreStagingForPeer (const char *pszTargetNodeId, Ranks *p
         // However, in order to guarantee important messages to be sent, these
         // may be not removed from the queue (pPeerQueue->removeReplaceable()
         // only removes relatively unimportant messages. Look at SchedulerPolicies
-        // for more information on how the importance is evaluated ), therefore,
-        // it must be ensured not to add duplicate
-        // elements. SetUniquePtrLList does not add duplicates to the list and
+        // for more information on how the importance is evaluated), therefore,
+        // it must be ensured not to add duplicate elements.
+        // SetUniquePtrLList does not add duplicates to the list and
         // AUTOMATICALLY DEALLOCATES DUPLICATE ENTRIES.
         //
-        // Furthermore this queue is in the hashtable
+        // Furthermore, this queue is in the hashtable
         // containing all the queues, therefore it has to be locked
         bNewPeerQueue = false;
         checkAndLogMsg (pszMethodName, Logger::L_Info, "target node %s already "
@@ -385,7 +398,7 @@ void Scheduler::startNewPreStagingForPeer (const char *pszTargetNodeId, Ranks *p
     String prevMsgId = _latestMsgPushedByTarget.getLatestMessageIdPushedToTarget (pszTargetNodeId);
     bool bResetPrevMsgId = true;
     unsigned int uiMsgSessionIndex = 0;
-    for (Rank *pRank = pRanks->getFirst(); pRank != NULL; pRank = pRanks->getNext()) {
+    for (Rank *pRank = pRanks->getFirst(); pRank != nullptr; pRank = pRanks->getNext()) {
 
         // Sanity check
         if (!(pRank->_targetId.contains (pszTargetNodeId))) {
@@ -429,24 +442,26 @@ void Scheduler::startNewPreStaging (Rank *pRank, PeerQueue *pPeerQueue, unsigned
     for (NodeIdIterator iter = pRank->_targetId.getIterator(); !iter.end(); iter.nextElement()) {
 
         MsgIDWrapper *pMsgdIdWr = new BiIndexMsgIDWrapper (pRank, fPrimaryIndex, fSecondaryIndex);
-        if (pMsgdIdWr == NULL) {
+        if (pMsgdIdWr == nullptr) {
             break;
         }
         MsgIDWrapper *pReturnedMsgdIdWr = pPeerQueue->insert (pMsgdIdWr);
 
-        if (pLogger != NULL) {
+        if (pLogger != nullptr) {
             static StringHashtable<unsigned int> sessionByTarget (true, true, true, true);
             unsigned int *pSession = sessionByTarget.get (iter.getKey());
-            if (pSession == NULL) {
+            if (pSession == nullptr) {
                 pSession = (unsigned int *) malloc (1*sizeof (unsigned int));
-                *pSession = 1;
-                sessionByTarget.put (iter.getKey(), pSession);
+                if (pSession != nullptr) {
+                    *pSession = 1;
+                    sessionByTarget.put (iter.getKey(), pSession);
+                }
             }
             else if (uiMsgSessionIndex == 0) {
                 *pSession = (*pSession) + 1;
             }
 
-            if (pReturnedMsgdIdWr == NULL) {
+            if (pReturnedMsgdIdWr == nullptr) {
                 checkAndLogMsg (pszMethodName, Logger::L_Info, "%d) added element %d with message ID %s and rank %f "
                                 "to the queue for target node %s\n", *pSession, uiMsgSessionIndex, pRank->_msgId.c_str(),
                                 pMsgdIdWr->getFirstIndex(), (const char *) pRank->_targetId);
@@ -458,44 +473,50 @@ void Scheduler::startNewPreStaging (Rank *pRank, PeerQueue *pPeerQueue, unsigned
             }
         }
 
-        if (pReturnedMsgdIdWr != NULL) {
+        if (pReturnedMsgdIdWr != nullptr) {
             delete pReturnedMsgdIdWr;
-            pReturnedMsgdIdWr = pMsgdIdWr = NULL;
+            pReturnedMsgdIdWr = pMsgdIdWr = nullptr;
         }
     }
 }
 
-char * Scheduler::getLatestMessageReplicatedToPeer (const char *pszPeerId)
+String Scheduler::getLatestResetMessage (void)
 {
-    if (pszPeerId == NULL) {
-        return NULL;
+    _m.lock (1079);
+    String msgId (_latestMsgPushedByTarget.getLatestResetMessageId());
+    _m.unlock (1079);
+
+    return msgId;
+}
+
+String Scheduler::getLatestMessageReplicatedToPeer (const char *pszPeerId)
+{
+    if (pszPeerId == nullptr) {
+        return String();
     }
     _m.lock (1079);
     String msgId (getLatestMessageSentToTargetInternal (pszPeerId));
     _m.unlock (1079);
 
-    if (msgId.length() <= 0) {
-        return NULL;
-    }
-    return msgId.r_str();
+    return msgId;
 }
 
 int Scheduler::replicateMessageInternal (Scheduler::MsgProperties *pMsgProp,
                                          const char *pszFinalDestination, Targets **ppNextHops)
 {
     const char *pszMethodName = "Scheduler::replicateMessageInternal";
-    if (pMsgProp == NULL || pszFinalDestination == NULL || ppNextHops == NULL) {
+    if (pMsgProp == nullptr || pszFinalDestination == nullptr || ppNextHops == nullptr) {
         return -1;
     }
 
     const bool bTimeSensitiveMessage = (pMsgProp->rankObjInfo._mimeType.length() > 0) &&
                                         (_timeSensitiveMIMETypes.containsKey (pMsgProp->rankObjInfo._mimeType));
 
-    // Filter out the "final destinations" that have already been pre-staged the
-    // message, or that have already been pre-staged a more recent message.
+    // Filter out the "final destinations" that have already been pre-staged with the
+    // message, or that have already been pre-staged with a more recent message.
     RankByTargetMap finalRankByTarget;
     NodeIdSet finalDestinations;
-    if (!finalDestinations.contains (pszFinalDestination) && !_pTrHistory->hasTarget (pMsgProp->msgId, pszFinalDestination)) {
+    if (!_pTrHistory->hasTarget (pMsgProp->msgId, pszFinalDestination)) {
         finalDestinations.add (pszFinalDestination);
         finalRankByTarget.add (pszFinalDestination, pMsgProp->rankByTarget.get (pszFinalDestination));
     }
@@ -537,7 +558,7 @@ int Scheduler::replicateMessageInternal (Scheduler::MsgProperties *pMsgProp,
     // it is still necessary
     unsigned int uiShift = 0;
     String nextHops;
-    for (unsigned int i = 0; ppNextHops[i] != NULL; i++) {
+    for (unsigned int i = 0; ppNextHops[i] != nullptr; i++) {
         for (unsigned int j = 0; j < ppNextHops[i]->aTargetNodeIds.size(); j++) {
             if (nextHops.length() > 0) {
                 nextHops += ' ';
@@ -557,7 +578,7 @@ int Scheduler::replicateMessageInternal (Scheduler::MsgProperties *pMsgProp,
                                 pMsgProp->msgId.c_str(), (const char*) finalDestinations, ppNextHops[i]->aTargetNodeIds[0],
                                 (const char*) finalDestinations);
                 Targets::deallocateTarget (ppNextHops[i]);
-                ppNextHops[i] = NULL;
+                ppNextHops[i] = nullptr;
                 uiShift++;
                 continue;
             }
@@ -567,6 +588,7 @@ int Scheduler::replicateMessageInternal (Scheduler::MsgProperties *pMsgProp,
         if (bSkip) {
             // If one of the nodes on the path was sent the message, but it was configured to only
             // perform local matchmaking, I still need to replicate
+            // TODO: check if it makes sense because the target node will not replicate the message anyway
             bSkip = !_peersMatchmakingOnlyLocalData.containsKey (ppNextHops[i]->aTargetNodeIds[0]);
         }
 
@@ -574,15 +596,15 @@ int Scheduler::replicateMessageInternal (Scheduler::MsgProperties *pMsgProp,
             checkAndLogMsg (pszMethodName, Logger::L_Info, "message %s has already been replicated to %s which is a next hop. "
                            "Therefore it will removed.\n", pMsgProp->msgId.c_str(), ppNextHops[i]->aTargetNodeIds[0]);
             Targets::deallocateTarget (ppNextHops[i]);
-            ppNextHops[i] = NULL;
+            ppNextHops[i] = nullptr;
             uiShift++;
         }
         else if (uiShift > 0) {
             ppNextHops[i-uiShift] = ppNextHops[i];
-            ppNextHops[i] = NULL;
+            ppNextHops[i] = nullptr;
         }
     }
-    if (ppNextHops[0] == NULL) {
+    if (ppNextHops[0] == nullptr) {
         // All the targets have been removed
         checkAndLogMsg (pszMethodName, Logger::L_Info, "message %s will not be replicated to %s, because the message, "
                         "or a more recent version of it, has already been replicated to all the next hops (%s) on the route to %s\n",
@@ -594,78 +616,83 @@ int Scheduler::replicateMessageInternal (Scheduler::MsgProperties *pMsgProp,
     // target-and-transmission-specific metadata message. The ID of such a message
     // is returned by mutate(), and it should be used to retrieve the message to
     // replicate
-    char *pszMutatedMessageId = (((MetadataMutationPolicy*) _pMMutationPolicy)->mutate (pMsgProp->msgId, finalDestinations,
-                                                                                        finalRankByTarget, this));
+    GenMetadataWrapper *pMutatedMsg = (((MetadataMutationPolicy*) _pMMutationPolicy)->mutate (pMsgProp->msgId, finalDestinations,
+                                                                                              finalRankByTarget, this));
     const char *pszMessageToReplicateId, *pszBaseMetadataId;
-    if (pszMutatedMessageId == NULL) {
+    if (pMutatedMsg == nullptr || (pMutatedMsg->msgId.length() <= 0)) {
         pszMessageToReplicateId = pMsgProp->msgId;
-        pszBaseMetadataId = NULL;
+        pszBaseMetadataId = nullptr;
     }
     else {
-        pszMessageToReplicateId = pszMutatedMessageId;
+        pszMessageToReplicateId = pMutatedMsg->msgId.c_str();
         pszBaseMetadataId = pMsgProp->msgId;
     }
 
     Message *pMsg = _pDataStore->getCompleteMessage (pszMessageToReplicateId);
-    if (pMsg == NULL) {
-        if (pszMutatedMessageId != NULL) {
-            free (pszMutatedMessageId);
-        }
+    if (pMsg == nullptr) {
+        delete pMutatedMsg;
         return -3;
     }
 
     MessageHeader *pMH = pMsg->getMessageHeader();
     void *pData = (void*)pMsg->getData();
-    if (pMH == NULL || pData == NULL) {
+    if (pMH == nullptr || pData == nullptr) {
         delete pMH;
         free (pData);
         delete pMsg;
-        if (pszMutatedMessageId != NULL) {
-            free (pszMutatedMessageId);
-        }
+        delete pMutatedMsg;
         return -4;
     }
 
     pMH->setPriority (pMsgProp->ui8Priority);
     pMH->setAcknowledgment (false);
+    const String group (pMH->getGroupName());
+    const String mimeType (pMH->getMimeType());
 
-    Message msg (pMH, pData);    
+    Message msg (pMH, pData);
     int rc = _pAdaptorMgr->sendDataMessage (&msg, ppNextHops);
     if (rc < 0) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not send message to peer %s; MessageId = %s (%s%s); "
                         "Priority = %d; Return code: %d.\n", (const char*) finalDestinations, pszMessageToReplicateId,
-                        (pszBaseMetadataId == NULL ? "base" : "mutated from "),
-                        (pszBaseMetadataId == NULL ? "" : pszBaseMetadataId), pMsgProp->ui8Priority, rc);
+                        (pszBaseMetadataId == nullptr ? "base" : "mutated from "),
+                        (pszBaseMetadataId == nullptr ? "" : pszBaseMetadataId), pMsgProp->ui8Priority, rc);
     }
     else {
+        Stats *pStats = Stats::getInstance();
+        if (pStats != nullptr) {
+            pStats->addMatch (group, mimeType);
+        }
+
         for (NodeIdIterator iter = pMsgProp->matchingNodeIds.getIterator(); !iter.end(); iter.nextElement()) {
             const String currDestination (iter.getKey());
+            if (pStats != nullptr) {
+                pStats->addMatch (currDestination);
+            }
             _m.lock (1008);
-            _latestMsgPushedByTarget.setLatestMessageIdPushedToTarget (currDestination, pszMessageToReplicateId);
+            _latestMsgPushedByTarget.setLatestMessageIdPushedToTarget (currDestination, pszMessageToReplicateId,
+                                                                       pMutatedMsg == nullptr ? nullptr : pMutatedMsg->pMetadata);
             _m.unlock (1008);
             if (bTimeSensitiveMessage) {
                 _latestMsgPushedByTarget.setMostRecentMessageTimestamp (currDestination, pMsgProp->rankObjInfo._objectId,
                                                                         pMsgProp->rankObjInfo._i64SourceTimestamp);
             }
         }
-        for (unsigned int i = 0; ppNextHops[i] != NULL; i++) {
+        for (unsigned int i = 0; ppNextHops[i] != nullptr; i++) {
             _pTrHistory->addMessageTarget (pMsgProp->msgId, ppNextHops[i]->aTargetNodeIds[0]);
             checkAndLogMsg (pszMethodName, Logger::L_Warning, "adding message %s (%s%s) to the tranmission history for peer %s\n",
-                            pszMessageToReplicateId, (pszBaseMetadataId == NULL ? "base" : "mutated from "),
-                            (pszBaseMetadataId == NULL ? "" : pszBaseMetadataId), ppNextHops[i]->aTargetNodeIds[0]);
+                            pszMessageToReplicateId, (pszBaseMetadataId == nullptr ? "base" : "mutated from "),
+                            (pszBaseMetadataId == nullptr ? "" : pszBaseMetadataId), ppNextHops[i]->aTargetNodeIds[0]);
         }
 
         checkAndLogMsg (pszMethodName, Logger::L_Info, "sent message to peer %s; MessageId = %s (%s%s); Priority = %d;\n",
-                        (const char*) finalDestinations, pszMessageToReplicateId, (pszBaseMetadataId == NULL ? "base" : "mutated from "),
-                        (pszBaseMetadataId == NULL ? "" : pszBaseMetadataId), pMsgProp->ui8Priority);
+                        (const char*) finalDestinations, pszMessageToReplicateId, (pszBaseMetadataId == nullptr ? "base" : "mutated from "),
+                        (pszBaseMetadataId == nullptr ? "" : pszBaseMetadataId), pMsgProp->ui8Priority);
     }
 
     delete pMH;
     free (pData);
     delete pMsg;
-    if (pszMutatedMessageId != NULL) {
-        free (pszMutatedMessageId);
-    }
+    delete pMutatedMsg;
     return (rc < 0 ? -5 : 0);
 }
 
@@ -673,36 +700,49 @@ int Scheduler::replicateDataMessageInternal (Scheduler::MsgProperties *pMsgProp,
                                              const char *pszDestination, Targets **ppTargets)
 {
     const char *pszMethodName = "Scheduler::replicateDataMessageInternal";
-    if (pMsgProp == NULL || pMsgProp->msgId.length() <= 0) {
+    if (pMsgProp == nullptr || pMsgProp->msgId.length() <= 0) {
         return -1;
     }
+    if (pszDestination == nullptr) {
+        pszDestination = "ALL PEERS";
+    }
 
-    Message *pMsg = _msgReqSrv.getRequestReply (pMsgProp->msgId, pIds->pIDs, pIds->uiSize);
-    if (pMsg == NULL) {
+    Message *pMsg = ((pIds == nullptr) ? _msgReqSrv.getRequestReply (pMsgProp->msgId, nullptr, 0) :
+                     _msgReqSrv.getRequestReply (pMsgProp->msgId, pIds->pIDs, pIds->uiSize));
+    if (pMsg == nullptr) {
         return -2;
     }
 
     MessageHeader *pMH = pMsg->getMessageHeader();
     void *pData = (void*)pMsg->getData();
-    if (pMH == NULL || pData == NULL) {
+    if (pMH == nullptr || pData == nullptr) {
         delete pMH;
         free (pData);
         delete pMsg;
         return -3;
     }
 
-    pMH->setAcknowledgment (false);
+    pMH->setAcknowledgment (false);     // Set no acknowledgement at the DisService level
 
-    int rc = pMH->isChunk() ? _pAdaptorMgr->sendChunkedMessage (pMsg, pMH->getMimeType(), ppTargets)
-                            : _pAdaptorMgr->sendDataMessage (pMsg, ppTargets);
+    int rc;
+    if (ppTargets == nullptr) {
+        rc = _pAdaptorMgr->broadcastDataMessage (pMsg);
+    }
+    else if (pMH->isChunk()) {
+        rc = _pAdaptorMgr->sendChunkedMessage (pMsg, pMH->getMimeType(), ppTargets);
+    }
+    else {
+        rc = _pAdaptorMgr->sendDataMessage (pMsg, ppTargets);
+    }
+
     if (rc < 0) {
         checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not send requested data message to peer %s; "
                         "MessageId = %s; Priority = %d; Return code: %d.\n", pszDestination, pMsgProp->msgId.c_str(),
                         pMH->getPriority(), rc);
     }
-    else {
-        for (unsigned int i = 0; ppTargets[i] != NULL; i++) {
-            _pTrHistory->addMessageTarget (pMsgProp->msgId.c_str(), ppTargets[i]->aTargetNodeIds[0]);
+    else if (ppTargets != nullptr) {
+        for (unsigned int i = 0; ppTargets[i] != nullptr; i++) {
+            _pTrHistory->addMessageTarget (pMsgProp->msgId, ppTargets[i]->aTargetNodeIds[0]);
             checkAndLogMsg (pszMethodName, Logger::L_Warning, "adding requested message %s to "
                             "the tranmission history for peer %s\n", pMsgProp->msgId.c_str(),
                             ppTargets[i]->aTargetNodeIds[0]);
@@ -719,7 +759,7 @@ int Scheduler::replicateDataMessageInternal (Scheduler::MsgProperties *pMsgProp,
     return (rc < 0 ? -4 : 0);
 }
 
-void Scheduler::run()
+void Scheduler::run (void)
 {
     const char *pszMethodName = "Scheduler::run";
     setName (pszMethodName);
@@ -729,14 +769,15 @@ void Scheduler::run()
 
     while (!terminationRequested()) {
         PeerNodeContextList *pPeerNodeContextList = _pNodeCtxtMgr->getPeerNodeContextList();
-        if (pPeerNodeContextList != NULL) {
+        if (pPeerNodeContextList != nullptr) {
             for (PeerNodeContext *pNodeContext = pPeerNodeContextList->getFirst();
-                pNodeContext != NULL; pNodeContext = pPeerNodeContextList->getNext()) {
+                pNodeContext != nullptr; pNodeContext = pPeerNodeContextList->getNext()) {
+                const String nodeId (pNodeContext->getNodeId());
                 if (pNodeContext->getLimitToLocalMatchmakingOnly()) {
-                    _peersMatchmakingOnlyLocalData.put (pNodeContext->getNodeId());
+                    _peersMatchmakingOnlyLocalData.put (nodeId);
                 }
                 else {
-                    _peersMatchmakingOnlyLocalData.remove (pNodeContext->getNodeId());
+                    _peersMatchmakingOnlyLocalData.remove (nodeId);
                 }
             }
         }
@@ -762,14 +803,14 @@ void Scheduler::send()
     _m.unlock (1073);
 }
 
-void Scheduler::sendInternal()
+void Scheduler::sendInternal (void)
 {
     ChunkIdWrapper *pWr;
     _mEnqueuedRequests.lock (1069);
     ChunkIdWrapper *pWrTmp = _enqueuedMessageRequests.getFirst();
-    while ((pWr = pWrTmp) != NULL) {
+    while ((pWr = pWrTmp) != nullptr) {
         pWrTmp = _enqueuedMessageRequests.getNext();
-        if (addMessageRequestInternal (pWr->requestingPeer.c_str(), pWr->msgId.c_str(), pWr->pChunkIds) == 0) {
+        if (addMessageRequestInternal (pWr->requestingPeer, pWr->msgId, pWr->pChunkIds) == 0) {
             _enqueuedMessageRequests.remove (pWr);
             delete pWr;
         }
@@ -777,24 +818,37 @@ void Scheduler::sendInternal()
     _mEnqueuedRequests.unlock (1069);
 
     _mEnqueuedMessageIdWrappers.lock (1067);
-    StringHashtable<PtrLList<MsgIDWrapper> >::Iterator enqMsgWrIter = _enqueuedMessageIdWrappers.getAllElements();
+    StringHashtable<PtrLList<MsgIDWrapper> >::Iterator enqMsgWrIter = _enqueuedMessageIdWrappersByPeerId.getAllElements();
     for (; !enqMsgWrIter.end(); enqMsgWrIter.nextElement()) {
         PtrLList<MsgIDWrapper> *pWrappers = enqMsgWrIter.getValue();
-        if (pWrappers != NULL) {
+        if (pWrappers != nullptr) {
             MsgIDWrapper *pMsgIdWr;
             MsgIDWrapper *pMsgIdWrTmp = pWrappers->getFirst();
-            while ((pMsgIdWr = pMsgIdWrTmp) != NULL) {
+            while ((pMsgIdWr = pMsgIdWrTmp) != nullptr) {
                 pMsgIdWrTmp = pWrappers->getNext();
                 pWrappers->remove (pMsgIdWr);
                 addToCurrentPreStagingInternal (enqMsgWrIter.getKey(), pMsgIdWr);
             }
         }
     }
-    _enqueuedMessageIdWrappers.removeAll();
+    _enqueuedMessageIdWrappersByPeerId.removeAll();
     _mEnqueuedMessageIdWrappers.unlock (1067);
 
+    _mEnqueuedDisseminations.lock (1079);
+    LList<String> diss;
+    diss = _disseminate;
+    _disseminate.removeAll();
+    _mEnqueuedDisseminations.unlock (1079);
+    String msgId;
+    for (int rc = diss.getFirst (msgId); rc == 1; rc = diss.getNext (msgId)) {
+        MsgProperties msgProp;
+        msgProp.msgId = msgId;
+        msgProp.ui8Priority = 0;
+        replicateDataMessageInternal (&msgProp, nullptr, nullptr, nullptr);
+    }
+
     MsgProperties *pMsgProps = new MsgProperties[_uiMaxNMsgPerSession];
-    if (pMsgProps == NULL) {
+    if (pMsgProps == nullptr) {
         checkAndLogMsg ("Scheduler::sendInternal", memoryExhausted);
         return;
     }
@@ -805,7 +859,7 @@ void Scheduler::sendInternal()
         sessionCounter++;
         String currKey;
         _queues.resetGetNext();
-        for (PeerQueue *pPeerQueue; (pPeerQueue = _queues.getNext (currKey)) != NULL;) {
+        for (PeerQueue *pPeerQueue; (pPeerQueue = _queues.getNext (currKey)) != nullptr;) {
             if (pPeerQueue->tryLock()) {
                 DArray2<String> requestsToServe;
                 DArray2<ChunkIds> requestsToServeChunkFilters;
@@ -813,7 +867,7 @@ void Scheduler::sendInternal()
                 // Get message to replicate
                 MsgIDWrapper *pCurr, *pNext;
                 pNext = pPeerQueue->_msgIDs.getFirst();
-                for (unsigned int i = 0; (i < _uiMaxNMsgPerSession) && (pCurr = pNext) != NULL; i++) {
+                for (unsigned int i = 0; (i < _uiMaxNMsgPerSession) && (pCurr = pNext) != nullptr; i++) {
                     pNext = pPeerQueue->_msgIDs.getNext();
                     pPeerQueue->_msgIDs.remove (pCurr);
                     pMsgProps[i].msgId = pCurr->_msgId;
@@ -826,11 +880,10 @@ void Scheduler::sendInternal()
 
                 // Get requested messages to serve
                 StringHashtable<ChunkIds>::Iterator reqMsgId = pPeerQueue->_requestedMsgIDs.getAllElements();
-                for (unsigned int i = 0; !reqMsgId.end(); reqMsgId.nextElement()) {
+                for (unsigned int i = 0; !reqMsgId.end(); reqMsgId.nextElement(), ++i) {
                     requestsToServe[i] = reqMsgId.getKey();
                     requestsToServeChunkFilters[i].pIDs = reqMsgId.getValue()->pIDs;
                     requestsToServeChunkFilters[i].uiSize = reqMsgId.getValue()->uiSize;
-                    i++;
                 }
 
                 // Remove requested messages that will be served
@@ -840,27 +893,27 @@ void Scheduler::sendInternal()
 
                 pPeerQueue->unlock();
 
-                if ((pNext != NULL) && bAllEmptyQueues) {
+                if (pNext != nullptr) {
                     bAllEmptyQueues = false;
                 }
 
-                // Replicate the messages identified by ppszMsgIDs
+                // Replicate the messages identified by pMsgProps[i].matchingNodeIds
                 for (unsigned int i = 0; i < _uiMaxNMsgPerSession; i++) {
                     if (pMsgProps[i].msgId.length() > 0) {
                         NodeIdSet matchedNodes (pMsgProps[i].matchingNodeIds);
                         Targets **ppTargets = _pTopology->getNextHopsAsTarget (matchedNodes);
-                        if (ppTargets != NULL && ppTargets[0] != NULL) {                                
+                        if (ppTargets != nullptr && ppTargets[0] != nullptr) {
                             replicateMessageInternal (&(pMsgProps[i]),
-                                                        currKey,    // pszFinalDestination
-                                                        ppTargets         // ppNextHops
+                                                      currKey,          // pszFinalDestination
+                                                      ppTargets         // ppNextHops
                             );
                         }
                         Targets::deallocateTargets (ppTargets);
                     }
                 }
 
-                TargetPtr targets[2] = { _pTopology->getNextHopAsTarget (currKey), NULL };
-                if (targets[0] != NULL) {
+                TargetPtr targets[2] = { _pTopology->getNextHopAsTarget (currKey), nullptr };
+                if (targets[0] != nullptr) {
                     // Replicate the messages explicitely requested by the peer
                     MsgProperties msgProp;
                     for (unsigned int i = 0; i < requestsToServe.size(); i++) {
@@ -869,13 +922,12 @@ void Scheduler::sendInternal()
                         cIds.pIDs = requestsToServeChunkFilters[i].pIDs;
                         cIds.uiSize = requestsToServeChunkFilters[i].uiSize;
                         replicateDataMessageInternal (&msgProp, &cIds, currKey, targets);
-                        delete pPeerQueue->_requestedMsgIDs.remove (requestsToServe[i]);
-                    }                       
+                    }
                 }
                 delete targets[0];
             }
             else {
-                // queue it's being filled out
+                // queue it's being filled
             }
         }
     }
@@ -886,22 +938,22 @@ void Scheduler::sendInternal()
 int Scheduler::addMessageRequestInternal (const char *pszRequestingPeer, const char *pszMsgId,
                                           ChunkIds *pChunkIds)
 {
-    if (pszRequestingPeer == NULL || pszMsgId == NULL || pChunkIds == NULL) {
+    if (pszRequestingPeer == nullptr || pszMsgId == nullptr || pChunkIds == nullptr) {
         checkAndLogMsg ("Scheduler::addMessageRequestInternal", Logger::L_Warning,
-                        "pszID, or pszMsgId, or pChunkIds is NULL.\n");
+                        "pszID, pszMsgId, or pChunkIds is nullptr.\n");
         return -1;
     }
 
-    checkAndLogMsg ("Scheduler::addMessageRequestInternal", Logger::L_Info,
+    checkAndLogMsg ("Scheduler::addMessageRequestInternal", Logger::L_HighDetailDebug,
                     "called for requesting node %s\n", pszRequestingPeer);
 
     _mQueues.lock (1078);
 
     PeerQueue *pPeerQueue = _queues.get (pszRequestingPeer);
-    if (pPeerQueue == NULL) {
+    if (pPeerQueue == nullptr) {
         // Create a new PeerQueue for the peer
         pPeerQueue = new PeerQueue (_pReplacementPolicy);
-        if (pPeerQueue == NULL) {
+        if (pPeerQueue == nullptr) {
             checkAndLogMsg ("Scheduler::addMessageRequestInternal", memoryExhausted);
             _mQueues.unlock (1078);
             return -2;
@@ -917,16 +969,16 @@ int Scheduler::addMessageRequestInternal (const char *pszRequestingPeer, const c
         _mQueues.unlock (1078);
 
         if (pPeerQueue->_requestedMsgIDs.containsKey (pszMsgId)) {
-             checkAndLogMsg ("Scheduler::addMessageRequestInternal", Logger::L_Info,
+             checkAndLogMsg ("Scheduler::addMessageRequestInternal", Logger::L_LowDetailDebug,
                              "message %s for requesting node %s was not added to the scheduler "
                              "because already scheduled for delivery\n",
                              pszMsgId, pszRequestingPeer);
         }
         else {
             pPeerQueue->_requestedMsgIDs.put (pszMsgId, pChunkIds);
-            checkAndLogMsg ("Scheduler::addMessageRequestInternal", Logger::L_Info,
+            checkAndLogMsg ("Scheduler::addMessageRequestInternal", Logger::L_MediumDetailDebug,
                             "message %s for requesting node %s was added to the scheduler\n",
-                            pszMsgId, pszRequestingPeer); 
+                            pszMsgId, pszRequestingPeer);
        }
        pPeerQueue->unlock();
     }
@@ -939,13 +991,13 @@ void Scheduler::addToCurrentPreStagingInternal (const char *pszTargetPeerNodeID,
     _mQueues.lock (1075);
 
     PeerQueue *pPeerQueue = _queues.get (pszTargetPeerNodeID);
-    if (pPeerQueue == NULL) {
+    if (pPeerQueue == nullptr) {
         // Create a new PeerQueue for the peer
         pPeerQueue = new PeerQueue (_pReplacementPolicy);
-        if (pPeerQueue == NULL) {
+        if (pPeerQueue == nullptr) {
             checkAndLogMsg ("Scheduler::addToCurrentPreStagingInternal", memoryExhausted);
             delete pMsgdIdWr;
-            pMsgdIdWr = NULL;
+            pMsgdIdWr = nullptr;
              _mQueues.unlock (1075);
             return;
         }
@@ -960,13 +1012,13 @@ void Scheduler::addToCurrentPreStagingInternal (const char *pszTargetPeerNodeID,
         _mQueues.unlock (1075);
 
         MsgIDWrapper *pReturnedMsgdIdWr = pPeerQueue->insert (pMsgdIdWr);
-        if (pReturnedMsgdIdWr != NULL) {
+        if (pReturnedMsgdIdWr != nullptr) {
             checkAndLogMsg ("Scheduler::addToCurrentPreStagingInternal", Logger::L_Info,
                             "message %s for target node %s was not added to the scheduler "
                             "because already scheduled for delivery\n",
                             pReturnedMsgdIdWr->_msgId.c_str(), pszTargetPeerNodeID);
             delete pReturnedMsgdIdWr;
-            pReturnedMsgdIdWr = NULL;
+            pReturnedMsgdIdWr = nullptr;
         }
         else {
             checkAndLogMsg ("Scheduler::addToCurrentPreStagingInternal", Logger::L_Info,
@@ -1034,7 +1086,7 @@ void Scheduler::PeerQueue::removeAll()
 {
     MsgIDWrapper *pCurr, *pNext;
     pNext = _msgIDs.getFirst();
-    while ((pCurr = pNext) != NULL) {
+    while ((pCurr = pNext) != nullptr) {
         pNext = _msgIDs.getNext();
         delete _msgIDs.remove (pCurr);
     }
@@ -1044,7 +1096,7 @@ void Scheduler::PeerQueue::removeReplaceable()
 {
     MsgIDWrapper *pCurr, *pNext;
     pNext = _msgIDs.getFirst();
-    while ((pCurr = pNext) != NULL) {
+    while ((pCurr = pNext) != nullptr) {
         pNext = _msgIDs.getNext();
         if (((QueueReplacementPolicy *)_pReplacementPolicy)->isReplaceable (pCurr)) {
             delete _msgIDs.remove (pCurr);
@@ -1098,7 +1150,7 @@ void Scheduler::PeerQueue::display (FILE *pFileOut)
 {
     MsgIDWrapper *pWr = _msgIDs.getFirst();
     bool bFirstEl = true;
-    while (pWr != NULL) {
+    while (pWr != nullptr) {
         if (!bFirstEl) {
             fprintf (pFileOut, ", ");
             bFirstEl = false;
@@ -1109,4 +1161,3 @@ void Scheduler::PeerQueue::display (FILE *pFileOut)
     }
     fprintf (pFileOut, "\n");
 }
-

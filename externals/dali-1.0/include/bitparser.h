@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------
  *
  * Copyright (c) 1997-1998 by Cornell University.
- * 
+ *
  * See the file "license.txt" for information on usage and redistribution
  * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
@@ -455,7 +455,7 @@ extern int bitmask[];
 }
 
 /*
- * this macro only makes sense for input bitparsers 
+ * this macro only makes sense for input bitparsers
  */
 #define Bp_DataRemain(bp) ((bp)->bs->endDataPtr-(bp)->offsetPtr)
 #define Bp_Underflow(bp) (bp->offsetPtr > bp->bs->endDataPtr)

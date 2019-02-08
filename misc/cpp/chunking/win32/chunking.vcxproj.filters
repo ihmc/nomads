@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\proxy">
+      <UniqueIdentifier>{a8ec3aba-cd04-4ae6-a0f1-121ba9355c85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\proxy">
+      <UniqueIdentifier>{31f2df5d-a3ba-4c3a-98dd-f076f76cd9cf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Chunker.h">
@@ -57,6 +63,21 @@
     <ClInclude Include="..\MPEG1Handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\ChunkingManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\ChunkerArguments.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\ReassemblerArguments.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\Chunks.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proxy\Marshaling.h">
+      <Filter>Header Files\proxy</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Chunker.cpp">
@@ -94,6 +115,21 @@
     </ClCompile>
     <ClCompile Include="..\MPEG1Handler.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ChunkingManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\ChunkerArguments.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\ReassemblerArguments.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\Chunks.cpp">
+      <Filter>Source Files\proxy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proxy\Marshaling.cpp">
+      <Filter>Source Files\proxy</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

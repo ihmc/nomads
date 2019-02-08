@@ -77,19 +77,21 @@ void TCPConnListener::run()
 
 ConnHandler * TCPConnListener::getConnHandler (ConnEndPoint *pEndPoint, const String &remotePeer)
 {
-    if (pEndPoint == NULL) {
-        return NULL;
+    if (pEndPoint == nullptr) {
+        return nullptr;
     }
-    TCPEndPoint *pTCPEndPoint = (TCPEndPoint *) pEndPoint;
-    if (pTCPEndPoint == NULL) {
-        return NULL;
+    TCPEndPoint *pTCPEndPoint = dynamic_cast<TCPEndPoint *> (pEndPoint);
+    if (pTCPEndPoint == nullptr) {
+        return nullptr;
     }
-    assert (pTCPEndPoint->_pSocket != NULL);
+    assert (pTCPEndPoint->_pSocket != nullptr);
+
     const AdaptorProperties *pAdaptProp = _pCommAdaptor->getAdaptorProperties();
     TCPConnHandler *pHandler = new TCPConnHandler (*pAdaptProp, remotePeer, _pListener, pTCPEndPoint->_pSocket, _listenAddr);
-    if (pHandler == NULL) {
+    if (pHandler == nullptr) {
         checkAndLogMsg ("TCPConnListener::getConnHandler", memoryExhausted);
     }
+
     return pHandler;
 }
 
@@ -97,12 +99,12 @@ ConnEndPoint * TCPConnListener::acceptConnection (void)
 {
     // Receive connection
     TCPSocket *pSocket = (TCPSocket *) _servSocket.accept();
-    if (pSocket == NULL) {
+    if (pSocket == nullptr) {
         checkAndLogMsg ("TCPConnListener::getEndPoint", memoryExhausted);
-        return NULL;
+        return nullptr;
     }
     ConnEndPoint *pEndPoint = new TCPEndPoint (pSocket, ConnEndPoint::DEFAULT_TIMEOUT);
-    if (pEndPoint == NULL) {
+    if (pEndPoint == nullptr) {
         checkAndLogMsg ("TCPConnListener::getEndPoint", memoryExhausted);
     }
     return pEndPoint;

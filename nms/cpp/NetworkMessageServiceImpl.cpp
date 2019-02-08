@@ -1,4 +1,4 @@
-/* 
+/*
  * NetworkMessageServiceImpl.cpp
  *
  * This file is part of the IHMC Network Message Service Library
@@ -10,18 +10,17 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
- * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details.
+ * available. Contact Niranjan Suri at IHMC (nsuri@ihmc.us) for details
  *
  * Author: Giacomo Benincasa    (gbenincasa@ihmc.us)
  * Created on May 15, 2015, 1:59 PM
  */
 
 #include "NetworkMessageServiceImpl.h"
-
 #include "BufferReader.h"
 #include "ConfigManager.h"
 #include "Logger.h"
@@ -35,9 +34,12 @@
 #include "NetworkMessage.h"
 #include "NetworkMessageV2.h"
 #include "Fragmenter.h"
+#include "CryptoUtils.h"
+#include "MD5.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "StringTokenizer.h"
 
 #if defined (UNIX)
     #include <netinet/in.h>
@@ -45,8 +47,9 @@
 #else
     #define UINT32_ADDRESS S_un.S_addr
 #endif
-
 #define checkAndLogMsg if (pLogger) pLogger->logMsg
+
+using namespace CryptoUtils;
 
 namespace NOMADSUtil
 {
@@ -61,6 +64,175 @@ namespace NOMADSUtil
         }
         return (const char**) ppszStringCpys;
     }
+
+    AES256Key * createKey (const char *pszGroupKeyFilename)
+    {
+        const char *pszMethodName = "NetworkMessageServiceImpl::createKey";
+        checkAndLogMsg(pszMethodName, Logger::L_LowDetailDebug, "GroupKeyFileName %s\n",
+                       pszGroupKeyFilename);
+        if (pszGroupKeyFilename == NULL) {
+            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
+                            "The traffic will not be encrypted. No key file was given\n");
+            return NULL;
+        }
+        AES256Key *pKey = new AES256Key();
+        int irc = pKey->initKeyFromFile (pszGroupKeyFilename);
+        if (irc == 0) {
+            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
+                            "The traffic will be encrypted. AES256Key initiliazed.\n");
+        }
+        else {
+            checkAndLogMsg (pszMethodName, Logger::L_SevereError,
+                            "initKeyFromFile failed\n");
+            delete pKey;
+            pKey = NULL;
+        }
+        return pKey;
+    }
+
+    bool doEncrypt (AES256Key *pKey, const char *pszHints)
+    {
+        if (pKey == NULL) {
+            return false;
+        }
+        if (pszHints == NULL) {
+            return true;
+        }
+        StringTokenizer tokenizer (pszHints, ';', ';');
+        for (String token; (token = tokenizer.getNextToken()).length() > 0;) {
+            if (token == "no-encrypt") {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    uint16 calculateMsgChecksum (CRC *pCrc, const void *pBuf, const uint16 ui16BufLen)
+    {
+        if (pCrc == NULL) {
+            return 0;
+        }
+        pCrc->reset();
+        pCrc->update (pBuf, ui16BufLen);
+        uint16 ui16Checksum = pCrc->getChecksum();
+        return ui16Checksum;
+    }
+
+    void * encrypt (AES256Key *pKey, MessageInfo &msgInfo)
+    {
+        const char *pszMethodName = "NetworkMessageServiceImpl::encrypt";
+        if (pKey == NULL) {
+            return NULL;
+        }
+        uint32 ui32Len = 0;
+        void *pEncryptedData = encryptDataUsingSecretKey (pKey, msgInfo.pMsg, msgInfo.ui16MsgLen, &ui32Len);
+        if ((pEncryptedData == NULL) || (ui32Len > 0xFFFF) || (ui32Len == 0U)) {
+            if (pEncryptedData != NULL) {
+                free (pEncryptedData);
+            }
+            return NULL;
+        }
+        msgInfo.ui16MsgLen = (uint16) ui32Len;
+        msgInfo.pMsg = pEncryptedData;
+        return pEncryptedData;
+    }
+
+    uint16 encryptChecksum (AES256Key *pKey, uint16 ui16Checksum)
+    {
+        const char *pszMethodName = "NetworkMessageServiceImpl::encryptChecksum";
+        if (pKey == NULL) {
+            return ui16Checksum;
+        }
+        uint32 ui32ChecksumLen = 0;
+        //check the casting it could be incorrect
+        void *pCheckSum = (void*)&ui16Checksum;
+        void *pEncryptedChecksum = encryptDataUsingSecretKey (pKey, pCheckSum, (uint32)2, &ui32ChecksumLen);
+        if (ui32ChecksumLen != (uint32)2) {
+            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "The encrypted checksum is too big to fit in a uint16");
+        }
+        if (pEncryptedChecksum == NULL) {
+            return 0;
+        }
+        uint16 ui16EncryptedChecksum = *((uint16*)pEncryptedChecksum);
+        free (pEncryptedChecksum);
+        return ui16EncryptedChecksum;
+    }
+
+    void * decrypt (AES256Key *pKey, NetworkMessage *pNetMsg, void *&pMsg, uint16 &ui16MsgLen)
+    {
+        const char *pszMethodName = "NetworkMessageServiceImpl::decrypt";
+        void *pDecryptedMsg = NULL;
+        if ((pKey == NULL) || !pNetMsg->isEncrypted()) {
+            pMsg = pNetMsg->getMsg();
+            ui16MsgLen = pNetMsg->getMsgLen();
+        }
+        else {
+            uint32 ui32DecryptedMsgLen = 0U;
+            pDecryptedMsg = decryptDataUsingSecretKey (pKey, pNetMsg->getMsg(), pNetMsg->getMsgLen(), &ui32DecryptedMsgLen);
+            if (ui32DecryptedMsgLen > 0xFFFF) {
+                if (pDecryptedMsg != NULL) {
+                    free (pDecryptedMsg);
+                    pDecryptedMsg = NULL;
+                }
+                checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "The decrypted message length is too big to fit in a uint16\n");
+                ui16MsgLen = 0;
+                pMsg = NULL;
+            }
+            else {
+                ui16MsgLen = (uint16) ui32DecryptedMsgLen;
+                pMsg = pDecryptedMsg;
+            }
+        }
+        return pDecryptedMsg;
+    }
+
+    uint16 decryptChecksum (AES256Key *pKey, uint16 ui16Checksum)
+    {
+        const char *pszMethodName = "NetworkMessageServiceImpl::decrypt";
+        if (pKey == NULL) {
+            checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "The checksum will not be decrypted, because the encryption key is NULL");
+            return 0U;
+        }
+        uint32 ui32Len = 0;
+        void *pChecksum = (void*)&ui16Checksum;
+        void *pDecryptedChecksum = decryptDataUsingSecretKey (pKey, pChecksum, (uint32)2, &ui32Len);
+        if (pDecryptedChecksum == NULL) {
+            checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug, "Impossible to decrypt the checksum, returning the input checksum");
+            return ui16Checksum;
+        }
+        uint16 ui16DecryptedCS = *((uint16*)pDecryptedChecksum);
+        free (pDecryptedChecksum);
+        return ui16DecryptedCS;
+    }
+
+    uint64 getCounter (std::map<uint32, uint64> &map, uint32 ui32Src)
+    {
+        std::map<uint32, uint64>::iterator it = map.find (ui32Src);
+        if (it == map.end ()) {
+            return 0U;
+        }
+        return it->second;
+    }
+
+    uint64 updateCounter (std::map<uint32, uint64> &map, uint32 ui32Src, bool bReset=false)
+    {
+        // Update counter
+        uint64 ui64Count = 1;
+        std::map<uint32, uint64>::iterator it = map.find (ui32Src);
+        if (it == map.end()) {
+            map[ui32Src] = ui64Count;
+        }
+        else {
+            ui64Count = (bReset ? 1 : it->second + 1);
+            map[ui32Src] = ui64Count;
+        }
+        return ui64Count;
+    }
+
+    uint64 resetCounter (std::map<uint32, uint64> &map, uint32 ui32Src)
+    {
+        return updateCounter (map, ui32Src, true);
+    }
 }
 
 using namespace NOMADSUtil;
@@ -72,7 +244,6 @@ namespace IHMC_NMS
         public:
             Instrumentation (void);
             ~Instrumentation (void);
-
             void receivedBytes (const char *pszSrc, const char *pszDst, uint32 ui32Bytes);
             void sentBytes (const char *pszSrc, const char *pszDst, uint32 ui32Bytes);
 
@@ -91,7 +262,7 @@ namespace IHMC_NMS
     Instrumentation::~Instrumentation (void)
     {
     }
-    
+
     void Instrumentation::receivedBytes (const char *pszSrc, const char *pszDst, uint32 ui32Bytes)
     {
         const char *pszMethodName = "Instrumentation::receivedBytes";
@@ -112,7 +283,7 @@ namespace IHMC_NMS
 }
 
 NetworkMessageServiceImpl::NetworkMessageServiceImpl (PROPAGATION_MODE mode, bool bAsyncDelivery,
-                                                      uint8 ui8MessageVersion, NetworkInterfaceManager *pNetIntMgr)
+                                                      uint8 ui8MessageVersion, NetworkInterfaceManager *pNetIntMgr, const char * pszSessionKey, const char * pszGroupKeyFilename)
     : _mode (mode),
       _bAsyncDelivery (bAsyncDelivery),
       _ui8DefMaxNumOfRetransmissions (NetworkMessageService::DEFAULT_MAX_NUMBER_OF_RETRANSMISSIONS),
@@ -120,6 +291,8 @@ NetworkMessageServiceImpl::NetworkMessageServiceImpl (PROPAGATION_MODE mode, boo
       _ui16BroadcastedMsgCounter (0U),
       _msgFactory (ui8MessageVersion),
       _reassembler (_ui32RetransmissionTimeout),
+      _pszSessionKey (pszSessionKey),
+      _pKey (createKey (pszGroupKeyFilename)),
       _pNetIntMgr (pNetIntMgr),
       _pInstr (NULL),
       _lastMsgs (true, true),
@@ -144,17 +317,23 @@ NetworkMessageServiceImpl::~NetworkMessageServiceImpl (void)
         delete pInterface;
     }
     _tQueueLengthByInterface.removeAll();
-
     _lastMsgs.removeAll();
+    if (_pKey != NULL) {
+        delete _pKey;
+        _pKey = NULL;
+    }
+    if (_pCrc != NULL) {
+        delete _pCrc;
+        _pCrc = NULL;
+    }
 }
 
 int NetworkMessageServiceImpl::init (ConfigManager *pCfgMgr)
 {
-    
+    const char * const pszMethodName = "NetworkMessageServiceImpl::init";
     if (pCfgMgr == NULL) {
         return -1;
     }
-
     const uint32 ui32MTU = pCfgMgr->getValueAsUInt32 (NMSProperties::NMS_MTU, NetworkMessageService::DEFAULT_MTU);
     const uint32 ui33MaxOutgoingQueingTime = pCfgMgr->getValueAsUInt32 ("nms.transmission.maxAggregationPeriod", 5000U);
     const uint32 ui32RetransmissionTimeout = pCfgMgr->getValueAsUInt32 ("nms.retransmission.timeout", NetworkMessageService::DEFAULT_RETRANSMISSION_TIME);
@@ -162,12 +341,27 @@ int NetworkMessageServiceImpl::init (ConfigManager *pCfgMgr)
     if (ui32DefMaxNumOfRetransmissions > 0xFF) {
         return -3;
     }
+    /*Checking if the passphrase encryption is enable
+    In the case that the key is already initialized (groupkey property is specified)
+    the passphrase encryption will not be enabled
+    */
+    if (pCfgMgr->getValueAsBool (NMSProperties::NMS_PASSPHRASE_ENCRYPTION, true)) {
+        if (_pKey == NULL && _pszSessionKey != NULL) {
+            _pKey = new AES256Key();
+            _pKey->initKey (_pszSessionKey);
+            checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,"Encryption key initiliazed using passphrase mode\n");
+        }
+    }
+
     if (pCfgMgr->getValueAsBool("nms.instrumented", true)) {
         _pInstr = new IHMC_NMS::Instrumentation();
     }
     if (_bAsyncDelivery) {
         _ostDeliveryThread.start (deliveryThread, this);
     }
+    //init the CRC calculator
+    _pCrc = new CRC();
+    _pCrc->init ();
     return 0;
 }
 
@@ -178,16 +372,17 @@ int NetworkMessageServiceImpl::registerHandlerCallback (uint8 ui8MsgType, Networ
     if (ptrLListeners == NULL) {
         checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
                         "initializing listener list for msgtype=%d\n", ui8MsgType);
-
         ptrLListeners = new NMSListerList();
         _listeners.put (ui8MsgType, ptrLListeners);
     }
     checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
                     "adding a listener for msgtype=%d\n", ui8MsgType);
+    while (ptrLListeners->search (pListener) != NULL) {
+        pListener->_ui16ApplicationId++;
+    }
 
-    ptrLListeners->append (pListener);
+    ptrLListeners->prepend (pListener);
     ptrLListeners = NULL;
-
     return 0; //to handle!!
 }
 
@@ -216,6 +411,7 @@ int NetworkMessageServiceImpl::transmit (TransmissionInfo &trInfo, MessageInfo &
 
 int NetworkMessageServiceImpl::broadcastMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo)
 {
+    const char * const pszMethodName = "NetworkMessageServiceImpl::broadcastMessage";
     _pNetIntMgr->resolveProxyDatagramSocketAddresses();
     if (!_pNetIntMgr->isPrimaryIfaceSet()) {
         return -1;
@@ -224,61 +420,65 @@ int NetworkMessageServiceImpl::broadcastMessage (TransmissionInfo &trInfo, Messa
         return -2;
     }
 
-    _m.lock();
-    const char * const pszMethodName = "NetworkMessageServiceImpl::broadcastMessage";
-
+    _mKey.lock();
+    const bool bEncypt = doEncrypt (_pKey, trInfo.pszHints);
+    uint16 ui16EncryptedChecksum = bEncypt ?
+                                   encryptChecksum (_pKey, calculateMsgChecksum (_pCrc, msgInfo.pMsg, msgInfo.ui16MsgLen)) :
+                                   calculateMsgChecksum (_pCrc, msgInfo.pMsg, msgInfo.ui16MsgLen);
+    void *pEncryptedData = bEncypt ? encrypt (_pKey, msgInfo) : NULL;
+    _mKey.unlock();
     checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "outgoing packet src: %u\n",
                     NetUtils::getLocalIPAddress().s_addr); //can I consider this the "main" ip address?
 
+    _m.lock();
     NetworkMessage *pNetMsg = _msgFactory.getDataMessage (_pNetIntMgr->getPrimaryInterface(), _ui16BroadcastedMsgCounter++,
                                                           NetworkMessage::CT_DataMsgComplete, trInfo, msgInfo);
-
+    if (bEncypt) {
+        pNetMsg->setEncrypted();
+        pNetMsg->setMsgChecksum (ui16EncryptedChecksum);
+    }
     if (sendNetworkMessage (pNetMsg, trInfo, true) != 0) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError, "no interface available to broadcast\n");
         _m.unlock();
         return -3;
     }
-
     _m.unlock();
+
+    if (pEncryptedData != NULL) {
+        free (pEncryptedData);
+    }
     return 0;
 }
 
 int NetworkMessageServiceImpl::transmitMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo)
 {
-    _m.lock();
+    _mKey.lock();
+    const bool bEncrypt = doEncrypt (_pKey, trInfo.pszHints);
+    uint16 ui16CalculatedChecksum = bEncrypt ?
+                                    encryptChecksum (_pKey, calculateMsgChecksum (_pCrc, msgInfo.pMsg, msgInfo.ui16MsgLen)) :
+                                    calculateMsgChecksum (_pCrc, msgInfo.pMsg, msgInfo.ui16MsgLen);
+    void *pEncryptedData = bEncrypt ? encrypt (_pKey, msgInfo) : NULL;
+    _mKey.unlock();
 
-    // !!!
-    // !!! NOTE: unreliable transmission is still not supported, set bReliable on true for now!
-    // !!!
-    trInfo.bReliable = true;
-    int rc = fragmentAndTransmitMessage (trInfo, msgInfo);
+    _m.lock();
+    int rc = fragmentAndTransmitMessage (trInfo, msgInfo, bEncrypt, ui16CalculatedChecksum);
     _m.unlock();
+
+    if (pEncryptedData != NULL) {
+        free (pEncryptedData);
+    }
     return rc;
 }
 
-int NetworkMessageServiceImpl::transmitReliableMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo)
-{
-    _m.lock();
-    checkAndLogMsg ("NetworkMessageServiceImpl::transmitReliableMessage", Logger::L_MediumDetailDebug,
-                    "transmitting a reliable message of size %d\n", (int) msgInfo.ui16MsgLen);
-    trInfo.bExpedited = true;
-    int rc = fragmentAndTransmitMessage (trInfo, msgInfo);
-    _m.unlock();
-    return rc;
-}
-
-int NetworkMessageServiceImpl::fragmentAndTransmitMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo)
+int NetworkMessageServiceImpl::fragmentAndTransmitMessage (TransmissionInfo &trInfo, MessageInfo &msgInfo, bool bEncrypt, uint16 ui16MsgChecksum)
 {
     const char * const pszMethodName = "NetworkMessageServiceImpl::fragmentAndTransmitMessage";
-
     _pNetIntMgr->resolveProxyDatagramSocketAddresses();
     if (!_pNetIntMgr->isPrimaryIfaceSet()) {
         return -1;
     }
-
     //uint32 ui32BindingInterface = (_bPrimaryInterfaceIdSet ? _ui32PrimaryInterface : NetUtils::getLocalIPAddress().s_addr);
     //checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "outgoing packet src addr: %u\n", ui32BindingInterface);
-
     const uint16 ui16MinMTU = _pNetIntMgr->getMinMTU();
     const uint16 ui16PayLoadLen = ui16MinMTU - NetworkMessage::FIXED_HEADER_LENGTH;
     const uint32 ui32TotDataLen = msgInfo.ui16MsgMetaDataLen + msgInfo.ui16MsgLen;
@@ -287,26 +487,27 @@ int NetworkMessageServiceImpl::fragmentAndTransmitMessage (TransmissionInfo &trI
                         "smaller that even the header length of %d - cannot transmit message\n",
                         (int) ui16MinMTU, (int) NetworkMessage::FIXED_HEADER_LENGTH);
         return -2;
-    }   
+    }
     checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "MTU = %d; payload "
                     "length = %d; total data length = %d\n", (int) ui16MinMTU,
                     (int) ui16PayLoadLen, (int) ui32TotDataLen);
-
     if (ui32TotDataLen <=  ui16PayLoadLen) {
         // No need to fragment
         NetworkMessage *pNetMsg = trInfo.bReliable ? _msgFactory.getReliableDataMessage (_pNetIntMgr->getPrimaryInterface(),
-                                                                  NetworkMessage::CT_DataMsgComplete,
-                                                                  trInfo, msgInfo.pMsgMetaData, msgInfo.ui16MsgMetaDataLen,
-                                                                  msgInfo.pMsg, msgInfo.ui16MsgLen) :
-                              _msgFactory.getDataMessage (_pNetIntMgr->getPrimaryInterface(),
-                                                          _ui16BroadcastedMsgCounter++,
-                                                          NetworkMessage::CT_DataMsgComplete,
-                                                          trInfo, msgInfo);
-
+            NetworkMessage::CT_DataMsgComplete,
+            trInfo, msgInfo.pMsgMetaData, msgInfo.ui16MsgMetaDataLen,
+            msgInfo.pMsg, msgInfo.ui16MsgLen) :
+            _msgFactory.getDataMessage (_pNetIntMgr->getPrimaryInterface(),
+            _ui16BroadcastedMsgCounter++,
+            NetworkMessage::CT_DataMsgComplete,
+            trInfo, msgInfo);
+        if (bEncrypt) {
+            pNetMsg->setEncrypted();
+            pNetMsg->setMsgChecksum (ui16MsgChecksum);
+        }
         return sendNetworkMessage (pNetMsg, trInfo, true);
     }
-
-    // The message must be fragmented    
+    // The message must be fragmented
     Fragmenter fragment (ui16PayLoadLen, msgInfo.pMsgMetaData, msgInfo.ui16MsgMetaDataLen, msgInfo.pMsg, msgInfo.ui16MsgLen);
     MessageInfo miCurr = msgInfo;
     NetworkMessage::ChunkType chunkType;
@@ -319,14 +520,15 @@ int NetworkMessageServiceImpl::fragmentAndTransmitMessage (TransmissionInfo &trI
         else if (miCurr.ui16MsgLen > 0) {
             pData = pFragment;
         }
-
         NetworkMessage *pNetMsg = trInfo.bReliable ? _msgFactory.getReliableDataMessage (_pNetIntMgr->getPrimaryInterface(), chunkType, trInfo,
                                                                          pMetadata, miCurr.ui16MsgMetaDataLen, pData, miCurr.ui16MsgLen) :
                               _msgFactory.getDataMessage (_pNetIntMgr->getPrimaryInterface(), _ui16BroadcastedMsgCounter++, chunkType, trInfo, miCurr);
-
+        if (bEncrypt) {
+            pNetMsg->setEncrypted();
+            pNetMsg->setMsgChecksum (ui16MsgChecksum);
+        }
         sendNetworkMessage (pNetMsg, trInfo, true);
     }
-
     return 0;
 }
 
@@ -362,7 +564,7 @@ uint32 NetworkMessageServiceImpl::getDeliveryQueueSize (void)
 }
 
 uint8 NetworkMessageServiceImpl::getNeighborQueueLength (const char *pchIncomingInterface,
-                                                     unsigned long int ulSenderRemoteAddr)
+                                                         unsigned long int ulSenderRemoteAddr)
 {
     _mQueueLengthsTable.lock();
     ByInterface* pInterface = _tQueueLengthByInterface.get (pchIncomingInterface);
@@ -382,10 +584,8 @@ uint8 NetworkMessageServiceImpl::getNeighborQueueLength (const char *pchIncoming
 //////////////////////////// Private Methods ///////////////////////////////////
 
 bool NetworkMessageServiceImpl::checkOldMessages (uint32 ui32SourceAddress, uint16 ui16SessionId, uint16 ui16MsgId)
-
 {
     PeerState *pPS = _lastMsgs.get (ui32SourceAddress);
-
     if (pPS == NULL) {
         // New host
         return true;
@@ -409,44 +609,48 @@ void NetworkMessageServiceImpl::updateOldMessagesList (uint32 ui32SourceAddress,
     else if (pPS->ui16SessionId != ui16SessionId) {
         pPS->ui16SessionId = ui16SessionId;
         pPS->resetMessageHistory();
+        resetCounter (_manycastCountMap, ui32SourceAddress);
+        resetCounter (_unicastCountMap, ui32SourceAddress);
     }
     pPS->setAsReceived (ui16MsgId);
 }
 
-int NetworkMessageServiceImpl::messageArrived (NetworkMessage *pNetMsg, const char *pszIncomingInterface,
-                                               unsigned long ulSenderRemoteAddress)
+int NetworkMessageServiceImpl::messageArrived (NetworkMessage *pNetMsg, const char *pszIncomingInterface, unsigned long ulSenderRemoteAddress)
 {
     const char * const pszMethodName = "NetworkMessageServiceImpl::messageArrived";
+    _mKey.lock();
+    bool bDrop = (pNetMsg->isEncrypted() && _pKey == NULL);
+    _mKey.unlock();
+    if (bDrop) {
+        return 0;
+    }
 
-    String incoming (pszIncomingInterface);
+    String incoming(pszIncomingInterface);
     if (incoming.length() <= 0) {
         incoming = _pNetIntMgr->tryToGuessIncomingIface();
     }
-    
+
     const uint32 ui32SourceAddress = pNetMsg->getSourceAddr();
     _pNetIntMgr->addFwdingAddrToManycastIface (ui32SourceAddress, incoming);
     if (_pInstr != NULL) {
-        InetAddr addr (ui32SourceAddress);
+        InetAddr addr(ui32SourceAddress);
         _pInstr->receivedBytes (addr.getIPAsString(), pszIncomingInterface, pNetMsg->getMsgLen());
     }
 
     _mxMessageArrived.lock();
-    _reassembler.refresh (ui32SourceAddress);
-
+    _reassembler.refresh(ui32SourceAddress);
     //if the message contains a queue length, update the value for the corresponding neighbor
     uint8 ui8QueueLength;
     if (pNetMsg->getVersion() == 2) {
-        ui8QueueLength = ((NetworkMessageV2*) pNetMsg)->getQueueLength();
+        ui8QueueLength = ((NetworkMessageV2*)pNetMsg)->getQueueLength();
     }
     else {
         ui8QueueLength = 0;
     }
     setNeighborQueueLength (ulSenderRemoteAddress, ui8QueueLength);
-
     if (pNetMsg->getChunkType() == NetworkMessage::CT_SAck) {
-        checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
-                        "SAck message arrived\n");
-        ackArrived (pNetMsg, pszIncomingInterface);
+        checkAndLogMsg(pszMethodName, Logger::L_LowDetailDebug, "SAck message arrived\n");
+        ackArrived(pNetMsg, pszIncomingInterface);
     }
     else {
         const uint16 ui16MsgId = pNetMsg->getMsgId();
@@ -454,30 +658,34 @@ int NetworkMessageServiceImpl::messageArrived (NetworkMessage *pNetMsg, const ch
             checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
                             "isUnicast() returned true for address %u\n",
                             pNetMsg->getDestinationAddr());
-            if (!_reassembler.hasTSN (ui32SourceAddress, ui16MsgId) ||
-                _reassembler.isNewSessionId (ui32SourceAddress, pNetMsg->getSessionId())) {
+
+            // Update counter
+            const bool bNewSessionId = _reassembler.isNewSessionId (ui32SourceAddress, pNetMsg->getSessionId());
+            const uint64 ui64GroupCount = getCounter (_manycastCountMap, ui32SourceAddress);
+            const uint64 ui64UnicastCount = updateCounter (_unicastCountMap, ui32SourceAddress, bNewSessionId);
+            if (!_reassembler.hasTSN (ui32SourceAddress, ui16MsgId) || bNewSessionId) {
                 // It MAY be a new message
                 int ret = _reassembler.push (ui32SourceAddress, pNetMsg);
                 if (ret == 0) {
                     // It is a new message and it has been added to the reassembler
-                    for (NetworkMessage *pInnerNetMsg = _reassembler.pop (ui32SourceAddress);
-                         pInnerNetMsg != NULL; pInnerNetMsg = _reassembler.pop (ui32SourceAddress)) {
-                        notifyListeners (pInnerNetMsg, pszIncomingInterface, ulSenderRemoteAddress);
+                    for (NetworkMessage *pInnerNetMsg = _reassembler.pop(ui32SourceAddress);
+                        pInnerNetMsg != NULL; pInnerNetMsg = _reassembler.pop(ui32SourceAddress)) {
+                        notifyListeners (pInnerNetMsg, pszIncomingInterface, ulSenderRemoteAddress, true, ui64GroupCount, ui64UnicastCount);
                         delete pInnerNetMsg;
                         pInnerNetMsg = NULL;
                     }
                 }
                 else if (ret > 0) {
-                    // There is no need to deleted it, it is deleted by the
+                    // There is no need to deleted it, it is deleted by th
                     // Reassembler
-                    checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug,
-                                    "duplicated message - discarding\n");
+                    checkAndLogMsg(pszMethodName, Logger::L_MediumDetailDebug,
+                        "duplicated message - discarding\n");
                 }
                 else {
                     delete pNetMsg;
                     pNetMsg = NULL;
-                    checkAndLogMsg (pszMethodName, Logger::L_SevereError,
-                                    "the message could not be stored in the reassembler.\n");
+                    checkAndLogMsg(pszMethodName, Logger::L_SevereError,
+                        "the message could not be stored in the reassembler.\n");
                 }
             }
             // Send an SAck to the node that just sent us a unicast message
@@ -503,24 +711,25 @@ int NetworkMessageServiceImpl::messageArrived (NetworkMessage *pNetMsg, const ch
                 trInfo.ppszOutgoingInterfaces = NULL;
                 trInfo.pszHints = NULL;
                 if (0 != (rc = sendNetworkMessage (pSAckMsg, trInfo))) {
-                    checkAndLogMsg (pszMethodName, Logger::L_MildError,
-                                    "sendNetworkMessage() failed with rc = %d\n", rc);
+                    checkAndLogMsg (pszMethodName, Logger::L_MildError, "sendNetworkMessage() failed with rc = %d\n", rc);
                 }
                 else {
                     uint16 ui16CumSak = _reassembler.getCumulativeTSN (ui32SourceAddress);
                     checkAndLogMsg (pszMethodName, Logger::L_LowDetailDebug,
                                     "sendNetworkMessage() succeeded: the cumulative "
-                                    "TSN is %d\n", ui16CumSak);
+                                     "TSN is %d\n", ui16CumSak);
                 }
-                free (pSAck);
+                free(pSAck);
             }
             else {
                 checkAndLogMsg (pszMethodName, Logger::L_Warning, "could not "
                                 "acknowledge message because primary interface is not set\n");
-                free (pSAck);
+                free(pSAck);
             }
         }
         else {
+            const uint64 ui64UnicastCount = getCounter (_unicastCountMap, ui32SourceAddress);
+            const uint64 ui64ManycastCount = updateCounter (_manycastCountMap, ui32SourceAddress);
             bool bNewMessage = checkOldMessages (ui32SourceAddress, pNetMsg->getSessionId(), ui16MsgId);
             updateOldMessagesList (ui32SourceAddress, pNetMsg->getSessionId(), ui16MsgId);
             if (bNewMessage) {
@@ -528,7 +737,7 @@ int NetworkMessageServiceImpl::messageArrived (NetworkMessage *pNetMsg, const ch
                 // interfaces may be re-broadcasting the same message)
                 //_mxRebroad.lock();
                 rebroadcastMessage (pNetMsg, pszIncomingInterface);
-                notifyListeners (pNetMsg, pszIncomingInterface, ulSenderRemoteAddress);
+                notifyListeners (pNetMsg, pszIncomingInterface, ulSenderRemoteAddress, false, ui64ManycastCount, ui64UnicastCount);
                 delete pNetMsg;
                 pNetMsg = NULL;
                 //_mxRebroad.unlock();
@@ -623,7 +832,6 @@ int NetworkMessageServiceImpl::ackArrived (NetworkMessage *pNetMsg, const char *
     BufferReader bw (pNetMsg->getMsg(), pNetMsg->getLength());
     SAckTSNRangeHandler tsnhandler;
     tsnhandler.read (&bw, pNetMsg->getLength());
-
     _mxUnackedSentMessagesByDestination.lock();
     UnackedSentMessagesByMsgId *pByMsgId = _unackedSentMessagesByDestination.get (pNetMsg->getSourceAddr());
     if (pByMsgId != NULL) {
@@ -638,7 +846,6 @@ int NetworkMessageServiceImpl::ackArrived (NetworkMessage *pNetMsg, const char *
         // - with msgId included in a TSN range                      OR
         // - that have reached the threshold of retransmissions
         // must be deleted from the queue of the un-acked messages
-
         // Remove every message with msgId less or equal than the cumulative TSN
         UnackedMessageWrapper * pMsgWrap = pByMsgId->getFirst();
         UnackedMessageWrapper *pNextMsgWrap;
@@ -694,12 +901,10 @@ int NetworkMessageServiceImpl::rebroadcastMessage (NetworkMessage *pNetMsg, cons
 {
     const char *const pszMethodName = "NetworkMessageServiceImpl::rebroadcastMessage";
     int returnValue = 0;
-
     //----------------------------------------------------------------------
     // AGGREGATION
     //----------------------------------------------------------------------
     // if not aggregation -> serialize and broadcast** ("NetworkMessageServiceSender"? - aggregation and serialization)
-
     //----------------------------------------------------------------------
     // REBROADCAST
     //----------------------------------------------------------------------
@@ -707,7 +912,6 @@ int NetworkMessageServiceImpl::rebroadcastMessage (NetworkMessage *pNetMsg, cons
         // TTL check (hopcount has already been incremented by receiver (caller of this method)
         checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug,
                         "Rebroadcasting message from %s\n", pchIncomingInterface);
-
         TransmissionInfo trInfo;
         trInfo.bReliable = false;
         trInfo.bExpedited = false;
@@ -722,51 +926,75 @@ int NetworkMessageServiceImpl::rebroadcastMessage (NetworkMessage *pNetMsg, cons
     }
     else {
         checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
-                        "Hop limit\n");
+			"Hop limit\n");
     }
-
     return returnValue;
 }
 
-int NetworkMessageServiceImpl::notifyListeners (NetworkMessage *pNetMsg, const char *pszIncomingInterface, unsigned long ulSenderRemoteAddr)
+int NetworkMessageServiceImpl::notifyListeners (NetworkMessage *pNetMsg, const char *pszIncomingInterface, unsigned long ulSenderRemoteAddr, bool bIsUnicast, uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount)
 {
     if (!_bAsyncDelivery) {
-        return callListeners (pNetMsg, pszIncomingInterface, ulSenderRemoteAddr, getTimeInMilliseconds());
+        return callListeners (pNetMsg, pszIncomingInterface, ulSenderRemoteAddr, getTimeInMilliseconds(), bIsUnicast, ui64GroupMsgCount, ui64UnicastMsgCount);
     }
-
-    QueuedMessage *pQMsg = new QueuedMessage();
+    QueuedMessage *pQMsg = new QueuedMessage (bIsUnicast, pszIncomingInterface, ulSenderRemoteAddr, ui64GroupMsgCount, ui64UnicastMsgCount);
     pQMsg->pMsg = MessageFactory::createNetworkMessageFromMessage (*pNetMsg, pNetMsg->getVersion());
-    pQMsg->incomingInterface = pszIncomingInterface;
-    pQMsg->ulSenderRemoteAddress = ulSenderRemoteAddr;
     pQMsg->i64Timestamp = getTimeInMilliseconds();
     _mDeliveryQueue.lock();
     _deliveryQueue.enqueue (pQMsg);
-    checkAndLogMsg ("NetworkMessageServiceImpl::notifyListeners", Logger::L_SevereError,
+    checkAndLogMsg ("NetworkMessageServiceImpl::notifyListeners", Logger::L_LowDetailDebug,
                     "queue size is: %lu\n", _deliveryQueue.sizeOfQueue());
     _cvDeliveryQueue.notifyAll();
     _mDeliveryQueue.unlock();
     return 0;
 }
 
-int NetworkMessageServiceImpl::callListeners (NetworkMessage *pNetMsg, const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr, int64 i64Timestamp)
+int NetworkMessageServiceImpl::callListeners (NetworkMessage *pNetMsg, const char *pchIncomingInterface, unsigned long ulSenderRemoteAddr, int64 i64Timestamp, bool bIsUnicast, uint64 ui64GroupMsgCount, uint64 ui64UnicastMsgCount)
 {
     const char * const pszMethodName = "NetworkMessageServiceImpl::callListeners";
     // Get the listeners
+    //pNetMsg->display();
     checkAndLogMsg (pszMethodName, Logger::L_MediumDetailDebug, "Calling message listeners\n");
+    //pNetMsg->display();
     NMSListerList *ptrLListeners = (NMSListerList*) _listeners.get (pNetMsg->getMsgType());
-    if (ptrLListeners) {
+    if (ptrLListeners == NULL) {
+        checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug, "No listeners for msgtype\n");
+    }
+    else if (pNetMsg->getMsg() == NULL) {
+        checkAndLogMsg (pszMethodName, Logger::L_Warning, "pNetMsg contains empty payload\n");
+    }
+    else {
+        void *pMsg = NULL;
+        uint16 ui16MsgLen = 0;
+        _mKey.lock();
+        void *pDecryptedMsg = decrypt (_pKey, pNetMsg, pMsg, ui16MsgLen);
+        uint16 ui16DecryptedChecksum = pNetMsg->isEncrypted() ? decryptChecksum (_pKey, pNetMsg->getMsgChecksum()) : pNetMsg->getMsgChecksum();
+        uint16 ui16calculatedChecksum = pDecryptedMsg != NULL ?
+                                        calculateMsgChecksum (_pCrc, pDecryptedMsg, ui16MsgLen) :
+                                        calculateMsgChecksum (_pCrc, pNetMsg->getMsg(), pNetMsg->getMsgLen());
+        _mKey.unlock();
+        //checksum check ui16DecryptedChecksum contains the msg checksum
+        if (ui16calculatedChecksum != ui16DecryptedChecksum) {
+            checkAndLogMsg (pszMethodName, Logger::L_MildError,
+                "checksum control, calculated checksum is %04x while must be %04x pNetMsg->getMsgChecksum() %04x\n",
+                ui16calculatedChecksum, ui16DecryptedChecksum, pNetMsg->getMsgChecksum());
+            if (pDecryptedMsg != NULL) {
+                free (pDecryptedMsg);
+            }
+            return -1;
+        }
+        // Notify the listeners
         for (NetworkMessageServiceListener *pPtrLListener = ptrLListeners->getFirst();
-             pPtrLListener; pPtrLListener = ptrLListeners->getNext()) {
+            pPtrLListener; pPtrLListener = ptrLListeners->getNext()) {
             pPtrLListener->messageArrived (pchIncomingInterface, ulSenderRemoteAddr,
                                            pNetMsg->getMsgType(), pNetMsg->getMsgId(),
-                                           pNetMsg->getHopCount(), pNetMsg->getTTL(),
+                                           pNetMsg->getHopCount(), pNetMsg->getTTL(), bIsUnicast,
                                            pNetMsg->getMetaData(), pNetMsg->getMetaDataLen(),
-                                           pNetMsg->getMsg(), pNetMsg->getMsgLen(), i64Timestamp);
+                                           pMsg, ui16MsgLen, i64Timestamp,
+                                           ui64GroupMsgCount, ui64UnicastMsgCount);
         }
-    }
-    else {        
-        checkAndLogMsg (pszMethodName, Logger::L_HighDetailDebug,
-                        "No listeners for msgtype\n");
+        if (pDecryptedMsg != NULL) {
+            free (pDecryptedMsg);
+        }
     }
     return 0;
 }
@@ -774,13 +1002,11 @@ int NetworkMessageServiceImpl::callListeners (NetworkMessage *pNetMsg, const cha
 int NetworkMessageServiceImpl::sendNetworkMessage (NetworkMessage *pNetMsg, TransmissionInfo &trInfo, bool bDeallocatedNetMsg)
 {
     const char * const pszMethodName = "NetworkMessageServiceImpl::sendNetworkMessage";
-
     const bool bAtLeastOneIF = _pNetIntMgr->send (pNetMsg, trInfo.ppszOutgoingInterfaces, trInfo.ui32DestinationAddress, trInfo.bExpedited, trInfo.pszHints);
     uint8 ui8Counter = 0;
     if (trInfo.ppszOutgoingInterfaces != NULL) {
         for (; trInfo.ppszOutgoingInterfaces[ui8Counter] != NULL; ui8Counter++);
     }
-
     if (trInfo.bReliable && bAtLeastOneIF) {
         // buffer it
         _mxUnackedSentMessagesByDestination.lock();
@@ -818,13 +1044,11 @@ int NetworkMessageServiceImpl::sendNetworkMessage (NetworkMessage *pNetMsg, Tran
         delete pNetMsg;
         pNetMsg = NULL;
     }
-
     if (!bAtLeastOneIF) {
         checkAndLogMsg (pszMethodName, Logger::L_MildError,
                         "no interface available\n");
         return -1;
     }
-
     return 0;
 }
 
@@ -883,7 +1107,6 @@ void NetworkMessageServiceImpl::setNeighborQueueLength (unsigned long int ulSend
     if (outgoingIntAddr.length() <= 0) {
         return;
     }
-
     _mQueueLengthsTable.lock();
     ByInterface *pInterface = _tQueueLengthByInterface.get (outgoingIntAddr);
     if (pInterface == NULL) {
@@ -933,8 +1156,8 @@ void NetworkMessageServiceImpl::deliveryThread (void *pArg)
             pThis->_cvDeliveryQueue.wait (1000);
         }
         pThis->_mDeliveryQueue.unlock();
-        pThis->callListeners (pQMsg->pMsg, (const char*) pQMsg->incomingInterface,
-                              pQMsg->ulSenderRemoteAddress, pQMsg->i64Timestamp);
+        pThis->callListeners (pQMsg->pMsg, (const char*) pQMsg->_incomingInterface, pQMsg->_ulSenderRemoteAddress, pQMsg->i64Timestamp,
+                              pQMsg->_bIsUnicast, pQMsg->_ui64MsgCount._ui64Group, pQMsg->_ui64MsgCount._ui64Unicast);
         delete pQMsg->pMsg;
         delete pQMsg;
     }
@@ -976,3 +1199,49 @@ NetworkMessageServiceImpl::UnackedMessageWrapper::~UnackedMessageWrapper ()
     }
 }
 
+String NetworkMessageServiceImpl::getEncryptionKeyHash (void)
+{
+    MD5 hash;
+    hash.init();
+
+    _mKey.lock();
+    if (_pKey == NULL) {
+        _mKey.unlock();
+        return String ("");
+    }
+    hash.update (_pKey->getKey(), 32);
+    _mKey.unlock();
+
+    char *pszHash = hash.getChecksumAsString();
+    String sHash (pszHash);
+    if (pszHash != NULL) {
+        free (pszHash);
+    }
+    return sHash;
+}
+
+int NetworkMessageServiceImpl::changeEncryptionKey (unsigned char *pchKey, uint32 ui32Len)
+{
+    //setting a pchKey to NULL let to delete the current encryption key and transmit in clear
+    //if pchKey is NULL the Encryption Key will be set to NULL and NMS starts to transmit the data in clear
+    CryptoUtils::AES256Key *pKey = NULL;
+    if ((pchKey != NULL) && (ui32Len > 0U)) {
+        pKey = new AES256Key();
+        if (pKey == NULL) {
+            return -1;
+        }
+        if (pKey->initKey (pchKey, ui32Len) < 0) {
+            return -2;
+        }
+    }
+
+    _mKey.lock();
+    CryptoUtils::AES256Key *ptmp = _pKey;
+    _pKey = pKey;
+    _mKey.unlock();
+
+    if (ptmp != NULL) {
+        delete ptmp;
+    }
+    return 0;
+}

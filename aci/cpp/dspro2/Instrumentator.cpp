@@ -29,7 +29,6 @@
 namespace IHMC_ACI
 {
     Instrumentator *pInstrumentator;
-    NOMADSUtil::Logger *pNetLog;
 }
 
 using namespace IHMC_ACI;
@@ -52,7 +51,7 @@ Instrumentator::~Instrumentator()
 
 int Instrumentator::registerAndEnableMatchmakingLogListener (uint16 ui16ClientId, MatchmakingLogListener *pMatchmakingListener, uint16 &ui16AssignedClientId)
 {
-    if (_matchmakerClients.used (ui16ClientId) && _matchmakerClients[ui16ClientId].pMatchmakerListener != NULL) {
+    if (_matchmakerClients.used (ui16ClientId) && _matchmakerClients[ui16ClientId].pMatchmakerListener != nullptr) {
         checkAndLogMsg ("Instrumentator::registerAndEnableMatchmakingLogListener", Logger::L_SevereError,
                         "Client ID %d in use.  Register client using a different ui16ClientId.\n",
                         ui16ClientId);
@@ -74,7 +73,7 @@ int Instrumentator::deregisterAndDisableMatchmakingLogListener (uint16 ui16Clien
 
 void Instrumentator::notify (MatchmakingIntrumentation *pIntrumentation)
 {
-    if (pIntrumentation == NULL) {
+    if (pIntrumentation == nullptr) {
         return;
     }
 
@@ -87,8 +86,8 @@ void Instrumentator::notify (MatchmakingIntrumentation *pIntrumentation)
         pWeights = new float[uiExpectedRanks];
     }
     else {
-        ppszRankDescriptors = NULL;
-        pRanks = pWeights = NULL;
+        ppszRankDescriptors = nullptr;
+        pRanks = pWeights = nullptr;
     }
 
     unsigned int uiActualRanks = 0;
@@ -112,7 +111,7 @@ void Instrumentator::notify (MatchmakingIntrumentation *pIntrumentation)
         }
 
         pListener = _matchmakerClients[i].pMatchmakerListener;
-        if (pListener == NULL) {
+        if (pListener == nullptr) {
             continue;
         }
 
@@ -140,28 +139,28 @@ void Instrumentator::notify (MatchmakingIntrumentation *pIntrumentation)
     _pmCallback->unlock (2030);
 
     delete[] ppszRankDescriptors;   // I do not have to delete its elements!
-    ppszRankDescriptors = NULL;     // pIntrumentation's destructor will take
+    ppszRankDescriptors = nullptr;     // pIntrumentation's destructor will take
     delete[] pRanks;                // care of it
-    pRanks = NULL;
+    pRanks = nullptr;
     delete[] pWeights;
-    pWeights = NULL;
+    pWeights = nullptr;
 }
 
-void Instrumentator::notifyAndRelease (PtrLList<MatchmakingIntrumentation> *pInstrumentations) 
+void Instrumentator::notifyAndRelease (PtrLList<MatchmakingIntrumentation> *pInstrumentations)
 {
-    if (pInstrumentations != NULL) {
+    if (pInstrumentations != nullptr) {
         MatchmakingIntrumentation *pNext = pInstrumentations->getFirst();
-        for (MatchmakingIntrumentation *pCurr; (pCurr = pNext) != NULL;) {
+        for (MatchmakingIntrumentation *pCurr; (pCurr = pNext) != nullptr;) {
             pNext = pInstrumentations->getNext();
- 
+
             // ppInstrumentations[i]->setNextHopNodeId (pszNextHopNodeId);
-            if (pInstrumentator != NULL) {
+            if (pInstrumentator != nullptr) {
                 pInstrumentator->notify (pCurr);
             }
             delete pInstrumentations->remove (pCurr);
-        } 
+        }
         delete pInstrumentations;
-    } 
+    }
 }
 
 //==============================================================================
@@ -170,10 +169,10 @@ void Instrumentator::notifyAndRelease (PtrLList<MatchmakingIntrumentation> *pIns
 
 Instrumentator::MatchmakerClientInfoPro::MatchmakerClientInfoPro()
 {
-    pMatchmakerListener = NULL;
+    pMatchmakerListener = nullptr;
 }
 
 Instrumentator::MatchmakerClientInfoPro::~MatchmakerClientInfoPro()
 {
-    pMatchmakerListener = NULL;
+    pMatchmakerListener = nullptr;
 }

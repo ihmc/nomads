@@ -84,6 +84,7 @@ public final class MonitorForwarder implements DisServiceStatusListener
         _statsByPeer = new HashMap<String, StatWrapper>();
     }
 
+    @Override
     public void basicStatisticsInfoUpdateArrived (DisServiceStatus.DisServiceBasicStatisticsInfo dsbsi)
     {
         System.out.println("Basic statistics info update for node: " + dsbsi.peerId);
@@ -96,6 +97,7 @@ public final class MonitorForwarder implements DisServiceStatusListener
         toJSONDatagram(wr);
     }
 
+    @Override
     public void overallStatsInfoUpdateArrived (DisServiceStatus.DisServiceStatsInfo dssi)
     {
         System.out.println("Overall stats info update for node: " + dssi.peerId);
@@ -108,6 +110,7 @@ public final class MonitorForwarder implements DisServiceStatusListener
         //toJSONDatagram(wr);
     }
 
+    @Override
     public void duplicateTrafficStatisticInfoUpdateArrived (DisServiceStatus.DisServiceDuplicateTrafficInfo dsdti)
     {
         System.out.println("Duplicate traffic statistics info update for node: " + dsdti.peerId);
@@ -120,6 +123,7 @@ public final class MonitorForwarder implements DisServiceStatusListener
         //toJSONDatagram(wr);
     }
 
+    @Override
     public void peerGroupStatisticInfoUpdateArrived (DisServiceStatus.DisServiceBasicStatisticsInfoByPeer dsbsip)
     {
         System.out.println("Peer group statistics update for node: " + dsbsip.peerId);

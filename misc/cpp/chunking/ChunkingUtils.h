@@ -3,7 +3,7 @@
  *
  * This file is part of the IHMC Chunking Library
  * Copyright (c) IHMC. All Rights Reserved.
- * 
+ *
  * Usage restricted to not-for-profit use only.
  * Contact IHMC for other types of licenses.
  *

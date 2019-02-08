@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -26,15 +26,37 @@
 #include "StrClass.h"
 
 #include <stddef.h>
+#include <mutex>
+#include <vector>
 
 struct sqlite3;
 struct sqlite3_stmt;
 
 namespace IHMC_MISC
 {
+    class Database;
     class PreparedStatement;
     class AbstractSQLiteTable;
     class Table;
+
+    class DatabasePtr
+    {
+        public:
+            DatabasePtr (Database *pDB);
+            ~DatabasePtr (void);
+
+            Database& operator* (void);
+            Database* operator-> (void);
+
+        private:
+            friend class Database;
+
+            Database * replace (Database *pDB);
+
+            Database *_pDB;
+    };
+
+    typedef bool (*ReinitializeDatabaseFnPtr) (DatabasePtr *pDB);
 
     class Database
     {
@@ -46,7 +68,9 @@ namespace IHMC_MISC
 
             virtual ~Database (void);
 
-            static Database * getDatabase (Type type);
+            static DatabasePtr * getDatabase (Type type, ReinitializeDatabaseFnPtr pFnPtr = NULL);
+            static void reloadDatabase (void);
+
             static const char * getTypeAsString (Type type);
 
             Type getType (void) const;
@@ -77,7 +101,7 @@ namespace IHMC_MISC
             virtual PreparedStatement * prepare (const char *pszStatement) = 0;
 
             virtual int beginTransaction (void) = 0;
-            virtual int endTransaction (void) = 0;
+            virtual int endTransaction (bool bSuccess) = 0;
 
         protected:
             explicit Database (Type type);
@@ -86,8 +110,26 @@ namespace IHMC_MISC
             NOMADSUtil::String _dbName;
 
         private:
-            static Database *_pDB;
+            struct Wrapper {
+                std::mutex _m;
+                DatabasePtr *_pDB;
+                std::vector<ReinitializeDatabaseFnPtr> _reinitializeDbFns;
+            };
             const Type _type;
+            static Wrapper *WRAPPER;
+    };
+
+    class Transaction
+    {
+        public:
+            Transaction (Database *pDB);
+            ~Transaction (void);
+
+            void setSuccess (void);
+
+        private:
+            bool _bSuccess;
+            Database *_pDB;
     };
 
     class SQLiteDatabase : public Database
@@ -95,7 +137,7 @@ namespace IHMC_MISC
         public:
             enum Pragma {
                 cache_size          = 0x00,    // Possible values: the cache size in KB
-                journal_mode        = 0x01,    // Possible values: DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF 
+                journal_mode        = 0x01,    // Possible values: DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF
                 journal_size_limit  = 0x03,    // Possible values: N (-1 means no limit)
                 locking_mode        = 0x04,    // Possible values: NORMAL | EXCLUSIVE
                 synchronous         = 0x05     // Possible values: OFF | NORMAL | FULL
@@ -125,14 +167,14 @@ namespace IHMC_MISC
             PreparedStatement * prepare (const char *pszStatement);
 
             int beginTransaction (void);
-            int endTransaction (void);
+            int endTransaction (bool bSuccess);
 
             /**
              * Extracted from SQLite Documentation at
              * http://www.sqlite.org/pragma.html#pragma_synchronous
              * The DOCUMENTATION here reported is NOT COMPLETE, please refer to
              * the official one on the web!
-             * 
+             *
              * When synchronous is FULL, the SQLite database engine will use the
              * xSync method of the VFS to ensure that all content is safely
              * written to the disk surface prior to continuing. If the operating
@@ -164,7 +206,7 @@ namespace IHMC_MISC
              * http://www.sqlite.org/pragma.html#pragma_locking_mode
              * The DOCUMENTATION here reported is NOT COMPLETE, please refer to
              * the official one on the web!
-             * 
+             *
              * In NORMAL locking-mode a database connection unlocks the database
              * file at the conclusion of each read or write transaction.
              *

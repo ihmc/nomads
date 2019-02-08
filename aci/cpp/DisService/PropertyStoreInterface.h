@@ -10,7 +10,7 @@
  *
  * U.S. Government agencies and organizations may redistribute
  * and/or modify this program under terms equivalent to
- * "Government Purpose Rights" as defined by DFARS 
+ * "Government Purpose Rights" as defined by DFARS
  * 252.227-7014(a)(12) (February 2014).
  *
  * Alternative licenses that allow for use within commercial products may be
@@ -35,6 +35,7 @@ namespace IHMC_ACI
             virtual NOMADSUtil::String get (const char *pszNodeID, const char *pszAttr) = 0;
             virtual int remove (const char *pszNodeID, const char *pszAttr) = 0;
             virtual int update (const char *pszNodeID, const char *pszAttr, const char *pszNewValue) = 0;
+            virtual void clear (void) = 0;
 
         protected:
             PropertyStoreInterface (void);
