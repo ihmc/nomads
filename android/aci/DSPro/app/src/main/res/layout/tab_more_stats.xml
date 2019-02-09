@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="15dp">
+
+    <TextView
+        android:id="@+id/textKamMessages"
+        style="@style/Text.MonitorTitle"
+        android:layout_marginTop="0dp"
+        android:text="@string/kamMessages"
+        android:textColor="@android:color/holo_green_light" />
+
+    <TextView
+        android:id="@+id/textKamSent"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@id/textKamMessages"
+        android:layout_marginLeft="10dp"
+        android:text="@string/kamSent" />
+
+    <TextView
+        android:id="@+id/kamSent"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textKamSent"
+        android:layout_toRightOf="@+id/textKamSent" />
+
+    <TextView
+        android:id="@+id/textKamReceived"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@id/textKamSent"
+        android:layout_marginLeft="10dp"
+        android:text="@string/kamReceived" />
+
+    <TextView
+        android:id="@+id/kamReceived"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textKamReceived"
+        android:layout_toRightOf="@+id/textKamReceived" />
+
+    <TextView
+        android:id="@+id/textMfr"
+        style="@style/Text.MonitorTitle"
+        android:layout_below="@+id/textKamReceived"
+        android:text="@string/mfr"
+        android:textColor="@android:color/holo_red_light" />
+
+    <TextView
+        android:id="@+id/textMfrsSent"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@id/textMfr"
+        android:layout_marginLeft="10dp"
+        android:text="@string/mfrsSent" />
+
+    <TextView
+        android:id="@+id/mfrsSent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/textMfrsSent"
+        android:layout_toRightOf="@+id/textMfrsSent"
+        android:text="0"
+        android:textSize="18dp" />
+
+    <TextView
+        android:id="@+id/textMfrsBytesSent"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textMfrsSent"
+        android:layout_marginLeft="10dp"
+        android:text="@string/mfrsBytesSent" />
+
+    <TextView
+        android:id="@+id/mfrsBytesSent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/textMfrsBytesSent"
+        android:layout_toRightOf="@+id/textMfrsBytesSent"
+        android:text="0"
+        android:textSize="18dp" />
+
+    <TextView
+        android:id="@+id/textMfrsReceived"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textMfrsBytesSent"
+        android:layout_marginLeft="10dp"
+        android:text="@string/mfrsReceived" />
+
+    <TextView
+        android:id="@+id/mfrsReceived"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/textMfrsReceived"
+        android:layout_toRightOf="@+id/textMfrsReceived"
+        android:text="0"
+        android:textSize="18dp" />
+
+    <TextView
+        android:id="@+id/textMfrsBytesReceived"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textMfrsReceived"
+        android:layout_marginLeft="10dp"
+        android:text="@string/mfrsBytesReceived"
+        android:textIsSelectable="false" />
+
+    <TextView
+        android:id="@+id/mfrsBytesReceived"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/textMfrsBytesReceived"
+        android:layout_toRightOf="@+id/textMfrsBytesReceived"
+        android:text="0"
+        android:textSize="18dp" />
+
+    <TextView
+        android:id="@+id/textDt"
+        style="@style/Text.MonitorTitle"
+        android:layout_below="@+id/textMfrsBytesReceived"
+        android:text="@string/dt"
+        android:textColor="@android:color/holo_red_dark" />
+
+    <TextView
+        android:id="@+id/textDtRecNoTarget"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textDt"
+        android:layout_marginLeft="10dp"
+        android:text="@string/dtRecNoTarget" />
+
+    <TextView
+        android:id="@+id/dtRecNoTarget"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/textDtRecNoTarget"
+        android:layout_toRightOf="@+id/textDtRecNoTarget"
+        android:text="0"
+        android:textSize="18dp" />
+
+    <TextView
+        android:id="@+id/textDtRecTargetNode"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textDtRecNoTarget"
+        android:layout_marginLeft="10dp"
+        android:text="@string/dtRecTargetNode" />
+
+    <TextView
+        android:id="@+id/dtRecTargetNode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/textDtRecTargetNode"
+        android:layout_toRightOf="@+id/textDtRecTargetNode"
+        android:text="0"
+        android:textSize="18dp" />
+
+</RelativeLayout>

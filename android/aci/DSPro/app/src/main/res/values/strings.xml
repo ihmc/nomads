@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources tools:ignore="ExtraTranslation" xmlns:tools="http://schemas.android.com/tools">
+    <!--action_setting change location of this string-->
+    <string name="action_settings">Action Settings</string>
+    <string name="app_name">DSPro</string>
+    <string name="app_folder">/ihmc/</string>
+    <string name="app_config_file">conf/dspro.properties</string>
+    <string name="app_db_file">conf/db.sqlite</string>
+    <string name="app_dspro2_log_file">log/dspro.log</string>
+    <string name="app_disservice_log_file">log/disseminationservice.log</string>
+    <string name="app_log4j_file">log/dsproapp.log</string>
+    <string name="app_multicast_lock">conf/dspro2app_multicast_lock</string>
+    <string name="app_wifi_lock">conf/dspro2app_wifi_lock</string>
+    <string name="mutex_service_started">MutexLogger is running</string>
+    <string name="mutex_service_stopped">MutexLogger has been stopped</string>
+    <string name="mutex_raw_file">mutex.raw</string>
+    <string name="mutex_log_file">mutex.log</string>
+    <string name="log_level">LogLevel</string>
+    <string name="local_service_started">DSPro is running</string>
+    <string name="local_service_stopped">DSPro has been stopped</string>
+    <string name="dspro2_notification_message">DSPro is running</string>
+    <string name="dspro2_notification_title">DSPro</string>
+    <string name="disservice_notification_message">DisService is running</string>
+    <string name="disservice_notification_title">DisService</string>
+    <string name="mutex_notification_message">MutexLogger is running</string>
+    <string name="mutex_notification_title">MutexLogger</string>
+    <string name="transport_disservice">DisService</string>
+    <string name="transport_mockets">Mockets</string>
+    <string name="transport_tcp">TCP</string>
+    <string name="settings">Settings</string>
+    <string name="peers">Peers</string>
+    <string name="monitor">Monitor</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_dspro">us.ihmc.android.aci.dspro.NOTIFICATION_CHANNEL</string>
+
+    <!-- Intents -->
+    <string name="intent_build_version">us.ihmc.android.aci.dspro.BUILD_VERSION</string>
+    <string name="intent_sender">us.ihmc.android.aci.dspro.SENDER</string>
+    <string name="intent_service_action">us.ihmc.android.aci.dspro.SERVICE_ACTION</string>
+    <string name="intent_session_key">us.ihmc.android.aci.dspro.SESSION_KEY</string>
+
+    <string name="intent_start_service">us.ihmc.android.aci.dspro.START_SERVICE</string>
+    <string name="intent_start_service_background">us.ihmc.android.aci.dspro.START_SERVICE_BACKGROUND</string>
+    <string name="intent_restart_service">us.ihmc.android.aci.dspro.RESTART_SERVICE</string>
+    <string name="intent_stop_service">us.ihmc.android.aci.dspro.STOP_SERVICE</string>
+
+    <string name="intent_service_started">us.ihmc.android.aci.dspro.SERVICE_STARTED</string>
+    <string name="intent_service_stopped">us.ihmc.android.aci.dspro.SERVICE_STOPPED</string>
+    <string name="intent_service_error">us.ihmc.android.aci.dspro.SERVICE_ERROR</string>
+
+    <!-- MONITOR Tab 1 -->
+    <string name="monitor_name">DSPro Monitor</string>
+    <string name="messagesPushed">Messages Pushed:&#160;</string>
+    <string name="bytesPushed">Bytes Pushed:&#160;</string>
+    <string name="fragmentsPushed">Fragments Pushed:&#160;</string>
+    <string name="fragmentBytesPushed">Fragment Bytes Pushed:&#160;</string>
+    <string name="odFragmentsSent">O-D Fragments Sent:&#160;</string>
+    <string name="odFragmentBytesSent">O-D Fragment Bytes Sent:&#160;</string>
+    <string name="messagesReceived">Messages Received:&#160;</string>
+    <string name="bytesReceived">Bytes Received:&#160;</string>
+    <string name="fragmentsReceived">Fragments Received:&#160;</string>
+    <string name="fragmentBytesReceived">Fragment Bytes Received:&#160;</string>
+    <!-- MONITOR Tab 2 -->
+    <string name="kamMessages">Keep Alive Messages</string>
+    <string name="kamSent">Sent:&#160;</string>
+    <string name="kamReceived">Received:&#160;</string>
+    <string name="mfr">Missing Fragment Requests</string>
+    <string name="mfrsSent">MFRs Sent:&#160;</string>
+    <string name="mfrsBytesSent">MFRs Bytes Sent:&#160;</string>
+    <string name="mfrsReceived">MFRs Received:&#160;</string>
+    <string name="mfrsBytesReceived">MFRs Bytes Received:&#160;</string>
+    <string name="dt">Duplicate Traffic</string>
+    <string name="dtRecNoTarget">DT Received (no target):&#160;</string>
+    <string name="dtRecTargetNode">DT Received (targeted to node):&#160;</string>
+
+    <!-- MONITOR Tab 3 -->
+    <string name="peerId">Peer Id</string>
+
+    <!-- SETTINGS MENU -->
+    <!-- MAIN -->
+    <string name="pref_main_title">Main</string>
+    <string name="pref_main_key">pref_key_main_settings</string>
+    <string name="aci.dspro.sessionKey">aci.dspro.sessionKey</string>
+    <string name="aci.dspro.sessionKey_title_on">Session Key On</string>
+    <string name="aci.dspro.sessionKey_title_off">Session Key Off</string>
+    <string name="aci.dspro.sessionKey_title_hint">Set a session key</string>
+    <string name="aci.dspro2app.selectMode">aci.dspro2app.selectMode</string>
+    <string name="aci.dspro2app.selectMode_default">DSPro</string>
+    <string name="aci.dspro2app.selectMode_title">Session mode:</string>
+    <string-array name="pref_select_mode_array_entries">
+        <item>DSPro</item>
+        <item>DisService</item>
+    </string-array>
+    <string name="aci.dspro2app.selectInterface_title">Network interface:</string>
+    <string name="aci.disService.nodeUUID">aci.disService.nodeUUID</string>
+    <string name="aci.disService.nodeUUID_title">Node UUID</string>
+    <string name="aci.disService.nodeUUID_default">AndroidDevice</string>
+    <string name="aci.dspro2app.WiFiIFs">aci.dspro2app.WiFiIFs</string>
+    <string name="aci.dspro2app.WiFiIFs_title">Detected Wi-Fi interface</string>
+    <string name="aci.disService.netIFs">aci.disService.netIFs</string>
+    <string name="aci.dspro2app.extraNetIFs.enable">aci.dspro2app.extraNetIFs.enable</string>
+    <string name="aci.dspro2app.extraNetIFs.enable_title">Manual configuration</string>
+    <string name="aci.dspro2app.extraNetIFs.enable_summary">\';\' separated interfaces</string>
+    <string name="aci.dspro2app.extraNetIFs.enable_default">false</string>
+    <string name="aci.dspro2app.extraNetIFs">aci.dspro2app.extraNetIFs</string>
+    <string name="aci.dspro2app.extraNetIFs_title">Network interfaces</string>
+    <string name="aci.dspro2app.extraNetIFs_default"></string>
+    <!-- TRANSPORT -->
+    <string name="pref_transport_title">Transport</string>
+    <string name="pref_transport_key">pref_key_transport_settings</string>
+    <string name="aci.dspro.adaptor.disservice.enable">aci.dspro.adaptor.disservice.enable</string>
+    <string name="aci.dspro.adaptor.disservice.enable_title">DisService</string>
+    <string name="aci.dspro.adaptor.disservice.enable_summary">Use DisService as transport</string>
+    <string name="aci.dspro.adaptor.disservice.enable_default">true</string>
+    <string name="aci.disService.networkMessageService.port">aci.disService.networkMessageService.port</string>
+    <string name="aci.disService.networkMessageService.port_title">DisService port</string>
+    <string name="aci.disService.networkMessageService.port_default">6669</string>
+
+    <string name="aci.disService.networkMessageService.mcastTTL">aci.disService.networkMessageService.mcastTTL</string>
+    <string name="aci.disService.networkMessageService.mcastTTL_title">DisService Multicast TTL</string>
+    <string name="aci.disService.networkMessageService.mcastTTL_default">32</string>
+
+    <!--Bandwidth configuration -->
+    <string name="aci.disService.nodeConfiguration.bandwidth">aci.disService.nodeConfiguration.bandwidth</string>
+    <string name="aci.disService.nodeConfiguration.bandwidth_title">DisService Bandwidth</string>
+    <string name="aci.disService.nodeConfiguration.bandwidth_default">2048</string>
+
+    <string name="aci.dspro.adaptor.mockets.enable">aci.dspro.adaptor.mockets.enable</string>
+    <string name="aci.dspro.adaptor.mockets.enable_title">Mockets</string>
+    <string name="aci.dspro.adaptor.mockets.enable_summary">Use Mockets as transport</string>
+    <string name="aci.dspro.adaptor.mockets.enable_default">false</string>
+    <string name="aci.dspro.adaptor.mockets.port">aci.dspro.adaptor.mockets.port</string>
+    <string name="aci.dspro.adaptor.mockets.port_title">Mockets port</string>
+    <string name="aci.dspro.adaptor.mockets.port_default">9999</string>
+    <string name="aci.dspro.adaptor.mockets.peer.addr">aci.dspro.adaptor.mockets.peer.addr</string>
+    <string name="aci.dspro.adaptor.mockets.peer.addr_title">Mockets peer address</string>
+    <string name="aci.dspro.adaptor.mockets.peer.addr_default"></string>
+    <string name="aci.dspro.adaptor.tcp.enable">aci.dspro.adaptor.tcp.enable</string>
+    <string name="aci.dspro.adaptor.tcp.enable_title">TCP</string>
+    <string name="aci.dspro.adaptor.tcp.enable_summary">Use TCP as transport</string>
+    <string name="aci.dspro.adaptor.tcp.enable_default">false</string>
+    <string name="aci.dspro.adaptor.tcp.port">aci.dspro.adaptor.tcp.port</string>
+    <string name="aci.dspro.adaptor.tcp.port_title">TCP port</string>
+    <string name="aci.dspro.adaptor.tcp.port_default">8888</string>
+    <string name="aci.dspro.adaptor.tcp.peer.addr">aci.dspro.adaptor.tcp.peer.addr</string>
+    <string name="aci.dspro.adaptor.tcp.peer.addr_title">TCP peer address</string>
+    <string name="aci.dspro.adaptor.tcp.peer.addr_default"></string>
+    <!-- ENCRYPTION -->
+    <string name="aci.disService.networkMessageService.passphrase.encryption">aci.disService.networkMessageService.passphrase.encryption</string>
+    <string name="aci.disService.networkMessageService.passphrase.encryption_title">Passphrase Encryption</string>
+    <string name="aci.disService.networkMessageService.passphrase.encryption_default">true</string>
+    <string name="aci.disService.networkMessageService.authenticator.encryption">aci.disService.networkMessageService.authenticator.encryption</string>
+    <string name="aci.disService.networkMessageService.authenticator.encryption_title">Authenticator Encryption</string>
+    <string name="aci.disService.networkMessageService.authenticator.encryption_default">false</string>
+    <string name="aci.disService.networkMessageService.groupKeyFile">aci.disService.networkMessageService.groupKeyFile</string>
+    <string name="aci.disService.networkMessageService.groupKeyFile_title">Group Key File</string>
+    <string name="aci.disService.networkMessageService.groupKeyFile_default">/sdcard/ihmc/conf/groupKey</string>
+    <string name="aci.disService.networkMessageService.encryption.enable">aci.disService.networkMessageService.encryption.enable</string>
+    <string name="aci.disService.networkMessageService.encryption.enable_title">Encryption</string>
+    <string name="aci.disService.networkMessageService.encryption.enable_default">false</string>
+    <!-- STORAGE -->
+    <string name="pref_storage_title">Storage</string>
+    <string name="pref_storage_key">pref_key_storage_settings</string>
+    <string name="aci.disService.storageMode">aci.disService.storageMode</string>
+    <string name="aci.disService.storageMode_title">Storage mode</string>
+    <string name="aci.disService.storageMode_dialog">Where DSPro2 stores data</string>
+    <string name="aci.disService.storageMode_default">1</string>
+    <string name="aci.disService.storageMode_default_summary">On file</string>
+    <string name="aci.dspro2app.deleteStorageOnExit">aci.dspro2app.deleteStorageOnExit</string>
+    <string name="aci.dspro2app.deleteStorageOnExit_title">Clean exit</string>
+    <string name="aci.dspro2app.deleteStorageOnExit_summary">Delete storage file on exit</string>
+    <string name="aci.dspro2app.deleteStorageOnExit_default">false</string>
+    <string-array name="pref_storage_mode_array_entries">
+        <item>On memory</item>
+        <item>On file</item>
+    </string-array>
+    <string-array name="pref_storage_mode_array_values">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+    <string name="aci.disService.storageFile">aci.disService.storageFile</string>
+    <string name="aci.disService.storageFile_title">Storage file</string>
+    <string name="aci.disService.storageFile_default">/sdcard/ihmc/conf/db.sqlite</string>
+    <!-- RANKING -->
+    <string name="pref_ranking_title">VoI Configuration</string>
+    <string name="pref_ranking_key">pref_key_ranking_settings</string>
+    <string name="aci.dspro.metadataRanker.coordRankWeight">aci.dspro.metadataRanker.coordRankWeight</string>
+    <string name="aci.dspro.metadataRanker.coordRankWeight_title">Coordinate rank weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.coordRankWeight_default">1.0</string>
+    <string name="aci.dspro.metadataRanker.timeRankWeight">aci.dspro.metadataRanker.timeRankWeight</string>
+    <string name="aci.dspro.metadataRanker.timeRankWeight_title">Time rank weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.timeRankWeight_default">2.0</string>
+    <string name="aci.dspro.metadataRanker.expirationRankWeight">aci.dspro.metadataRanker.expirationRankWeight</string>
+    <string name="aci.dspro.metadataRanker.expirationRankWeight_title">Expiration rank weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.expirationRankWeight_default">0.0</string>
+    <string name="aci.dspro.metadataRanker.impRankWeight">aci.dspro.metadataRanker.impRankWeight</string>
+    <string name="aci.dspro.metadataRanker.impRankWeight_title">Importance rank weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.impRankWeight_default">0.0</string>
+    <string name="aci.dspro.metadataRanker.predRankWeight">aci.dspro.metadataRanker.predRankWeight</string>
+    <string name="aci.dspro.metadataRanker.predRankWeight_title">Prediction rank weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.predRankWeight_default">0.0</string>
+    <string name="aci.dspro.metadataRanker.targetRankWeight">aci.dspro.metadataRanker.targetRankWeight</string>
+    <string name="aci.dspro.metadataRanker.targetRankWeight_title">Target weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.targetRankWeight_default">0.0</string>
+    <string name="aci.dspro.metadataRanker.srcRelRankWeight">aci.dspro.metadataRanker.srcRelRankWeight</string>
+    <string name="aci.dspro.metadataRanker.srcRelRankWeight_title">Source reliability weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.srcRelRankWeight_default">0.0</string>
+    <string name="aci.dspro.metadataRanker.infoContentRankWeight">aci.dspro.metadataRanker.infoContentRankWeight</string>
+    <string name="aci.dspro.metadataRanker.infoContentRankWeight_title">Information content rank weight (0.0 – 10.0)</string>
+    <string name="aci.dspro.metadataRanker.infoContentRankWeight_default">0.0</string>
+
+    <!-- NODE CONTEXT -->
+    <string name="pref_node_context_title">Node context</string>
+    <string name="pref_node_context_key">pref_key_node_context_settings</string>
+    <string name="aci.dspro.informationPush.rankThreshold">aci.dspro.informationPush.rankThreshold</string>
+    <string name="aci.dspro.informationPush.rankThreshold_title">Rank threshold (0.0 – 10.0)</string>
+    <string name="aci.dspro.informationPush.rankThreshold_default">6.0</string>
+
+    <string name="aci.dspro.localNodeContext.usefulDistance">aci.dspro.localNodeContext.usefulDistance</string>
+    <string name="aci.dspro.localNodeContext.usefulDistance_title">Useful distance</string>
+    <string name="aci.dspro.localNodeContext.usefulDistance_default">1000</string>
+    <string name="aci.dspro.localNodeContext.usefulDistanceByType">aci.dspro.localNodeContext.usefulDistanceByType
+    </string>
+    <string name="aci.dspro.localNodeContext.usefulDistanceByType_title">Useful distance by MIME type</string>
+    <string name="aci.dspro.localNodeContext.usefulDistanceByType_default">x-dspro/x-soi-track-info,200000</string>
+
+    <!-- MISC -->
+    <string name="pref_misc_title">Misc</string>
+    <string name="pref_misc_key">pref_key_misc_settings</string>
+    <string name="aci.disService.statusNotifyAddress">aci.disService.statusNotifyAddress</string>
+    <string name="aci.disService.statusNotifyAddress_title">Status notify address</string>
+    <string name="aci.disService.statusNotifyAddress_default">127.0.0.1</string>
+    <string name="aci.dspro.informationPush.limitPrestagingToLocalData">aci.dspro.informationPush.limitPrestagingToLocalData</string>
+    <string name="aci.dspro.informationPush.limitPrestagingToLocalData_title">Local matchmaking only</string>
+    <string name="aci.dspro.informationPush.limitPrestagingToLocalData_default">true</string>
+
+    <string name="aci.dspro2app.networkReload.enable">aci.dspro2app.networkReload.enable</string>
+    <string name="aci.dspro2app.networkReload.enable_title">Auto reload network</string>
+    <string name="aci.dspro2app.networkReload.enable_summary">Reload network service on connectivity changes</string>
+    <string name="aci.dspro2app.networkReload.enable_default">false</string>
+
+    <string name="aci.dspro2app.autoRestartService">aci.dspro2app.autoRestartService</string>
+    <string name="aci.dspro2app.autoRestartService_title">Auto restart service</string>
+    <string name="aci.dspro2app.autoRestartService_default">false</string>
+    <string name="aci.dspro2app.serviceBound">aci.dspro2app.serviceBound</string>
+    <string name="aci.dspro2app.serviceBound_default">true</string>
+    <string name="aci.dspro2app.proxy.enable">aci.dspro2app.proxy.enable</string>
+    <string name="aci.dspro2app.proxy.enable_title">Attach DSPro proxy</string>
+    <string name="aci.dspro2app.proxy.enable_summary">Enable DSPro proxy extra features</string>
+    <string name="aci.dspro2app.proxy.enable_default">true</string>
+    <string name="aci.dspro2app.runtime.changes">aci.dspro2app.runtime.changes</string>
+    <string name="aci.dspro2app.runtime.changes_title">Live changes</string>
+    <string name="aci.dspro2app.runtime.changes_summary">Enable live configuration changes</string>
+    <string name="aci.dspro2app.runtime.changes_default">false</string>
+    <string name="aci.dspro2app.mutexlogger.enable">aci.dspro2app.mutexlogger.enable</string>
+    <string name="pref_development_title">Development</string>
+    <string name="aci.dspro2app.mutexlogger.enable_title">Enable MutexLogger</string>
+    <string name="aci.dspro2app.mutexlogger.enable_default">false</string>
+
+    <!-- NetLogger -->
+    <string name="pref_netlogger_title">NetLogger</string>
+    <string name="pref_netlogger_key">pref_key_net_logger</string>
+    <string name="netlogger.enable">netlogger.enable</string>
+    <string name="netlogger.enable_default">true</string>
+    <string name="netlogger.enable_title">Enable NetLogger</string>
+    <string name="aci.dspro.adaptor.nats.enable">aci.dspro.adaptor.nats.enable</string>
+    <string name="aci.dspro.adaptor.nats.enable_default">false</string>
+    <string name="aci.dspro.adaptor.nats.enable_title">Enable NATs</string>
+    <string name="nats.broker.addr">nats.broker.addr</string>
+    <string name="nats.broker.addr_default">128.49.235.115</string>
+    <string name="nats.broker.addr_title">NATs broker address</string>
+    <string name="nats.broker.port">nats.broker.port</string>
+    <string name="nats.broker.port_default">4222</string>
+    <string name="nats.broker.port_title">Broker port</string>
+    <string name="aci.dspro.adaptor.udp.enable">aci.dspro.adaptor.udp.enable</string>
+    <string name="aci.dspro.adaptor.udp.enable_default">true</string>
+    <string name="aci.dspro.adaptor.udp.enable_title">Enable UDP</string>
+    <string name="aci.dspro.adaptor.udp.peer.addr">aci.dspro.adaptor.udp.peer.addr</string>
+    <string name="aci.dspro.adaptor.udp.peer.addr_default">128.49.235.115</string>
+    <string name="aci.dspro.adaptor.udp.peer.addr_title">UPD peer address</string>
+    <string name="aci.dspro.adaptor.udp.port">aci.dspro.adaptor.udp.port</string>
+    <string name="aci.dspro.adaptor.udp.port_default">2401</string>
+    <string name="aci.dspro.adaptor.udp.port_title">UDP port</string>
+
+
+    <string name="button_start">Start</string>
+    <string name="button_exit">Exit</string>
+    <string name="stats_private_memory_usage">Private memory usage:</string>
+    <string name="stats_shared_memory_usage">Shared memory usage:</string>
+    <string name="stats_total_memory_usage">Memory usage:</string>
+    <string name="stats_wifi_ip_address">Assigned IP:</string>
+    <string name="stats_max_memory_allowed">Device limit:</string>
+    <string name="stats_encryption_hash">Encryption hash:</string>
+    <string name="service_bound">ServiceBound</string>
+    <string name="localhost">127.0.0.1</string>
+    <string name="stats_node_uuid">Node ID:</string>
+    <!-- Needed properties but not yet configurable through the Settings UI-->
+    <string name="aci.disService.replication.ack">aci.disService.replication.ack</string>
+    <string name="aci.disService.replication.ack_default">0</string>
+    <string name="aci.dspro.replication.manager.mode">aci.dspro.replication.manager.mode</string>
+    <string name="aci.dspro.replication.manager.mode_default">METADATA_REPLICATOR</string>
+    <string name="aci.dspro.scheduler.metadata.mutator">aci.dspro.scheduler.metadata.mutator</string>
+    <string name="aci.dspro.scheduler.metadata.mutator_default">PREV_MSG</string>
+    <string name="aci.dspro.scheduler.metadata.mutator.prevMsg">aci.dspro.scheduler.metadata.mutator.prevMsg</string>
+    <string name="aci.dspro.scheduler.metadata.mutator.prevMsg_default">SESSIONLESS</string>
+    <string name="aci.dspro.metadataRanker.timeRank.considerFutureSegments">
+        aci.dspro.metadataRanker.timeRank.considerFutureSegments
+    </string>
+    <string name="aci.dspro.metadataRanker.timeRank.considerFutureSegments_default">true</string>
+
+    <string name="aci.dspro.metadataRanker.targetStrict">aci.dspro.metadataRanker.targetStrict</string>
+    <string name="aci.dspro.metadataRanker.targetStrict_default">true</string>
+
+    <string name="aci.dspro.informationPull.rankThreshold">aci.dspro.informationPull.rankThreshold</string>
+    <string name="aci.dspro.informationPull.rankThreshold_default">7</string>
+    <string name="aci.dspro.localNodeContext.pszTeamID">aci.dspro.localNodeContext.teamId</string>
+    <string name="aci.dspro.localNodeContext.pszTeamID_default">Marine Rifle Squad</string>
+    <string name="aci.dspro.localNodeContext.pszMissionID">aci.dspro.localNodeContext.missionId</string>
+    <string name="aci.dspro.localNodeContext.pszMissionID_default">Mission X</string>
+    <string name="aci.dspro.localNodeContext.pszRole">aci.dspro.localNodeContext.role</string>
+    <string name="aci.dspro.localNodeContext.pszRole_default">Automatic Rifleman</string>
+    <string name="aci.disService.forwarding.mode">aci.disService.forwarding.mode</string>
+    <string name="aci.disService.forwarding.mode_default">1</string>
+    <string name="aci.disService.forwarding.probability">aci.disService.forwarding.probability</string>
+    <string name="aci.disService.forwarding.probability_default">0</string>
+    <string name="aci.disService.propagation.targetFiltering">aci.disService.propagation.targetFiltering</string>
+    <string name="aci.disService.propagation.targetFiltering_default">true</string>
+    <string name="aci.dspro.dsprorepctrl.prestaging.enabled">aci.dspro.dsprorepctrl.prestaging.enabled</string>
+    <string name="aci.dspro.dsprorepctrl.prestaging.enabled_default">1</string>
+    <string name="aci.disService.networkMessageService.delivery.async">aci.disService.networkMessageService.delivery.async</string>
+    <string name="aci.disService.networkMessageService.delivery.async_default">true</string>
+    <string name="aci.dspro.topologyExchange.enable">aci.dspro.topologyExchange.enable</string>
+    <string name="aci.dspro.topologyExchange.enable_default">true</string>
+    <string name="show_log">Show log</string>
+    <string name="show_properties">Show properties</string>
+    <string name="pref_encryption_title">Encryption</string>
+    <string name="pref_encryption_key">pref_key_encryption_settings</string>
+
+    <string-array name="pref_encryption_mode_array_entries">
+        <item>None</item>
+        <item>Passphrase Encryption</item>
+        <item>Authenticator Encryption</item>
+    </string-array>
+
+    <string-array name="pref_encryption_mode_array_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="pref_disservice_bandwidth">
+        <item>56</item>
+        <item>128</item>
+        <item>256</item>
+        <item>512</item>
+        <item>1024</item>
+        <item>2048</item>
+        <item>4096</item>
+        <item>8192</item>
+    </string-array>
+
+    <string-array name="pref_disservice_bandwidth_values">
+        <item>56</item>
+        <item>128</item>
+        <item>256</item>
+        <item>512</item>
+        <item>1024</item>
+        <item>2048</item>
+        <item>4096</item>
+        <item>8192</item>
+    </string-array>
+
+    <string name="aci.disService.networkMessageService.encryptionMode">aci.disService.networkMessageService.encryptionMode</string>
+    <string name="aci.disService.networkMessageService.encryptionMode_title">Encryption Mode</string>
+    <string name="aci.disService.encryptionMode_dialog">Encryption Mode</string>
+    <string name="aci.disService.encryptionMode_default">None</string>
+    <string name="aci.dspro.color.encryption.none">#CC0000</string>
+    <string name="aci.dspro.color.encryption.passphrase">#0080FF</string>
+    <string name="aci.dspro.color.encryption.authenticator">#0000FF</string>
+    <string name="sPeerList">Peer List</string>
+    <string name="sDisServiceMon">Monitor</string>
+    <string name="intent_exit_dspro">us.ihmc.aci.android.dspro.exit</string>
+    <string name="nms.transmission.outgoingAddr">nms.transmission.outgoingAddr</string>
+    <string name="nms.transmission.outgoingAddr_title">DisService Multicast Address</string>
+    <string name="nms.transmission.outgoingAddr_default">239.0.0.239</string>
+    <string name="peers_info">peers_info</string>
+    <string name="peer_address">Address: </string>
+    <string name="peer_unicast_msg">Unicast Msg: </string>
+    <string name="peer_multicast_msg">Multicast msg: </string>
+    <string name="network_monitor">Network Monitor</string>
+    <string name="incoming_rate_info">incoming_rate_info</string>
+    <string name="incoming_traffic_info">Incoming Traffic:</string>
+    <string name="please_restart_app">The application should be restarted</string>
+    <string name="build_version">Build version:</string>
+    <string name="session_key">Session key:</string>
+    <string name="developer_options">Developer options</string>
+    <string name="sp_encryption_key_hash">encryptionKeyHash</string>
+    <string name="empty_encryption_key_hash">No hash set</string>
+    <string name="log_is_empty">Log is empty</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="warning">Warning</string>
+    <string name="value">Value</string>
+
+</resources>

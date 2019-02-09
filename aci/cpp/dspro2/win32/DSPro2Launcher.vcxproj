@@ -135,10 +135,10 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>WS2_32.lib;nats_static.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MTd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WS2_32.lib;nats_static_MTd.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MTd.lib;protobuf-c_MTd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalOptions>/SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;..\..\..\..\externals-win\openssl\1.0.2h\vs2015\lib;..\..\..\..\externals-win\cnats\vs2015-x86\lib;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -146,13 +146,7 @@
     <PostBuildEvent>
       <Command>xcopy /y "$(OutDir)$(ProjectName).exe" "..\..\..\bin\"
 copy /Y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\libeay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\libeay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\ssleay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\ssleay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin\"</Command>
+xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copying Executable to bin</Message>
@@ -175,8 +169,8 @@ xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x64;..\..\..\..\externals-win\openssl\1.0.2h\vs2015\lib64;..\..\..\..\externals-win\cnats\vs2015-x64\lib;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>WS2_32.lib;nats_static.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MTd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WS2_32.lib;nats_static_MTd.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MTd.lib;protobuf-c_MTd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
     <ProjectReference>
@@ -185,13 +179,7 @@ xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin
     <PostBuildEvent>
       <Command>xcopy /y "$(OutDir)$(ProjectName).exe" "..\..\..\bin\"
 copy /Y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\libeay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\libeay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\ssleay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\ssleay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "..\..\..\bin\"</Command>
+xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copying Executable to bin</Message>
@@ -218,21 +206,15 @@ xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "..\..\..\bin
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;..\..\..\..\externals-win\openssl\1.0.2h\vs2015\lib;..\..\..\..\externals-win\cnats\vs2015-x86\lib;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <AdditionalDependencies>WS2_32.lib;nats.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MT.lib;ssleay32MT.lib;libprotobuf_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WS2_32.lib;nats_static_MT.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MT.lib;ssleay32MT.lib;libprotobuf_MT.lib;protobuf-c_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(OutDir)$(ProjectName).exe" "..\..\..\bin\"
 copy /Y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\libeay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\libeay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\ssleay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\ssleay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin\"</Command>
+xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"</Command>
       <Message>Copying Executable to bin</Message>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -256,7 +238,7 @@ xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x86;..\..\..\..\externals-win\openssl\1.0.2h\vs2015\lib;..\..\..\..\externals-win\cnats\vs2015-x86\lib;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalDependencies>WS2_32.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
@@ -264,13 +246,7 @@ xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin
     <PostBuildEvent>
       <Command>xcopy /y "$(OutDir)$(ProjectName).exe" "..\..\..\bin\"
 copy /Y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\libeay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\libeay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\ssleay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin\ssleay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin\"</Command>
+xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"</Command>
       <Message>Copying Executable to bin</Message>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -295,20 +271,14 @@ xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x86\lib\nats.dll" "..\..\..\bin
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x64;..\..\..\..\externals-win\openssl\1.0.2h\vs2015\lib64;..\..\..\..\externals-win\cnats\vs2015-x64\lib;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <AdditionalDependencies>WS2_32.lib;nats.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MT.lib;ssleay32MT.lib;libprotobuf_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WS2_32.lib;nats_static_MT.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MT.lib;ssleay32MT.lib;libprotobuf_MT.lib;protobuf-c_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(OutDir)$(ProjectName).exe" "..\..\..\bin\"
 copy /Y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\libeay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\libeay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\ssleay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\ssleay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "..\..\..\bin\"</Command>
+xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"</Command>
       <Message>Copying Executable to bin</Message>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -332,20 +302,14 @@ xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "..\..\..\bin
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf\protobuf-3.1.0\lib\vs2015\x64;..\..\..\..\externals-win\openssl\1.0.2h\vs2015\lib64;..\..\..\..\externals-win\cnats\vs2015-x64\lib;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <AdditionalDependencies>WS2_32.lib;nats.lib;nats_static.lib;libeay32_release.lib;ssleay32_release.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WS2_32.lib;nats_static_MT.lib;nats_static.lib;libeay32_release.lib;ssleay32_release.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y "$(OutDir)$(ProjectName).exe" "..\..\..\bin\"
 copy /Y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\libeay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\libeay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\ssleay32MD.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\openssl\1.0.2h\vs2015\bin64\ssleay32MD.dll" "..\..\..\bin\"
-copy /Y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "$(TargetDir)"
-xcopy /y "..\..\..\..\externals-win\cnats\vs2015-x64\lib\nats.dll" "..\..\..\bin\"</Command>
+xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"</Command>
       <Message>Copying Executable to bin</Message>
     </PostBuildEvent>
     <PreBuildEvent>

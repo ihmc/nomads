@@ -1,0 +1,3 @@
+rootProject.name = 'netjson-to-measure'
+include ':databroker'
+project (':databroker').projectDir = new File("../../../ddam/databroker")

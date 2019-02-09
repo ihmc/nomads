@@ -1,0 +1,16 @@
+.side-menu-list-item {
+   -fx-min-height: 30px;
+   -fx-min-width:  120px;
+   -fx-font-size: 15;
+   -fx-font-weight: bold;
+   -fx-text-fill: secondary-light-color;
+}
+
+.side-menu-list-item.active{
+    -fx-text-fill: secondary-dark-color;
+}
+
+
+.jfx-drawer .jfx-drawer-side-pane{
+    -fx-background-color: primary-color;
+}

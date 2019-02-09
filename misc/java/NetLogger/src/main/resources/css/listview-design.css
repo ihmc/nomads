@@ -1,0 +1,158 @@
+.root {
+   -fx-focus-color: transparent;
+   -fx-faint-focus-color: transparent;
+
+    primary-color: #eee;
+    primary-light-color: #fff;
+    primary-dark-color: #bcbcbc;
+
+    secondary-dark-color: #436b95;
+    secondary-light-color: #a4caf9;
+    secondary-color: #7399c6;
+}
+
+.list-view .list-cell:even {
+    -fx-background-color: primary-light-color;
+    -fx-text-fill: black;
+}
+
+.list-view .list-cell:odd {
+-fx-background-color: primary-light-color;
+-fx-text-fill: black;
+}
+
+.list-view .text-area {
+    text-area-background: transparent;
+}
+
+.list-view .text-area .content{
+    -fx-background-color: #bdbdbd7F;
+}
+
+.list-view {
+    -fx-selection-bar: #bdbdbd7F;
+    -fx-selection-bar-non-focused: #bdbdbd7F;
+}
+
+.list-cell:filled:selected {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+}
+
+
+.list-view {
+    -fx-background-color: transparent;
+    -fx-border-color: gray;
+}
+
+
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track{
+    -fx-background-color:transparent;
+    -fx-border-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-border-radius:2em;
+}
+
+.scroll-bar:horizontal .increment-button ,
+.scroll-bar:horizontal .decrement-button {
+    -fx-background-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-padding:0 0 10 0;
+}
+
+.scroll-bar:vertical .increment-button ,
+.scroll-bar:vertical .decrement-button {
+    -fx-background-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-padding:0 10 0 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow{
+    -fx-shape:" ";
+    -fx-padding:0;
+}
+
+.scroll-bar:horizontal .thumb,
+.scroll-bar:vertical .thumb {
+    -fx-background-color:derive(black,90%);
+    -fx-background-insets: 2, 0, 0;
+    -fx-background-radius: 2em;
+}
+
+.scroll-pane{
+    -fx-background-color: transparent;
+}
+
+.chips-pane > .text-area{
+    -fx-display-caret: false;
+}
+
+.chips-pane > .text-area .content {
+    -fx-cursor: DEFAULT ;
+}
+
+.jfx-button.addApplication{
+    -fx-text-fill: secondary-dark-color;
+    -fx-background-color: #ededed;
+}
+
+.applicationName{
+    -fx-background-color: secondary-dark-color;
+    -fx-fill: #fff;
+}
+
+.jfx-list-cell {
+    -fx-background-insets: 2.0;
+}
+
+.jfx-check-box {
+    -jfx-checked-color: secondary-dark-color;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.hierarchyText:hover {
+    -fx-underline: true;
+    -fx-cursor: hand;
+}
+
+.searchX{
+    -fx-text-fill: #818181;
+}
+
+.icons-badge {
+    -fx-background-color: #f00;
+    -fx-background-radius: 14;
+    -fx-pref-width: 14;
+    -fx-pref-height: 14;
+    -fx-alignment: center;
+}
+
+.tree-cell:selected {
+    -fx-background-color: secondary-color;
+    -fx-text-fill: primary-light-color;
+ }
+
+#confirm-clear{
+    -jfx-selected-color: #da1c1c;
+}
+
+#deny-clear{
+    -jfx-selected-color: secondary-color;
+}
+
+.info-popup .jfx-rippler {
+   -jfx-rippler-fill: secondary-color;
+}
+
+.info-popup .info-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: primary-dark-color;
+}
+
+.text-field{
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 12, 0, 0, 4);
+    -fx-background-color: primary-color;
+}

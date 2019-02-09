@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/command"
+  targetNamespace="http://th.dod.mil/core/types/command"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  elementFormDefault="qualified">
+ 
+  <xs:simpleType name="CommandTypeEnum">
+    <!-- NOTE: Any time a new command is added, the command name should be added to this enum using the class name 
+    of the command. New commands should be added to the end of the list of enum values to preserve values for 
+    backwards compatibility.
+
+    NOTE: Any time an enumeration is added to this list then the MasterCommands.xsd must be updated with the new 
+    command schema. -->
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CaptureImageCommand" />
+      <xs:enumeration value="ConfigureProfileCommand" />
+      <xs:enumeration value="CreateActionListCommand" />
+      <xs:enumeration value="DetectTargetCommand" />
+      <xs:enumeration value="GetCameraSettingsCommand" />
+      <xs:enumeration value="GetPanTiltCommand" />
+      <xs:enumeration value="GetPointingLocationCommand" />
+      <xs:enumeration value="GetPositionCommand" />
+      <xs:enumeration value="GetProfilesCommand" />
+      <xs:enumeration value="GetTuneSettingsCommand" />
+      <xs:enumeration value="GetVersionCommand" />
+      <xs:enumeration value="GetModeCommand"/>
+      <xs:enumeration value="SetCameraSettingsCommand" />
+      <xs:enumeration value="SetModeCommand"/>
+      <xs:enumeration value="SetPanTiltCommand" />
+      <xs:enumeration value="SetPointingLocationCommand" />
+      <xs:enumeration value="SetPositionCommand" />
+      <xs:enumeration value="SetTuneSettingsCommand" />
+      <xs:enumeration value="StartRecordingCommand" />
+      <xs:enumeration value="StopRecordingCommand" />
+      <xs:enumeration value="TargetRefinementCommand" />
+      <xs:enumeration value="GetLiftCommand" />
+      <xs:enumeration value="SetLiftCommand" />
+      <xs:enumeration value="ZeroizeCommand" />
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="CommandResponseEnum">
+    <!-- NOTE: Any time a new response is added, the response name should be added to this enum using the class name of 
+    the response. New responses should be added to the end of the list of enum values to preserve values for backwards 
+    compatibility. Also the MasterResponses.xsd must be updated with the new response schema. -->
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CaptureImageResponse" />
+      <xs:enumeration value="ConfigureProfileResponse" />
+      <xs:enumeration value="CreateActionListResponse" />
+      <xs:enumeration value="DetectTargetResponse" />
+      <xs:enumeration value="GetCameraSettingsResponse" />
+      <xs:enumeration value="GetPanTiltResponse" />
+      <xs:enumeration value="GetPointingLocationResponse" />
+      <xs:enumeration value="GetPositionResponse" />
+      <xs:enumeration value="GetProfilesResponse" />
+      <xs:enumeration value="GetTuneSettingsResponse" />
+      <xs:enumeration value="GetVersionResponse" />
+      <xs:enumeration value="GetModeResponse" />
+      <xs:enumeration value="SetCameraSettingsResponse" />
+      <xs:enumeration value="SetModeResponse"/>
+      <xs:enumeration value="SetPanTiltResponse" />
+      <xs:enumeration value="SetPointingLocationResponse" />
+      <xs:enumeration value="SetPositionResponse" />
+      <xs:enumeration value="SetTuneSettingsResponse" />
+      <xs:enumeration value="StartRecordingResponse" />
+      <xs:enumeration value="StopRecordingResponse" />
+      <xs:enumeration value="TargetRefinementResponse" />
+      <xs:enumeration value="GetLiftResponse" />
+      <xs:enumeration value="SetLiftResponse" />
+      <xs:enumeration value="ZeroizeResponse" />
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

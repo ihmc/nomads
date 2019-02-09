@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<StackPane xmlns="http://javafx.com/javafx"
+        xmlns:fx="http://javafx.com/fxml"
+        fx:controller="netlogger.controller.tracking.TrackingController" prefHeight="850.0" prefWidth="1270.0" fx:id="_stackPane">
+    <ScrollPane  maxHeight="650.0" maxWidth="600.0" fx:id="_viewScrollPane">
+        <AnchorPane fx:id="_mainView" />
+    </ScrollPane>
+    <ScrollPane fx:id="_colorScrollPane"  maxHeight="100" maxWidth="150">
+        <VBox fx:id="_colorVBox" maxHeight="100" maxWidth="150"/>
+    </ScrollPane>
+
+</StackPane>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/channel"
+  targetNamespace="http://th.dod.mil/core/types/channel"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+
+    <xs:complexType name="ChannelType">
+        <xs:attribute name="value" type="ChannelTypeEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" />
+    </xs:complexType>
+
+    <xs:simpleType name="ChannelTypeEnum">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Special case that is described by the description field in ChannelType.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Real">
+                <xs:annotation>
+                    <xs:documentation>
+                        Each value is represented by a single number in the data.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Complex">
+                <xs:annotation>
+                    <xs:documentation>
+                        Each value is represented by a pair of numbers in the data, real and imaginary parts.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DataTypeEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Indicates the type of data stored in the DigitalMedia byte array.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Int16" />
+            <xs:enumeration value="Int32" />
+            <xs:enumeration value="Float32" />
+            <xs:enumeration value="Int64" />
+            <xs:enumeration value="Double64" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ChannelSampleOfInterest">
+        <xs:attribute name="sampleId" type="shared:positiveInt" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Sampling ID that can be used to uniquely identify the samples provided.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="startTime" type="xs:dateTime" use="required" />
+        <xs:attribute name="endTime" type="xs:dateTime" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="ChannelOffset">
+        <xs:attribute name="frequencyOffsetKhz" type="xs:double" use="optional" />
+        <xs:attribute name="phaseOffsetDegrees" type="xs:double" use="optional" />
+    </xs:complexType>
+
+</xs:schema>

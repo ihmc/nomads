@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/power"
+  targetNamespace="http://th.dod.mil/core/types/power"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+ 
+    <xs:complexType name="PowerSource">
+        <xs:sequence>
+            <xs:element name="confidence" type="shared:ConfidenceFactor" minOccurs="1" maxOccurs="1" />
+        </xs:sequence>
+        <xs:attribute name="description" type="xs:string" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="PowerClassification">
+        <xs:attribute name="value" type="PowerClassificationEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" />
+    </xs:complexType>
+
+    <xs:simpleType name="PowerClassificationEnum">
+        <xs:annotation>
+            <xs:documentation>
+                The classification of the power source at time of the recording.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Inductive:ON" />
+            <xs:enumeration value="Inductive:OFF"/>
+            <xs:enumeration value="Capacitive:ON" />
+            <xs:enumeration value="Capacitive:OFF"/>
+            <xs:enumeration value="Resistive:ON" />
+            <xs:enumeration value="Resistive:OFF"/>          
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Enum does not cover the classification, must specify a description in this case.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction> 
+    </xs:simpleType>
+
+</xs:schema>

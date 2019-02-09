@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:channel="http://th.dod.mil/core/types/channel"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/channel" schemaLocation="../../types/channel/ChannelTypes.xsd" />
+
+  <xs:complexType name="ChannelMetadata">
+    <xs:annotation>
+      <xs:documentation>
+          Defines channel data stored in a DigitalMedia object. A mime type of application/octet-stream (per RFC2046) is
+          required and all data should be stored in big endian format. 
+          &lt;p>
+          Binary data format used in the DigitalMedia object is as follows:&lt;br>
+          -Freq 1, Channel 1- &amp;lt;sample1>[&amp;lt;sample2>...]&lt;br> 
+          -Freq 1, Channel 2- &amp;lt;sample1>[&amp;lt;sample2>...]&lt;br>  
+          -Freq 2, Channel 1- &amp;lt;sample1>[&amp;lt;sample2>...]&lt;br>
+          ...&lt;br>
+          -Freq n, Channel n- &amp;lt;sample1>[&amp;lt;sample2>...]&lt;br>
+          &lt;p>  
+          Each sample is defined by the channelType and dataType elements. For example, a single sample for a
+          channelType of Raw and dataType of Int16 would contain a single 16 bit integer value. If channelType
+          is Complex and dataType is Int16, then a single sample would contain two 16 bit integer values (for
+          real and imaginary parts).
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="sampleOfInterest" type="channel:ChannelSampleOfInterest" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="channelType" type="channel:ChannelType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="channelOffset" type="channel:ChannelOffset" minOccurs="0" maxOccurs="1" />
+      <xs:element name="channelName" type="xs:string" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+              <xs:documentation>
+                  Plug-in assigned name for each channel included in the data.
+              </xs:documentation>
+          </xs:annotation>
+      </xs:element>
+      <xs:element name="frequencyKHz" type="shared:FrequencyKhz" minOccurs="1" maxOccurs="unbounded">
+          <xs:annotation>
+              <xs:documentation>
+                  Frequencies (KHz) contained in the channel data. The ordering of frequencyKHz elements should match the
+                  ordering of samples contained in the binary data. 
+              </xs:documentation>
+          </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="dataType" type="channel:DataTypeEnum" use="required">
+        <xs:annotation>
+            <xs:documentation>
+                Format or type the binary channel data is stored in. Might be stored as 16 bit integers, 32 bit floats
+                and so on. Data for all types should be stored in big endian format.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="sampleCount" type="shared:positiveInt" use="required">
+        <xs:annotation>
+            <xs:documentation>
+                The number of samples contained in the data for each frequency and channel.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="numChannels" type="shared:positiveInt" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                The number of channels included in the data.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="numFrequencies" type="shared:positiveInt" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                The number of frequencies included for each channel in the data.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+</xs:schema>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/mp/model" 
+    targetNamespace="http://th.dod.mil/core/mp/model"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" 
+    xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+    xmlns:shared="http://th.dod.mil/core/types"  
+    elementFormDefault="qualified"
+    jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:include schemaLocation="MissionBaseType.xsd" />
+    <xs:element name="MissionProgramTemplate">
+        <xs:complexType>
+            <xs:annotation>
+                <xs:documentation>
+                    This class contains more static information
+                    pertaining to a mission program. The mission's name and source
+                    are required. Optionally mission programs may also include
+                    an icon and a pictorial(image) data about what the program
+                    accomplishes. Mission programs also may contain flags
+                    (boolean values) describing aspects of the mission such as triggers, 
+                    data capturing and intervals. If variables are a part of the mission,
+                    then there is required variable metadata. Required variable metadata
+                    for each variable is the name and typification. Optional
+                    metadata is a description, default value and optional values that
+                    variables may assume if the requested value and/or default is not available
+                    (optional values do not preclude the event that there are no resources available
+                    to fulfill the dependencies needed).****(CDATA tag is needed for source if it contains the illegal characters.)
+                </xs:documentation>
+            </xs:annotation>
+            <xs:sequence>
+                <xs:element name="vendor" type="xs:string" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            This field holds vendor (author) for a mission program, this field is optional.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="source" type="xs:string" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            This field holds source data for a mission program, this field is mandatory.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            This field is the name for the program, this field is mandatory.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Description of what the mission's goal(s) is/are.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="primaryImage" type="shared:DigitalMedia" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Optional image to identify the mission, must be of MIME type(Image).
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="secondaryImages" type="shared:DigitalMedia" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Optional images that identify the missions behavior or purpose, must be of MIME type(Image).
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <!-- Describes aspects of the mission such as triggers, data capturing and intervals. -->
+                <xs:element name="withInterval" type="xs:boolean" default="false" minOccurs="1" maxOccurs="1" />
+                <xs:element name="withImageCapture" type="xs:boolean" default="false" minOccurs="1" maxOccurs="1" />
+                <xs:element name="withSensorTrigger" type="xs:boolean" default="false" minOccurs="1" maxOccurs="1" />
+                <xs:element name="withTimerTrigger" type="xs:boolean" default="false" minOccurs="1" maxOccurs="1" />
+                <xs:element name="withPanTilt" type="xs:boolean" default="false" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            This flag value indicates that mission involves an asset that can perform a pan and tilt 
+                            capability.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="supportTestExecution" type="xs:boolean" default="false" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            This flag value represents that this template's source contains a test function that can be 
+                            executed to test a mission program created from this template. The test function in the 
+                            source is intended to verify that the mission program is ready to be executed and all 
+                            configured dependencies are set up properly.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="variableMetaData" type="MissionVariableMetaData" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Variable metadata complex type.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+     </xs:element> 
+    <xs:simpleType name="MissionVariableTypesEnum">
+        <xs:annotation>
+            <xs:documentation>
+                This holds the descriptive (enumerative) types that the variables can be.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="TransportLayer" />
+            <xs:enumeration value="LinkLayer" />
+            <xs:enumeration value="Program Dependencies" />
+            <xs:enumeration value="PhysicalLink" />
+            <xs:enumeration value="Asset" />
+            <xs:enumeration value="Integer" />
+            <xs:enumeration value="String" />
+            <xs:enumeration value="Float" />
+            <xs:enumeration value="Short" />
+            <xs:enumeration value="Long" />
+            <xs:enumeration value="Double" />
+            <xs:enumeration value="Byte" />
+            <xs:enumeration value="Boolean" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="MissionVariableMetaData">
+        <xs:annotation>
+            <xs:documentation>
+                This class represents information about individual variables that are
+                used within a mission program. When optional values are given, this limits
+                the value to the optional values given (e.g., if a,h,k were optional values, 
+                this disallows all values which are not a, h, or k). It is important to note
+                the name field's value is the name of the variable used within the JavaScript 
+                mission.
+             </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="shared:VariableMetaData">
+                <xs:sequence>
+                    <xs:element name="type" type="MissionVariableTypesEnum" minOccurs="1" maxOccurs="1" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                The type of the variable.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+   </xs:complexType>
+</xs:schema>

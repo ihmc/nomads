@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/ccomm"
+  targetNamespace="http://th.dod.mil/core/types/ccomm"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+
+    <xs:simpleType name="BaudRate">
+        <xs:restriction base="shared:positiveInt">
+            <xs:minInclusive value="1" />
+        </xs:restriction>
+    </xs:simpleType>   
+    
+    <xs:simpleType name="FlowControlEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="None" />
+            <xs:enumeration value="Hardware" />
+            <xs:enumeration value="XonXoff" />    
+        </xs:restriction> 
+    </xs:simpleType>
+        
+    <xs:simpleType name="ParityEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="None" />
+            <xs:enumeration value="Odd" />
+            <xs:enumeration value="Even" />    
+        </xs:restriction>
+    </xs:simpleType> 
+    
+    <xs:simpleType name="StopBitsEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="OneStopBit" />
+            <xs:enumeration value="One5StopBits" />
+            <xs:enumeration value="TwoStopBits" />    
+        </xs:restriction>
+    </xs:simpleType> 
+    
+    <xs:simpleType name="DataBits">
+        <xs:restriction base="shared:positiveInt">
+            <xs:minInclusive value="5" />
+            <xs:maxInclusive value="9" />
+        </xs:restriction>
+    </xs:simpleType> 
+    
+    <xs:simpleType name="PhysicalLinkTypeEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Types of physical links supported.
+             </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SerialPort" />
+            <xs:enumeration value="GPIO" />
+            <xs:enumeration value="SPI" />
+            <xs:enumeration value="I2C" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="LinkLayerTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="LineOfSight" />
+            <xs:enumeration value="SATCOM" />
+            <xs:enumeration value="Cellular" />
+        </xs:restriction>
+    </xs:simpleType>
+        
+</xs:schema>

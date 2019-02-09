@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="capability.link.ccomm.core.th.dod.mil" 
+    targetNamespace="capability.link.ccomm.core.th.dod.mil" 
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:capability="capability.core.th.dod.mil"
+    xmlns:shared="http://th.dod.mil/core/types"
+    xmlns:ccomm="http://th.dod.mil/core/types/ccomm"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    
+    <xs:import namespace="capability.core.th.dod.mil" schemaLocation="../../../capability/BaseCapabilities.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/ccomm" schemaLocation="../../../types/ccomm/CustomCommTypes.xsd" />
+    
+    <xs:element name="LinkLayerCapabilities">
+        <xs:complexType >
+            <xs:complexContent>
+                <xs:extension base="capability:BaseCapabilities">
+                    <xs:sequence>
+                        <xs:element name="physicalLinksSupported" type="ccomm:PhysicalLinkTypeEnum" minOccurs="0" maxOccurs="unbounded" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Supported physical link types.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                    <xs:attribute name="staticMtu" type="xs:boolean" use="required" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                Whether the Maximum Transmission Unit (MTU) value is static and defined in the XML 
+                                (true) or defined dynamically by a method (false) 
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                    <xs:attribute name="mtu" type="shared:positiveInt" use="optional" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                 MTU for this LinkLayer. This is user payload MTU. Required if staticMtu is true.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                    <xs:attribute name="modality" type="ccomm:LinkLayerTypeEnum" use="required" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                 Communication type.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                    <xs:attribute name="physicalLinkRequired" type="xs:boolean" use="required" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                  Whether a PhysicalLink is required for the LinkLayer to operate.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                    <xs:attribute name="performBITSupported" type="xs:boolean" use="required" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                  Whether the LinkLayer#performBIT method is supported.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                    <xs:attribute name="supportsAddressing" type="xs:boolean" use="required" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                  Whether the link layer supports addressing.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    
+ </xs:schema>

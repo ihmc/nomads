@@ -1,0 +1,2 @@
+# The log directory in the current folder should not be ignored
+!log/

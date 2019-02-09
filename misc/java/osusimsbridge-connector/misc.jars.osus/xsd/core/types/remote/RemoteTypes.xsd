@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/remote"
+  targetNamespace="http://th.dod.mil/core/types/remote"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  elementFormDefault="qualified">
+ 
+    <xs:simpleType name="RemoteChannelTypeEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Describes the types of remote channels that can be managed by the RemoteChannelLookup service.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Socket">
+                <xs:annotation>
+                    <xs:documentation>
+                        Tcp type channel descriptor.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Transport">
+                <xs:annotation>
+                    <xs:documentation>
+                        Transport type channel descriptor.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="LexiconFormatEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Enumeration of the lexicon object formats that can be transmitted. Messages that transmit lexicon objects 
+                will typically have a data message definition with a oneof group which contains fields for each possible 
+                data format. This enumeration will dictate the field within the oneof that will be set in the transmitted 
+                message. If the message definition does not have a oneof group, the message definition will detail how to 
+                interpret the lexicon format field.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="NATIVE" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Default protobuf binary format (type found in the mil.dod.th.remote.lexicon package)
+                        If the oneof is named foo, the field fooNative will be set.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="XML" >
+                <xs:annotation>
+                    <xs:documentation>
+                        XML data formatted without linefeeds and indentation and encoded in UTF-8
+                        If the oneof is named foo, the field fooXml will be set.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="UUID_ONLY" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Send only the UUID that uniquely identifies the object. 
+                        This format may not be available for all lexicon objects.
+                        If the oneof is named foo, the field fooUuid will be set.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

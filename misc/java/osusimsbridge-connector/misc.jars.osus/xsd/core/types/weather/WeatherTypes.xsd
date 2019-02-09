@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/weather"
+  targetNamespace="http://th.dod.mil/core/types/weather"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+ 
+    <xs:simpleType name="WeatherPhenomenaEnum">
+        <xs:annotation>
+            <xs:documentation>Standard types of weather phenomena taken from AFMAN 15-111 Table 13.1.
+        </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+        <xs:enumeration value="Clear">
+            <xs:annotation>
+                <xs:documentation>
+                    Not a AFMAN 15-111 phenomena, but an indication of no phenomena.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:enumeration>
+        <xs:enumeration value="Drizzle" />
+        <xs:enumeration value="Rain" />
+        <xs:enumeration value="Snow" />
+        <xs:enumeration value="Snow Grains" />
+        <xs:enumeration value="IceCrystals" />
+        <xs:enumeration value="IcePellets" />
+        <xs:enumeration value="Hail" />
+        <xs:enumeration value="SmallHailAndOrSnowPellets" />
+        <xs:enumeration value="Mist" />
+        <xs:enumeration value="Fog" />
+        <xs:enumeration value="Smoke" />
+        <xs:enumeration value="VolcanicAsh" />
+        <xs:enumeration value="WidespreadDust" />
+        <xs:enumeration value="Sand" />
+        <xs:enumeration value="Haze" />
+        <xs:enumeration value="Spray" />
+        <xs:enumeration value="WellDevelopedDustSandSwirls" />
+        <xs:enumeration value="Squalls" />
+        <xs:enumeration value="FunnelCloud">
+              <!-- Funnel cloud(s) - Tornado or Waterspout -->
+        </xs:enumeration>
+        <xs:enumeration value="Sandstorm" />
+        <xs:enumeration value="Duststorm" />
+        <xs:enumeration value="Other" />
+      </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="WeatherPhenomena">
+        <xs:attribute name="value" type="WeatherPhenomenaEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" />
+    </xs:complexType>
+    
+    <xs:simpleType name="WeatherIntensityEnum">
+        <xs:annotation>
+            <xs:documentation>Standard weather intensities taken from AFMAN 15-111 Table 13.1.
+        </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Light" />
+            <xs:enumeration value="Moderate" />
+            <xs:enumeration value="Heavy" />
+        </xs:restriction>
+    </xs:simpleType>
+  
+    <xs:simpleType name="WeatherQualifierEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Qualifies a weather phenomena. Enums taken from AFMAN 15-111 Table 13.1, Descriptor column. Not using 
+                "descriptor" name as it conflicts with other parts of the API.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Shallow" />
+            <xs:enumeration value="Partial" />
+            <xs:enumeration value="Patches" />
+            <xs:enumeration value="LowDrifting" />
+            <xs:enumeration value="Blowing" />
+            <xs:enumeration value="Showers" />
+            <xs:enumeration value="Thunderstorm" />
+            <xs:enumeration value="Freezing" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="RoadConditionTypeEnum">
+        <xs:annotation>
+            <xs:documentation>Lexical descriptions of generic road conditions</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Dry" />
+            <xs:enumeration value="Wet" />
+            <xs:enumeration value="Puddles" />
+            <xs:enumeration value="ShallowStandingWater" />
+            <xs:enumeration value="ShallowFlowingWater" />
+            <xs:enumeration value="DeepStandingWater" />
+            <xs:enumeration value="DeepFlowingWater" />
+            <xs:enumeration value="DustingFreshSnow" />
+            <xs:enumeration value="ModerateFreshSnow" />
+            <xs:enumeration value="DeepFreshSnow" />
+            <xs:enumeration value="PlowedSnow" />
+            <xs:enumeration value="Slush" />
+            <xs:enumeration value="PackedSnowPatches" />
+            <xs:enumeration value="PackedSnow" />
+            <xs:enumeration value="LightSnowDrifts" />
+            <xs:enumeration value="ModerateSnowDrifts" />
+            <xs:enumeration value="HeavySnowDrifts" />
+            <xs:enumeration value="Frost" />
+            <xs:enumeration value="IcePatches" />
+            <xs:enumeration value="ModeratelyIcy" />
+            <xs:enumeration value="HeavyIcing" />
+            <xs:enumeration value="BlackIce" />
+            <xs:enumeration value="SheetIce" />
+            <xs:enumeration value="FrozenSlush" />
+            <xs:enumeration value="Other" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="RoadConditionType">
+        <xs:attribute name="value" type="RoadConditionTypeEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Must set description if value is "Other"
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:simpleType name="SkyCoverAmountEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Clear" />
+            <xs:enumeration value="Few" />
+            <xs:enumeration value="Scattered" />
+            <xs:enumeration value="Broken" />
+            <xs:enumeration value="Overcast" />
+        </xs:restriction>
+    </xs:simpleType>
+  
+</xs:schema>

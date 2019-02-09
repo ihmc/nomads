@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/detection"
+  targetNamespace="http://th.dod.mil/core/types/detection"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:spatial="http://th.dod.mil/core/types/spatial"
+  elementFormDefault="qualified">
+   <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+   <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+ 
+    <xs:simpleType name="DetectionTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Alarm">
+                <xs:annotation>
+                    <xs:documentation>
+                        A standard detection of a target.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Tamper">
+                <xs:annotation>
+                    <xs:documentation>
+                        A tamper of the sensor was detected.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Test">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sensor test event produced a detection (not a valid target). Used to simulate a target for testing 
+                        purposes.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Preliminary">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sensor is collecting data on a potential target, but is not yet ready to declare it a detected target.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+            
+    <xs:simpleType name="TargetClassificationTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Blast" />
+            <xs:enumeration value="Voice" />
+            <xs:enumeration value="Personnel" />
+            <xs:enumeration value="GroundVehicle" />
+            <xs:enumeration value="GroundVehicleLight" />
+            <xs:enumeration value="GroundVehicleMedium" />
+            <xs:enumeration value="GroundVehicleHeavy" />
+            <xs:enumeration value="Aircraft" />
+            <xs:enumeration value="AircraftFixedWing" />
+            <xs:enumeration value="AircraftRotaryWing" />
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Use when sensor classification is not available in enum, be sure to set description string.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Handset" />
+            <xs:enumeration value="WirelessAccessPoint">
+                <xs:annotation>
+                    <xs:documentation>
+                        Device that allows wireless clients to connect to a network. This includes, but is not limited to
+                        Wi-Fi.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="WirelessClient">
+                <xs:annotation>
+                    <xs:documentation>
+                        Devices such as laptops, desktops, mobile phones that can communicate wirelessly with other clients
+                        or access points. This includes, but is not limited to Wi-Fi clients.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Animal" />
+            <xs:enumeration value="Unknown">
+                <xs:annotation>
+                    <xs:documentation>
+                        Use this value to describe a target classification algorithm's possible 
+                        result, not if an asset is not capable of classifying a target.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <!-- Wheeled and Tracked vehicles  -->
+            <xs:enumeration value="GroundVehicleWheeled" />
+            <xs:enumeration value="GroundVehicleTracked" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="TargetClassificationType">
+      <xs:attribute name="value" type="TargetClassificationTypeEnum" use="required" />
+      <xs:attribute name="description" type="xs:string" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                Must set description if value is "Other"
+            </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="DetectionProbability">
+        <xs:attribute name="value" type="xs:double" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    The confidence factor for the classification.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="ColorDescriptorType">
+        <xs:sequence>
+            <xs:element name="data" type="xs:base64Binary" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Descriptor indicating the spatial and hue distribution of colors across the target. Computed on a
+                        rescaled nxm pixel target image divided into pxq px cells. Pixel color values converted to HSV color
+                        space with a histogram for each cell generated using x hue bins with pixels weighted by normalized
+                        saturation value. Descriptor is a row wise readout of histogram values as unsigned 8 bit integers.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+      <xs:attribute name="imageWidth" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="imageHeight" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="cellWidth" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="cellHeight" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="horizontalStride" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="verticalStride" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="hueBins" type="xs:unsignedInt" use="required" />
+      <!-- TODO TH-4063: Look at adding color space and other parameters -->
+    </xs:complexType>
+
+    <xs:complexType name="HOGDescriptorType">
+        <xs:sequence>
+            <xs:element name="data" type="xs:base64Binary" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Feature vector of HOG normalized bin values. Computed on a rescaled 128x128 target image with 8x8 cell size, 16x16 block size, 16 pixel block stride, 9 orientation bins using the unsigned gradient (2304 values).
+                        Normalized to 8 bit unsigned integers.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+      <xs:attribute name="imageWidth" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="imageHeight" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="cellWidth" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="cellHeight" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="horizontalCellStride" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="verticalCellStride" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="blockWidth" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="blockHeight" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="horizontalBlockStride" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="verticalBlockStride" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="orientationBins" type="xs:unsignedInt" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="OpticalFlowType">
+        <xs:sequence>
+            <xs:element name="data" type="xs:base64Binary" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Optical flow with given spacing read out row wise, stored as two 16 bit signed integers per point in the order x,y.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+      <xs:attribute name="imageWidth" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="imageHeight" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="horizontalStride" type="xs:unsignedInt" use="required" />
+      <xs:attribute name="verticalStride" type="xs:unsignedInt" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="Signature" abstract="true">
+        <xs:annotation>
+            <xs:documentation>
+                Abstract type defining common signature features applicable to multiple modalities.
+            </xs:documentation>
+        </xs:annotation>
+         <xs:sequence>
+            <xs:element name="signalToNoiseRatio" type="shared:SNRdB" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The current ratio of signal power to noise power (as defined for "Noise Level").
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="timeLargestMagnitude" type="xs:dateTime" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The time at which the largest target signal magnitude was found.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="frequencyChange" type="shared:percentPerSecond" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Normalized change in frequency tracked since last update.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="fundamentalFrequency" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Estimated fundamental frequency of the target.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="deltaFundamentalFrequency" type="shared:FrequencyDeltaKhz" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Maximum change in fundamental frequency since last feature update.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="footstepCadence" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Steps per second estimated for a single person within a group.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="footstepCount" type="shared:CountsPerTime" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The total number of footsteps detected in the specified interval as determined by the sensor or algorithm.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="cylinderCount" type="shared:positiveInt" minOccurs="0" maxOccurs="1">
+                <xs:annotation> 
+                    <xs:documentation>
+                        This is the number of cylinders in the engine as determined by the sensor or algorithm.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AcousticSignature" >
+        <xs:annotation>
+            <xs:documentation>
+                Signature information from an acoustic sensor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Signature">
+                <xs:sequence>
+                <xs:element name="signalInfo" type="AcousticSignalInfo" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Information about the tones identified in the acoustic data.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="largestMagnitude" type="shared:PressurePascals" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The algorithm's observed largest magnitude correlated to the current reported target.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="soundPressureLevel" type="shared:SPLdB" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The acoustic signal power calculated in dB relative to 20 mico pascal.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="AcousticSignalInfo">
+        <xs:sequence>
+            <xs:element name="frequency" type="shared:FrequencyKhz" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        A tone identified in the acoustic data.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="amplitude" type="shared:PressurePascals" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The amplitude of the tracked frequency in Pascals.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="phase" type="shared:PhaseRadians" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The phase of the tracked frequency in radians.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SeismicSignature" >
+        <xs:annotation>
+            <xs:documentation>
+                Signature information from a seismic sensor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Signature">
+                <xs:sequence>
+                <xs:element name="signalInfo" type="SeismicSignalInfo" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Information about the tones identified in the seismic data.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="largestMagnitude" type="shared:SpeedMetersPerSecond" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The algorithm's observed largest magnitude correlated to the current reported target.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="SeismicSignalInfo">
+        <xs:sequence>
+            <xs:element name="frequency" type="shared:FrequencyKhz" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        A tone identified in the seismic data.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="amplitude" type="shared:SpeedMetersPerSecond" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The amplitude of the tracked frequency in meters per second.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="phase" type="shared:PhaseRadians" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                       The phase of the tracked frequency in radians.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MagneticSignature">
+        <xs:annotation>
+            <xs:documentation>
+                Signature information from a magnetic sensor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Signature">
+                <xs:sequence>
+                <xs:element name="largestMagnitude" type="shared:MagneticFluxDensityTeslas" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The algorithm's observed largest magnitude correlated to the current reported target.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="magnitude" type="shared:MagneticFluxDensityTeslas" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Indication of magnetic disturbance a ferrous metal object causes in the sensor's
+                            ambient environment, measured in Teslas.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="integral" type="shared:TeslaSeconds" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The summation of the magnitudes for every interval that the magnitude exceeds the detection
+                            threshold.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="ImagerSignature" >
+        <xs:annotation>
+            <xs:documentation>
+                Signature information from an imaging sensor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="wheelInfo" type="ImagerWheelInfo" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Information about a wheel-like feature identified by the imager.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="perimeter" type="shared:AngleDegrees" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                         Perimeter length of target silhouette detected by the imager in degrees.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="area" type="shared:SquareDegrees" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Area of target silhouette detected by the imager, expressed as solid angle from the
+                        sensor (square degrees).
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="colorDesc" type="ColorDescriptorType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Description of the hue and spatial distribution of colors on the target.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="HOG" type="HOGDescriptorType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Histogram of Oriented Gradients. Detailed imagery shape descriptor for the target.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="opticalFlow" type="OpticalFlowType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Optical flow vectors for the target image region.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ImagerWheelInfo">
+        <xs:sequence>
+            <xs:element name="wheelLob" type="spatial:OrientationOffset" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Location of wheel center relative to target center.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="wheelRadius" type="shared:AngleDegrees" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Radius of wheel.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="wheelConfidence" type="shared:percentage" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Confidence that there is a wheel at this location.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXButton?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<StackPane alignment="TOP_LEFT" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="850.0" prefWidth="1380.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="netlogger.controller.elasticsearch.ElasticsearchController">
+   <children>
+      <VBox maxHeight="-Infinity" maxWidth="-Infinity" fx:id="_buttonVBox" StackPane.alignment="CENTER">
+         <children>
+            <HBox alignment="CENTER_RIGHT">
+               <children>
+                  <JFXButton fx:id="_playPauseButton" buttonType="RAISED" style="-fx-background-color: #e7e7e7;" text="Start" textFill="#009819">
+                     <font>
+                        <Font size="14.0" />
+                     </font>
+                     <graphic>
+                        <ImageView>
+                           <image>
+                              <Image url="../images/font-awesome_4-7-0_play_16_0_009819_none.png" />
+                           </image>
+                        </ImageView>
+                     </graphic>
+                  </JFXButton>
+               </children>
+            </HBox>
+
+         </children>
+         <StackPane.margin>
+            <Insets top="50.0" />
+         </StackPane.margin>
+         <padding>
+            <Insets left="40.0" />
+         </padding>
+      </VBox>
+   </children>
+</StackPane>

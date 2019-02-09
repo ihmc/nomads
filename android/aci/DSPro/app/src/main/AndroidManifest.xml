@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="us.ihmc.android.aci.dspro">
+
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <application
+        android:icon="@drawable/ihmc_logo"
+        android:label="@string/app_name">
+
+        <!-- android:debuggable="true" -->
+        <!-- android:launchMode="singleInstance" -->
+        <!-- the first activity is to ask for permissions and avoid crash
+        at the stratup-->
+        <activity
+            android:name=".DSProPermissionActivity"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".DSProActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="us.ihmc.android.aci.dspro.START_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="us.ihmc.android.aci.dspro.START_SERVICE_BACKGROUND" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="us.ihmc.android.aci.dspro.STOP_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".log.LogActivity"
+            android:theme="@style/AppTheme" />
+
+
+        <activity
+            android:name=".pref.SettingsActivity"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".pref.PropertiesActivity"
+            android:theme="@style/AppTheme" />
+
+        <service android:name=".main.other.MonitorService"/>
+        <service android:name=".DSProService" />
+        <service android:name=".DSProProxyService" />
+        <service android:name=".MutexLoggerService" />
+        <service android:name=".main.peers.NMSProxyService"/>
+
+    </application>
+
+</manifest>

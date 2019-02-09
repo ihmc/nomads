@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/mp/model" 
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" 
+    targetNamespace="http://th.dod.mil/core/mp/model"
+    elementFormDefault="qualified"
+    jaxb:version="2.1">
+    
+      <xs:simpleType name="FlagEnum">
+          <xs:annotation>
+            <xs:documentation>
+                Enumerations used for setting the flag values for the 'characteristics of mission programs'.
+            </xs:documentation>
+          </xs:annotation>
+          <xs:restriction base="xs:string">
+              <xs:enumeration value="withInterval" />
+              <xs:enumeration value="withImageCapture" />
+              <xs:enumeration value="withSensorTrigger" />
+              <xs:enumeration value="withTimerTrigger" />
+              <xs:enumeration value="withPanTilt" />              
+          </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType name="ScheduleEnum">
+          <xs:annotation>
+            <xs:documentation>
+                Enumeration for flag values contained within the mission's schedule.
+            </xs:documentation>
+          </xs:annotation>
+          <xs:restriction base="xs:string">
+              <xs:enumeration value="startImmediately" />
+              <xs:enumeration value="startAtRestart" />
+              <xs:enumeration value="withIndefiniteInterval" />
+              <xs:enumeration value="isActive" />
+          </xs:restriction>
+      </xs:simpleType> 
+  </xs:schema>

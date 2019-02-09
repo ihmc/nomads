@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/cbrnetrigger"
+  targetNamespace="http://th.dod.mil/core/types/cbrnetrigger"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+ 
+    <xs:simpleType name="CbrneModalityEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Modality of a CBRNE trigger sensor.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Fluorescence" />
+            <xs:enumeration value="Scattering" />
+            
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Enum does not cover modality, must specify a description in this case.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+ 
+    <xs:complexType name="CbrneModality">
+        <xs:attribute name="type" type="CbrneModalityEnum" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Standard modalities.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="description" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Description if other is specified or more details can be provided.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+ 
+</xs:schema>

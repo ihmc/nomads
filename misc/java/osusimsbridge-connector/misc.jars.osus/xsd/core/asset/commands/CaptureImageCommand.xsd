@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil" 
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:image="http://th.dod.mil/core/types/image"
+    xmlns:spatial="http://th.dod.mil/core/types/spatial"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types/image" schemaLocation="../../types/image/ImageTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include>
+
+    <xs:element name="captureImageCommand" type="CaptureImageCommand"/>
+    <xs:complexType name="CaptureImageCommand">
+        <xs:annotation>
+            <xs:documentation>CaptureImageCommand is used to command a capable asset to capture an image.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">
+                <xs:sequence>
+                    <xs:element name="camera" type="image:Camera" minOccurs="0" maxOccurs="1">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Indicates which camera to use for detection, not necessary to set if only one camera is
+                                available.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="areaOfInterest" type="image:CameraWindow" minOccurs="0" maxOccurs="1">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Tell the camera which portion of the full field of view to capture. If not given, use 
+                                previous value.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="burst" type="image:Burst" minOccurs="0" maxOccurs="1" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                Specified frequency for camera to take a burst of pictures. If not given, use previous
+                                value.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="imageCompression" type="image:Compression" minOccurs="0" maxOccurs="1" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                The compression setting for the camera (compression ratio or target file size). If not
+                                given, use previous value.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:choice minOccurs="0">
+                        <xs:element name="location" type="spatial:Coordinates" minOccurs="1" maxOccurs="1">
+                            <xs:annotation>
+                                <!-- Override the generated proto index. -->
+                                <xs:appinfo>index=6</xs:appinfo>
+                                <xs:documentation>
+                                    Coordinates of the location that the camera should point at.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="panTilt" type="spatial:OrientationOffset"  minOccurs="1" maxOccurs="1" >
+                            <xs:annotation>
+                                <!-- Override the generated proto index. -->
+                                <xs:appinfo>index=7</xs:appinfo>
+                                <xs:documentation>
+                                    The orientation that the camera should assume before capturing the image, values set should not be relative to the current
+                                    position, but rather new values in respect to constraints on the given types, relative to the platform. The orientation offset 
+                                    structure contains Azimuth (pan), Elevation (tilt),  and Bank (roll).  All fields are optional, therefore not all fields 
+                                    must be used, values which are not present (null) should be ignored by the camera.
+                                </xs:documentation>
+                           </xs:annotation>
+                        </xs:element>
+                    </xs:choice>
+                </xs:sequence>
+                <xs:attribute name="pictureType" type="image:PictureTypeEnum" use="optional">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The type of picture to be captured (area of interest or full field of view).
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+            <!-- TODO TH-4058: look at adding a configurable image resolution, don't make resolution selection stick 
+            (possibly add flag to make it stick). -->
+        </xs:complexContent>
+    </xs:complexType>
+
+</xs:schema>

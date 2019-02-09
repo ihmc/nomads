@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/chemical"
+  targetNamespace="http://th.dod.mil/core/types/chemical"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+ 
+    <xs:simpleType name="ChemicalCategoryEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Broad categories for chemical agents.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Taken from NATO ATP-45 - Table C-1, Chemical column.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:enumeration value="BlisterAgent" />
+            <xs:enumeration value="BloodAgent" />
+            <xs:enumeration value="ChokingAgent" />
+            <xs:enumeration value="GAgent" />
+            <xs:enumeration value="MustardAgent" />
+            <xs:enumeration value="IncapacitatingAgent" />
+            <xs:enumeration value="Irritant" />
+            <xs:enumeration value="NerveAgent" />
+            <xs:enumeration value="PenetratingAgent" />
+            <xs:enumeration value="ThickenAgent" />
+            <xs:enumeration value="ToxicIndustrialChemical" />
+            <xs:enumeration value="VAgent" />
+            <xs:enumeration value="VomitingAgent" />
+            
+            <!-- Other categories -->
+            <xs:enumeration value="Simulant">
+                <xs:annotation>
+                    <xs:documentation>
+                        Any detection of agent that simulates an active agent.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Enum does not cover category, must specify a description in this case.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+ 
+    <xs:complexType name="ChemicalCategory">
+        <xs:attribute name="type" type="ChemicalCategoryEnum" use="required">
+            <!-- standard categories -->
+        </xs:attribute>
+        <xs:attribute name="description" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Description if other is specified or more details can be provided.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:simpleType name="ChemicalAgentEnum">
+        <xs:annotation>
+            <xs:documentation>Specific chemical agents.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Taken from NATO ATP-45 - Table C-2, Chemical column.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:enumeration value="HydrogenCyanide" />
+            <xs:enumeration value="ThreeQuinuclidinylBenzilate" />
+            <xs:enumeration value="Phosgene" />
+            <xs:enumeration value="CyanogenChloride" />
+            <xs:enumeration value="PhosgeneOxime" />
+            <xs:enumeration value="DiPhosgene" />
+            <xs:enumeration value="Tabun" />
+            <xs:enumeration value="Sarin" />
+            <xs:enumeration value="Soman" />
+            <xs:enumeration value="CycloSarin" />
+            <xs:enumeration value="MustardDistilled" />
+            <xs:enumeration value="MustardLewisite" />
+            <xs:enumeration value="NitrogenMustard" />
+            <xs:enumeration value="TrimericMustard" />
+            <xs:enumeration value="Lewisite" />
+            <xs:enumeration value="Chloropicrin" />
+            <xs:enumeration value="Arsin" />
+            <xs:enumeration value="TearGas" />
+            <xs:enumeration value="VX" />
+            
+            <!-- Toxic industrial chemical agents in addition to those listed in NATO ATP-45 -->
+            <xs:enumeration value="HydrogenFluoride" />
+            <xs:enumeration value="HydrogenSulfide" />
+            <xs:enumeration value="Ammonia" />
+            <xs:enumeration value="SulfurDioxide" />
+            <xs:enumeration value="Chlorine" />
+            <xs:enumeration value="NitricAcid" />
+            <xs:enumeration value="HydrogenChloride" />
+            
+            <!-- Simulants -->
+            <xs:enumeration value="MethylSalicylate" />
+            <xs:enumeration value="DipropyleneGlycolMonomethylEther" />
+            
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Enum does not cover category, must specify a description in this case.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="ChemicalAgent">
+        <xs:attribute name="type" type="ChemicalAgentEnum" use="required">
+            <!-- standard agents -->
+        </xs:attribute>
+        <xs:attribute name="description" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Description if other is specified or more details can be provided.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+ 
+</xs:schema>

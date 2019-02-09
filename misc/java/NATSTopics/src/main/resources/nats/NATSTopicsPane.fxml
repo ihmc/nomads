@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import com.jfoenix.controls.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+
+<?import java.net.URL?>
+<BorderPane fx:id="_borderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="nats.NatsTopicsChooser">
+   <center>
+      <ScrollPane fx:id="_scrollPane" prefHeight="700.0" maxHeight="700.0" prefWidth="400.0" BorderPane.alignment="CENTER">
+         <content>
+            <VBox fx:id="_topicVBox" spacing="6.0" />
+         </content>
+      </ScrollPane>
+   </center>
+   <bottom>
+      <HBox maxWidth="-Infinity" spacing="10.0" BorderPane.alignment="TOP_RIGHT">
+         <children>
+            <JFXButton style="-fx-background-color: #436b95;" text="Clear choices" textFill="WHITE" fx:id="_clearBtn" />
+            <JFXButton style="-fx-background-color: #436b95;" text="Save and close" textFill="WHITE" fx:id="_saveBtn" />
+         </children>
+         <BorderPane.margin>
+            <Insets />
+         </BorderPane.margin>
+         <padding>
+            <Insets bottom="10.0" right="10.0" top="10.0" />
+         </padding>
+      </HBox>
+   </bottom>
+
+   <stylesheets>
+      <URL value="@style.css" />
+   </stylesheets>
+</BorderPane>

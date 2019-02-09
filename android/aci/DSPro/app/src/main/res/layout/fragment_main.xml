@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v4.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/background_dark"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginRight="15dp"
+            android:layout_marginTop="10dp"
+            android:layout_alignParentRight="true"/>
+
+        <LinearLayout
+            android:id="@+id/container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="15dp"
+            android:layout_marginBottom="15dp">
+
+            <TextView
+                android:id="@+id/tvBuildVersion"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:autoText="true"
+                android:singleLine="false"
+                android:text="@string/build_version"
+                android:textStyle="italic" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp">
+
+                <TextView
+                    android:id="@+id/tvSelectMode"
+                    style="@style/Text.Half.Header"
+                    android:text="@string/aci.dspro2app.selectMode_title" />
+
+                <Spinner
+                    android:id="@+id/spnSelectMode"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvSelectInterface"
+                    style="@style/Text.Half.Header"
+                    android:text="@string/aci.dspro2app.selectInterface_title" />
+
+                <Spinner
+                    android:id="@+id/spnSelectInterface"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvNodeUUID"
+                    style="@style/Text.Half.Header"
+                    android:text="@string/stats_node_uuid" />
+
+                <TextView
+                    android:id="@+id/tvNodeUUIDValue"
+                    style="@style/Text.Half.Value" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvTotalMem"
+                    style="@style/Text.Half.Header"
+                    android:text="@string/stats_total_memory_usage" />
+
+                <TextView
+                    android:id="@+id/tvTotalMemValue"
+                    style="@style/Text.Half.Value" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvMaxMem"
+                    style="@style/Text.Half.Header"
+                    android:text="@string/stats_max_memory_allowed" />
+
+                <TextView
+                    android:id="@+id/tvMaxMemValue"
+                    style="@style/Text.Half.Value" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvEncryptionHash"
+                    style="@style/Text.Half.Header"
+                    android:text="@string/stats_encryption_hash" />
+
+                <TextView
+                    android:id="@+id/tvEncryptionHashValue"
+                    style="@style/Text.Half.Value"
+                    android:text="@string/empty_encryption_key_hash"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvSessionKey"
+                    style="@style/Text.Header"
+                    android:text="@string/session_key" />
+
+                <EditText
+                    android:id="@+id/etSessionKey"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/aci.dspro.sessionKey_title_hint"
+                    android:inputType="text"
+                    android:paddingLeft="5dp"
+                    android:paddingRight="5dp"
+                    android:textSize="18dp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp">
+
+                <Button
+                    android:id="@+id/btnStart"
+                    style="@style/Button.Main"
+                    android:text="@string/button_start"
+                    android:textColor="@color/colorAccent"
+                    android:layout_marginRight="7dp"/>
+
+                <Button
+                    android:id="@+id/btnExit"
+                    style="@style/Button.Main"
+                    android:text="@string/button_exit"
+                    android:textColor="@android:color/black"
+                    android:layout_marginLeft="7dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <RelativeLayout
+            android:id="@+id/container_dev_opt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_below="@id/container"
+            android:paddingTop="70dp"
+            android:paddingBottom="80dp"
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp"
+            android:background="@drawable/shape_diagonal_dark_blue">
+
+            <TextView
+                android:id="@+id/dev_opt"
+                style="@style/Text.Title"
+                android:text="@string/developer_options"
+                android:layout_marginBottom="20dp"/>
+
+            <Button
+                android:id="@+id/btnShowLog"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentRight="true"
+                android:layout_alignTop="@id/spnLogLevel"
+                android:layout_alignBottom="@id/spnLogLevel"
+                android:layout_below="@id/dev_opt"
+                android:layout_gravity="center"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:background="@android:color/white"
+                android:textColor="@android:color/black"
+                android:text="@string/show_log" />
+
+            <Spinner
+                android:id="@+id/spnLogLevel"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_below="@id/dev_opt"
+                android:layout_toLeftOf="@id/btnShowLog"
+                android:layout_marginRight="10dp"/>
+
+            <Button
+                android:id="@+id/btnShowProperties"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/btnShowLog"
+                android:layout_marginTop="15dp"
+                android:background="@android:color/white"
+                android:textColor="@android:color/black"
+                android:text="@string/show_properties" />
+
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/tvPeerList"
+            style="@style/Text.Title"
+            android:text="@string/sPeerList"
+            android:visibility="invisible"
+            android:layout_margin="25dp"
+            android:layout_below="@id/container_dev_opt"/>
+
+        <ListView
+            android:id="@+id/peers_scroller"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvPeerList"/>
+
+        <TextView
+            android:id="@+id/tvDisServiceMon"
+            android:text="@string/sDisServiceMon"
+            style="@style/Text.Title"
+            android:layout_below="@id/peers_scroller"
+            android:layout_marginTop="15dp"/>
+
+        <android.support.design.widget.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvDisServiceMon"/>
+
+        <us.ihmc.android.aci.dspro.main.other.CustomViewPager
+            android:id="@+id/view_pager"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tab_layout"/>
+
+    </RelativeLayout>
+
+</android.support.v4.widget.NestedScrollView>

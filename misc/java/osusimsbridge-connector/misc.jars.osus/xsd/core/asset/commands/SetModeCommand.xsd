@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include> 
+  
+    <xs:element name="setModeCommand" type="SetModeCommand" />
+    <xs:complexType name="SetModeCommand">
+        <xs:annotation>
+            <xs:documentation>Sets the current mode of the asset.</xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">
+                <xs:sequence>
+                    <xs:element name="mode" type="shared:Mode" minOccurs="0" maxOccurs="1" />
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+  
+</xs:schema>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import java.net.*?>
+<?import com.jfoenix.controls.*?>
+<?import javafx.geometry.*?>
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import com.jfoenix.controls.JFXButton?>
+<?import javafx.geometry.Insets?>
+<?import java.net.URL?>
+
+<BorderPane maxWidth="800" prefWidth="800.0" style="-fx-background-color: #fff;" StackPane.alignment="CENTER" id="settings-border-pane" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="netlogger.controller.settings.MainSettingsController">
+        <bottom>
+            <HBox alignment="BOTTOM_RIGHT" spacing="11.0" BorderPane.alignment="BOTTOM_LEFT">
+                <children>
+                    <JFXButton fx:id="_applyBtn" buttonType="RAISED" style="-fx-background-color: #436b95;" text="Apply" textFill="WHITE" />
+                    <JFXButton fx:id="_revertBtn" buttonType="RAISED" style="-fx-background-color: #436b95;" text="Revert" textFill="WHITE" />
+                    <JFXButton fx:id="_saveCloseBtn" buttonType="RAISED" style="-fx-background-color: #436b95;" text="Save &amp; Close" textFill="WHITE" />
+                </children>
+                <BorderPane.margin>
+                    <Insets bottom="5.0" right="5.0" />
+                </BorderPane.margin>
+         <padding>
+            <Insets top="15.0" />
+         </padding>
+            </HBox>
+        </bottom>
+   <left>
+      <JFXTreeView fx:id="_settingTypesTreeView" prefHeight="200.0" prefWidth="200.0" showRoot="false" BorderPane.alignment="CENTER" />
+   </left>
+   <center>
+      <ScrollPane fx:id="_mainSettingsScrollPane" BorderPane.alignment="CENTER">
+         <content>
+            <VBox prefHeight="200.0" prefWidth="590.0" />
+         </content>
+      </ScrollPane>
+   </center>
+   <top>
+      <BorderPane BorderPane.alignment="CENTER">
+         <left>
+            <Label text="Settings" textFill="#7399c6" BorderPane.alignment="CENTER">
+               <font>
+                  <Font name="System Bold" size="18.0" />
+               </font>
+               <padding>
+                  <Insets left="8.0" />
+               </padding>
+            </Label>
+         </left>
+         <right >
+            <Button fx:id="_exitButton" mnemonicParsing="false" text="x" BorderPane.alignment="TOP_CENTER" styleClass="exitButton" />
+         </right>
+      </BorderPane>
+   </top>
+
+
+    <stylesheets>
+        <URL value="@../../css/settings-design.css" />
+    </stylesheets>
+</BorderPane>

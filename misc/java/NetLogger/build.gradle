@@ -1,0 +1,88 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'application'
+
+group = 'us.ihmc.misc'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Required dependencies if able to download from maven repository
+
+    compile group: 'org.elasticsearch.client', name: 'elasticsearch-rest-client-sniffer', version: '6.2.3'
+    compile group: 'org.elasticsearch.client', name: 'transport', version: '6.2.3'
+    compile group: 'org.elasticsearch.client', name: 'elasticsearch-rest-high-level-client', version: '6.2.3'
+    compile group: 'org.reactfx', name: 'reactfx', version: '2.0-M5'
+    compile group: 'org.fxmisc.richtext', name: 'richtextfx', version: '0.8.1'
+    compile group: 'args4j', name: 'args4j', version: '2.0.25'
+
+    compile group: 'com.jfoenix', name: 'jfoenix', version: '8.0.4'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+
+    compile group: 'org.nd4j', name: 'nd4j-api', version: '0.8.0'
+
+    compile project(':databroker')
+    compile project(':natstopics')
+    compile project(':logger')
+
+    // If not able to download from maven repository, they're included in libs
+//    compile fileTree(dir: 'libs', include:['*.jar'])
+
+    // These two are not available on any remote repository, so they must be compiled)
+    //compile fileTree(dir: 'libs', include:['databroker.jar', 'natstopics.jar'])
+}
+
+
+mainClassName = 'netlogger.Launcher'
+
+
+// Create pathing jar because Windows is dumb and cannot use long class path names by default
+task pathingJar(type: Jar) {
+    appendix = 'pathing'
+    manifest {
+        attributes("Class-Path": configurations.runtime.collect {
+            it.getName()
+        }.join(' ') + ' ' + jar.archiveName )
+    }
+}
+
+
+applicationDistribution.from(pathingJar) { into "lib" }
+
+applicationDistribution.from("conf"){
+    include "*.properties"
+    into "conf"
+}
+
+startScripts {
+    doLast {
+        def winScriptFile  = file getWindowsScript()
+        def winFileText = winScriptFile.text
+
+        def unixFileText = unixScript.text
+
+        // Remove too-long-classpath and use pathing jar instead
+        winFileText = winFileText.replaceAll('set CLASSPATH=.*', 'rem CLASSPATH declaration removed.')
+        winFileText = winFileText.replaceAll('("%JAVA_EXE%" .* -classpath ")%CLASSPATH%(" .*)', '$1%APP_HOME%\\\\lib\\\\' + pathingJar.archiveName + '$2')
+        winFileText = winFileText.replaceAll('set CMD_LINE_ARGS=.*', 'set CMD_LINE_ARGS=-consoleLogLevel ERROR -fileLogLevel INFO -conf ../conf/netlogger.properties -logHome ../log')
+
+        unixFileText = unixFileText.replaceAll('APP_ARGS=.*', 'APP_ARGS=\"-consoleDebug ERROR -fileDebug INFO -logHome log\"')
+
+        winScriptFile.text = winFileText
+        unixScript.text = unixFileText
+    }
+}
+
+

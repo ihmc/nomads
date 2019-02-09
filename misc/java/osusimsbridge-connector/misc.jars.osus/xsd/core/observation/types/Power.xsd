@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:power="http://th.dod.mil/core/types/power"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/power" schemaLocation="../../types/power/PowerTypes.xsd" />
+
+  <xs:complexType name="Power">
+      <xs:sequence>
+          <xs:element name="classification" type="power:PowerClassification" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Classification of the power event
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="activePower" type="shared:PowerWatts" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Number in Watts (W) that represents the real power element
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="reactivePower" type="shared:VAR" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Number in Volt Ampere Reactive (VAR) that represents the imaginary power element
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="voltage"  type="shared:VoltageVolts" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Number in Volts (V) that represents the voltage of the real power element
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="current" type="shared:Amperes" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Number in Amperes (A) that represents the current of the real power element
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="loadActivePower" type="shared:PowerWatts" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Number in Watts (W) that represents the active power attributed to the specific load that 
+                        triggered the event
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="loadReactivePower" type="shared:VAR" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Number in Volt Ampere Reactive (VAR) that represents the reactive power attributed to the 
+                        specific load that triggered the event
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="loadCurrent" type="shared:Amperes" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Number in Amperes (A) that represents the current attributed to the specific load that 
+                        triggered the event
+                    </xs:documentation>
+                </xs:annotation>
+          </xs:element>
+          <xs:element name="source" type="power:PowerSource" minOccurs="1" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:attribute name="duration" type="shared:TimeWindowSeconds" use="required" >
+          <xs:annotation>
+              <xs:documentation>
+                  Duration in seconds of the event
+              </xs:documentation>
+          </xs:annotation>
+      </xs:attribute>
+  </xs:complexType>
+</xs:schema>

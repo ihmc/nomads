@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginLeft="10dp"
+    android:layout_marginRight="10dp">
+
+    <TextView
+        android:id="@+id/tv_peer_address"
+        style="@style/Text.Header.Monitor"
+        android:text="@string/peer_address"
+        android:layout_marginRight="10dp"/>
+
+    <TextView
+        android:id="@+id/peer_address"
+        style="@style/Text.MonitorValue"
+        android:layout_alignBaseline="@+id/tv_peer_address"
+        android:layout_alignBottom="@+id/tv_peer_address"
+        android:layout_toEndOf="@+id/tv_peer_address" />
+
+
+    <TextView
+        android:id="@+id/tv_peers_unicast_messages"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@id/tv_peer_address"
+        android:text="@string/peer_unicast_msg"
+        android:layout_marginRight="10dp" />
+
+    <TextView
+        android:id="@+id/peers_unicast_messages"
+        style="@style/Text.MonitorValue"
+        android:layout_alignBaseline="@+id/tv_peers_unicast_messages"
+        android:layout_alignBottom="@+id/tv_peers_unicast_messages"
+        android:layout_toEndOf="@+id/tv_peers_unicast_messages" />
+
+
+    <TextView
+        android:id="@+id/tv_peers_multicast_messages"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@id/tv_peers_unicast_messages"
+        android:text="@string/peer_multicast_msg"
+        android:layout_marginRight="10dp" />
+
+    <TextView
+        android:id="@+id/peers_multicast_messages"
+        style="@style/Text.MonitorValue"
+        android:layout_alignBaseline="@+id/tv_peers_multicast_messages"
+        android:layout_alignBottom="@+id/tv_peers_multicast_messages"
+        android:layout_toEndOf="@+id/tv_peers_multicast_messages" />
+
+
+</RelativeLayout>

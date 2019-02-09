@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types"
+    xmlns:image="http://th.dod.mil/core/types/image"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/image" schemaLocation="../../types/image/ImageTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include>
+  
+    <xs:element name="detectTargetCommand" type="DetectTargetCommand"/>
+    <xs:complexType name="DetectTargetCommand">
+      <xs:annotation>
+          <xs:documentation>
+            DetectTargetCommand is used to command a capable asset to capture an image based on target detection.
+          </xs:documentation>
+      </xs:annotation>
+      <xs:complexContent>
+          <xs:extension base="Command">    
+              <xs:sequence>
+                  <xs:element name="camera" type="image:Camera" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Indicates which camera to use for detection, not necessary to set if only one camera is 
+                            available.
+                        </xs:documentation>
+                    </xs:annotation>
+                  </xs:element>
+                  <xs:element name="triggerWindow" type="image:TriggerWindow" minOccurs="0" 
+                      maxOccurs="unbounded">
+                      <xs:annotation>
+                        <xs:documentation>
+                            The list of areas within the field of view to trigger motion detection.
+                        </xs:documentation>
+                      </xs:annotation>
+                  </xs:element>
+                  <xs:element name="areaOfInterest" type="image:CameraWindow" minOccurs="0" maxOccurs="1">
+                      <xs:annotation>
+                         <xs:documentation>
+                            The portion of the window to use to detect and capture images. If not given, use previous 
+                            value.
+                          </xs:documentation>
+                      </xs:annotation>
+                  </xs:element>
+                  <xs:element name="burst" type="image:Burst" minOccurs="0" maxOccurs="1" >
+                      <xs:annotation>
+                         <xs:documentation>
+                            Specified frequency for camera to take a burst of pictures. If not given, use previous 
+                            value.
+                          </xs:documentation>
+                      </xs:annotation>
+                  </xs:element>
+                  <xs:element name="imageCompression" type="image:Compression" minOccurs="0" maxOccurs="1" >
+                      <xs:annotation>
+                         <xs:documentation>
+                            The compression setting for the camera (compression ratio or target file size). If not 
+                            given, use previous value.
+                          </xs:documentation>
+                      </xs:annotation>
+                  </xs:element>            
+              </xs:sequence>
+              <xs:attribute name="detectionDurationMS" type="shared:positiveInt" use="optional">
+                  <xs:annotation>
+                      <xs:documentation>
+                            The millisecond duration to detect and capture images.
+                      </xs:documentation>
+                  </xs:annotation>
+              </xs:attribute>
+              <xs:attribute name="imageCaptureIntervalMS" type="shared:positiveInt" use="optional">
+                  <xs:annotation>
+                      <xs:documentation>
+                           The millisecond interval to capture and return images.
+                      </xs:documentation>
+                  </xs:annotation>
+              </xs:attribute>
+              <xs:attribute name="maxImages" type="shared:positiveInt" use="optional">
+                  <xs:annotation>
+                      <xs:documentation>
+                            The maximum number of images to capture in motion detection before exiting motion detection.
+                      </xs:documentation>
+                  </xs:annotation>
+              </xs:attribute>
+              <xs:attribute name="pictureType" type="image:PictureTypeEnum" use="optional">
+                <xs:annotation>
+                    <xs:documentation>
+                        The type of picture to be captured (area of interest or full field of view).
+                    </xs:documentation>
+                </xs:annotation>
+              </xs:attribute>
+          </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+</xs:schema>

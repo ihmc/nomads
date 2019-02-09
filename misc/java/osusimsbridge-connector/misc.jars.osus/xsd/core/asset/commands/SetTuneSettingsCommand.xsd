@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include> 
+  
+    <xs:element name="setTuneSettingsCommand" type="SetTuneSettingsCommand" />
+    <xs:complexType name="SetTuneSettingsCommand" >
+        <xs:annotation>
+            <xs:documentation>
+            Used to define the parameters of an RF tune settings.  This can be used to command RF sensors.              
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">
+                <xs:sequence>
+                    <xs:element name="channels" type="shared:positiveInt" minOccurs="1" maxOccurs="unbounded">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Channels that should be tuned.  If more than one channel, all changes will be 
+                                configured the same way.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="frequency" type="shared:FrequencyKhz" minOccurs="0"
+                        maxOccurs="1">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Frequency to tune the selected channels to.  If not set, use previous value.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="bandwidth" type="shared:FrequencyKhz" minOccurs="0"
+                        maxOccurs="1">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Bandwidth around the frequency where the upper frequency is one half the bandwidth plus
+                                the frequency element.  If not set, use previous value.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="mode" type="shared:Mode" minOccurs="0" maxOccurs="1">
+                        <xs:annotation>
+                            <xs:documentation>
+                                What mode to put the RF sensor in for the given channels, if not set
+                                will keep the same mode (e.g., if you want to just change the frequency).
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:sequence>
+                <xs:attribute name="sensitivity" type="shared:Sensitivity" use="optional">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Sensitivity level used by the RF sensor in determining the probability of false alarms.
+                            The higher the sensitivity value, the greater chance for false alarms.
+                        </xs:documentation>
+                     </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+</xs:schema>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:spatial="http://th.dod.mil/core/types/spatial"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+ 
+  <xs:complexType name="WaterQuality">
+    <xs:sequence>
+      <xs:element name="pH" type="shared:PH" minOccurs="0" maxOccurs="1" />
+      <xs:element name="dissolvedOxygen" type="shared:ConcentrationGramsPerLiter" minOccurs="0" maxOccurs="1" />
+      <xs:element name="electricalConductivity" type="shared:ConductivitySiemensPerMeter" minOccurs="0" maxOccurs="1" />
+      <xs:element name="oxydationReductionPotential" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1" />
+      <xs:element name="turbidity" type="shared:TurbidityNtu" minOccurs="0" maxOccurs="1" />
+      <xs:element name="temperature" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1" />
+      <xs:element name="chlorine" type="shared:ConcentrationGramsPerLiter" minOccurs="0" maxOccurs="1" />
+      <xs:element name="totalDisolvedSolid" type="shared:ConcentrationGramsPerLiter" minOccurs="0" maxOccurs="1" />
+      <xs:element name="salinity" type="shared:SalinityPsu" minOccurs="0" maxOccurs="1" />
+      <xs:element name="specificGravity" type="shared:SpecificGravity" minOccurs="0" maxOccurs="1" />
+      <xs:element name="waterFlowPressure" type="shared:PressureMillibars" minOccurs="0" maxOccurs="1" />
+      <xs:element name="langelierSaturationIndex" type="shared:LangelierSaturationIndex" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

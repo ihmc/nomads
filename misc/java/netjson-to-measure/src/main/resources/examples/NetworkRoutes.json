@@ -1,0 +1,16 @@
+{
+  "type": "NetworkRoutes",
+  "protocol": "olsrv2",
+  "version": "0.8.2",
+  "revision": "v0.8.2-6-ge2e3acc",
+  "metric": "ff_dat_metric",
+  "router_id": "192.168.0.101",
+  "routes": [
+    {
+      "destination": "192.168.0.102",
+      "next": "169.254.1.102",
+      "cost": 4292352,
+      "device": "eth1"
+    }
+  ]
+}

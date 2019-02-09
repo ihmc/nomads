@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+    targetNamespace="http://th.dod.mil/core/observation/types"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:shared="http://th.dod.mil/core/types"
+    xmlns:image="http://th.dod.mil/core/types/image"
+    xmlns:spatial="http://th.dod.mil/core/types/spatial"
+    elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/image" schemaLocation="../../types/image/ImageTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+ 
+    <xs:complexType name="ImageMetadata">
+        <xs:sequence>
+            <xs:element name="resolution" type="image:PixelResolution" minOccurs="0" maxOccurs="1" />
+            <xs:element name="samplesOfInterest" type="image:PixelRegion" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Regions of interest on the image.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maskSamplesOfInterest" type="shared:DigitalMedia" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Regions of interest on the image defined by a mask, the digital media must be an image, but 
+                        could be in a different format than the image being masked, the mask will be a monochrome 
+                        image (1 bit color depth), where each pixel value of 1 represents a pixel of interest.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="imager" type="image:Camera" minOccurs="1" maxOccurs="1" />
+            <xs:element name="exposureSettings" type="image:ExposureSettings" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Defines exposure settings including mode, time, aperture, and simulated film speed.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="motionDetectionWindow" type="image:CameraScene" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        The portion of the full field of view where motion is detected.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="imageCaptureReason" type="image:ImageCaptureReason" minOccurs="1" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Indicates what triggered the image capture.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="compressionRatio" type="image:Compression" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        The compression settings for the image.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="imageGeographicLocation" type="image:ImageGeoBoundingBox" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Projection of image onto the globe, where each corner of the image translates to geographic 
+                        location.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="captureTime" type="xs:dateTime" use="optional" />
+        <xs:attribute name="pictureType" type="image:PictureTypeEnum" use="optional" />
+        <xs:attribute name="focus" type="image:FocusType" use="optional" />
+        <xs:attribute name="zoom" type="image:ZoomType" use="optional" >
+            <xs:annotation>
+                <xs:documentation>
+                    The zoom magnification level.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="color" type="xs:boolean" use="optional" >
+            <xs:annotation>
+                <xs:documentation>
+                    True = color, False = BW
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="changedPixels" type="shared:percentage" use="optional" >
+            <xs:annotation>
+                <xs:documentation>
+                    The percentage of pixels within the motion detection window that changed.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="whiteBalance" type="image:WhiteBalanceEnum" use="optional" >
+            <xs:annotation>
+                <xs:documentation>
+                    The method the device uses to weight color channels.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+</xs:schema>

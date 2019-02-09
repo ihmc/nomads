@@ -1,0 +1,199 @@
+[
+  {
+    "nodemon": [
+      {
+        "name": "nodemon.host",
+        "description": "Host measures"
+      },
+      {
+        "name": "nodemon.network",
+        "description": "Network measures"
+      },
+      {
+        "name": "nodemon.traffic",
+        "description": "Traffic measures after splitting NetSensorContainers"
+      },
+      {
+        "name": "nodemon.disservice",
+        "description": "Disservice measures"
+      },
+      {
+        "name": "nodemon.mockets",
+        "description": "Mockets measures"
+      },
+      {
+        "name": "nodemon.netproxy_process",
+        "description": "NetProxy process measures"
+      },
+      {
+        "name": "nodemon.netproxy_addr_mapping",
+        "description": "NetProxy addr mapping measures"
+      },
+      {
+        "name": "nodemon.netproxy_proto_mapping",
+        "description": "NetProxy proto mapping measures"
+      },
+      {
+        "name": "nodemon.netproxy_link_desc",
+        "description": "NetProxy link description measures"
+      },
+      {
+        "name": "nodemon.netproxy_link_traffic",
+        "description": "NetProxy link traffic measures"
+      },
+      {
+        "name": "nodemon.network_interface",
+        "description": "Network Interface measures"
+      },
+      {
+        "name": "nodemon.rtt",
+        "description": "NetSensor RTT measures"
+      },
+      {
+        "name": "nodemon.iw",
+        "description": "NetSensor IW measures"
+      }
+    ]
+  },
+  {
+    "netsupervisor": [
+      {
+        "name": "netsupervisor.summary.subnet.link_description",
+        "description": "Topic for link descriptions about subnets"
+      },
+      {
+        "name": "netsupervisor.summary.group.link_description",
+        "description": "Topic for link descriptions about groups"
+      },
+      {
+        "name": "netsupervisor.summary.netproxy.link_description",
+        "description": "Topic for link descriptions about netproxies"
+      },
+      {
+        "name": "netsupervisor.summary.traffic",
+        "description": "Topic for traffic"
+      },
+      {
+        "name": "netsupervisor.aggregate.topology.node",
+        "description": "Node measures for consumpution by NetViewer"
+      },
+      {
+        "name": "netsupervisor.aggregate.topology.edge",
+        "description": "Edge measures for consumpution by NetViewer"
+      },
+      {
+        "name": "netsupervisor.health_message",
+        "description": "Health message topic"
+      }
+    ]
+  },
+  {
+    "snse":[
+      {
+        "name": "summary.local.host",
+        "description": "Host measures from local"
+      },
+      {
+        "name": "summary.local.traffic",
+        "description": "Traffic measures from local"
+      },
+      {
+        "name": "summary.local.network",
+        "description": "Network measures from local"
+      },
+      {
+        "name": "summary.local.group",
+        "description": "Group measures from local"
+      },
+      {
+        "name": "summary.local.group_member",
+        "description": "Group member measures from local"
+      },
+      {
+        "name": "summary.local.network_interface",
+        "description": "Network interface measures from local"
+      },
+      {
+        "name": "summary.local.packet_loss",
+        "description": "Packet loss measures from local"
+      },
+      {
+        "name": "summary.local.group_connection",
+        "description": "Group connection measures from local"
+      },
+      {
+        "name": "summary.local.mockets",
+        "description": "Mockets measures from local"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.host",
+        "description": "Host measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.traffic",
+        "description": "Traffic measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.network",
+        "description": "Network measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.group",
+        "description": "Group measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.group_member",
+        "description": "Group member measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.group_connection",
+        "description": "Group connection measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.packet_loss",
+        "description": "Packet loss measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.netproxy_process",
+        "description": "NetProxy process measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.netproxy_proto_mapping",
+        "description": "NetProxy proto mapping measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.topology_node",
+        "description": "Topology node from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.network_interface",
+        "description": "Network interface measures from the remote SNSEs"
+      },
+      {
+        "name": "summary.remote.*.*.*.*.mockets",
+        "description": "Mockets measures from the remote SNSEs"
+      }
+    ]
+  },
+  {
+    "federation":[
+      {
+        "name": "federation.measure.process",
+        "description": "Federation process measures"
+      },
+      {
+        "name": "federation.topology.node",
+        "description": "Federation connections with clients"
+      },
+      {
+        "name": "federation.data.tracking",
+        "description": "Tracking data as it moves through the system"
+      }
+    ]
+  },
+  {
+    "dspro": [
+
+    ]
+  }
+]

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <property name="LOG_HOME" value="log" />
+    <timestamp key="bySecond" datePattern="MM_dd_yyyy__HH_mm_ss"/>
+    <property name="PROGRAM_NAME" value="netlogger" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %chqosinitializer{90} - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_LOG" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/${PROGRAM_NAME}-${bySecond}.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %chqosinitializer{90} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="all">
+        <appender-ref ref="FILE_LOG" />
+        <appender-ref ref="STDOUT" />
+    </root>
+
+</configuration>

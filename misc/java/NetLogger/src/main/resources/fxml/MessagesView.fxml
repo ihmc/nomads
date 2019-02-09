@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXButton?>
+<?import com.jfoenix.controls.JFXChipView?>
+<?import com.jfoenix.controls.JFXRadioButton?>
+<?import com.jfoenix.controls.JFXTreeView?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Text?>
+
+<AnchorPane prefHeight="850" prefWidth="1420" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="netlogger.controller.MessagesController">
+    <children>
+        <HBox layoutX="48.0" layoutY="116.0" prefHeight="850.0" prefWidth="1380.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <children>
+                <VBox fx:id="_sideArea" maxWidth="200.0" prefHeight="850.0">
+                    <children>
+
+                        <JFXTreeView fx:id="_topicHierarchyView" prefHeight="450.0" prefWidth="300.0" />
+                    </children>
+                </VBox>
+                <VBox prefHeight="850.0">
+                    <children>
+                        <BorderPane prefWidth="200.0">
+                            <right>
+                                <TextField fx:id="_searchField" maxHeight="20" maxWidth="200" promptText="Search" BorderPane.alignment="CENTER" />
+                            </right>
+                            <left>
+                                <ScrollPane minHeight="60" minWidth="335.0" fx:id="_filterScrollPane">
+                                    <JFXChipView fx:id="_filterField" minWidth="320.0" BorderPane.alignment="CENTER" />
+                                </ScrollPane>
+                            </left>
+                            <VBox.margin>
+                                <Insets bottom="5.0" top="15.0" />
+                            </VBox.margin>
+                        </BorderPane>
+
+                        <StackPane fx:id="_listViewStackPane">
+                            <children>
+                                <ListView fx:id="_logListView" maxHeight="550.0" maxWidth="Infinity" prefHeight="550.0" prefWidth="1150" />
+                                <Text fx:id="_noMessagesText" fill="#979090" strokeType="OUTSIDE" strokeWidth="0.0" text="No messages!" />
+                            </children>
+                            <VBox.margin>
+                                <Insets bottom="20.0" />
+                            </VBox.margin>
+                        </StackPane>
+                        <HBox fx:id="_clearHBox" prefWidth="1150.0" spacing="12.0">
+                            <children>
+                                <JFXButton fx:id="_clearButton" buttonType="RAISED" ripplerFill="BLACK" style="-fx-background-color: #7399c6;" text="Clear all" textFill="WHITE" />
+                                <JFXRadioButton id="confirm-clear" fx:id="_confirmClear" text="Yes">
+                                    <toggleGroup>
+                                        <ToggleGroup fx:id="clearGroup" />
+                                    </toggleGroup>
+                                </JFXRadioButton>
+                                <JFXRadioButton id="deny-clear" fx:id="_declineClear" text="No" toggleGroup="$clearGroup" />
+                            </children>
+                            <VBox.margin>
+                                <Insets bottom="10.0" />
+                            </VBox.margin>
+                        </HBox>
+                    </children>
+                    <HBox.margin>
+                        <Insets left="10.0" />
+                    </HBox.margin>
+                </VBox>
+            </children>
+        </HBox>
+    </children>
+</AnchorPane>

@@ -1,0 +1,20 @@
+group 'us.ihmc'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    compile group: 'org.jdom', name: 'jdom2', version: '2.0.6'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
+    compile 'org.elasticsearch.client:elasticsearch-rest-high-level-client:6.2.3'
+    compile 'org.locationtech.spatial4j:spatial4j:0.6'
+    compile 'com.vividsolutions:jts:1.13'
+}

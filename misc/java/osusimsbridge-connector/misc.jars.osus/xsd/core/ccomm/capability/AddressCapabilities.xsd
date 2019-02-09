@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="capability.ccomm.core.th.dod.mil" 
+    targetNamespace="capability.ccomm.core.th.dod.mil" 
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:capability="capability.core.th.dod.mil"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    
+    <xs:import namespace="capability.core.th.dod.mil" schemaLocation="../../capability/BaseCapabilities.xsd" />
+    
+    <xs:element name="AddressCapabilities">
+        <xs:complexType >
+            <xs:complexContent>
+                <xs:extension base="capability:BaseCapabilities">
+                    <xs:attribute name="prefix" type="xs:string" use="required" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                Prefix describing the product of this address factory. Nominally, this description 
+                                should reflect the product type of the address. This prefix is then used to create 
+                                instances of the factory from a string to combination with an instance specific suffix.
+                                Similar to a URL where this prefix would be the protocol.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+        
+ </xs:schema>

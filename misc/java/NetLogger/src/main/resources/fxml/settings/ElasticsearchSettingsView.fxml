@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXCheckBox?>
+<?import com.jfoenix.controls.JFXTextField?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="netlogger.controller.settings.ElasticsearchSettingsController">
+   <children>
+      <VBox spacing="15.0">
+         <children>
+            <VBox>
+               <children>
+                  <HBox spacing="5.0">
+                     <children>
+                        <Label prefHeight="17.0" text="Elasticsearch Configuration">
+                           <font>
+                              <Font size="14.0" />
+                           </font>
+                        </Label>
+                        <Separator maxWidth="1000.0" prefHeight="22.0" prefWidth="252.0" />
+                     </children>
+                  </HBox>
+                  <VBox spacing="10.0">
+                     <children>
+                        <HBox layoutX="10.0" layoutY="10.0" spacing="17.0">
+                           <children>
+                              <Label text="Elasticsearch enabled:">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                                 <font>
+                                    <Font name="System Bold" size="12.0" />
+                                 </font>
+                              </Label>
+                              <JFXCheckBox mnemonicParsing="false" fx:id="_enabledCheck" text=" ">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                              </JFXCheckBox>
+                           </children>
+                        </HBox>
+                        <HBox spacing="17.0">
+                           <children>
+                              <Label text="Elasticsearch server:">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                                 <font>
+                                    <Font name="System Bold" size="12.0" />
+                                 </font>
+                                 <tooltip>
+                                    <Tooltip text="IP (or hostname) of the elasticsearch node to connect to" />
+                                 </tooltip>
+                              </Label>
+                              <JFXTextField fx:id="_hostText" prefHeight="25.0" prefWidth="200.0" text="127.0.0.1" />
+                           </children>
+                        </HBox>
+                        <HBox spacing="27.0">
+                           <children>
+                              <Label text="Elasticsearch port:">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                                 <font>
+                                    <Font name="System Bold" size="12.0" />
+                                 </font>
+                                 <tooltip>
+                                    <Tooltip text="Port of the server to connect to" />
+                                 </tooltip>
+                              </Label>
+                              <JFXTextField fx:id="_portText" prefHeight="25.0" prefWidth="200.0" text="9100" />
+                           </children>
+                        </HBox>
+                        <HBox spacing="9.0">
+                           <children>
+                              <Label text="Elasticsearch scheme:">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                                 <font>
+                                    <Font name="System Bold" size="12.0" />
+                                 </font>
+                                 <tooltip>
+                                    <Tooltip text="Protocol to use to connect to the Elasticsearch node. The only protocol that NetLogger is known to support is http" />
+                                 </tooltip>
+                              </Label>
+                              <JFXTextField fx:id="_schemeText" prefHeight="25.0" prefWidth="200.0" text="http" />
+                           </children>
+                        </HBox>
+                     </children>
+                     <VBox.margin>
+                        <Insets bottom="20.0" left="15.0" top="5.0" />
+                     </VBox.margin>
+                  </VBox>
+               </children>
+            </VBox>
+            <VBox>
+               <children>
+                  <HBox spacing="5.0">
+                     <children>
+                        <Label prefHeight="17.0" text="Elasticsearch Storage">
+                           <font>
+                              <Font size="14.0" />
+                           </font>
+                        </Label>
+                        <Separator maxWidth="1000.0" prefHeight="22.0" prefWidth="252.0" />
+                     </children>
+                  </HBox>
+                  <VBox spacing="10.0">
+                     <children>
+                        <HBox spacing="105.0">
+                           <children>
+                              <Label text="Storage interval:">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                                 <font>
+                                    <Font name="System Bold" size="12.0" />
+                                 </font>
+                                 <tooltip>
+                                    <Tooltip text="Stored measures will be sent after this time is reached or the maximum measures have been stored" />
+                                 </tooltip>
+                              </Label>
+                              <JFXTextField fx:id="_waitTimeText" prefHeight="25.0" prefWidth="75.0" text="10000" />
+                           </children>
+                        </HBox>
+                        <HBox spacing="11.0">
+                           <children>
+                              <Label text="Maximum stored before sending:">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                                 <font>
+                                    <Font name="System Bold" size="12.0" />
+                                 </font>
+                                 <tooltip>
+                                    <Tooltip text="Stored measures will be sent after they reach this maximum value or after the storage interval has passed" />
+                                 </tooltip>
+                              </Label>
+                              <JFXTextField fx:id="_countText" prefHeight="25.0" prefWidth="75.0" text="100" />
+                           </children>
+                        </HBox>
+                        <HBox spacing="44.0">
+                           <children>
+                              <Label text="Experiment type (optional):">
+                                 <HBox.margin>
+                                    <Insets top="5.0" />
+                                 </HBox.margin>
+                                 <font>
+                                    <Font name="System Bold" size="12.0" />
+                                 </font>
+                                 <tooltip>
+                                    <Tooltip text="The experiment type is an identifier to help determine what type of data this is." />
+                                 </tooltip>
+                              </Label>
+                              <JFXTextField fx:id="_typeText" prefHeight="25.0" prefWidth="200.0" text="stockbridge" />
+                           </children>
+                        </HBox>
+                     </children>
+                     <VBox.margin>
+                        <Insets bottom="20.0" left="15.0" top="5.0" />
+                     </VBox.margin>
+                  </VBox>
+               </children>
+            </VBox>
+         </children>
+         <padding>
+            <Insets left="20.0" right="20.0" top="5.0" />
+         </padding>
+      </VBox>
+   </children>
+</AnchorPane>

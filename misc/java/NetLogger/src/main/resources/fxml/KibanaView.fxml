@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.*?>
+<?import javafx.scene.text.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+
+<StackPane prefHeight="850.0" prefWidth="1380.0" fx:id="_stackPane" fx:controller="netlogger.controller.KibanaViewController"
+                 xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+     <children>
+        <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0" spacing="25.0" fx:id="_contentVBox" StackPane.alignment="CENTER">
+           <children>
+              <Text fill="#436b95FF" strokeType="OUTSIDE" strokeWidth="0.0" text="Launch Kibana on specified url?">
+                 <font>
+                    <Font name="System Bold" size="18.0" />
+                 </font>
+              </Text>
+              <JFXTextField fx:id = "_urlTextField" text="http://128.49.235.115:5601" maxWidth="250.0" />
+              <JFXButton buttonType="RAISED" ripplerFill="BLACK" style="-fx-background-color: #436b95;" text="Launch" textFill="WHITE" fx:id="_launchBtn">
+                 <font>
+                    <Font size="14.0" />
+                 </font>
+              </JFXButton>
+           </children>
+        </VBox>
+     </children>
+</StackPane>

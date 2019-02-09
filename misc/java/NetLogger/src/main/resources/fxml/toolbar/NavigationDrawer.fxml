@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXDrawer?>
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.Cursor?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<JFXDrawer fx:id="_drawer" id="navigation-drawer" defaultDrawerSize="300.0"
+           xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="netlogger.controller.NavigationDrawerController">
+    <VBox fx:id="_vBox" spacing="10">
+        <Label fx:id="_logLabel" styleClass="side-menu-list-item" text="Logs">
+            <cursor>
+                <Cursor fx:constant="HAND" />
+            </cursor>
+        </Label>
+        <Label fx:id="_logVisualizationLabel" styleClass="side-menu-list-item" text="Tracking">
+            <cursor>
+                <Cursor fx:constant="HAND" />
+            </cursor>
+        </Label>
+        <Label fx:id="_kibanaLabel" styleClass="side-menu-list-item" text="Kibana">
+            <cursor>
+                <Cursor fx:constant="HAND" />
+            </cursor>
+        </Label>
+        <Label fx:id="_elasticsearchLabel" styleClass="side-menu-list-item" text="Elasticsearch">
+            <cursor>
+                <Cursor fx:constant="HAND" />
+            </cursor>
+        </Label>
+      <padding>
+         <Insets left="15.0" top="5.0" />
+      </padding>
+    </VBox>
+
+    <stylesheets>
+        <URL value="@../../css/navigation-design.css" />
+    </stylesheets>
+</JFXDrawer>

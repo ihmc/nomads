@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" elementFormDefault="qualified"
+    jaxb:version="2.1">
+    <!-- All commands from the namespace must be included here so that other schemas that need access to multiple commands 
+        from outside of this namespace are able to.  Basically most parsers will only allow one import for a namespace, therefore this
+        master xsd can include all the commands because it is in the same namespace as the commands, and then this master schema
+        can be imported outside of the namespace.-->
+    <xs:include schemaLocation="CaptureImageCommand.xsd"></xs:include>
+    <xs:include schemaLocation="ConfigureProfileCommand.xsd"></xs:include>
+    <xs:include schemaLocation="CreateActionListCommand.xsd"></xs:include>
+    <xs:include schemaLocation="DetectTargetCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetCameraSettingsCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetLiftCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetModeCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetPanTiltCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetPointingLocationCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetPositionCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetProfilesCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetTuneSettingsCommand.xsd"></xs:include>
+    <xs:include schemaLocation="GetVersionCommand.xsd"></xs:include>
+    <xs:include schemaLocation="SetCameraSettingsCommand.xsd"></xs:include>
+    <xs:include schemaLocation="SetLiftCommand.xsd"></xs:include>
+    <xs:include schemaLocation="SetModeCommand.xsd"></xs:include>
+    <xs:include schemaLocation="SetPanTiltCommand.xsd"></xs:include>
+    <xs:include schemaLocation="SetPointingLocationCommand.xsd"></xs:include>
+    <xs:include schemaLocation="SetPositionCommand.xsd"></xs:include>
+    <xs:include schemaLocation="SetTuneSettingsCommand.xsd"></xs:include>
+    <xs:include schemaLocation="StartRecordingCommand.xsd"></xs:include>
+    <xs:include schemaLocation="StopRecordingCommand.xsd"></xs:include>
+    <xs:include schemaLocation="TargetRefinementCommand.xsd"></xs:include>
+    <xs:include schemaLocation="ZeroizeCommand.xsd"></xs:include>
+        
+</xs:schema>

@@ -713,19 +713,19 @@
     <ClCompile Include="..\comm\netlogger\NetLogger.cpp">
       <Filter>Source Files\comm\netlogger</Filter>
     </ClCompile>
-    <ClCompile Include="..\comm\measure.pb.cpp">
-      <Filter>Source Files\comm</Filter>
-    </ClCompile>
-    <ClCompile Include="..\comm\subject.pb.cpp">
-      <Filter>Source Files\comm</Filter>
-    </ClCompile>
     <ClCompile Include="..\apps\Reset.cpp">
       <Filter>Source Files\apps</Filter>
     </ClCompile>
     <ClCompile Include="..\comm\udp\UDPAdaptor.cpp">
       <Filter>Source Files\comm\udp</Filter>
     </ClCompile>
-    <ClCompile Include="..\comm\subjects\disservice\disservice.pb.cpp">
+    <ClCompile Include="..\comm\measure.pb.cc">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\subject.pb.cc">
+      <Filter>Source Files\comm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\comm\subjects\disservice\disservice.pb.cc">
       <Filter>Source Files\comm</Filter>
     </ClCompile>
   </ItemGroup>

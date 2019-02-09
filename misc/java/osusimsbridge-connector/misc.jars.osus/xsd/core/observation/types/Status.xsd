@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:detection="http://th.dod.mil/core/types/detection"
+  xmlns:status="http://th.dod.mil/core/types/status"
+  xmlns:spatial="http://th.dod.mil/core/types/spatial"
+  elementFormDefault="qualified" jaxb:version="2.1">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/detection" schemaLocation="../../types/detection/DetectionTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/status" schemaLocation="../../types/status/StatusTypes.xsd" />
+  
+  <xs:complexType name="Status">
+    <xs:annotation>
+      <xs:documentation>
+        One of the primary types of observations that defines the status of an asset.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="summaryStatus" type="status:OperatingStatus" minOccurs="1" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                High level status for the asset.  See componentStatuses field for more details.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="componentStatuses" type="status:ComponentStatus" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="ambientStatus" type="status:AmbientStatus" minOccurs="0" maxOccurs="unbounded" />
+      
+      <xs:element name="batteryChargeLevel" type="status:BatteryChargeLevel" minOccurs="0" maxOccurs="1" />
+      <xs:element name="sensorRange" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Sensor range in meters.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="sensorFov" type="shared:fieldOfView" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Sensor field of view in degrees.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="internalArchiveStatus" type="status:InternalArchiveStatus" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Indicates the current state of storing data internally within the physical asset.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="temperature" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1" />
+      <xs:element name="batteryVoltage" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Battery voltage of unit in volts.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="powerConsumption" type="shared:PowerWatts" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                The power consumption of the unit in watts.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <!-- TODO TH-4061: Replace voltages below with something more generic in 2.0 -->
+      <xs:element name="analogAnalogVoltage" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Analog voltage on Analog Board in volts.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="analogDigitalVoltage" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Digital voltage on Analog Board in volts.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="analogMagVoltage" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Mag power supply voltage on Analog Board in volts.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="algorithmStatus" type="AlgorithmStatus" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+            <!-- Override the generated proto index. -->
+            <xs:appinfo>index=16</xs:appinfo>
+            <xs:documentation>
+                Status information about the algorithms running on the asset.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+
+    <xs:attribute name="assetOnTimeMs" type="xs:int" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                The elapsed time since the asset was turned on.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="nextStatusDurationMs" type="shared:positiveInt" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                The duration in milliseconds until the next expected Status observation will be sent.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="AlgorithmStatus">
+    <xs:annotation>
+      <xs:documentation>
+          Status information for an algorithm.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+        <xs:element name="lowFrequencyCutoff" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1" >
+          <xs:annotation>
+            <xs:documentation>
+                3dB low cutoff frequency of the channel or internal filter associated with the algorithm. This
+                provides a fusion algorithm the ability to know whether certain expected tones are not reported
+                because they are not present, or because they are outside the cutoff frequencies of the algorithm
+                doing the reporting.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="highFrequencyCutoff" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1" >
+          <xs:annotation>
+            <xs:documentation>
+                3dB high cutoff frequency of the channel or internal filter associated with the algorithm.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="detectionStatusInfo" type="DetectionStatusInfo" minOccurs="0" maxOccurs="unbounded">
+        </xs:element>
+    </xs:sequence>
+    <xs:attribute name="algorithmId" type="xs:string">
+      <xs:annotation>
+        <xs:documentation>
+            String identifying the algorithm. SHOULD be human readable. If multiple algorithms are running on an asset
+            the algorithms MUST have different IDs.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="sampleRateKHz" type="xs:float">
+      <xs:annotation>
+        <xs:documentation>
+            Sampling rate used by the algorithm. This allows a fusion algorithm to more accurately interpret features such
+            as reported frequencies.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="probablityDetection" type="shared:percentage">
+      <xs:annotation>
+        <xs:documentation>
+            Probability that detections produced by the algorithm (across all supported target classifications) have an
+            underlying target (even of another classification) as a cause, rather than a false alarm from a nuisance source.
+            This allows a fusion algorithm to interpret the lack of detections. If the Prob. of detection is very high, the
+            lack of detection can be taken as strong evidence of no target.  If it is low, then the lack of detection is
+            only weak evidence.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="frameSizeSamples" type="shared:positiveInt">
+      <xs:annotation>
+        <xs:documentation>
+            Frame size in samples (coherent processing interval) used internally by the algorithm. This provides some
+            context for a fusion algorithm as to the range of reasonable results in the tone tracking features.  For
+            example, a speech algorithm with a 1/12th second frame size can track shorter duration tones than a 1/2
+            second vehicle algorithm.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="sensitivity" type="shared:percentage">
+      <xs:annotation>
+        <xs:documentation>
+            Configured sensitivity of the algorithm, with 0 being the least sensitive and 1 being the most sensitive.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="detectionInterval" type="xs:float">
+      <xs:annotation>
+        <xs:documentation>
+            Minimum time, in seconds, between detection messages. This can tell a fusion algorithm that detections
+            significantly longer than this many seconds apart are intermittent detections rather than continuous
+            detection of possibly the same event.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="signatureInterval" type="xs:float">
+      <xs:annotation>
+        <xs:documentation>
+            Time, in seconds, between feature messages. This can tell a fusion algorithm that feature report gaps
+            more than this many seconds apart are actually periods of no features, rather than normal gaps between
+            reports.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="DetectionStatusInfo">
+      <xs:annotation>
+        <xs:documentation>
+            Algorithm status information applicable to a particular target classification that can be detected by
+            an algorithm.
+        </xs:documentation>
+      </xs:annotation>
+      <xs:sequence>
+          <xs:element name="classificationType" type="detection:TargetClassificationType" minOccurs="0" maxOccurs="1" >
+            <xs:annotation>
+                <xs:documentation>
+                Target type that the status information is applicable to.
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="probablityOfDetection" type="shared:percentage" minOccurs="0" maxOccurs="1" >
+            <xs:annotation>
+                <xs:documentation>
+                Probability that detections produced by the algorithm for this target classification will have an
+                underlying target (even of another classification) as a cause, rather than a false alarm from a nuisance
+                source. This allows a fusion algorithm to interpret the lack of detections. If the Prob. of detection is
+                very high, the lack of detection can be taken as strong evidence of no target.  If it is low, then the
+                lack of detection is only weak evidence.
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="sensitivity" type="shared:percentage" minOccurs="0" maxOccurs="1" >
+            <xs:annotation>
+                <xs:documentation>
+                    Configured sensitivity of the algorithm for this particular target type,
+                    with 0 being the least sensitive and 1 being the most sensitive.
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+      </xs:sequence>
+  </xs:complexType>
+</xs:schema>

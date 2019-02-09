@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/spatial"
+  targetNamespace="http://th.dod.mil/core/types/spatial"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+  <!--Base spatial types-->
+  <xs:complexType name="DistanceMeters">
+    <xs:annotation>
+      <xs:documentation>
+        Measurement of distance in meters.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement"/>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="HeadingDegrees">
+    <xs:annotation>
+      <xs:documentation>
+        Angle on a plane parallel to the ground in degrees clockwise where zero degrees is true north. 
+        True north is close to, but different from, Magnetic North. This value is visualized as the 
+        left handed rotation around the z-axis (akin to yaw).
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+        <xs:minInclusive value="0.0" />
+        <xs:maxExclusive value="360.0" />
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="AzimuthDegrees">
+    <xs:annotation>
+      <xs:documentation>
+        Angle on a plane parallel to the platform in degrees clockwise where zero degrees is the
+        boresight of the platform.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+        <xs:minExclusive value="-180.0" />
+        <xs:maxInclusive value="180.0" />
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="DegreesPerSecond">
+    <xs:annotation>
+      <xs:documentation>
+          Angular velocity in degrees per second.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="ElevationDegrees">
+    <xs:annotation>
+      <xs:documentation>
+        Angle on a plane perpendicular to the ground (or platform depending on usage) and parallel to a
+        heading/azimuth of zero degrees. An angle of zero is parallel to the ground (or platform) and
+        positive value is an angle above parallel to the ground (or platform). This value is visualized 
+        as the right handed rotation around x-axis in degrees. (akin to pitch).
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+        <xs:minInclusive value="-90.0" />
+        <xs:maxInclusive value="90.0" />
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="BankDegrees">
+    <xs:annotation>
+      <xs:documentation>
+        Angle on a plane perpendicular to the ground (or platform depending on usage) and parallel to a
+        heading/azimuth of 90 degrees. An angle of zero is parallel to the ground (or platform) and 
+        positive value is an angle above parallel to the ground (or platform). This value is visualized 
+        as the right handed rotation around y-axis in degrees (akin to roll).
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+        <xs:minInclusive value="-180.0" />
+        <xs:maxInclusive value="180.0" />
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="LongitudeWgsDegrees">
+    <xs:annotation>
+      <xs:documentation>
+        WGS-84 coordinates east of the Prime Meridian. If the longitude is degrees west, it is negative
+        degrees east.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+        <xs:minInclusive value="-180.0" />
+        <xs:maxInclusive value="180.0" />
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="LatitudeWgsDegrees">
+    <xs:annotation>
+      <xs:documentation>
+        WGS-84 coordinates north of the Equator. If the latitude is degrees south, it is negative 
+        degrees north.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+        <xs:minInclusive value="-90.0" />
+        <xs:maxInclusive value="90.0" />
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="HaeMeters">
+    <xs:annotation>
+      <xs:documentation>
+        Meters above the WGS-84 ellipsoid. This is what a GPS receiver or INS will show.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:restriction base="shared:Measurement">
+        <xs:minInclusive value="-10000.0" />
+        <xs:maxInclusive value="50000.0" />
+      </xs:restriction>
+    </xs:simpleContent>
+  </xs:complexType>
+  
+  <xs:complexType name="Ellipse">
+    <xs:annotation>
+      <xs:documentation>
+        Curve on a plane surrounding two focal points such that a straight line drawn from one of the 
+        focal points to any point on the curve and then back to the other focal point has the same 
+        length for every point on the curve.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="semiMajorAxis" type="DistanceMeters" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Longest radius of the ellipse.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="semiMinorAxis" type="DistanceMeters" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Shortest radius of the ellipse.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="rotation" type="HeadingDegrees" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Rotation of the major axis.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <!--Composite spatial types-->
+  <xs:complexType name="Orientation">
+    <xs:annotation>
+      <xs:documentation>
+        Defines the direction component of a vector within a three dimensional geographic context.  All
+        measurements are relative to the ground.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="heading" type="HeadingDegrees" minOccurs="0" maxOccurs="1" />
+      <xs:element name="elevation" type="ElevationDegrees" minOccurs="0" maxOccurs="1" />
+      <xs:element name="bank" type="BankDegrees" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="OrientationOffset">
+    <xs:annotation>
+      <xs:documentation>
+        Defines the direction component of a vector within a three dimensional geographic context.  All
+        measurements are relative to the platform.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="azimuth" type="AzimuthDegrees" minOccurs="0" maxOccurs="1" />
+      <xs:element name="elevation" type="ElevationDegrees" minOccurs="0" maxOccurs="1" />
+      <xs:element name="bank" type="BankDegrees" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="OrientationRate">
+    <xs:annotation>
+      <xs:documentation>
+        Defines the rate of change of the direction component of a vector within a three dimensional geographic context.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="azimuth" type="DegreesPerSecond" minOccurs="0" maxOccurs="1" />
+      <xs:element name="elevation" type="DegreesPerSecond" minOccurs="0" maxOccurs="1" />
+      <xs:element name="bank" type="DegreesPerSecond" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="Coordinates">
+    <xs:annotation>
+      <xs:documentation>
+        Defines a three dimensional geographic point in space.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="longitude" type="LongitudeWgsDegrees" minOccurs="1" maxOccurs="1" />
+      <xs:element name="latitude" type="LatitudeWgsDegrees" minOccurs="1" maxOccurs="1" />
+      <xs:element name="altitude" type="HaeMeters" minOccurs="0" maxOccurs="1" />
+      <xs:element name="ellipseRegion" type="Ellipse" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Area defined by an ellipse where the center point of the ellipse is the given longitude, latitude and 
+            altitude using WGS-84 coordinate system.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="TrackElement">
+    <xs:annotation>
+      <xs:documentation>
+        Optionally defines the location, orientation, and speed of a target at a specific time.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="location" type="Coordinates" minOccurs="0" maxOccurs="1" />
+      <xs:element name="speed" type="shared:SpeedMetersPerSecond" minOccurs="0" maxOccurs="1" />
+      <xs:choice minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>
+            Orientation should be used over orientation offset if possible.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:element name="orientation" type="Orientation" minOccurs="1" maxOccurs="1" />
+        <xs:element name="orientationOffset" type="OrientationOffset" minOccurs="1" maxOccurs="1" />
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="timestamp" type="xs:dateTime" use="required" />
+  </xs:complexType>
+</xs:schema>

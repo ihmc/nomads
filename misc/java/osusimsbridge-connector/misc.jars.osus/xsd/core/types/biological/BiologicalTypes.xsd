@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/biological"
+  targetNamespace="http://th.dod.mil/core/types/biological"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+ 
+    <xs:complexType name="ColonyFormingUnits">
+        <xs:annotation>
+            <xs:documentation>Rough estimate of the number of viable bacteria or fungal cells in a sample. 
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="shared:Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="PlaqueFormingUnits">
+        <xs:annotation>
+            <xs:documentation>
+                Measure of the number of particles capable of forming plaques per unit volume. Typically used when 
+                measuring amount of a virus.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="shared:Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+  
+    <xs:simpleType name="BiologicalCategoryEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Broad categories for biological agents.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Taken from NATO ATP-45 - Table C-1, Biological column.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:enumeration value="Bacterial" />
+            <xs:enumeration value="Biological" />
+            <xs:enumeration value="Chlamydia" />
+            <xs:enumeration value="Rickettsiae" />
+            <xs:enumeration value="ToxicIndustrialBiological" />
+            <xs:enumeration value="Toxin" />
+            <xs:enumeration value="Viral" />
+            
+            <!-- Other categories. -->
+            <xs:enumeration value="Simulant">
+                <xs:annotation>
+                    <xs:documentation>
+                        Any detection of agent that simulates an active agent.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Enum does not cover category, must specify a description in this case.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+ 
+    <xs:complexType name="BiologicalCategory">
+        <xs:attribute name="type" type="BiologicalCategoryEnum" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Standard categories.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="description" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Description if other is specified or more details can be provided.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:simpleType name="BiologicalAgentEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Specific biological agents.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    Taken from NATO ATP-45 - Table C-2, Biological column. Additional agents found at http://emergency.cdc.gov/agent/agentlist.asp.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:enumeration value="BacillusAnthracis">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Anthrax.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="BrucellaSpp">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Brucella species, Brucellosis.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="VibrioCholerae">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Cholera.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="EscherichiaColi">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of E. coli O157:H7.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="RickettsiaTyphi">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Rickettsia prowazekii, Typhus fever.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="BurkholderiaMallei">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Glanders.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="BurkholderiaPseudomallei">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Melioidosis.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="YersiniaPestis">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Plague.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CoxiellaBurnetii">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Q fever.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="RickettsiaRickettsii" />
+            <xs:enumeration value="SalmonellaSpp">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Salmonella species, salmonellosis.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="OrientiaTsutsugamushi" />
+            <xs:enumeration value="ShigellaDysenteriae">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Shigellosis, Shigella.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="FrancisellaTularensis">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Tularemia.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="SalmonellaTyphi">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Typhoid fever.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="JuninVirus" />
+            <xs:enumeration value="MachupoVirus" />
+            <xs:enumeration value="ChikungunyaVirus" />
+            <xs:enumeration value="CrimeanCongoHemorrhagicFeverVirus" />
+            <xs:enumeration value="EbolaVirus">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Ebola virus hemorrhagic fever.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="EasternEquineEncephalomyelitisVirus">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Viral encephalitis.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="EuropeanTickBorneEncephalitisVirus" />
+            <xs:enumeration value="InfluenzaVirus" />
+            <xs:enumeration value="Hantaviruses" />
+            <xs:enumeration value="LassaVirus">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Lassa fever.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="MarburgVirus" />
+            <xs:enumeration value="MonkeypoxVirus" />
+            <xs:enumeration value="OmskHemorrhagicFeverVirus" />
+            <xs:enumeration value="RiftValleyFeverVirus" />
+            <xs:enumeration value="Flaviviruses" />
+            <xs:enumeration value="VariolaVirus">
+                 <xs:annotation>
+                     <xs:documentation>
+                         The causitive agent of Vaccinia, Immunization surrogate for smallpox, Variola major.
+                     </xs:documentation>
+                 </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="VenezuelanEquineEncephalitisVirus">
+                 <xs:annotation>
+                     <xs:documentation>
+                         The causitive agent of Viral encephalitis.
+                     </xs:documentation>
+                 </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="WesternEquineEncephalitisVirus">
+                 <xs:annotation>
+                     <xs:documentation>
+                         The causitive agent of Viral encephalitis.
+                     </xs:documentation>
+                 </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="YellowFeverVirus" />
+            <xs:enumeration value="Aflatoxins" />
+            <xs:enumeration value="BotulinumToxins">
+                 <xs:annotation>
+                     <xs:documentation>
+                         The causitive agent of Clostridium botulinum toxin, Botulism.
+                     </xs:documentation>
+                 </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="ClostridiumPerfringensToxins">
+                 <xs:annotation>
+                     <xs:documentation>
+                         The causitive agent of Epsilon toxin
+                     </xs:documentation>
+                 </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Palytoxin" />
+            <xs:enumeration value="Ricins">
+                 <xs:annotation>
+                     <xs:documentation>
+                         The causitive agent of Ricinus communis, caster beans.
+                     </xs:documentation>
+                 </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Saxitoxins" />
+            <xs:enumeration value="StaphylococcalEnterotoxins" />
+            <xs:enumeration value="Tetradotoxin" />
+            <xs:enumeration value="TrichotheceneMycotoxins" />
+            
+                    
+            <xs:enumeration value="ArenaVirus" />
+            <xs:enumeration value="ChlamydiaPsittaci">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of psittacosis.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="NipahVirus" />
+            <xs:enumeration value="CryptosporidiumParvum" />
+            
+            <!-- Simulant agents -->
+            
+            <xs:enumeration value="BacillusGlobigii">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Sporulated bacteria simulant.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="ErwiniaHerbicola">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Vegetative cell simulant.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Ovalbumin">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Protein toxin simulant.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="MS2">
+                <xs:annotation>
+                    <xs:documentation>
+                        The causitive agent of Virus simulant.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Enum does not cover category, must specify a description in this case.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="BiologicalAgent">
+        <xs:attribute name="type" type="BiologicalAgentEnum" use="required">
+            <!-- standard agents -->
+        </xs:attribute>
+        <xs:attribute name="description" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Description if other is specified or more details can be provided.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+ 
+    <xs:simpleType name="BiologicalAssayResultEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Possible results of an immunoassay.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Positive" />
+            <xs:enumeration value="Negative" />
+            <xs:enumeration value="Error">
+                <xs:annotation>
+                    <xs:documentation>
+                        If an error is detected in a check channel.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="NotApplicable">
+                 <xs:annotation>
+                    <xs:documentation>
+                        Detections that are not a direct bio-assay.
+                    </xs:documentation>
+                 </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="NotRun">
+                <xs:annotation>
+                    <xs:documentation>
+                        Systems that can run a bio-assay, but chose not to for this detection.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+ 
+</xs:schema>

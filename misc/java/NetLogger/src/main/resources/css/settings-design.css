@@ -1,0 +1,113 @@
+.root {
+   -fx-focus-color: transparent;
+   -fx-faint-focus-color: transparent;
+
+    primary-color: #eee;
+    primary-light-color: #fff;
+    primary-dark-color: #bcbcbc;
+
+    secondary-dark-color: #436b95;
+    secondary-light-color: #a4caf9;
+    secondary-color: #7399c6;
+}
+
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track{
+    -fx-background-color:transparent;
+    -fx-border-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-border-radius:2em;
+}
+
+.scroll-bar:horizontal .increment-button ,
+.scroll-bar:horizontal .decrement-button {
+    -fx-background-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-padding:0 0 10 0;
+}
+
+.scroll-bar:vertical .increment-button ,
+.scroll-bar:vertical .decrement-button {
+    -fx-background-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-padding:0 10 0 0;
+}
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow{
+    -fx-shape:" ";
+    -fx-padding:0;
+}
+
+.scroll-bar:horizontal .thumb,
+.scroll-bar:vertical .thumb {
+    -fx-background-color:derive(black,90%);
+    -fx-background-insets: 2, 0, 0;
+    -fx-background-radius: 2em;
+}
+
+
+.tree-cell:selected{
+    -fx-background-color: #7399c6;
+    -fx-text-background-color: #fff ;
+}
+
+.tree-cell .selection-bar{
+    -fx-background-color: #436b95;
+}
+
+.tree-view .jfx-rippler{
+    -jfx-rippler-fill: #000;
+}
+
+.exitButton:hover{
+    -fx-background-color: #ff6f60;
+    -fx-text-fill: #fff;
+}
+
+.exitButton {
+    -fx-background-color: #fff;
+    -fx-text-fill: #000;
+}
+
+.hotkey-text-field{
+    -fx-display-caret: false;
+}
+
+/* Styling the slider track */
+.jfx-slider > .track {
+     -fx-background-color: #eee;
+}
+
+/* Styling the slider thumb */
+.jfx-slider > .thumb {
+     -fx-background-color: #7399c6;
+}
+
+/* Styling the filled track */
+.jfx-slider > .colored-track {
+     -fx-background-color: #a4caf9;
+}
+
+/* Styling the animated thumb */
+.jfx-slider .animated-thumb,
+.jfx-slider .animated-thumb:min{
+     -fx-background-color: #436b95;
+}
+
+/* Styling the slider value text inside animated thumb */
+.jfx-slider .slider-value {
+     -fx-fill: #eee;
+     -fx-stroke: #eee;
+}
+
+#settings-border-pane {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-box-border: transparent;
+}
+
+.jfx-check-box {
+    -jfx-checked-color: #436b95;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}

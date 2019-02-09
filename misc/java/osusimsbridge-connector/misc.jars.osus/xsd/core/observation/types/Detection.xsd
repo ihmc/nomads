@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+  xmlns:annox="http://annox.dev.java.net"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:detection="http://th.dod.mil/core/types/detection"
+  xmlns:spatial="http://th.dod.mil/core/types/spatial"
+  elementFormDefault="qualified"
+  jaxb:extensionBindingPrefixes="annox">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/detection" schemaLocation="../../types/detection/DetectionTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+ 
+  <xs:complexType name="TargetClassification">
+    <xs:sequence>
+      <xs:element name="type" type="detection:TargetClassificationType" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Target is classified as this type of target.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="confidenceFactors" type="shared:ConfidenceFactor" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+            <xs:documentation>
+                Probability that this target is actually the type it was classified as.  E.g., If this is 0.9, we would
+                expect 9 out of 10 of these detections to be of the reported type, and one to be of something else.
+                There can be multiple confidence factors per classification.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="probabilityFactors" type="shared:ProbabilityFactor" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+            <xs:documentation>
+                Probability that an actual target of this type with these characteristics would be accurately classified.
+                E.g., if this is 0.1, we would expect 9 missed classifications for each received classification with these
+                characteristics.
+                There can be multiple probability factors per classification.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:int" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                Number of potential targets detected for this type.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+ 
+  <xs:complexType name="Detection">
+    <xs:sequence>
+      <!-- TODO TH-4059: For 2.0 look at adding ConfidenceFactor for error, add here or Coordinate type? -->
+      <xs:element name="targetLocation" type="spatial:Coordinates" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Location of the detected target may be unknown if the asset has no GPS. The Ellipse represents Circular Error Probable, if available.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="targetClassifications" type="TargetClassification" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+            <xs:documentation>
+                There can be multiple classifications per detection. 0 if no classification performed.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="targetSpeed" type="shared:SpeedMetersPerSecond" minOccurs="0" maxOccurs="1" />
+      <xs:element name="targetRange" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" />
+      <xs:choice minOccurs="0">
+          <!-- TODO TH-4060: Change name to groundTrack and maybe remove the choice in 2.0 -->
+          <xs:element name="targetOrientation" type="spatial:Orientation" minOccurs="1" maxOccurs="unbounded">
+            <xs:annotation>
+                <xs:documentation>
+                    Target's ground track (global reference).
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <!-- TODO TH-4060: Remove this field and maybe remove the choice in 2.0 -->
+          <xs:element name="targetLob" type="spatial:OrientationOffset" minOccurs="1" maxOccurs="unbounded">
+            <xs:annotation>
+                <xs:appinfo>
+                    <annox:annotate annox:target="getter">
+                        <annox:annotate
+                          annox:class="java.lang.Deprecated">
+                        </annox:annotate>
+                    </annox:annotate>
+                </xs:appinfo>
+                <xs:documentation>
+                    The line of bearing to the detected target relative to the asset. Bank measurement will be ignored.
+                    This field should be avoided in favor of targetOrientation if global orientation is available to the 
+                    asset. Note: This field is deprecated and will be removed in 2.0
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+      </xs:choice>
+      <xs:element name="targetFrequency" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Frequency measured at the target.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="trackHistories" type="spatial:TrackElement" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+            <xs:documentation>
+                A track history of GPS coordinates complete with a timestamp
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="directionOfTravel" type="shared:Direction" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                The direction that the target is moving in the imager’s FOV.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="detectionProbability" type="detection:DetectionProbability" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <!-- Override the generated proto index. -->
+            <xs:appinfo>index=13</xs:appinfo>
+            <xs:documentation>
+                Probability that this detection had an underlying target (even of another classification) as a cause, rather than a false alarm from a nuisance source.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="targetLobGlobal" type="spatial:Orientation" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <!-- Override the generated proto index. -->
+            <xs:appinfo>index=14</xs:appinfo>
+            <xs:documentation>
+                The line of bearing to the detected target relative to true north.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="targetLobLocal" type="spatial:OrientationOffset" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <!-- Override the generated proto index. -->
+            <xs:appinfo>index=15</xs:appinfo>
+            <xs:documentation>
+                The line of bearing to the detected target relative to the sensor.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="detectionLength" type="shared:TimeWindowSeconds" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <!-- Override the generated proto index. -->
+            <xs:appinfo>index=16</xs:appinfo>
+            <xs:documentation>
+                How long the algorithm or sensor has been tracking this target.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="targetAngularVelocity" type="spatial:OrientationRate" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <!-- Override the generated proto index. -->
+            <xs:appinfo>index=17</xs:appinfo>
+            <xs:documentation>
+                Target movement as angular velocity relative to the position of the sensor. Useful for imaging and other sensors
+                that can track target movement but cannot determine linear velocity.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="targetRadialVelocityNormalized" type="shared:percentPerSecond" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <!-- Override the generated proto index. -->
+            <xs:appinfo>index=18</xs:appinfo>
+            <xs:documentation>
+                Estimate of the target's motion towards or away from the sensor with 1 meaning the distance is halved.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:choice minOccurs="0">
+          <xs:element name="acousticSignature" type="detection:AcousticSignature" minOccurs="1" maxOccurs="1" >
+            <xs:annotation>
+                <!-- Override the generated proto index. -->
+                <xs:appinfo>index=19</xs:appinfo>
+                <xs:documentation>
+                    Acoustic signature data for the target, if available.
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="seismicSignature" type="detection:SeismicSignature" minOccurs="1" maxOccurs="1" >
+            <xs:annotation>
+                <!-- Override the generated proto index. -->
+                <xs:appinfo>index=20</xs:appinfo>
+                <xs:documentation>
+                    Seismic signature data for the target, if available.
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="magneticSignature" type="detection:MagneticSignature" minOccurs="1" maxOccurs="1" >
+            <xs:annotation>
+                <!-- Override the generated proto index. -->
+                <xs:appinfo>index=21</xs:appinfo>
+                <xs:documentation>
+                    Magnetic signature data for the target, if available.
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="imagerSignature" type="detection:ImagerSignature" minOccurs="1" maxOccurs="1" >
+            <xs:annotation>
+                <!-- Override the generated proto index. -->
+                <xs:appinfo>index=22</xs:appinfo>
+                <xs:documentation>
+                    Imager signature data for the target, if available.
+                </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+      </xs:choice>
+    </xs:sequence>
+
+    <xs:attribute name="type" type="detection:DetectionTypeEnum" use="required" >
+        <xs:annotation>
+            <xs:documentation>
+                Type of detection observed.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="targetId" type="xs:string" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                Unique identifier of the detected target where the identifier only has to be unique to a particular 
+                asset instance not globally unique.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="targetName" type="xs:string" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                Human readable identifier, as specific to the target instance as possible, not guaranteed to be unique, 
+                and suitable for display purposes. For instance, if the target is an access point, the name could be the
+                SSID.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="targetCount" type="xs:int" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                The number of targets represented by this detection report (indicating multiple targets merged into a single report).
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="algorithmId" type="xs:string" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                ID of the algorithm that produced this detection. Should correspond with an algorithm ID in the asset's status
+                observations (status/algorithmStatus/algorithmId).
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+</xs:schema>

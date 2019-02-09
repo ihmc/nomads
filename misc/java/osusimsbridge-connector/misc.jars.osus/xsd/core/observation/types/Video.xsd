@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:image="http://th.dod.mil/core/types/image"
+  xmlns:video="http://th.dod.mil/core/types/video"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/image" schemaLocation="../../types/image/ImageTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/video" schemaLocation="../../types/video/VideoTypes.xsd" />
+
+  <xs:complexType name="VideoMetadata">
+    <xs:sequence>
+      <xs:element name="resolution" type="image:PixelResolution" minOccurs="0" maxOccurs="1" />
+      <xs:element name="samplesOfInterest" type="video:VideoSampleOfInterest" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="recorder" type="image:Camera" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+    <xs:attribute name="framesPerSecond" type="xs:double" use="optional" />
+    <xs:attribute name="startTime" type="xs:dateTime" use="optional" />
+    <xs:attribute name="endTime" type="xs:dateTime" use="optional" />
+    <xs:attribute name="zoom" type="xs:double" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                The zoom magnification level.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="color" type="xs:boolean" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                True = color, False = BW. 
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+</xs:schema>

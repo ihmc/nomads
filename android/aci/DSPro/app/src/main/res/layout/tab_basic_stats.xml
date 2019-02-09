@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="15dp">
+
+    <TextView
+        android:id="@+id/textMessagesPushed"
+        style="@style/Text.Header.Monitor"
+        android:text="@string/messagesPushed" />
+
+    <TextView
+        android:id="@+id/textBytesPushed"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@id/textMessagesPushed"
+        android:text="@string/bytesPushed" />
+
+    <TextView
+        android:id="@+id/textFragmentsPushed"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textBytesPushed"
+        android:text="@string/fragmentsPushed" />
+
+    <TextView
+        android:id="@+id/textFragmentBytesPushed"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textFragmentsPushed"
+        android:text="@string/fragmentBytesPushed" />
+
+    <TextView
+        android:id="@+id/textOdFragmentsSent"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textFragmentBytesPushed"
+        android:text="@string/odFragmentsSent" />
+
+    <TextView
+        android:id="@+id/textOdFragmentBytesSent"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textOdFragmentsSent"
+        android:text="@string/odFragmentBytesSent" />
+
+    <TextView
+        android:id="@+id/textMessagesReceived"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textOdFragmentBytesSent"
+        android:linksClickable="true"
+        android:text="@string/messagesReceived" />
+
+    <TextView
+        android:id="@+id/textBytesReceived"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textMessagesReceived"
+        android:text="@string/bytesReceived" />
+
+    <TextView
+        android:id="@+id/textFragmentsReceived"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textBytesReceived"
+        android:text="@string/fragmentsReceived" />
+
+    <TextView
+        android:id="@+id/textFragmentBytesReceived"
+        style="@style/Text.Header.Monitor"
+        android:layout_below="@+id/textFragmentsReceived"
+        android:text="@string/fragmentBytesReceived" />
+
+    <TextView
+        android:id="@+id/messagesPushed"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textMessagesPushed"
+        android:layout_toRightOf="@+id/textMessagesPushed" />
+
+    <TextView
+        android:id="@+id/bytesPushed"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textBytesPushed"
+        android:layout_toRightOf="@+id/textBytesPushed" />
+
+    <TextView
+        android:id="@+id/fragmentsPushed"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textFragmentsPushed"
+        android:layout_toRightOf="@+id/textFragmentsPushed" />
+
+    <TextView
+        android:id="@+id/fragmentBytesPushed"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textFragmentBytesPushed"
+        android:layout_toRightOf="@+id/textFragmentBytesPushed" />
+
+    <TextView
+        android:id="@+id/odFragmentsSent"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textOdFragmentsSent"
+        android:layout_toRightOf="@+id/textOdFragmentsSent" />
+
+    <TextView
+        android:id="@+id/odFragmentBytesSent"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textOdFragmentBytesSent"
+        android:layout_toRightOf="@+id/textOdFragmentBytesSent" />
+
+    <TextView
+        android:id="@+id/messagesReceived"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textMessagesReceived"
+        android:layout_toRightOf="@+id/textMessagesReceived" />
+
+    <TextView
+        android:id="@+id/bytesReceived"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textBytesReceived"
+        android:layout_toRightOf="@+id/textBytesReceived" />
+
+    <TextView
+        android:id="@+id/fragmentsReceived"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textFragmentsReceived"
+        android:layout_toRightOf="@+id/textFragmentsReceived" />
+
+    <TextView
+        android:id="@+id/fragmentBytesReceived"
+        style="@style/Text.MonitorValue"
+        android:layout_alignTop="@+id/textFragmentBytesReceived"
+        android:layout_toRightOf="@+id/textFragmentBytesReceived" />
+
+</RelativeLayout>

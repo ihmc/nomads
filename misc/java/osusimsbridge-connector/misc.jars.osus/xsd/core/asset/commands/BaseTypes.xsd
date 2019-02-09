@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"  
+  xmlns:shared="http://th.dod.mil/core/types"
+  targetNamespace="commands.asset.core.th.dod.mil"
+  elementFormDefault="qualified" jaxb:version="2.1">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  
+  
+  <xs:complexType name="Command" abstract="true">
+    <xs:sequence>
+        <xs:element name="reserved" type="shared:MapEntry" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+                <xs:documentation>
+                    This field is reserved for special circumstances.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+    </xs:sequence>
+    <xs:attribute name="sensorId" type="xs:string" use="optional" />
+  </xs:complexType>
+  <xs:complexType name="Response" abstract="true">
+      <xs:sequence>
+        <xs:element name="reserved" type="shared:MapEntry" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+                <xs:documentation>
+                    This field is reserved for special circumstances.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+    </xs:sequence>
+    <xs:attribute name="sensorId" type="xs:string" use="optional" />
+  </xs:complexType>
+  
+  </xs:schema>

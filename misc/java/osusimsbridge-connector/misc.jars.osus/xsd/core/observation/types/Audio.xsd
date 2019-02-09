@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:audio="http://th.dod.mil/core/types/audio"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/audio" schemaLocation="../../types/audio/AudioTypes.xsd" />
+
+  <xs:complexType name="AudioMetadata">
+    <xs:sequence>
+      <xs:element name="sampleOfInterest" type="audio:AudioSampleOfInterest" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="recorderType" type="audio:AudioRecorder" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+    <xs:attribute name="sampleRateKHz" type="xs:double" use="optional" />
+    <xs:attribute name="startTime" type="xs:dateTime" use="optional" />
+    <xs:attribute name="endTime" type="xs:dateTime" use="optional" />
+    <xs:attribute name="triggerTime" type="xs:dateTime" use="optional" />
+  </xs:complexType>
+</xs:schema>

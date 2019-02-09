@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:spatial="http://th.dod.mil/core/types/spatial"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" 
+        schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include>
+  
+    <xs:element name="setPanTiltCommand" type="SetPanTiltCommand"/>
+    <xs:complexType name="SetPanTiltCommand">
+        <xs:annotation>
+            <xs:documentation>Command the asset to change its orientation (pan/tilt) given the parameters.</xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">    
+                <xs:sequence>
+                    <xs:element name="panTilt" type="spatial:OrientationOffset"  minOccurs="1" maxOccurs="1" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                The orientation that the asset should assume, values set should not be relative to the current position, but 
+                                rather new values in respect to constraints on the given types, relative to the platform. The orientation offset 
+                                structure contains Azimuth (pan), Elevation (tilt),  and Bank (roll).  All fields are optional, therefore not all fields 
+                                must be used, values which are not present (null) should be ignored by the asset.
+                            </xs:documentation>
+                       </xs:annotation>
+                    </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+</xs:schema>

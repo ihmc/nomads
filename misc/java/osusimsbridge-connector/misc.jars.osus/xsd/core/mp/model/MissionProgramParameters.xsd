@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/mp/model" 
+    targetNamespace="http://th.dod.mil/core/mp/model"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" 
+    xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+    xmlns:shared="http://th.dod.mil/core/types" 
+    elementFormDefault="qualified"
+    jaxb:version="2.1">
+    <xs:include schemaLocation="MissionBaseType.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:element name="MissionProgramParameters">
+        <xs:complexType>
+            <xs:annotation>
+                <xs:documentation>
+                   This class holds the parameter values and a reference to a schedule 
+                   for Mission Program templates.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:sequence>
+                <xs:element name="templateName" type="xs:string" minOccurs="1" maxOccurs="1" >
+                    <xs:annotation>
+                        <xs:documentation>
+                             Mission Program template that will be used with the parameters.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="parameters" type="shared:MapEntry" minOccurs="0" maxOccurs="unbounded" >
+                    <xs:annotation>
+                        <xs:documentation>
+                            Key value pairs representing the variable values.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="schedule" type="MissionProgramSchedule" minOccurs="1" maxOccurs="1" />
+                <xs:element name="programName" type="xs:string" minOccurs="1" maxOccurs="1" >
+                    <xs:annotation>
+                        <xs:documentation>
+                            Name for the mission program created from this set of parameters and the identified 
+                            template.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+   </xs:element>
+  
+   <xs:complexType name="MissionProgramSchedule">
+       <xs:annotation>
+           <xs:documentation>
+               This class holds data pertaining to the scheduling of a mission
+               program. Programs can either start immediately or at a start time.
+               A program needs to have a stop time or be flagged to run indefinitely.
+               Active programs will be made into managed programs, schedules that signify
+               that a program is not active will not be a managed program, but will be
+               persisted and available upon request. A program that is flagged to execute
+               at reset will do so, but a program that is not and is flagged to run immediately 
+               or indefinitely will not restart upon a system reset.
+               - Note that a program marked as 'active' will be functional on a controller. Non-active
+               missions maybe held by secondary interfaces until ready to be active on an actual 
+               controller.                
+           </xs:documentation>
+       </xs:annotation>
+       <xs:sequence>
+           <xs:element name="active" type="xs:boolean" default="true" minOccurs="1" maxOccurs="1">
+               <xs:annotation>
+                    <xs:documentation>
+                        Represents if this mission schedule is active, please see MissionProgramSchedule doc.
+                    </xs:documentation>
+               </xs:annotation>
+           </xs:element>
+           <xs:element name="atReset" type="xs:boolean" default="false" minOccurs="1" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Represents if the program should execute upon reset of the system.
+                    </xs:documentation>
+                </xs:annotation>
+           </xs:element>
+           <xs:choice>
+               <xs:element name="immediately" type="xs:boolean" minOccurs="1" maxOccurs="1" >
+                   <xs:annotation>
+                        <xs:documentation>
+                            If the mission should be executed immediately.
+                        </xs:documentation>
+                   </xs:annotation>
+               </xs:element>
+               <xs:element name="startInterval" type="xs:dateTime" minOccurs="1" maxOccurs="1" >
+                   <xs:annotation>
+                       <xs:documentation>
+                            Start time the mission should begin executing.
+                       </xs:documentation>
+                   </xs:annotation>
+               </xs:element>
+           </xs:choice>
+           <xs:choice>
+               <xs:element name="indefiniteInterval" type="xs:boolean" minOccurs="1" maxOccurs="1" >
+                   <xs:annotation>
+                       <xs:documentation>
+                            If the mission should run indefinitely.
+                       </xs:documentation>
+                   </xs:annotation>
+               </xs:element>
+               <xs:element name="stopInterval" type="xs:dateTime" minOccurs="1" maxOccurs="1" >
+                   <xs:annotation>
+                       <xs:documentation>
+                           End time the mission should stop executing.
+                       </xs:documentation>
+                   </xs:annotation>
+               </xs:element>
+           </xs:choice>
+       </xs:sequence>
+    </xs:complexType>           
+</xs:schema>

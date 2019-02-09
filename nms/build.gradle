@@ -1,0 +1,84 @@
+group = 'us.ihmc.nms'
+version = '1.0-SNAPSHOT'
+
+buildscript {
+    ext.kotlin_version = '1.2.30'
+    repositories {
+        maven{
+            url 'http://www.mygrid.org.uk/maven/repository/'
+        }
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'kotlin'
+apply plugin: 'idea'
+apply plugin:'application'
+
+description = """NetworkMessageService"""
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+project.buildDir = 'lib'
+mainClassName = "us.ihmc.nms.NMSMonitorKt"
+
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Network Message Service',
+            'Implementation-Version': 0.1,
+            'Main-Class': mainClassName
+    }
+
+    baseName = project.name + '-all'
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } 
+    }{
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
+repositories {
+    mavenCentral()
+    maven{
+        url 'http://www.mygrid.org.uk/maven/repository/'
+    }
+}
+
+dependencies {
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
+    compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    compile project( ':util')
+    compile group: 'org.junit', name: 'junit5-api', version: '5.0.0-ALPHA'
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+}
+
+run {
+    /* Need to split the space-delimited value in the exec.args */
+    if(System.getProperty("exec.args") != null) {
+        args System.getProperty("exec.args").split()
+    }
+}
+
+compileKotlin {
+
+    dependsOn ':util:jar'
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}

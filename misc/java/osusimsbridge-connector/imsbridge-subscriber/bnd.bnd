@@ -1,0 +1,109 @@
+Private-Package: us.ihmc.cue.imsbridgesubscriber
+
+Service-Component: *
+
+Bundle-Version: 2.3.0
+Bundle-Vendor: IHMC
+Bundle-SymbolicName: IMSBridgeSubscriber
+Bundle-Description: This bundle receives data from the IMSBridge specified and attempts to convert it into an Observation.
+
+
+Include-Resource: ../libs
+
+Bundle-ClassPath: .,\
+apts-schemas-4.1.0.jar,\
+aci.jar,\
+guava-12.0.jar,\
+json-20090211_1.jar,\
+json.jar,\
+arl-sensors-0.0.2.jar,\
+phoenixutils.jar\
+#commons-codec-1.3.jar,\
+#geoCoordsConverter.jar,\
+jackson-annotations-2.4.0.jar,\
+jackson-core-2.4.4.jar,\
+jackson-databind-2.4.4.jar,\
+jackson-dataformat-msgpack-0.7.0-p7.jar,\
+linguafranca-0.1.jar,\
+kotlin-osgi-bundle-1.2.0.jar,\
+gson-2.8.0.jar,\
+lora-0.0.9.jar,\
+Java-WebSocket-1.3.8.jar,\
+msgpack-core-0.7.0-p7.jar,
+
+
+Import-Package: \
+	!javax.jms,\
+	!COM.claymoresystems.cert,\
+	!com.esotericsoftware.kryo,\
+	!org.apache.tomcat.jni,\
+	!org.bouncycastle.operator,\
+	!sun.reflect,\
+	!sun.security.x509,\
+	!sun.security.util,\
+	!org.dom4j.io,\
+	!org.jboss.marshalling,\
+	!org.dom4j,\
+	!org.codehaus.groovy.runtime.callsite,\
+	!org.codehaus.janino,\
+	!org.codehaus.groovy.runtime.typehandling,\
+	!org.codehaus.groovy.runtime,\
+	!org.bouncycastle.operator.jcajce,\
+	!org.codehaus.groovy.reflection,\
+	!org.codehaus.groovy.control,\
+	!javax.validation,\
+	!org.bouncycastle.cert.jcajce,\
+	!org.bouncycastle.cert,\
+	!org.apache.log4j,\
+	!mil.navy.nrlssc.dmap.nitf,\
+	!org.apache.commons.logging,\
+	!org.apache.commons.lang3.builder,\
+	!javax.validation.constraints,\
+	!mil.navy.nrlssc.dmap.gidbinterface,\
+	!cryptix.provider,\
+	!javax.comm,\
+	!javassist,\
+	!com.esotericsoftware.kryo.io,\
+	!com.jcraft.jzlib,\
+	!COM.claymoresystems.ptls,\
+	!COM.claymoresystems.sslg,\
+	!javax.mail.internet,\
+	!com.fasterxml.jackson.annotation,\
+	!us.ihmc.federation.proxy,\
+	!com.fasterxml.jackson.databind.annotation,\
+	!com.fasterxml.jackson.databind,\
+	!javax.mail,\
+	!arl.lora,\
+	!org.apache.commons.codec.binary,\
+	!org.msgpack,\
+	!org.apache.http.util,\
+	!uk.co.westhawk.snmp.pdu,\
+	!snmp,\
+	!org.msgpack.unpacker,\
+	!uk.co.westhawk.snmp.stack,\
+	!org.apache.http.client.methods,\
+	!org.json,\
+	!org.apache.http,\
+	!kotlin.reflect.*,\
+	!org.slf4j.*,\
+	*
+
+-buildpath: ../misc.jars.osus/lib/biz.aQute.bnd.annotation-3.1.0.jar;version=file, \
+../misc.jars.osus/lib/osgi.cmpn-5.0.0.jar;version=file, \
+../misc.jars.osus/lib/osgi.core-5.0.0.jar;version=file, \
+../misc.jars.osus/lib/mil.dod.th.core.api.jar;version=file, \
+lib/apts-schemas-4.1.0.jar;version=file, \
+lib/guava-12.0.jar;version=file, \
+lib/jackson-annotations-2.4.0.jar;version=file, \
+lib/jackson-core-2.4.4.jar;version=file, \
+lib/jackson-databind-2.4.4.jar;version=file, \
+lib/jackson-dataformat-msgpack-0.7.0-p7.jar;version=file, \
+lib/json-20090211_1.jar;version=file, \
+lib/json.jar;version=file, \
+lib/gson-2.8.0.jar;version=file,\
+lib/msgpack-core-0.7.0-p7.jar;version=file, \
+lib/org-apache-commons-codec.jar;version=file, \
+lib/phoenixutils.jar;version=file, \
+lib/arl-sensors-0.0.2.jar;version=file, \
+lib/linguafranca-0.1.jar;version=file,\
+lib/Java-WebSocket-1.3.8;version=file,\

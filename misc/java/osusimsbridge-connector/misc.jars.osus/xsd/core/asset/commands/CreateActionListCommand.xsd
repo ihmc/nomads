@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types" 
+    xmlns:spatial="http://th.dod.mil/core/types/spatial"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include>
+    
+    <xs:element name="createActionListCommand" type="CreateActionListCommand" />
+    <xs:complexType name="CreateActionListCommand">
+        <xs:annotation>
+            <xs:documentation>
+                Create a list of actions for an asset to perform.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">
+                <xs:sequence>
+                    <xs:element name="action" type="Action" minOccurs="1" maxOccurs="unbounded">
+                        <xs:annotation>
+                            <xs:documentation>
+                                Action to perform, actions are performed in the order they are listed.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    
+    <xs:complexType name="Action">
+        <xs:annotation>
+            <xs:documentation>
+                Action to perform. If no parameters are specified with the action type, the asset should attempt to use 
+                default settings if possible. Default values are defined by the asset and not all parameters will have a
+                default value. Therefore, consumers should attempt to set parameters unless it is known the parameters 
+                have safe defaults.
+                
+                Only the parameter field that matches with the given type attribute should be set.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:choice minOccurs="0" maxOccurs="1">
+            <xs:element name="takeoffParams" type="TakeoffParams" minOccurs="1" maxOccurs="1" />
+            <xs:element name="goToWaypointParams" type="GoToWaypointParams" minOccurs="1" maxOccurs="1" />
+            <xs:element name="changeOrientationParams" type="ChangeOrientationParams" minOccurs="1" maxOccurs="1" />
+            <xs:element name="collectDataParams" type="CollectDataParams" minOccurs="1" maxOccurs="1" />
+            <xs:element name="exfilDataParams" type="ExfilDataParams" minOccurs="1" maxOccurs="1" />
+            <xs:element name="waitParams" type="WaitParams" minOccurs="1" maxOccurs="1" />
+        </xs:choice>
+        <xs:attribute name="type" type="shared:ActionEnum">
+            <xs:annotation>
+                <xs:documentation>
+                    Type of action to perform. If the action has associated parameter(s), they are available
+                    through a field with the same name, but with "Params" at the end.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="TakeoffParams">
+        <xs:annotation>
+            <xs:documentation>
+                 Parameters associated with the Takeoff action.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="altitude" type="spatial:HaeMeters" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Initial desired altitude of the asset.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GoToWaypointParams">
+        <xs:annotation>
+            <xs:documentation>
+                 Parameters associated with the GoToWaypoint action.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="location" type="spatial:Coordinates" minOccurs="1" maxOccurs="1">
+                <!-- Geographical location of the waypoint. -->
+            </xs:element>
+            <xs:element name="speed" type="shared:SpeedMetersPerSecond" minOccurs="0" maxOccurs="1">
+                <!-- Speed of the asset used for maneuvering to the waypoint -->
+            </xs:element>
+            <xs:element name="waypointOrientation" type="spatial:Orientation" minOccurs="0" maxOccurs="1">
+                <!-- Orientation of the asset once it reaches the waypoint. Some assets might choose to change
+                    orientation as soon as travel towards waypoint begins. Other assets might wait until close to 
+                    the waypoint. The only requirement is that the asset is in the correct orientation when it 
+                    reaches the waypoint. -->
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ChangeOrientationParams">
+        <xs:annotation>
+            <xs:documentation>
+                 Parameters associated with the ChangeOrientation action.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="orientation" type="spatial:Orientation" minOccurs="1" maxOccurs="1">
+                <!-- Desired orientation of the asset. -->
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="CollectDataParams">
+        <xs:annotation>
+            <xs:documentation>
+                 Parameters associated with the CollectData action.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="maxDurationMs" type="shared:positiveLong" use="optional">
+            <!-- Maximum time to collect data from nearby source(s) in milliseconds. Even if not all data is collected, 
+                 the asset will move onto the next action after this duration. -->
+        </xs:attribute>
+        <xs:attribute name="timeoutMs" type="shared:positiveLong" use="optional">
+            <!-- Time to wait for initial data from nearby source(s) in milliseconds. If no data has been received when 
+                 this time expires, the asset will move onto the next action. -->
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="ExfilDataParams">
+        <xs:annotation>
+            <xs:documentation>
+                 Parameters associated with the ExfilData action.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="maxDurationMs" type="shared:positiveLong" use="optional">
+            <!-- Maximum time to exfil data to nearby target(s) in milliseconds. Even if not all data is collected, the
+                 asset will move onto the next action after this duration. -->
+        </xs:attribute>
+        <xs:attribute name="timeoutMs" type="shared:positiveLong" use="optional">
+            <!-- Time to wait for sending initial data to nearby target(s) in milliseconds. If no data has been sent when 
+                 this time expires, the asset will move onto the next action. -->
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="WaitParams">
+        <xs:annotation>
+            <xs:documentation>
+                 Parameters associated with the Wait action.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="durationMs" type="shared:positiveLong" use="required">
+            <!-- How long to wait at the current position in milliseconds. -->
+        </xs:attribute>
+    </xs:complexType>
+    
+</xs:schema>

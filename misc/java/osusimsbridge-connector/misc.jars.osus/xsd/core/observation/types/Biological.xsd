@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:biological="http://th.dod.mil/core/types/biological"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/biological" schemaLocation="../../types/biological/BiologicalTypes.xsd" />
+  
+  <xs:complexType name="Biological">
+        <xs:annotation>
+            <xs:documentation>
+                A biological agent detection that contains one or more entries of different detections.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="entries" type="BiologicalEntry" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+ 
+     <xs:complexType name="BiologicalEntry">
+        <xs:annotation>
+            <xs:documentation>
+                A single biological agent detection entry. Will be a single entry per agent/category.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="category" type="biological:BiologicalCategory" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Category the biological detection falls under. If sensor only knows agent, this will be empty.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="agent" type="biological:BiologicalAgent" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Agent the biological detection falls under. If sensor only knows category, this will be empty.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:choice minOccurs="0">
+                <xs:element name="concentration" type="shared:ConcentrationGramsPerLiter" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when concentration of agent is known, typically bacteria.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="cfus" type="biological:ColonyFormingUnits" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when CFUs of agent are known, typically bacteria.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="pfus" type="biological:PlaqueFormingUnits" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when PFUs of agent are known, typically virus. 
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="counts" type="shared:CountsPerTime" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when sensor produces counts of an agent.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="scaledSignalLevel" type="shared:percentage" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when sensor produces a signal level indicating the concentration of the agent. 0 means
+                            no detection of the agent, 1 means complete saturation of sensor.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:choice>
+            <xs:element name="alarm" type="shared:AlarmState" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Whether the sensor considers the agent to truly be present and the level.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="assayResult" type="biological:BiologicalAssayResultEnum" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Results of an immunoassay.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+</xs:schema>

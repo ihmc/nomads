@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="config.model.th.dod.mil"
+    targetNamespace="config.model.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types"
+    xmlns:ccomm="http://th.dod.mil/core/types/ccomm"
+    xmlns:remote="http://th.dod.mil/core/types/remote"
+    version="1.0.0">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../core/types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/ccomm" schemaLocation="../../core/types/ccomm/CustomCommTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/remote" schemaLocation="../../core/types/remote/RemoteTypes.xsd" />
+    
+    <xs:element name="Configurations">
+        <xs:complexType>
+            <xs:annotation>
+                <xs:documentation>Contains configurations to use to create/update factory objects, OSGi based 
+                configurations, and adding remote event registrations. This includes automatically creating assets and 
+                comms devices and setting their properties.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:sequence>
+                <xs:element name="factoryObjects" type="FactoryObjectConfig" minOccurs="0" maxOccurs="unbounded">
+                    <!-- Configuration of factory objects to create. -->
+                </xs:element>
+                <xs:element name="addresses" type="AddressConfig" minOccurs="0" maxOccurs="unbounded">
+                    <!-- Configuration of addresses to create. -->
+                </xs:element>
+                <xs:element name="osgiConfigs" type="PidConfig" minOccurs="0" maxOccurs="unbounded">
+                    <!-- OSGi based configurations. -->
+                </xs:element>
+                <xs:element name="eventRegs" type="EventConfig" minOccurs="0" maxOccurs="unbounded">
+                    <!-- Remote event registrations. -->
+                </xs:element>
+                <xs:element name="socketChannels" type="SocketChannelConfig" minOccurs="0" maxOccurs="unbounded">
+                    <!-- Socket channel configurations. -->
+                </xs:element>
+                <xs:element name="transportChannels" type="TransportChannelConfig" minOccurs="0" maxOccurs="unbounded">
+                    <!-- Transport channel configurations. -->
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    
+    <xs:simpleType name="FactoryTypeEnum">
+        <xs:annotation>
+            <xs:documentation>Type of factories that can be used to create factory objects.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Asset" />
+            <xs:enumeration value="LinkLayer" />
+            <xs:enumeration value="PhysicalLink" />
+            <xs:enumeration value="TransportLayer" />
+            <xs:enumeration value="StreamProfile" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="CreatePolicyEnum">
+        <xs:annotation>
+            <xs:documentation>Policy used when deciding whether to create a factory object.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="IfMissing">
+                <!-- Only create the factory object if missing. Matching is based on the same product type and name. -->
+            </xs:enumeration>
+            <xs:enumeration value="FirstRun">
+                <!-- Only create the factory object if running the system for the first time based on the firstRun 
+                     property. The firstRun property can be reset through configuration so items tagged as FirstRun are
+                     created again. -->
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="FactoryObjectConfig">
+        <xs:annotation>
+            <xs:documentation>Configuration data to create a factory object.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="factoryType" type="FactoryTypeEnum" minOccurs="1" maxOccurs="1">
+                <!-- The type of device the factory object represents. For example: an asset, link layer, or other
+                     comm layer. -->
+            </xs:element>
+            <xs:element name="properties" type="shared:StringMapEntry" minOccurs="0" maxOccurs="unbounded">
+                <!-- The factory will define the properties that are available through the metatype information. -->
+            </xs:element>
+            <xs:choice>
+                <xs:element name="productType" type="xs:string" minOccurs="1" maxOccurs="1">
+                    <!-- The fully qualified class name of the factory object if factoryType is not PhysicalLink. -->
+                </xs:element>
+                <xs:element name="physicalLinkType" type="ccomm:PhysicalLinkTypeEnum" minOccurs="1" maxOccurs="1">
+                    <!-- The type of PhysicalLink to create if factoryType is PhysicalLink. -->
+                </xs:element>
+            </xs:choice>
+            <xs:element name="createPolicy" type="CreatePolicyEnum" minOccurs="0" maxOccurs="1">
+                <!-- Policy for this particular factory object. If not specified, create if missing. -->
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required">
+            <!-- Name of the factory object to create. -->
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="AddressConfig">
+        <xs:annotation>
+            <xs:documentation>Configuration data to create an address.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="createPolicy" type="CreatePolicyEnum" minOccurs="0" maxOccurs="1">
+                <!-- Policy for this particular factory object. If not specified, create if missing. -->
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="addressDescription" type="xs:string" use="required">
+            <!-- Sting that describes the address. A message address consists of a factory prefix and an address 
+                 instance specific suffix where the format is defined by the address factory. Prefix and suffix
+                 are separated by a colon. See Address interface for more information. -->
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="PidConfig">
+        <xs:annotation>
+            <xs:documentation>Configuration data to use for an OSGi based configuration based on a persistent ID (PID).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:choice>
+                <xs:element name="factoryPid" type="xs:string" minOccurs="0" maxOccurs="1">
+                    <!-- If specified, create a configuration using this factory PID if the firstRun property is not set
+                         to true. -->
+                </xs:element>
+                <xs:element name="pid" type="xs:string" minOccurs="0" maxOccurs="1">
+                    <!-- If specified, set the configuration object using this PID with the supplied properties (given 
+                         the policy). -->
+                </xs:element>
+            </xs:choice>
+            <xs:element name="properties" type="shared:StringMapEntry" minOccurs="1" maxOccurs="unbounded">
+                <!-- Use these properties for the specified configuration. The factory will define the properties that 
+                     are available through meta type information. -->
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="EventConfig">
+        <xs:annotation>
+            <xs:documentation>Configuration data to use to add a Remote Event Registration. Remote events are 
+                OSGi Event Admin posted events that happen on the system that should be forwarded to another system
+                via the OSUS Remote Interface. These registrations are not persisted, therefore are only good for as 
+                long as the system is on and the entries are contained within the configs.xml, as the configs.xml is
+                read in each time the system restarts.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="eventTopics" type="xs:string" minOccurs="1" maxOccurs="unbounded">
+                <!--The OSGi Event Admin posted topics to register for. -->
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="eventFilter" type="xs:string" use="optional">
+            <!--The LDAP filter string to be applied to the above event topics. -->
+        </xs:attribute>
+        <xs:attribute name="canQueueEvent" type="xs:boolean" use="required">
+            <!-- If the SendEvent messages can be queued. If true than during system 
+                 disconnections the messages will be saved and sent when a connection to the remote 
+                 system is available again. -->
+        </xs:attribute>
+        <xs:attribute name="objectFormat" type="remote:LexiconFormatEnum" use="required" >
+            <!-- This field indicates the data format for lexicon based properties. -->
+        </xs:attribute>
+        <xs:attribute name="systemId" type="xs:int" use="required">
+            <!-- The ID of the system which is to receive the events. In order to receive 
+                 the event information an active remote channel between the systems must be available. -->
+        </xs:attribute>
+        <xs:attribute name="expirationTimeHours" type="xs:int" use="optional" default="168">
+            <!-- Expiration of event registration in hours. Default is 1 week (168 hours). -->
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="SocketChannelConfig">
+        <xs:annotation>
+            <xs:documentation>Configuration data to use to add a Socket Channel to the Remote Channel Lookup.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="host" type="xs:string" use="required">
+            <!-- Hostname or IP of the remote system the channel will connect to. -->
+        </xs:attribute>
+        <xs:attribute name="port" type="xs:int" use="optional" default="4000">
+            <!-- Port number the remote system will be listening on. -->
+        </xs:attribute>
+        <xs:attribute name="systemId" type="xs:int" use="required">
+            <!-- The ID of the remote system which the channel will connect to. -->
+        </xs:attribute>
+        <xs:attribute name="ssl" type="xs:boolean" use="optional" default="false">
+            <!-- Flag indicating whether SSL is enabled on the socket. -->
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="TransportChannelConfig">
+        <xs:annotation>
+            <xs:documentation>Configuration data to use to add a Transport Channel to the Remote Channel Lookup.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="transportLayerName" type="xs:string" use="required">
+            <!-- Name of the transport layer to use when sending/receiving data. -->
+        </xs:attribute>
+        <xs:attribute name="localAddress" type="xs:string" use="required">
+            <!-- Address of the local endpoint where data is sent from/comes in. -->
+        </xs:attribute>
+        <xs:attribute name="remoteAddress" type="xs:string" use="required">
+            <!-- Address of the remote endpoint where data goes to/comes from. -->
+        </xs:attribute>
+        <xs:attribute name="systemId" type="xs:int" use="required">
+            <!-- The ID of the remote system which the channel will connect to. -->
+        </xs:attribute>
+    </xs:complexType>
+</xs:schema>

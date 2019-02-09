@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" elementFormDefault="qualified"
+    jaxb:version="2.1">
+    <!-- All responses from the namespace must be included here so that other schemas that need access to multiple responses 
+        from outside of this namespace are able to.  Basically most parsers will only allow one import for a namespace, therefore this
+        master xsd can include all the responses because it is in the same namespace as the responses, and then this master schema
+        can be imported outside of the namespace.-->
+    <xs:include schemaLocation="CaptureImageResponse.xsd"></xs:include>
+    <xs:include schemaLocation="ConfigureProfileResponse.xsd"></xs:include>
+    <xs:include schemaLocation="CreateActionListResponse.xsd"></xs:include>
+    <xs:include schemaLocation="DetectTargetResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetCameraSettingsResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetLiftResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetModeResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetPanTiltResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetPointingLocationResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetPositionResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetProfilesResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetTuneSettingsResponse.xsd"></xs:include>
+    <xs:include schemaLocation="GetVersionResponse.xsd"></xs:include>
+    <xs:include schemaLocation="SetCameraSettingsResponse.xsd"></xs:include>
+    <xs:include schemaLocation="SetLiftResponse.xsd"></xs:include>
+    <xs:include schemaLocation="SetModeResponse.xsd"></xs:include>
+    <xs:include schemaLocation="SetPanTiltResponse.xsd"></xs:include>
+    <xs:include schemaLocation="SetPointingLocationResponse.xsd"></xs:include>
+    <xs:include schemaLocation="SetPositionResponse.xsd"></xs:include>
+    <xs:include schemaLocation="SetTuneSettingsResponse.xsd"></xs:include>
+    <xs:include schemaLocation="StartRecordingResponse.xsd"></xs:include>
+    <xs:include schemaLocation="StopRecordingResponse.xsd"></xs:include>
+    <xs:include schemaLocation="TargetRefinementResponse.xsd"></xs:include>
+    <xs:include schemaLocation="ZeroizeResponse.xsd"></xs:include>
+        
+</xs:schema>

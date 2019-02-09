@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:cbrnetrigger="http://th.dod.mil/core/types/cbrnetrigger"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/cbrnetrigger" 
+    schemaLocation="../../types/cbrnetrigger/CbrneTriggerTypes.xsd" />
+ 
+   <xs:complexType name="CbrneTrigger">
+        <xs:annotation>
+            <xs:documentation>
+                CBRNE trigger that may lead to further analysis.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="entries" type="CbrneTriggerEntry" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+ 
+     <xs:complexType name="CbrneTriggerEntry">
+        <xs:annotation>
+            <xs:documentation>
+                A single CBRNE trigger entry. Will be a single entry per modality.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="modality" type="cbrnetrigger:CbrneModality" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Modality of the trigger.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:choice minOccurs="0">
+                <xs:element name="counts" type="shared:CountsPerTime" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when sensor produces counts of a trigger.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="scaledSignalLevel" type="shared:percentage" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when sensor produces a signal level indicating amount. 0 means no detection, 1 means 
+                            complete saturation of sensor.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:choice>
+            <xs:element name="alarm" type="shared:AlarmState" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Whether the sensor considers the agent to truly be present and the level.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

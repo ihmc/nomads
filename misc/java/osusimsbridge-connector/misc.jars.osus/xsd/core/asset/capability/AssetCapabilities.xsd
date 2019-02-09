@@ -1,0 +1,760 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="capability.asset.core.th.dod.mil" 
+    targetNamespace="capability.asset.core.th.dod.mil" 
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types" 
+    xmlns:audio="http://th.dod.mil/core/types/audio"
+    xmlns:command="http://th.dod.mil/core/types/command"
+    xmlns:detection="http://th.dod.mil/core/types/detection"
+    xmlns:image="http://th.dod.mil/core/types/image"
+    xmlns:spatial="http://th.dod.mil/core/types/spatial"
+    xmlns:capability="capability.core.th.dod.mil"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/audio" schemaLocation="../../types/audio/AudioTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/command" schemaLocation="../../types/command/CommandTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/detection" schemaLocation="../../types/detection/DetectionTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/image" schemaLocation="../../types/image/ImageTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+    <xs:import namespace="capability.core.th.dod.mil" schemaLocation="../../capability/BaseCapabilities.xsd" />
+    
+    <xs:complexType name="PanTilt">
+        <xs:annotation>
+            <xs:documentation>
+               PanTilt capabilities describe the min/max values for changing the orientation (pan/tilt) of an asset.
+               If the asset does not support changing the orientation, this type should not be included in the
+               capabilities.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="minAzimuth" type="spatial:AzimuthDegrees" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the minimum pan value of the asset parallel to its platform in degrees clockwise, 
+                        where zero is the boresight of the platform.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxAzimuth" type="spatial:AzimuthDegrees" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the maximum pan value of the asset parallel to its platform in degrees clockwise, 
+                        where zero is the boresight of the platform.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="minElevation" type="spatial:ElevationDegrees" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the minimum tilt value of the asset perpendicular to its platform and parallel to its 
+                        azimuth. An angle of zero degrees is parallel to its platform, positive degrees are above the 
+                        platform, and negative degrees are below.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxElevation" type="spatial:ElevationDegrees" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the maximum tilt value of the asset perpendicular to its platform and parallel to its azimuth. An angle of zero 
+                        degrees is parallel to its platform, positive degrees are above the platform, and negative degrees are below.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="minBank" type="spatial:BankDegrees" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the minimum roll value of the asset perpendicular to its platform and parallel to an 
+                        azimuth of ninety degrees. An angle of zero is parallel to the platform and a positive value is 
+                        an angle above parallel to the ground (or platform). This value can be visualized as the right 
+                        handed rotation around y-axis in degrees.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxBank" type="spatial:BankDegrees" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the maximum roll value of the asset perpendicular to its platform and parallel to an 
+                        azimuth of ninety degrees. An angle of zero is parallel to the platform and a positive value 
+                        is an angle above parallel to the ground (or platform). This value can be visualized as the 
+                        right handed rotation around y-axis in degrees.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="azimuthSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    If the asset supports azimuth value changes.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="elevationSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    If the asset supports elevation value changes.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="bankSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    If the asset supports bank value changes.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+  
+    <xs:complexType name="Lift">
+        <xs:annotation>
+            <xs:documentation>
+               Lift capabilities describe the min/max values for a lift device such as a camera mast. If the asset does not
+               support lift functionality, this type should not be included in the capabilities.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="minHeight" type="spatial:DistanceMeters" minOccurs="1" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the minimum height of the lift in meters, relative to a zero point on the platform.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxHeight" type="spatial:DistanceMeters" minOccurs="1" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Describes the maximum height of the lift in meters, relative to a zero point on the platform.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="heightSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether the asset supports the height parameter in the SetLiftCommand
+                    (i.e. whether it can set itself to a new absolute position with respect to its zero point.)
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="heightOffsetSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether the asset supports the heightOffset parameter in the SetLiftCommand
+                    (i.e. whether it can set itself to a new position relative to its current position.)
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="upSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether the lift is capable of going up (increasing its height.)
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="downSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether the lift is capable of going down (decreasing its height.)
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="positionFeedbackSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether the lift provides position feedback information in response to a GetLiftCommand.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="highLimitFeedbackSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether the lift provides high-limit feedback information in response to a GetLiftCommand.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="lowLimitFeedbackSupported" type="xs:boolean" use="required" >
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether the lift provides low-limit feedback information in response to a GetLiftCommand.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="CameraSettingsParameters">        
+        <xs:attribute name="minFocus" type="image:FocusType" use="optional" />
+        <xs:attribute name="maxFocus" type="image:FocusType" use="optional" />
+        
+        <xs:attribute name="maxNumAutoFocusWindow" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="maxAutoFocusWindowArea" type="shared:positiveInt" use="optional" >
+            <xs:annotation>
+                <xs:documentation>
+                    The maximum area the autofocus window as a percentage of Full Field of View.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        
+        <xs:attribute name="minExposureTimeInMs" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="maxExposureTimeInMs" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="minExposureIndex" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="maxExposureIndex" type="shared:positiveInt" use="optional" />
+        
+        <xs:attribute name="minAperture" type="shared:percentage" use="optional" />
+        <xs:attribute name="maxAperture" type="shared:percentage" use="optional" />
+        
+        <xs:attribute name="autoFocusSupported" type="xs:boolean" use="required" />
+        <xs:attribute name="exposureModeSupported" type="xs:boolean" use="required" />
+        <xs:attribute name="whiteBalanceSupported" type="xs:boolean" use="required" />
+    </xs:complexType>
+    
+    <xs:complexType name="CaptureImageParameters">
+        <xs:sequence>
+            <xs:element name="availableCameraIDs" type="xs:int" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Camera IDs listed here refer to camera IDs defined in the supportedCameras element.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="supportedPictureTypes" type="image:PictureTypeEnum" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+        
+        <xs:attribute name="minimumImageCompressionRatio" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="maximumImageCompressionRatio" type="shared:positiveInt" use="optional" />
+        
+        <xs:attribute name="minBurstIntervalInMs" type="shared:positiveInt" use="optional"/>
+        <xs:attribute name="maxBurstIntervalInMs" type="shared:positiveInt" use="optional"/>
+        <xs:attribute name="maximumBurstNumber" type="shared:positiveInt" use="optional"/>        
+    </xs:complexType>
+
+    <xs:complexType name="DetectionNoiseLevel">
+      <xs:attribute name="value" type="xs:double" use="required" />
+      <xs:attribute name="units" type="shared:MeasurementTypeEnum" use="required" />
+      <xs:attribute name="description" type="xs:string" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                Must set description if units is "Other"
+            </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="DetectTargetParameters">
+        <xs:sequence>
+            <xs:element name="availableCameraIDs" type="xs:int" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Camera IDs listed here refer to camera IDs defined in the supportedCameras element.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="supportedPictureTypes" type="image:PictureTypeEnum" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+        
+        <xs:attribute name="minimumDetectionDuration" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="maximumDetectionDuration" type="shared:positiveInt" use="optional" />
+        
+        <xs:attribute name="minimumImageCaptureInterval" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="maximumImageCaptureInterval" type="shared:positiveInt" use="optional" />
+        
+        <xs:attribute name="minimumImageCompressionRatio" type="shared:positiveInt" use="optional" />
+        <xs:attribute name="maximumImageCompressionRatio" type="shared:positiveInt" use="optional" />
+        
+        <xs:attribute name="minBurstIntervalInMs" type="shared:positiveInt" use="optional"/>
+        <xs:attribute name="maxBurstIntervalInMs" type="shared:positiveInt" use="optional"/>
+        <xs:attribute name="maximumBurstNumber" type="shared:positiveInt" use="optional"/>
+    </xs:complexType>
+    
+    <xs:complexType name="TuneChannelParameters">
+        <xs:annotation>
+            <xs:documentation>Describes capability of a single tune channel.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="minimumFrequency" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1" />
+            <xs:element name="maximumFrequency" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1" />
+    
+            <xs:element name="minimumBandwidth" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1" />
+            <xs:element name="maximumBandwidth" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1" />
+            
+            <xs:element name="processingModesSupported" type="shared:Mode" minOccurs="1" 
+                maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>List of modes supported for the channel.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="channel" type="shared:positiveInt" use="required">
+            <xs:annotation>
+                <xs:documentation>Channel number the capabilities apply to.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="TuneSettingsParameters">
+        <xs:annotation>
+            <xs:documentation>Describes capability of all available tune channels.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="availableChannels" type="TuneChannelParameters" minOccurs="1" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>List of parameters for each channel.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ActionParameters">
+        <xs:annotation>
+            <xs:documentation>Describes capability of a single action.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="ignoredParameters" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>List of parameters ignored or not available for this action.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="requiredParameters" type="xs:string" minOccurs="0" maxOccurs="unbounded">
+                 <xs:annotation>
+                    <xs:documentation>List of parameters required for this action.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="action" type="shared:ActionEnum" use="required">
+            <xs:annotation>
+                <xs:documentation>Action type these parameters apply to.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="CreateActionListParameters">
+        <xs:annotation>
+            <xs:documentation>Describes capability of all available actions.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="supportedActionTypes" type="ActionParameters" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        A list of actions support by the asset, see CreateActionListCommand.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="firstAction" type="shared:ActionEnum" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Whether a certain type of action must be used first in a create action list command.
+                </xs:documentation>
+            </xs:annotation>
+            <!--  -->
+        </xs:attribute>
+        <xs:attribute name="lastAction" type="shared:ActionEnum" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Whether a certain type of action must be used last in a create action list command.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="ReservedFieldDefinition">
+        <xs:annotation>
+            <xs:documentation>
+                Describes a reserved field that can be included within an observation.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="name" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>The name of the reserved field.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="datatype" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Data type of the reserved field. Must be compatible with xs:anySimpleType.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="CommandCapabilities">
+        <xs:sequence>
+            <xs:element name="supportedCommands" type="command:CommandTypeEnum" minOccurs="0" maxOccurs="unbounded" >
+                <xs:annotation>
+                    <xs:documentation>
+                        A list of supported commands in order from most important to least important.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="supportedModes" type="shared:Mode" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        A list of modes supported by the asset, see SetModeCommand.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="panTilt" type="PanTilt" minOccurs="0" maxOccurs="1" />
+            <xs:element name="cameraSettings" type="CameraSettingsParameters" minOccurs="0" maxOccurs="1" />
+            <xs:element name="captureImage" type="CaptureImageParameters" minOccurs="0" maxOccurs="1" />
+            <xs:element name="detectTarget" type="DetectTargetParameters" minOccurs="0" maxOccurs="1" />
+            <xs:element name="tuneSettings" type="TuneSettingsParameters" minOccurs="0" maxOccurs="1" />
+            <xs:element name="createActionList" type="CreateActionListParameters" minOccurs="0" maxOccurs="1" />
+            <xs:element name="lift" type="Lift" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <!-- Override the generated proto index. -->
+                    <xs:appinfo>index=12</xs:appinfo>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="captureData" type="xs:boolean" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                       Whether the Asset#captureData method is supported.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="performBIT" type="xs:boolean" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                       Whether the Asset#performBIT method is supported.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="captureDataBySensor" type="xs:boolean" use="optional" default="false">
+            <xs:annotation>
+                <xs:documentation>
+                       Whether the Asset#captureData(String) method is supported for sensor IDs.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="StatusCapabilities">
+        <xs:sequence>
+            <xs:element name="availableComponentStatuses" type="shared:ComponentType" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                       List of components that the plug-in will provide status information for.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <!-- The following attributes define whether an attribute is available in the status observation. -->
+        <xs:attribute name="sensorRangeAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="sensorFovAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="batteryChargeLevelAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="batteryVoltageAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="assetOnTimeAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="temperatureAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="powerConsumptionAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="analogAnalogVoltageAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="analogDigitalVoltargeAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="analogMagVoltageAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="internalArchiveStatusAvailable" type="xs:boolean" use="optional" default="false"/>
+        <xs:attribute name="algorithmStatusAvailable" type="xs:boolean" use="optional" default="false"/>
+    </xs:complexType>
+
+    <xs:complexType name="DetectionCapabilities">
+        <xs:sequence>
+            <xs:element name="typesAvailable" type="detection:DetectionTypeEnum" minOccurs="1" maxOccurs="unbounded" />
+            <xs:element name="classifications" type="detection:TargetClassificationType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="noiseLevels" type="DetectionNoiseLevel" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <!-- Override the generated proto index. -->
+                    <xs:appinfo>index=12</xs:appinfo>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="targetLocation" type="xs:boolean" use="optional" >
+            <xs:annotation>
+                <xs:documentation>
+                       Boolean for whether the asset can detect the location of the target.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetSpeed" type="xs:boolean" use="optional" />
+        <xs:attribute name="targetRange" type="xs:boolean" use="optional" />
+        <xs:attribute name="targetOrientation" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                       Target's heading/direction of travel if known.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetLOB" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                       The line of bearing to the detected target relative to the sensor.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetFrequency" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                       Frequency measured at the target.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="trackHistory" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                       A track history of GPS coordinates complete with a timestamp.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="directionOfTravel" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      The direction that the target is moving in the imager’s FOV.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetId" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Unique identifier of the detected target.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="algorithmId" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean for whether the asset provides an algorithm ID for detections.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetCount" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean for whether the asset provides a target count for detections.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="detectionProbability" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean for whether the asset provides detection probability.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetLobGlobal" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides lines of bearing with a global reference frame.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetLobLocal" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides lines of bearing with a local reference frame.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="detectionLength" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset indicates total detection lengths.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetAngularVelocity" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides target angular velocity.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="targetRadialVelocityNormalized" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides target radial velocity.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="acousticSignature" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides acoustic signature information.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="seismicSignature" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides seismic signature information.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="magneticSignature" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides magnetic signature information.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="imagerSignature" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                      Boolean indicating whether the asset provides imager signature information.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="DigitalMediaCapabilities">
+        <xs:sequence>
+            <xs:element name="encodings" type="shared:MimeType" minOccurs="1" maxOccurs="unbounded" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Lists which types of media can be produced by the asset
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AudioCapabilities">
+        <xs:sequence>
+            <xs:element name="recorders" type="audio:AudioRecorder" minOccurs="1" maxOccurs="unbounded" />
+            <xs:element name="sampleRatesKHz" type="xs:float" minOccurs="1" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        List all sample rates supported.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ImageCapabilities">
+        <xs:sequence>
+            <xs:element name="minResolution" type="image:PixelResolution" minOccurs="1" maxOccurs="1" />
+            <xs:element name="maxResolution" type="image:PixelResolution" minOccurs="1" maxOccurs="1" />
+            <xs:element name="availableCameraIDs" type="xs:int" minOccurs="1" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Camera IDs listed here refer to camera IDs defined in the supportedCameras element.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="colorAvailable" type="xs:boolean" use="required" />  
+    </xs:complexType>
+    
+    <xs:complexType name="VideoCapabilities">
+        <xs:complexContent>
+            <xs:extension base="ImageCapabilities">
+                <xs:sequence>
+                    <xs:element name="framesPerSecond" type="xs:float" minOccurs="1" maxOccurs="unbounded">
+                        <xs:annotation>
+                            <xs:documentation>
+                                List all FPS rates supported.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="ObservationCapabilities">
+        <xs:annotation>
+            <xs:documentation>
+                The following attributes define reserved fields and whether an attribute is available in observations.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="reservedFields" type="ReservedFieldDefinition" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <!-- Override the generated proto index. -->
+                    <xs:appinfo>index=3</xs:appinfo>
+                    <xs:documentation>
+                        Declares the reserved field keys and data types that can be included in observations.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="observedTimestampAvailable" type="xs:boolean" use="optional" default="false" />
+        <xs:attribute name="sensorIdAvailable" type="xs:boolean" use="optional" default="false" />
+    </xs:complexType>
+
+    <xs:complexType name="ZeroizeCapabilities">
+        <xs:attribute name="zeroizeKeysSupported" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                  Indicates whether secure erase of encryption keys is supported.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="zeroizeConfigurationSupported" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                  Indicates whether secure erase of configuration information is supported.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="zeroizeDataSupported" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                  Indicates whether secure erase of stored sensor data information is supported.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="zeroizeCodeSupported" type="xs:boolean" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                  Indicates whether secure erase of device firmware is supported.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+  
+    <xs:element name="AssetCapabilities">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="capability:BaseCapabilities">
+                    <xs:sequence>
+                        <xs:element name="modalities" type="shared:SensingModality" minOccurs="1" maxOccurs="unbounded" />
+                        <xs:element name="minRange" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="maxRange" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="nominalRange" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" />
+                        <!-- TODO TH-4058: Look at making FOV available per camera -->
+                        <xs:element name="minFov" type="shared:fieldOfView" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="maxFov" type="shared:fieldOfView" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="nominalFov" type="shared:fieldOfView" minOccurs="0" maxOccurs="1" />
+                         <xs:element name="supportedCameras" type="image:Camera" minOccurs="0" maxOccurs="unbounded" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Contains a list of Cameras available to this asset. 
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="statusCapabilities" type="StatusCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="detectionCapabilities" type="DetectionCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="digitalMediaCapabilities" type="DigitalMediaCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="audioCapabilities" type="AudioCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="imageCapabilities" type="ImageCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="videoCapabilities" type="VideoCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="commandCapabilities" type="CommandCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="observationCapabilities" type="ObservationCapabilities" minOccurs="0" maxOccurs="1" />
+                        <xs:element name="zeroizeCapabilities" type="ZeroizeCapabilities" minOccurs="0" maxOccurs="1" />
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

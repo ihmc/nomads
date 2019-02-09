@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/image"
+  targetNamespace="http://th.dod.mil/core/types/image"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:spatial="http://th.dod.mil/core/types/spatial"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../spatial/SpatialTypes.xsd" />
+
+    <xs:simpleType name="ImageCaptureReasonEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Manual" />
+            <xs:enumeration value="TargetDetection" />
+            <xs:enumeration value="Other" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="ImageCaptureReason">
+        <xs:attribute name="value" type="ImageCaptureReasonEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" />
+    </xs:complexType>
+    
+    <xs:simpleType name="ExposureModeEnum">
+        <xs:annotation>
+            <xs:documentation>
+                See ExposureProgramMode in PTP Spec for more information. The ForceExposure settings 
+                indicate the camera can take additional time to ensure the correct exposure is used.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Auto" />
+            <xs:enumeration value="Manual" />
+            <xs:enumeration value="AutoForceExposure" />
+            <xs:enumeration value="AperturePriority" />
+            <xs:enumeration value="AperturePriorityForceExposure" />
+            <xs:enumeration value="ShutterPriority" />
+            <xs:enumeration value="ShutterPriorityForceExposure" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="ExposureSettings">
+        <xs:sequence>
+            <xs:element name="exposureMode" type="ExposureModeEnum" minOccurs="0" maxOccurs="1" />
+            <xs:element name="exposureTimeInMS" type="shared:positiveInt" minOccurs="0" maxOccurs="1" />
+            <xs:element name="aperture" type="shared:percentage" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        0 is the aperture closed, 1 is aperture all the way open.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="exposureIndex" type="shared:positiveInt" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        The simulated Film ISO speed.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+   <xs:simpleType name="ZoomType">
+        <xs:annotation>
+            <xs:documentation>
+                See DigitalZoom in PTP Spec for more information. 0 is minimum zoom, 1 is maximum zoom.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:float">
+            <xs:minInclusive value="0" />
+            <xs:maxInclusive value="1" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="FocusType">
+        <xs:annotation>
+            <xs:documentation>
+                See FocusDistance in PTP Spec for more information. 0 is focused as close as possible, 1 
+                is focused as far away as possible. 
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:float">
+            <xs:minInclusive value="0" />
+            <xs:maxInclusive value="1" />
+        </xs:restriction>
+    </xs:simpleType>    
+    <xs:annotation>
+        <xs:documentation>
+            Parameters designed to meet the capabilities defined in the Picture Transfer Protocol (PTP) Specification
+            Photography - Electronic still picture imaging - Picture Transfer Protocol (PTP) for Digital Still Photography
+            Devices. In (2000). (1st ed.). Harrison, NY: Photographic and Imaging Manufacturers Association, Inc.
+        </xs:documentation>
+    </xs:annotation>
+    <xs:simpleType name="WhiteBalanceEnum">
+        <xs:annotation>
+            <xs:documentation>
+                See WhiteBalance in PTP Spec for more information. Defines how the device weights color 
+                channels.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Auto" />
+            <xs:enumeration value="Tungsten" />
+            <xs:enumeration value="Fluorescent" />
+            <xs:enumeration value="Daylight" />
+            <xs:enumeration value="Flash" />
+            <xs:enumeration value="Cloudy" />
+            <xs:enumeration value="Shade" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="PictureTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="FullFieldOfView" />
+            <xs:enumeration value="AreaOfInterest" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="Compression">
+        <xs:annotation>
+            <xs:documentation>
+                See CompressionSetting in PTP Spec for more information. Compression settings are specific
+                to each device. Compression ratio or target file size can be used to define compression needs for the 
+                specific asset.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:choice>
+            <xs:element name="ratio" type="shared:positiveInt" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="targetFileSize" type="shared:positiveInt" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The target Image File size.  The actual image size may be larger or smaller.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:choice>
+    </xs:complexType>
+    
+    <xs:complexType name="Burst">
+        <xs:annotation>
+            <xs:documentation>
+                See BurstNumber and BurstInterval in PTP Spec for more information.
+            </xs:documentation>
+        </xs:annotation>    
+        <xs:attribute name="burstNumber" type="shared:positiveInt" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    The number of images to take.
+                </xs:documentation>
+            </xs:annotation>   
+        </xs:attribute>
+        <xs:attribute name="burstIntervalInMS" type="shared:positiveInt" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    The interval time between images in ms
+                </xs:documentation>
+            </xs:annotation>   
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="Sensitivity">
+        <xs:annotation>
+            <xs:documentation>
+                Threshold: Percent of the area that must change to trigger motion.
+                PixelThreshold: Percent a individual pixel must change to count as being changed.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="threshold" type="shared:percentage" use="optional" />
+        <xs:attribute name="pixelThreshold" type="shared:percentage" use="optional" />
+    </xs:complexType>
+    
+    <xs:complexType name="TriggerWindow">
+        <xs:complexContent>
+            <xs:extension base="CameraWindow">
+                <xs:annotation>
+                    <xs:documentation>
+                        If sensitivity is supported but not set, the asset will use
+                        an asset-defined default value.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:sequence>
+                    <xs:element name="sensitivity" type="Sensitivity" minOccurs="0" maxOccurs="1" />
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="CameraWindow">
+        <xs:attribute name="top" type="WindowCoordinate" use="required" />
+        <xs:attribute name="bottom" type="WindowCoordinate" use="required" />
+        <xs:attribute name="left" type="WindowCoordinate" use="required" />
+        <xs:attribute name="right" type="WindowCoordinate" use="required" />
+    </xs:complexType>
+    
+    <xs:complexType name="CameraScene">
+        <xs:attribute name="top" type="SceneCoordinate" use="required" />
+        <xs:attribute name="bottom" type="SceneCoordinate" use="required" />
+        <xs:attribute name="left" type="SceneCoordinate" use="required" />
+        <xs:attribute name="right" type="SceneCoordinate" use="required" />
+    </xs:complexType>
+    
+    <xs:complexType name="ImageGeoBoundingBox">
+        <xs:annotation>
+            <xs:documentation>
+                Defines a geographic bounding box where each corner of an image translates to a geographic 
+                location.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:all>
+            <xs:element name="upperLeft" type="spatial:Coordinates" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Geographic location of the upper left corner of an image.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="upperRight" type="spatial:Coordinates" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Geographic location of the upper right corner of an image.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="lowerRight" type="spatial:Coordinates" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Geographic location of the lower right corner of an image.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="lowerLeft" type="spatial:Coordinates" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Geographic location of the lower left corner of an image.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:all>
+    </xs:complexType>
+
+    <xs:simpleType name="WindowCoordinate">
+        <xs:annotation>
+            <xs:documentation>
+                0 corresponds to top/left, 1 corresponds to bottom/right, relative to the full field of 
+                view of the camera.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:float">
+            <xs:minInclusive value="0" />
+            <xs:maxInclusive value="1" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="SceneCoordinate">
+        <xs:annotation>
+            <xs:documentation>
+                0 corresponds to top/left of the cropped view. 1 corresponds to bottom/right of the 
+                cropped view. Values outside that range correspond to regions outside of the cropped view.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:float" />
+    </xs:simpleType>
+    
+    <xs:complexType name="Camera">
+        <xs:attribute name="id" type="xs:int" use="optional" />
+        <xs:attribute name="description" type="xs:string" use="optional" />
+        <xs:attribute name="type" type="CameraTypeEnum" use="optional" />
+    </xs:complexType>
+    
+    <xs:simpleType name="CameraTypeEnum">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Unknown" />
+            <xs:enumeration value="Other" />
+            <xs:enumeration value="IR" />
+            <xs:enumeration value="Visible" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="PixelResolution">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:attribute name="width" type="shared:positiveInt" use="required" />
+        <xs:attribute name="height" type="shared:positiveInt" use="required" />
+    </xs:complexType>
+    
+    <xs:complexType name="PixelRegion">
+        <xs:annotation>
+            <xs:documentation>
+                Defines a region within the image by pixels.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:choice>
+                <xs:element name="circle" type="PixelCircle" minOccurs="1" maxOccurs="1" >
+                    <xs:annotation>
+                        <xs:documentation>
+                            Circular pixel region.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="rectangle" type="PixelRectangle" minOccurs="1" maxOccurs="1" >
+                     <xs:annotation>
+                        <xs:documentation>
+                            Rectangular pixel region.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:choice>
+            <xs:element name="directionOfTravel" type="shared:Direction" minOccurs="0" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        The direction that the target is moving in the imager’s FOV.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+  
+    <xs:complexType name="PixelPosition">
+        <xs:attribute name="x" type="shared:positiveInt" use="required" />
+        <xs:attribute name="y" type="shared:positiveInt" use="required" />
+    </xs:complexType>
+
+    <xs:complexType name="PixelRectangle">
+        <xs:annotation>
+            <xs:documentation>
+                Defines a rectangle within the image by pixels.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="topLeft" type="PixelPosition" minOccurs="1" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Top-left pixel position of the target bounding box.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="bottomRight" type="PixelPosition" minOccurs="1" maxOccurs="1" >
+                 <xs:annotation>
+                    <xs:documentation>
+                        Bottom-right pixel position of the target bounding box.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="PixelCircle">
+        <xs:annotation>
+            <xs:documentation>
+                Defines a circle within the image by pixels.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="center" type="PixelPosition" minOccurs="1" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Center of the circle.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="radius" type="shared:positiveInt" minOccurs="1" maxOccurs="1" >
+                <xs:annotation>
+                    <xs:documentation>
+                        Radius of the circle in terms of pixels.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+</xs:schema>

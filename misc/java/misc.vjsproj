@@ -1,0 +1,688 @@
+<VisualStudioProject>
+    <VISUALJSHARP
+        ProjectType = "Local"
+        ProductVersion = "7.10.3077"
+        SchemaVersion = "2.0"
+    >
+        <Build>
+            <Settings
+                AssemblyKeyContainerName = ""
+                AssemblyName = "misc"
+                AssemblyOriginatorKeyFile = ""
+                DefaultClientScript = "JScript"
+                DefaultHTMLPageLayout = "Grid"
+                DefaultTargetSchema = "IE50"
+                OutputType = "Library"
+                PreBuildEvent = ""
+                PostBuildEvent = ""
+                RootNamespace = "misc"
+                RunPostBuildEvent = "OnBuildSuccess"
+                StartupObject = ""
+            >
+                <Config
+                    Name = "Debug"
+                    BaseAddress = "285212672"
+                    ConfigurationOverrideFile = ""
+                    DefineConstants = "DEBUG"
+                    DebugSymbols = "true"
+                    NoWarn = ""
+                    Optimize = "false"
+                    OutputPath = "bin\Debug\"
+                    RegisterForComInterop = "false"
+                    TreatWarningsAsErrors = "false"
+                    WarningLevel = "2"
+                    AdditionalOptions = ""
+                />
+                <Config
+                    Name = "Release"
+                    BaseAddress = "285212672"
+                    ConfigurationOverrideFile = ""
+                    DefineConstants = ""
+                    DebugSymbols = "false"
+                    NoWarn = ""
+                    Optimize = "true"
+                    OutputPath = "bin\Release\"
+                    RegisterForComInterop = "false"
+                    TreatWarningsAsErrors = "false"
+                    WarningLevel = "2"
+                    AdditionalOptions = ""
+                />
+            </Settings>
+            <References>
+                <Reference
+                    Name = "vjslib"
+                    AssemblyName = "vjslib"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\vjslib.dll"
+                />
+                <Reference
+                    Name = "System"
+                    AssemblyName = "System"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\System.dll"
+                />
+                <Reference
+                    Name = "System.XML"
+                    AssemblyName = "System.Xml"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\System.XML.dll"
+                />
+                <Reference
+                    Name = "System.Data"
+                    AssemblyName = "System.Data"
+                    HintPath = "..\..\..\..\..\..\WINDOWS\Microsoft.NET\Framework\v1.1.4322\System.Data.dll"
+                />
+            </References>
+        </Build>
+        <Files>
+            <Include>
+                <File
+                    RelPath = "CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\GridAgentMetaData.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\GridAgentVariableState.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\GridMobileAgent.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\GridMobileAgentSystem.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\GridMobilityException.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\GridMobilityService.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\SelfSerializable.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\client\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\client\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\client\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\server\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\server\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\server\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\util\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\util\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\coabs\mobility\util\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "mil\darpa\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\BufferReceiver.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\ImageCompareListener.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\JMFImageCapture.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\JMFImageCompareService.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\JMFVideoCapture.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\imageDiff\BlockEngine.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\imageDiff\ImageCompare.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\imageDiff\ImageCompareEngine.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\imageDiff\LineEngine.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\imageDiff\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\imageDiff\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\imageDiff\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\BufferScaler.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\BufferToBufferedImage.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\ImageComponent.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\JPEGEncoder.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\SerializableBufferImage.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\SerializableImage.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\UnsupportedFormatException.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\media\util\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\AckMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\BufferEmptyMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ByteBuffer.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\go.bat"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\Mocket.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketAddedMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketControlMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketException.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketInputStream.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketOutputStream.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketRemovedMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketResumedMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketSuspendedMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketToSocketProxy.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MocketUpdateMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\MsgConverter.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\NodeController.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ProxyClientHandler.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\RegisterVMControllerMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ResumeMgrPortQueryMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ResumeMgrPortQueryResponseMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ResumeMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ServerMocket.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ServerMocketAddedMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\ServerMocketRemovedMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\SocketTypeQueryMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\SocketTypeResponseMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\StandAloneNodeController.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\StreamCopier.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\SuspendMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\VMController.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\VMControllerTerminatingMsg.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\VMControlThread.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\mockets\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\Base64Decoder.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\Base64Encoder.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\Base64FormatException.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\Base64Transcoders.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ByteArray.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\CircularList.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ClassPath.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\CommException.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\CommHelper.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\GrowableBuffer.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\IDGenerator.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\MD5Hash.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\MLL.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\MsgLinkedList.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\MsgQueue.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\NSLookup.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ProtocolException.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\PushbackBufferedReader.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\SerialComm.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\SettingFileManager.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\StringUtil.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\SysResMonitor.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\URI.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\URIEncoder.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\Validator.java"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "us\ihmc\util\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ds\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ds\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ds\CVS\Root"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ds\graph\CVS\Entries"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ds\graph\CVS\Repository"
+                    BuildAction = "None"
+                />
+                <File
+                    RelPath = "us\ihmc\util\ds\graph\CVS\Root"
+                    BuildAction = "None"
+                />
+            </Include>
+        </Files>
+    </VISUALJSHARP>
+</VisualStudioProject>
+

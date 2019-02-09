@@ -1,0 +1,11 @@
+include ':databroker'
+project(':databroker').projectDir = new File('../../../ddam/databroker')
+
+include ':natstopics'
+project(':natstopics').projectDir = new File("../NATSTopics")
+
+include (':logger')
+project(':logger').projectDir = new File("../../../logger-initializer")
+
+rootProject.name = 'netlogger'
+

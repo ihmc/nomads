@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:chemical="http://th.dod.mil/core/types/chemical"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/chemical" schemaLocation="../../types/chemical/ChemicalTypes.xsd" />
+     
+    <xs:complexType name="Chemical">
+        <xs:annotation>
+            <xs:documentation>
+                A chemical agent detection that contains one or more entries of different detections.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="entries" type="ChemicalEntry" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+ 
+     <xs:complexType name="ChemicalEntry">
+        <xs:annotation>
+            <xs:documentation>
+                A single chemical agent detection entry. Will be a single entry per agent/category.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <!-- At least one out of category and agent must be present, but both can be present as well. -->
+            <xs:element name="category" type="chemical:ChemicalCategory" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Category the chemical detection falls under. If sensor only knows agent, this will be empty.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="agent" type="chemical:ChemicalAgent" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Agent the chemical detection falls under. If sensor only knows category, this will be empty.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:choice minOccurs="0">
+                <xs:element name="concentration" type="shared:ConcentrationGramsPerLiter" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when concentration of agent is known.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="counts" type="shared:CountsPerTime" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when sensor produces counts of an agent.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="scaledSignalLevel" type="shared:percentage" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Use when sensor produces a signal level indicating the concentration of the agent. 0 means
+                            no detection of the agent, 1 means complete saturation of sensor.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:choice>
+            <xs:element name="alarm" type="shared:AlarmState" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Whether the sensor considers the agent to truly be present and the level.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

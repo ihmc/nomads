@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:audio="http://th.dod.mil/core/types/audio"
+  xmlns:observation="http://th.dod.mil/core/types/observation"
+  xmlns:spatial="http://th.dod.mil/core/types/spatial"
+  elementFormDefault="qualified" jaxb:version="2.1">
+    <!-- Need to add complex observation types as an include so their complex types can be resolved. -->
+    <xs:include schemaLocation="Detection.xsd"></xs:include>
+    <xs:include schemaLocation="Status.xsd"></xs:include>
+    <xs:include schemaLocation="Weather.xsd"></xs:include>
+    <xs:include schemaLocation="Audio.xsd"></xs:include>
+    <xs:include schemaLocation="Image.xsd"></xs:include>
+    <xs:include schemaLocation="Video.xsd"></xs:include>
+    <xs:include schemaLocation="Biological.xsd"></xs:include>
+    <xs:include schemaLocation="Chemical.xsd"></xs:include>
+    <xs:include schemaLocation="CbrneTrigger.xsd"></xs:include>
+    <xs:include schemaLocation="WaterQuality.xsd"></xs:include>
+    <xs:include schemaLocation="Power.xsd"></xs:include>
+    <xs:include schemaLocation="Channel.xsd"></xs:include>
+    <xs:import namespace="http://th.dod.mil/core/types/audio" schemaLocation="../../types/audio/AudioTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/observation" schemaLocation="../../types/observation/ObservationTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:complexType name="ObservationRef">
+    <xs:annotation>
+      <xs:documentation>Reference information that can used to obtain related data from the persistent store.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="relationship" type="Relationship" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The specified relationship of the referenced observation respectively to the containing observation.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="uuid" type="shared:UUID" use="required">
+      <xs:annotation>
+        <xs:documentation>The specified unique identifier of the referenced observation.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="Relationship">
+    <xs:annotation>
+      <xs:documentation>Lexical identifier that uniquely defines the observation relationship.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="relationshipType" type="observation:RelationshipTypeEnum" minOccurs="1" maxOccurs="1" />
+      <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="Observation">
+    <xs:complexType>
+      <xs:annotation>
+        <xs:documentation>Composite base class for all specific types observations.</xs:documentation>
+      </xs:annotation>
+      <xs:sequence>
+        <xs:element name="version" type="shared:Version" minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    Observation version, consists of a major number and a minor number.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="relatedObservations" type="ObservationRef" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+                <xs:documentation>
+                    Contains an unbounded list of references to related observations.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="assetLocation" type="spatial:Coordinates" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    Physical location of the asset.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="assetOrientation" type="spatial:Orientation" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    Physical orientation of the asset.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="platformOrientation" type="spatial:Orientation" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    Orientation of the platform the asset is mounted to.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="pointingLocation" type="spatial:Coordinates" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    The location in the asset's center field of view that it is currently pointing at.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="modalities" type="shared:SensingModality" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+                <xs:documentation>
+                    Sensing modalities that are involved in the observation. Should have at least one sensing modality
+                    if the observation is one of the following sub-types.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+        <!-- Observation sub-types. An observation typically contains one of the following observation sub-types. -->
+        <xs:choice minOccurs="0">
+          <xs:element name="detection" type="Detection" minOccurs="1" maxOccurs="1" />
+          <xs:element name="status" type="Status" minOccurs="1" maxOccurs="1" />
+          <xs:element name="weather" type="Weather" minOccurs="1" maxOccurs="1" />
+          <xs:element name="waterQuality" type="WaterQuality" minOccurs="1" maxOccurs="1" />
+          <xs:element name="cbrneTrigger" type="CbrneTrigger" minOccurs="1" maxOccurs="1" />
+          <xs:element name="biological" type="Biological" minOccurs="1" maxOccurs="1" />
+          <xs:element name="chemical" type="Chemical" minOccurs="1" maxOccurs="1" />
+          <xs:element name="power" type="Power" minOccurs="1" maxOccurs="1">
+              <xs:annotation>
+                  <!-- Override the generated proto index because this field is added within a choice. -->
+                  <xs:appinfo>index=29</xs:appinfo>
+              </xs:annotation>
+          </xs:element>
+          <xs:sequence>
+            <xs:element name="digitalMedia" type="shared:DigitalMedia" minOccurs="1" maxOccurs="1" />
+            <xs:choice>
+              <xs:element name="audioMetadata" type="AudioMetadata" minOccurs="1" maxOccurs="1" />
+              <xs:element name="imageMetadata" type="ImageMetadata" minOccurs="1" maxOccurs="1" />
+              <xs:element name="videoMetadata" type="VideoMetadata" minOccurs="1" maxOccurs="1" />
+              <xs:element name="channelMetadata" type="ChannelMetadata" minOccurs="1" maxOccurs="1">
+                  <xs:annotation>
+                      <!-- Override the generated proto index because this field is added within a choice. -->
+                      <xs:appinfo>index=30</xs:appinfo>
+                  </xs:annotation>
+              </xs:element>
+            </xs:choice>
+          </xs:sequence>
+        </xs:choice>
+        
+        <xs:element name="reserved" type="shared:MapEntry" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+                <xs:documentation>
+                    Field is reserved for special circumstances. Only use this element if you know what you are doing.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        
+      </xs:sequence>
+      <xs:attribute name="uuid" type="shared:UUID" use="required" />
+      <xs:attribute name="observedTimestamp" type="xs:dateTime" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                Time when observed by the asset.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="createdTimestamp" type="xs:dateTime" use="required">
+        <xs:annotation>
+            <xs:documentation>
+                Time when the observation object is created by the system .
+            </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="assetUuid" type="shared:UUID" use="required" />
+      <xs:attribute name="assetName" type="xs:string" use="required" />
+      <xs:attribute name="assetType" type="xs:string" use="required" />
+      <xs:attribute name="sensorId" type="xs:string" use="optional" />
+      <xs:attribute name="systemInTestMode" type="xs:boolean" use="required">
+        <xs:annotation>
+            <xs:documentation>
+                Denotes whether the system that this observation came from was in test mode.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="systemId" type="xs:int" use="required">
+        <xs:annotation>
+            <xs:documentation>
+                System ID, the Terra Harvest System ID of the system which create the observation.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

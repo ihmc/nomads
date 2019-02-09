@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.model.th.dod.mil"
+     targetNamespace="commands.model.th.dod.mil"
+     xmlns:xs="http://www.w3.org/2001/XMLSchema"
+     xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+     xmlns:shared="http://th.dod.mil/core/types"
+     xmlns:commands="commands.asset.core.th.dod.mil"
+     elementFormDefault="qualified" jaxb:version="2.1" xmlns:pref="commands.asset.core.th.dod.mil">
+     <xs:import namespace="http://th.dod.mil/core/types"  schemaLocation="../../core/types/SharedTypes.xsd" />
+     <xs:import schemaLocation="../../core/asset/commands/MasterCommands.xsd" namespace="commands.asset.core.th.dod.mil" />
+ 
+     <xs:element name="AddressedCommand">
+         <xs:complexType>
+             <xs:annotation>
+                 <xs:documentation>
+                     This model should be used to represent commands sent between
+                     systems.
+                 </xs:documentation>
+             </xs:annotation>
+             <xs:sequence>
+                 <xs:element name="uuid" type="shared:UUID" minOccurs="1" maxOccurs="1">
+                     <!-- This structure's UUID. -->
+                 </xs:element>
+                 <xs:element name="sourceId" type="xs:int" minOccurs="1"
+                     maxOccurs="1">
+                     <!-- The system ID requesting the enclosed command to execute. -->
+                 </xs:element>
+                 <xs:element name="destId" type="xs:int" minOccurs="1" maxOccurs="1">
+                     <!-- The system ID being requested to execute the command. -->
+                 </xs:element>
+                 <xs:element name="assetUuid" type="shared:UUID" minOccurs="1"
+                     maxOccurs="1">
+                     <!-- The UUID of the asset requested to execute the enclosed 
+                         command. -->
+                 </xs:element>
+                 <xs:element name="command" type="commands:Command" >
+                    <!-- The command to execute. -->
+                 </xs:element>
+             </xs:sequence>
+         </xs:complexType>
+     </xs:element>
+ 
+ </xs:schema>
+ 

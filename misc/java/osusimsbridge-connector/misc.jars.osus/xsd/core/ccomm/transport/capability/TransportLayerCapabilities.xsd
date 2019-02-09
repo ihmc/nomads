@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="capability.transport.ccomm.core.th.dod.mil" 
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    targetNamespace="capability.transport.ccomm.core.th.dod.mil" 
+    xmlns:capability="capability.core.th.dod.mil"
+    xmlns:ccomm="http://th.dod.mil/core/types/ccomm" 
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="capability.core.th.dod.mil" schemaLocation="../../../capability/BaseCapabilities.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/ccomm" schemaLocation="../../../types/ccomm/CustomCommTypes.xsd" />
+    
+        <xs:element name="TransportLayerCapabilities">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="capability:BaseCapabilities">
+                    <xs:sequence>
+                        <xs:element name="linkLayerModalitiesSupported" type="ccomm:LinkLayerTypeEnum" minOccurs="0" maxOccurs="unbounded" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    What link layers the transport layer is capable of working with, if none are listed,
+                                    the transport layer should ignore any configured link layer.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="connectionOriented" type="xs:boolean" minOccurs="1" maxOccurs="1" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    True if the transport layer manages a single connection in order to send data to a 
+                                    single endpoint, value would be false for a server that manages multiple connections
+                                    or a connection-less layer (e.g., UDP).
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+ </xs:schema>

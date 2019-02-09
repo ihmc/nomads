@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/mil.dod.th.core.api.jar"/>
+	<classpathentry kind="lib" path="lib/mil.dod.th.core.proto.messages.jar"/>
+	<classpathentry kind="lib" path="lib/org.apache.felix.gogo.runtime-0.12.1.jar"/>
+	<classpathentry kind="lib" path="lib/osgi.cmpn-5.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/osgi.core-5.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/biz.aQute.bnd.annotation-3.1.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

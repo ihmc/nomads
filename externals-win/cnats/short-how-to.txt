@@ -1,2 +1,0 @@
-cmake .. -G "Visual Studio 14 2015" -DNATS_BUILD_WITH_TLS=OFF		<--x86
-cmake .. -G "Visual Studio 14 2015 Win64" -DNATS_BUILD_WITH_TLS=OFF    <-- x64

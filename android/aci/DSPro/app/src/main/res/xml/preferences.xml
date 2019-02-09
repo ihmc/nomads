@@ -1,0 +1,239 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:key="@string/pref_main_key"
+        android:title="@string/pref_main_title">
+        <us.ihmc.android.aci.dspro.pref.AutoCompletePreference
+            android:defaultValue="@string/aci.disService.nodeUUID_default"
+            android:key="@string/aci.disService.nodeUUID"
+            android:title="@string/aci.disService.nodeUUID_title" />
+        <EditTextPreference
+            android:enabled="false"
+            android:key="@string/aci.dspro2app.WiFiIFs"
+            android:title="@string/aci.dspro2app.WiFiIFs_title" />
+        <SwitchPreference
+            android:defaultValue="@string/aci.dspro2app.extraNetIFs.enable_default"
+            android:key="@string/aci.dspro2app.extraNetIFs.enable"
+            android:summary="@string/aci.dspro2app.extraNetIFs.enable_summary"
+            android:title="@string/aci.dspro2app.extraNetIFs.enable_title" />
+        <EditTextPreference
+            android:dependency="@string/aci.dspro2app.extraNetIFs.enable"
+            android:key="@string/aci.dspro2app.extraNetIFs"
+            android:title="@string/aci.dspro2app.extraNetIFs_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="@string/pref_transport_key"
+        android:title="@string/pref_transport_title">
+        <SwitchPreference
+            android:defaultValue="@string/aci.dspro.adaptor.disservice.enable_default"
+            android:key="@string/aci.dspro.adaptor.disservice.enable"
+            android:title="@string/aci.dspro.adaptor.disservice.enable_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.disService.networkMessageService.port_default"
+            android:dependency="@string/aci.dspro.adaptor.disservice.enable"
+            android:key="@string/aci.disService.networkMessageService.port"
+            android:title="@string/aci.disService.networkMessageService.port_title" />
+        <EditTextPreference
+            android:defaultValue="@string/nms.transmission.outgoingAddr_default"
+            android:dependency="@string/aci.dspro.adaptor.disservice.enable"
+            android:key="@string/nms.transmission.outgoingAddr"
+            android:title="@string/nms.transmission.outgoingAddr_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.disService.networkMessageService.mcastTTL_default"
+            android:dependency="@string/aci.dspro.adaptor.disservice.enable"
+            android:key="@string/aci.disService.networkMessageService.mcastTTL"
+            android:title="@string/aci.disService.networkMessageService.mcastTTL_title" />
+        <ListPreference
+            android:dependency="@string/aci.dspro.adaptor.disservice.enable"
+            android:dialogTitle="@string/aci.disService.nodeConfiguration.bandwidth_title"
+            android:entries="@array/pref_disservice_bandwidth"
+            android:entryValues="@array/pref_disservice_bandwidth_values"
+            android:key="@string/aci.disService.nodeConfiguration.bandwidth"
+            android:title="@string/aci.disService.nodeConfiguration.bandwidth_title" />
+
+        <SwitchPreference
+            android:defaultValue="@string/aci.dspro.adaptor.mockets.enable_default"
+            android:key="@string/aci.dspro.adaptor.mockets.enable"
+            android:title="@string/aci.dspro.adaptor.mockets.enable_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.adaptor.mockets.port_default"
+            android:dependency="@string/aci.dspro.adaptor.mockets.enable"
+            android:key="@string/aci.dspro.adaptor.mockets.port"
+            android:title="@string/aci.dspro.adaptor.mockets.port_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.adaptor.mockets.peer.addr_default"
+            android:dependency="@string/aci.dspro.adaptor.mockets.enable"
+            android:key="@string/aci.dspro.adaptor.mockets.peer.addr"
+            android:title="@string/aci.dspro.adaptor.mockets.peer.addr_title" />
+        <SwitchPreference
+            android:defaultValue="@string/aci.dspro.adaptor.tcp.enable_default"
+            android:key="@string/aci.dspro.adaptor.tcp.enable"
+            android:title="@string/aci.dspro.adaptor.tcp.enable_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.adaptor.tcp.port_default"
+            android:dependency="@string/aci.dspro.adaptor.tcp.enable"
+            android:key="@string/aci.dspro.adaptor.tcp.port"
+            android:title="@string/aci.dspro.adaptor.tcp.port_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.adaptor.tcp.peer.addr_default"
+            android:dependency="@string/aci.dspro.adaptor.tcp.enable"
+            android:key="@string/aci.dspro.adaptor.tcp.peer.addr"
+            android:title="@string/aci.dspro.adaptor.tcp.peer.addr_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:dependency="@string/aci.dspro.adaptor.disservice.enable"
+        android:key="@string/pref_encryption_key"
+        android:title="@string/pref_encryption_title">
+        <ListPreference
+            android:defaultValue="0"
+            android:dialogTitle="@string/aci.disService.encryptionMode_dialog"
+            android:entries="@array/pref_encryption_mode_array_entries"
+            android:entryValues="@array/pref_encryption_mode_array_values"
+            android:key="@string/aci.disService.networkMessageService.encryptionMode"
+            android:title="@string/aci.disService.networkMessageService.encryptionMode_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="@string/pref_storage_key"
+        android:title="@string/pref_storage_title">
+        <ListPreference
+            android:defaultValue="@string/aci.disService.storageMode_default"
+            android:dialogTitle="@string/aci.disService.storageMode_dialog"
+            android:entries="@array/pref_storage_mode_array_entries"
+            android:entryValues="@array/pref_storage_mode_array_values"
+            android:key="@string/aci.disService.storageMode"
+            android:title="@string/aci.disService.storageMode_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.disService.storageFile_default"
+            android:dependency="@string/aci.disService.storageMode"
+            android:key="@string/aci.disService.storageFile"
+            android:title="@string/aci.disService.storageFile_title" />
+        <CheckBoxPreference
+            android:defaultValue="@string/aci.dspro2app.deleteStorageOnExit_default"
+            android:dependency="@string/aci.disService.storageMode"
+            android:key="@string/aci.dspro2app.deleteStorageOnExit"
+            android:summary="@string/aci.dspro2app.deleteStorageOnExit_summary"
+            android:title="@string/aci.dspro2app.deleteStorageOnExit_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="@string/pref_ranking_key"
+        android:title="@string/pref_ranking_title">
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.coordRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.coordRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.coordRankWeight_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.timeRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.timeRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.timeRankWeight_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.expirationRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.expirationRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.expirationRankWeight_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.impRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.impRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.impRankWeight_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.predRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.predRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.predRankWeight_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.targetRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.targetRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.targetRankWeight_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.srcRelRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.srcRelRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.srcRelRankWeight_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.metadataRanker.infoContentRankWeight_default"
+            android:key="@string/aci.dspro.metadataRanker.infoContentRankWeight"
+            android:title="@string/aci.dspro.metadataRanker.infoContentRankWeight_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="@string/pref_node_context_key"
+        android:title="@string/pref_node_context_title">
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.informationPush.rankThreshold_default"
+            android:key="@string/aci.dspro.informationPush.rankThreshold"
+            android:title="@string/aci.dspro.informationPush.rankThreshold_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.localNodeContext.usefulDistance_default"
+            android:key="@string/aci.dspro.localNodeContext.usefulDistance"
+            android:title="@string/aci.dspro.localNodeContext.usefulDistance_title" />
+        <EditTextPreference
+            android:defaultValue="@string/aci.dspro.localNodeContext.usefulDistanceByType_default"
+            android:key="@string/aci.dspro.localNodeContext.usefulDistanceByType"
+            android:title="@string/aci.dspro.localNodeContext.usefulDistanceByType_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="@string/pref_misc_key"
+        android:title="@string/pref_misc_title">
+        <EditTextPreference
+            android:defaultValue="@string/aci.disService.statusNotifyAddress_default"
+            android:key="@string/aci.disService.statusNotifyAddress"
+            android:title="@string/aci.disService.statusNotifyAddress_title" />
+        <CheckBoxPreference
+            android:defaultValue="@string/aci.dspro.informationPush.limitPrestagingToLocalData_default"
+            android:key="@string/aci.dspro.informationPush.limitPrestagingToLocalData"
+            android:title="@string/aci.dspro.informationPush.limitPrestagingToLocalData_title" />
+        <SwitchPreference
+            android:defaultValue="@string/aci.dspro2app.networkReload.enable_default"
+            android:key="@string/aci.dspro2app.networkReload.enable"
+            android:title="@string/aci.dspro2app.networkReload.enable_title"
+            android:summary="@string/aci.dspro2app.networkReload.enable_summary"/>
+        <!-- <SwitchPreference
+                android:key="@string/aci.dspro2app.autoRestartService"
+                android:title="@string/aci.dspro2app.autoRestartService_title"
+                android:defaultValue="@string/aci.dspro2app.autoRestartService_default"/> -->
+        <CheckBoxPreference
+            android:defaultValue="@string/aci.dspro2app.proxy.enable_default"
+            android:key="@string/aci.dspro2app.proxy.enable"
+            android:title="@string/aci.dspro2app.proxy.enable_title" />
+        <CheckBoxPreference
+            android:defaultValue="@string/aci.dspro2app.runtime.changes_default"
+            android:key="@string/aci.dspro2app.runtime.changes"
+            android:dependency="@string/aci.dspro2app.proxy.enable"
+            android:summary="@string/aci.dspro2app.runtime.changes_summary"
+            android:title="@string/aci.dspro2app.runtime.changes_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="pref_key_development_settings"
+        android:title="@string/pref_development_title">
+        <SwitchPreference
+            android:defaultValue="@string/aci.dspro2app.mutexlogger.enable_default"
+            android:key="@string/aci.dspro2app.mutexlogger.enable"
+            android:title="@string/aci.dspro2app.mutexlogger.enable_title" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:key="@string/pref_netlogger_key"
+        android:title="@string/pref_netlogger_title">
+        <SwitchPreference
+            android:key="@string/netlogger.enable"
+            android:defaultValue="@string/netlogger.enable_default"
+            android:title="@string/netlogger.enable_title" />
+        <SwitchPreference
+            android:key="@string/aci.dspro.adaptor.nats.enable"
+            android:defaultValue="@string/aci.dspro.adaptor.nats.enable_default"
+            android:title="@string/aci.dspro.adaptor.nats.enable_title" />
+        <EditTextPreference
+            android:key="@string/nats.broker.addr"
+            android:defaultValue="@string/nats.broker.addr_default"
+            android:title="@string/nats.broker.addr_title" />
+        <EditTextPreference
+            android:key="@string/nats.broker.port"
+            android:defaultValue="@string/nats.broker.port_default"
+            android:title="@string/nats.broker.port_title" />
+        <SwitchPreference
+            android:key="@string/aci.dspro.adaptor.udp.enable"
+            android:defaultValue="@string/aci.dspro.adaptor.udp.enable_default"
+            android:title="@string/aci.dspro.adaptor.udp.enable_title" />
+        <EditTextPreference
+            android:key="@string/aci.dspro.adaptor.udp.peer.addr"
+            android:defaultValue="@string/aci.dspro.adaptor.udp.peer.addr_default"
+            android:title="@string/aci.dspro.adaptor.udp.peer.addr_title" />
+        <EditTextPreference
+            android:key="@string/aci.dspro.adaptor.udp.port"
+            android:defaultValue="@string/aci.dspro.adaptor.udp.port_default"
+            android:title="@string/aci.dspro.adaptor.udp.port_title" />
+    </PreferenceCategory>
+</PreferenceScreen>

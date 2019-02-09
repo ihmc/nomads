@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="capability.controller.core.th.dod.mil" 
+    targetNamespace="capability.controller.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:capability="capability.core.th.dod.mil" 
+    xmlns:shared="http://th.dod.mil/core/types" 
+    xmlns:ccomm="http://th.dod.mil/core/types/ccomm"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="capability.core.th.dod.mil" schemaLocation="../../capability/BaseCapabilities.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/ccomm" schemaLocation="../../types/ccomm/CustomCommTypes.xsd" />
+    
+    <xs:element name="ControllerCapabilities">
+        <xs:complexType >
+            <xs:complexContent>
+                <xs:extension base="capability:BaseCapabilities">
+                    <xs:sequence>
+                        <xs:element name="physicalLink" type="PhysicalLink" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>Internal ports that are available as physical links.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="systemMemory" type="shared:PhysicalMemoryGB" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    System Memory is mapped to the physical memory. Storage size is in binary form (2^30)
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="physicalStorageSize" type="shared:PhysicalMemoryGB" minOccurs="0" maxOccurs="1" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Non-volatile memory for storing data. Storage size is in decimal form (10^9)
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="idOverridden" type="xs:boolean" minOccurs="0" maxOccurs="1" default="false">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Whether the controller plug-in provides a custom implementation for setId() and getId().
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="nameOverridden" type="xs:boolean" minOccurs="0" maxOccurs="1" default="false" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Whether the controller plug-in provides a custom implementation for setName() and getName().
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="versionOverridden" type="xs:boolean" minOccurs="0" maxOccurs="1" default="false" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Whether the controller plug-in provides a custom implementation for getVersion().
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="buildInfoOverridden" type="xs:boolean" minOccurs="0" maxOccurs="1" default="false">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Whether the controller plug-in provides a custom implementation for getBuildInfo().
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="operatingSystemsSupported" type="shared:OperatingSystemTypeEnum" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Operating System of the corresponding controller.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="cpuSpeed" type="shared:ProcessorFrequencyMHz" minOccurs="0" maxOccurs="1" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Processor speed of the controller.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="minVoltage" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Minimum DC Voltage required for the controller battery.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="maxVoltage" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Maximum DC Voltage required for the controller battery.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="nominalVoltage" type="shared:VoltageVolts" minOccurs="0" maxOccurs="1" >
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Nominal operating DC Voltage.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="batteryAmpHourReported" type="xs:boolean" minOccurs="0" maxOccurs="1" default="false">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Field indicating whether the controller can report the values of battery amp hours.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="voltageReported" type="xs:boolean" minOccurs="0" maxOccurs="1" default="false">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Field indicating whether the controller can report the values of battery voltage.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="lowPowerModeSupported" type="xs:boolean" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Field indicating whether the controller supports low power mode or not.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+    
+    <xs:complexType name="PhysicalLink">
+        <xs:attribute name="name" type="xs:string" use="required" />
+        <xs:attribute name="type" type="ccomm:PhysicalLinkTypeEnum" use="required" />
+    </xs:complexType>
+ </xs:schema>

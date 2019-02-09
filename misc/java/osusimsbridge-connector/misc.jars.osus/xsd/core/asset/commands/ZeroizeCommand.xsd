@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include>
+  
+    <xs:element name="zeroizeCommand" type="ZeroizeCommand"/>
+    <xs:complexType name="ZeroizeCommand">
+        <xs:annotation>
+            <xs:documentation>
+              Command the asset to securely erase internal data based on the parameters.
+              Note that this may render the device inoperable, depending on the type of data erased.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">
+                <xs:attribute name="zeroizeKeys" type="xs:boolean" default="false" use="optional">
+                  <xs:annotation>
+                    <xs:documentation>
+                      If true, securely erase any encryption keys stored on the device. Implementation of this command MAY render the device
+                      temporarily inoperable until new encryption keys can be loaded, either through the controller (if supported) or another programming
+                      tool. Check the asset capabilities to see if this field is supported.
+                    </xs:documentation>
+                  </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="zeroizeConfiguration" type="xs:boolean" default="false" use="optional">
+                  <xs:annotation>
+                    <xs:documentation>
+                      If true, securely erase any configuration information stored on the device. Implementation of this command MAY render the device
+                      temporarily inoperable until new configuration information can be loaded, either through the controller (if supported) or another
+                      programming tool. Check the asset capabilities to see if this field is supported.
+                    </xs:documentation>
+                  </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="zeroizeData" type="xs:boolean" default="false" use="optional">
+                  <xs:annotation>
+                    <xs:documentation>
+                      If true, securely erase any captured sensor data stored on the device. Implementation of this command MUST NOT not render the device
+                      inoperable. Check the asset capabilities to see if this field is supported.
+                    </xs:documentation>
+                  </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="zeroizeCode" type="xs:boolean" default="false" use="optional">
+                  <xs:annotation>
+                    <xs:documentation>
+                      If true, securely erase the firmware of the device. Implementation of this command MAY render the device inoperable
+                      until firmware can be reloaded (or possibly permanently.) Check the asset capabilities to see if this field is supported.
+                    </xs:documentation>
+                  </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+</xs:schema>

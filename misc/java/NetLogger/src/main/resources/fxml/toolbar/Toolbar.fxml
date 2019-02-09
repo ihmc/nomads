@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<?import com.jfoenix.controls.JFXToolbar?>
+<?import com.jfoenix.controls.JFXHamburger?>
+<?import com.jfoenix.transitions.hamburger.HamburgerBackArrowBasicTransition?>
+<?import java.net.URL?>
+<VBox spacing="20" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml/1" fx:controller="netlogger.controller.ToolbarController">
+    <JFXToolbar>
+        <leftItems>
+            <StackPane>
+                <JFXHamburger fx:id="_navBurger">
+                    <HamburgerBackArrowBasicTransition />
+                </JFXHamburger>
+            </StackPane>
+            <Label>NetLogger</Label>
+        </leftItems>
+        <rightItems>
+            <StackPane>
+                <JFXHamburger styleClass="jfx-options-burger" fx:id="_infoBurger">
+                </JFXHamburger>
+            </StackPane>
+        </rightItems>
+    </JFXToolbar>
+
+    <stylesheets>
+        <URL value="@../../css/toolbar-design.css" />
+    </stylesheets>
+</VBox>

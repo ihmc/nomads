@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types"
+    xmlns:image="http://th.dod.mil/core/types/image"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/image" schemaLocation="../../types/image/ImageTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include>
+  
+    <xs:element name="getCameraSettingsResponse" type="GetCameraSettingsResponse" />
+    <xs:complexType name="GetCameraSettingsResponse">
+        <xs:annotation>
+            <xs:documentation>GetCameraSettingsResponse returns the camera settings of the camera asset.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Response">
+                <!-- TODO TH-4058: update to support agcWindow field. -->
+                <xs:sequence>
+                    <xs:element name="exposureSettings" type="image:ExposureSettings" minOccurs="0" 
+                        maxOccurs="1" />
+                    <xs:element name="autoFocus" type="image:CameraWindow" minOccurs="0" 
+                        maxOccurs="unbounded">
+                        <xs:annotation>
+                            <xs:documentation>
+                                The list of currently available windows.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:sequence>
+                <xs:attribute name="zoom" type="image:ZoomType" use="optional" />
+                <xs:attribute name="focus" type="image:FocusType" use="optional" />
+                <xs:attribute name="whiteBalance" type="image:WhiteBalanceEnum" use="optional" />          
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+  
+</xs:schema>

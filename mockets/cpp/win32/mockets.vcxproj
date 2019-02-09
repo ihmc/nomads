@@ -113,7 +113,7 @@
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\vs2015\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\include\x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -127,7 +127,7 @@
       <AdditionalDependencies>libeay32MTd.lib;ssleay32MTd.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\externals-win\windows\x86;..\..\..\externals-win\openssl\1.0.2h\vs2015\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\externals-win\windows\x86</AdditionalLibraryDirectories>
     </Lib>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -135,7 +135,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\vs2015\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\include\x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;MOCKETS_NO_CRYPTO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)mockets.pdb</ProgramDataBaseFileName>
@@ -146,12 +146,12 @@
     </ClCompile>
     <Lib>
       <AdditionalDependencies>libeay32MT.lib;ssleay32MT.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\externals-win\windows\x86;..\..\..\externals-win\openssl\1.0.2h\vs2015\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\externals-win\windows\x86</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\vs2015\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\include\x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)mockets.pdb</ProgramDataBaseFileName>
@@ -160,7 +160,7 @@
       <DisableSpecificWarnings>4355;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\externals-win\windows\x86;..\..\..\externals-win\openssl\1.0.2h\vs2015\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\externals-win\windows\x86</AdditionalLibraryDirectories>
       <AdditionalDependencies>libeay32MT.lib;ssleay32MT.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -174,7 +174,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\vs2015\include64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\include\x64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;MOCKETS_NO_CRYPTO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -188,7 +188,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\externals-win\windows\x64;..\..\..\externals-win\openssl\1.0.2h\vs2015\lib64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\externals-win\windows\x64</AdditionalLibraryDirectories>
       <AdditionalDependencies>libeay32MTd.lib;ssleay32MTd.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -197,7 +197,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\vs2015\include64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\include\x64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;MOCKETS_NO_CRYPTO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)mockets.pdb</ProgramDataBaseFileName>
@@ -207,7 +207,7 @@
     </ClCompile>
     <Lib>
       <AdditionalDependencies>libeay32MT.lib;ssleay32MT.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\externals-win\windows\x64;..\..\..\externals-win\openssl\1.0.2h\vs2015\lib64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\externals-win\windows\x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'">
@@ -215,7 +215,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\vs2015\include64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\util\cpp;..\..\..\externals-win\openssl\1.0.2h\include\x64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ProgramDataBaseFileName>$(IntDir)mockets.pdb</ProgramDataBaseFileName>
@@ -225,7 +225,7 @@
     </ClCompile>
     <Lib>
       <AdditionalDependencies>libeay32MT.lib;ssleay32MT.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\externals-win\windows\x64;..\..\..\externals-win\openssl\1.0.2h\vs2015\lib64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\externals-win\windows\x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>

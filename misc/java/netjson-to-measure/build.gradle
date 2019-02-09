@@ -1,0 +1,68 @@
+group = 'us.ihmc'
+version = '1.0-SNAPSHOT'
+
+
+apply plugin: "kotlin"
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'java-library-distribution'
+apply plugin: 'com.google.protobuf'
+
+repositories {
+    mavenCentral()
+}
+
+buildscript {
+    ext.kotlin_version = '1.2.30'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+jar {
+    manifest {
+        attributes('Implementation-Title': project.name,
+                'Implementation-Version': project.version)
+    }
+}
+
+test {
+    systemProperty 'forceLocation', System.getProperty('forceLocation') //check if latitude/longitude are present
+
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+    }
+
+    afterTest { desc, result ->
+        logger.quiet "Executing test ${desc.name} [${desc.className}] with result: ${result.resultType}"
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.1.0'
+    }
+}
+
+defaultTasks 'clean', 'jar'
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile 'com.github.salomonbrys.kotson:kotson:2.5.0'
+    compile 'org.jeasy:easy-rules-core:3.1.0'
+
+    compile 'com.google.protobuf:protobuf-java:3.1.0'
+    compile 'com.google.protobuf:protobuf-java-util:3.1.0'
+    compile 'com.google.protobuf:protobuf-gradle-plugin:0.8.0'
+    compile project (':databroker')
+
+    testCompile 'junit:junit:4.12'
+}
+
+
+

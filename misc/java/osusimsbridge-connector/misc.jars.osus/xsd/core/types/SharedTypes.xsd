@@ -1,0 +1,1229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types"
+    targetNamespace="http://th.dod.mil/core/types"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    
+    <xs:simpleType name="UUID">
+        <xs:annotation>
+          <xs:documentation>
+            Validation type for a UUID.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="positiveInt">
+        <xs:restriction base="xs:int">
+            <xs:minInclusive value="0" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="positiveLong">
+        <xs:restriction base="xs:long">
+            <xs:minInclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="fieldOfView">
+        <xs:restriction base="xs:double">
+            <xs:minInclusive value="0.0" />
+            <xs:maxInclusive value="360.0" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="percentage">
+        <xs:restriction base="xs:double">
+            <xs:minInclusive value="0.0" />
+            <xs:maxInclusive value="1.0" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="percentPerSecond">
+        <xs:annotation>
+          <xs:documentation>
+            Normalized percent change per second with a value of 1 indicating doubling in one second.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:double">
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="Direction">
+        <xs:attribute name="value" type="DirectionEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" />
+    </xs:complexType>
+    
+      <xs:simpleType name="DirectionEnum">
+        <xs:annotation>
+          <xs:documentation>Course estimation of the direction of travel relative to the sensor.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="LR">
+            <xs:annotation>
+              <xs:documentation>Left to Right</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="RL">
+            <xs:annotation>
+              <xs:documentation>Right to Left</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="FN">
+            <xs:annotation>
+              <xs:documentation>Far to Near</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="NF">
+            <xs:annotation>
+              <xs:documentation>Near to Far</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="LR-NF">
+            <xs:annotation>
+              <xs:documentation>Left to Right and Near to Far</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="RL-NF">
+            <xs:annotation>
+              <xs:documentation>Right to Left and Near to Far</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="LR-FN">
+            <xs:annotation>
+              <xs:documentation>Left to Right and Far to Near</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="RL-FN">
+            <xs:annotation>
+              <xs:documentation>Right to Left and Far to Near</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="Other"/>
+          <xs:enumeration value="CW">
+            <xs:annotation>
+              <xs:documentation>Clockwise</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+          <xs:enumeration value="CCW">
+            <xs:annotation>
+              <xs:documentation>Counter-clockwise</xs:documentation>
+            </xs:annotation>
+          </xs:enumeration>
+        </xs:restriction>
+        <!-- Direction of travel  -->
+      </xs:simpleType>
+    
+    <xs:simpleType name="Sensitivity">
+        <xs:annotation>
+            <xs:documentation>0 is the least sensitive, 1 is the most sensitive</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:double">
+            <xs:minInclusive value="0" />
+            <xs:maxInclusive value="1" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="Mode">
+        <xs:annotation>
+            <xs:documentation>
+                Mode which indicates the mode of an external component related to a plugin.
+                This mode is not to be used to indicate the state of the plugin itself.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="value" type="ModeEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Only needs to be set if mode is Other.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:simpleType name="ModeEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Mode enum that describes the current mode of an external component.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Unknown">
+                <xs:annotation>
+                    <xs:documentation>
+                        Processing is not known by the asset.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Off">
+                <xs:annotation>
+                    <xs:documentation>
+                        Processing is not active.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="StartingUp">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset is starting up.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Manual">
+                <xs:annotation>
+                    <xs:documentation>
+                        Processing on the asset is active but requires a further request to get Observations.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Auto">
+                <xs:annotation>
+                    <xs:documentation>
+                        Processing on the asset is active and the sensor will automatically produce Observations.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Pause">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset is on, but requires interaction to start processing.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Diagnostic">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset is on, but in a diagnostic mode, therefore, not processing.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="ShuttingDown">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset is shutting down.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation>
+                        Processing is being performed on the asset in some other way.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MeasurementTypeEnum">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Other" />
+            <xs:enumeration value="Pa">
+                <xs:annotation>
+                    <xs:documentation>
+                        Pascals.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Ms">
+                <xs:annotation>
+                    <xs:documentation>
+                        Meters per second.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Teslas" />
+            <xs:enumeration value="dB">
+                <xs:annotation>
+                    <xs:documentation>
+                        Decibels.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration> 
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="Measurement" abstract="true">
+        <xs:annotation>
+            <xs:documentation>
+                Abstract type defining common measurement properties for concrete types to restrict as appropriate
+                for validation. Borrows from the OGC GML MeasurementType.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:double">
+                <xs:attribute name="error" type="xs:double" use="optional">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The relative error associated with the measurement.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="precision" type="xs:double" use="optional">
+                    <xs:annotation>
+                        <xs:documentation>
+                            The maximum precision (or minimum resolution) of the measurement.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="variance" use="optional" >
+                    <xs:annotation>
+                        <xs:documentation>
+                            The variance, or 1-sigma squared, of the measurement from the mean, if known.
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:double">
+                            <xs:minInclusive value="0" fixed="true" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:attribute>
+                <xs:attribute name="stdev" use="optional" >
+                    <xs:annotation>
+                        <xs:documentation>
+                            The standard deviation, or 1-sigma, of the measurement from the mean, if known.
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:double">
+                            <xs:minInclusive value="0" fixed="true" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="SpeedMetersPerSecond">
+        <xs:annotation>
+            <xs:documentation>
+                Provides a validation mechanism for speed measurements. Measured in meters per second 
+                which is a derived unit for magnitude of velocity, or speed. Negative values are possible
+                with known frame of reference.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="TemperatureCelsius">
+        <xs:annotation>
+            <xs:documentation>
+                Provides a validation mechanism for temperature measurements. Measure in Celsius which is the metric
+                unit for temperature, with 0 as freezing at sea level and 100 as boiling at sea level.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement">
+                <xs:minInclusive value="-273.0" />
+                <xs:maxInclusive value="10000.0" />
+            </xs:restriction>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="PressureMillibars">
+        <xs:annotation>
+            <xs:documentation>
+                Provides a validation mechanism for pressure measurements. The measurements are assumed
+                to be in millibars, which are one-thousandth of a unit for pressure. A pressure of 1000 
+                millibars is defined as the atmospheric pressure at sea level.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement">
+                <xs:minInclusive value="0" />
+                <xs:maxInclusive value="10000.0" />
+            </xs:restriction>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="PressurePascals">
+        <xs:annotation>
+            <xs:documentation>
+                Provides a validation mechanism for pressure measurements. The measurements are in pascals.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement">
+                <xs:minInclusive value="0" />
+            </xs:restriction>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="RadianceJoulesPerSqMeter">
+        <xs:annotation>
+            <xs:documentation>
+                Provides a validation mechanism for radiance measurements. The measurements are in
+                joules per square meter. 
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement">
+                <xs:minInclusive value="0" />
+            </xs:restriction>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="FrequencyKhz">
+        <xs:annotation>
+            <xs:documentation>
+                Standardizes the measurement of frequency. Frequency measures how many times something 
+                happens in a second. Frequency is an electromagnetic property of signal. As the preferred
+                measurement here is kilohertz, or 1000 Hz, verify that the sensor reports the correct magnitude.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement">
+                <xs:minInclusive value="0" />
+            </xs:restriction>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="FrequencyDeltaKhz">
+        <xs:annotation>
+            <xs:documentation>
+                Measurement of a change in frequency. The change is measured in kilohertz (1000 Hz).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement">
+            </xs:restriction>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="VoltageVolts">
+        <xs:annotation>
+            <xs:documentation>
+                Standard voltage units.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="Amperes">
+        <xs:annotation>
+            <xs:documentation>
+                Standard measurement unit for current is amperes.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="PowerWatts">
+        <xs:annotation>
+            <xs:documentation>
+                Standard power measurement unit is Watts.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="VAR">
+        <xs:annotation>
+            <xs:documentation>
+                Standard Volt Ampere Reactive (VAR) measurement unit.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="SNRdB">
+        <xs:annotation>
+            <xs:documentation>
+                Signal to noise ratio in decibels.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="SPLdB">
+        <xs:annotation>
+            <xs:documentation>
+                Signal power level in decibels.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="PH">
+        <xs:annotation>
+            <xs:documentation>
+                Standard measurement unit for the acidity or basicity of an aqueous solution.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="ConcentrationGramsPerLiter">
+        <xs:annotation>
+            <xs:documentation>
+                Standard measurement unit of concentration is grams per liter.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="ConductivitySiemensPerMeter">
+        <xs:annotation>
+            <xs:documentation>
+                Standard measurement unit of electrical conductivity is siemens per meter.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="TurbidityNtu">
+        <xs:annotation>
+            <xs:documentation>
+                Standard measurement of turbidity (cloudiness or haziness in fluid) is Nephelometric 
+                Turbidity Units (NTU). 
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="SalinityPsu">
+        <xs:annotation>
+            <xs:documentation>
+                Standard measurement unit of salinity (salt level in water) is Pratical Salinity Units (PSU).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="SpecificGravity">
+        <xs:annotation>
+            <xs:documentation>
+                Unitless measurement for the density ratio to a reference substance.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:complexType name="LangelierSaturationIndex">
+        <xs:annotation>
+            <xs:documentation>
+                Calculated number used to predict the calcium carbonate stability of water. It indicates 
+                whether the water will precipitate, dissolve, or be in equilibrium with calcium carbonate.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="SensingModality">
+        <xs:attribute name="value" type="SensingModalityEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" />
+    </xs:complexType>
+
+    <xs:complexType name="PhaseRadians">
+        <xs:annotation>
+            <xs:documentation>
+                Measurement of the phase of a signal. Units are radians.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="AngleDegrees">
+        <xs:annotation>
+            <xs:documentation>
+                Measurement of an angle. Units are degrees.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="SquareDegrees">
+        <xs:annotation>
+            <xs:documentation>
+                Measurement of a solid angle. Units are square degrees.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="MagneticFluxDensityTeslas">
+        <xs:annotation>
+            <xs:documentation>
+                Measurement of magnetic field strength (flux density). Units are Teslas.
+                If a sensor/transducer reports H field units (oersteds or amps per meter)
+                the measurement SHOULD be converted to Teslas assuming that 
+                1 G = 1 Oe = 0.0001 T (i.e., assuming the permeability of a vacuum.)
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:restriction base="Measurement"/>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:simpleType name="SensingModalityEnum">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Acoustic" />
+            <xs:enumeration value="Imager" />
+            <xs:enumeration value="Magnetic" />
+            <xs:enumeration value="PIR" />
+            <xs:enumeration value="Radar" />
+            <xs:enumeration value="Seismic" />
+            <xs:enumeration value="Ladar" />
+            <xs:enumeration value="Hyperspectral" />
+            <xs:enumeration value="Radiation" />
+            <xs:enumeration value="RFID" />
+            <xs:enumeration value="Other" />
+            <xs:enumeration value="RF" />
+            <xs:enumeration value="GPS">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sensor produces location and time information using GPS satellites.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="INS">
+                <xs:annotation>
+                    <xs:documentation>
+                        Sensor produces information from an inertial navigation system (INS) like location, velocity and
+                        orientation.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Chemical" />
+            <xs:enumeration value="Biological" />
+            <xs:enumeration value="WaterQuality" />
+            <xs:enumeration value="Weather" />
+            <xs:enumeration value="Unknown">
+                <xs:annotation>
+                    <xs:documentation>
+                        Use this value when an asset detects something but does not know what type of sensor it came from, 
+                        not when the modality is known but not on the list.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Power" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="MimeType">
+        <xs:union>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:pattern value="image/[\w\+\-\._]+" />
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:pattern value="video/[\w\+\-\._]+" />
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:pattern value="audio/[\w\+\-\._]+" />
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:pattern value="application/octet-stream" />
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:pattern value="Other:\w+|Unknown" />
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:union>
+    </xs:simpleType>
+    
+    <xs:complexType name="DigitalMedia">
+        <xs:annotation>
+            <xs:documentation>Container for a digital media file.</xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:base64Binary">
+                <xs:attribute name="encoding" type="MimeType" use="required">
+                    <xs:annotation>
+                        <xs:documentation>
+                            MIME type in which the binary data is encoded.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+    
+    <xs:simpleType name="PhysicalMemoryGB">
+        <xs:annotation>
+            <xs:documentation>
+                Depending on the context GB can represent SI decimal prefix 10^9 bytes or binary prefix 2^30 bytes.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="positiveInt">
+            <xs:minInclusive value="0" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="ProcessorFrequencyMHz">
+        <xs:restriction base="xs:float">
+            <xs:minInclusive value="0.0" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="OperatingSystemTypeEnum">
+        <xs:annotation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="AIX" />
+            <xs:enumeration value="DigitalUnix" />
+            <xs:enumeration value="Embos" />
+            <xs:enumeration value="Epoc32" />
+            <xs:enumeration value="FreeBSD" />
+            <xs:enumeration value="HPUX" />
+            <xs:enumeration value="IRIX" />
+            <xs:enumeration value="Linux" />
+            <xs:enumeration value="MacOS" />
+            <xs:enumeration value="MacOSX" />
+            <xs:enumeration value="NetBSD" />
+            <xs:enumeration value="Netware" />
+            <xs:enumeration value="OpenBSD" />
+            <xs:enumeration value="OS2" />
+            <xs:enumeration value="ONX" />
+            <xs:enumeration value="Solaris" />
+            <xs:enumeration value="SunOS" />
+            <xs:enumeration value="Win95" />
+            <xs:enumeration value="Win98" />
+            <xs:enumeration value="WinNT" />
+            <xs:enumeration value="WinCE" />
+            <xs:enumeration value="Win2000" />
+            <xs:enumeration value="Win2003" />
+            <xs:enumeration value="WinXP" />
+            <xs:enumeration value="WinVista" />
+            <xs:enumeration value="Win7" />
+            <xs:enumeration value="Win8" />
+            <xs:enumeration value="WinServer2008" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="MapEntry">
+        <xs:annotation>
+            <xs:documentation>
+                This class holds the key-value pairs representing entries in a map.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="key" type="xs:string" minOccurs="1" maxOccurs="1" />
+            <xs:element name="value" type="xs:anySimpleType" minOccurs="1" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="StringMapEntry">
+        <xs:annotation>
+            <xs:documentation>
+                This class holds the key-value pairs representing entries in a map where all values are strings.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="key" type="xs:string" use="required" />
+        <xs:attribute name="value" type="xs:string" use="required" />
+    </xs:complexType>
+   
+    <xs:complexType name="ComponentType">
+        <xs:annotation>
+            <xs:documentation>
+                This type defines a component within a device (e.g., asset, radio) or the plug-in itself.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="type" type="ComponentTypeEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" >
+          <xs:annotation>
+            <xs:documentation>
+                Free form string to further describe the type, should be provided if type is Other.
+            </xs:documentation>
+        </xs:annotation>
+        </xs:attribute>        
+    </xs:complexType>
+
+    <xs:simpleType name="ComponentTypeEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Enum of standard components that might be found within a device (e.g., asset, radio) or the plug-in 
+                itself.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="AnalogBoard">
+                <xs:annotation>
+                    <xs:documentation>
+                        Some analog component (i.e., not digital).
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CPU">
+                <xs:annotation>
+                    <xs:documentation>
+                        Central Processing Unit
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="DSP">
+                <xs:annotation>
+                    <xs:documentation>
+                        Digital Signal Processor
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="InternalComms">
+                <xs:annotation>
+                    <xs:documentation>
+                        Some internal communications component within the device.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="ExternalComms">
+                <xs:annotation>
+                    <xs:documentation>
+                        Some external communication port for the device.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Navigation">
+                <xs:annotation>
+                    <xs:documentation>
+                        The internal navigation (e.g., GPS, INS or IMU) within a device.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Power">
+                <xs:annotation>
+                    <xs:documentation>
+                        Used to describe a power module inside the device.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="SoftwareUnit">
+                <xs:annotation>
+                    <xs:documentation>
+                        Software unit of a plug-in.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Other" />
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:complexType name="VariableMetaData">
+        <xs:annotation>
+            <xs:documentation>
+                Information about a variable.
+             </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:annotation>
+                <xs:documentation>
+                    The name value is the name of the variable.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1" />
+            <!-- Default value(s) -->
+            <xs:element name="defaultValue" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:choice>
+                <xs:element name="optionValues" type="xs:string" minOccurs="1" maxOccurs="unbounded" />
+                <xs:sequence minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Min/max values can be used in addition or instead of option values.
+                        </xs:documentation>
+                    </xs:annotation>
+                <xs:element name="minValue" type="xs:string" minOccurs="0" maxOccurs="1" />
+                <xs:element name="maxValue" type="xs:string" minOccurs="0" maxOccurs="1" />
+                    </xs:sequence>
+            </xs:choice>
+            <!-- Description of the variable -->
+            <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <!-- human readable name -->
+            <xs:element name="humanReadableName" type="xs:string" minOccurs="1" maxOccurs="1" />
+       </xs:sequence>
+    </xs:complexType>
+    
+    <xs:simpleType name="ActionEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Describes actions that can be performed by an asset.
+             </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Takeoff">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset will takeoff from its current location.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="GoToWaypoint">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset will go to a specified waypoint.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="ChangeOrientation">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset will change to the specified orientation without moving to another waypoint.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CollectData">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset will collect data from source(s) at its current location.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="ExfilData">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset will exfiltrate data to target(s) at its current location.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Wait">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset will wait at its current location.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Land">
+                <xs:annotation>
+                    <xs:documentation>
+                        Asset will land at its current location.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TimeWindowSeconds">
+        <xs:annotation>
+            <xs:documentation>
+                Time frame window in seconds.
+             </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:double">
+            <xs:minInclusive value="0" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TeslaSeconds">
+        <xs:annotation>
+            <xs:documentation>
+                Magnetic field measurement accumulated over time.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:double">
+            <xs:minInclusive value="0" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="CountsPerTime">
+        <xs:annotation>
+            <xs:documentation>
+                Measurement counting the number of events that have occurred during a time window.
+                Events are not necessarily evenly spaced over the window.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="count" type="xs:double" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    How many events occurred during the time window. 
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="timeWindowSeconds" type="TimeWindowSeconds" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Length of the time window in seconds.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="AlarmState">
+        <xs:annotation>
+            <xs:documentation>
+                Type defines whether there is an alarm and if so what level of alarm.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="alarmPresent" type="xs:boolean" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Whether an alarm is present or not.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="alarmLevel" type="percentage" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Level of the alarm. A value of zero or empty represents no alarm. 
+                    A value of 1 is the highest level alarm.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+     
+    <xs:complexType name="Version">
+      <xs:annotation>
+        <xs:documentation>
+            Version number. Major number will increase if there have been any required fields added, removed, or 
+            otherwise changes are made such that there may be incompatability issues for consumers expecting the previous 
+            major version. Minor number will increase if optional field changes are made but do not require the consumer
+            to update.
+        </xs:documentation>
+      </xs:annotation>
+      <xs:sequence>
+        <!-- The major number -->
+        <xs:element name="majorNumber" type="xs:int" minOccurs="1" maxOccurs="1" />
+        <!-- The minor number -->
+        <xs:element name="minorNumber" type="xs:int" minOccurs="1" maxOccurs="1" />
+      </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="Profile">
+        <xs:annotation>
+            <xs:documentation>
+                Profile for an asset.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="mode" type="Mode" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The mode to change the profile to, this is how the profile can become active.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Free form description of the profile, it's meaning.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="image" type="DigitalMedia" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Optional image to describe the profile.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="variables" type="MapEntry" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Variables currently used by profile, will be empty if variables do not apply or aren't currently 
+                        set.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="variableMetaData" type="ProfileVariableMetaData" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Variable meta data about the variables available for the represented profile.
+                    </xs:documentation>
+                </xs:annotation>
+           </xs:element>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Unique identifier of the profile.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="name" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Human readable name of the profile.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    
+    <xs:complexType name="ProfileVariableMetaData">
+        <xs:annotation>
+            <xs:documentation>
+                Variable meta data about the variables available for the represented profile.
+             </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="VariableMetaData">
+                <xs:sequence>
+                    <xs:annotation>
+                        <xs:documentation>
+                            The type of the variable.
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:element name="type" type="ProfileVariableTypesEnum" minOccurs="1" maxOccurs="1" />
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    
+    <xs:simpleType name="ProfileVariableTypesEnum">
+        <xs:restriction base="xs:string">        
+            <xs:enumeration value="Integer" />
+            <xs:enumeration value="String" />
+            <xs:enumeration value="Float" />
+            <xs:enumeration value="Short" />
+            <xs:enumeration value="Long" />
+            <xs:enumeration value="Double" />
+            <xs:enumeration value="Byte" />
+            <xs:enumeration value="Boolean" />
+        </xs:restriction>
+    </xs:simpleType>
+  
+    <xs:complexType name="ChannelConfiguration">
+        <xs:annotation>
+            <xs:documentation>
+                RF tune configuration for a set of channels.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="channels" type="positiveInt" minOccurs="1" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Channels the configuration are applicable to.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="frequency" type="FrequencyKhz" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Frequency the channels are tuned to.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="bandwidth" type="FrequencyKhz" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Bandwidth around the frequency where the upper frequency is one half the bandwidth plus
+                        the frequency element.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="mode" type="Mode" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        The current mode for the channel configuration.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="sensitivity" type="Sensitivity" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Sensitivity level used by the RF sensor in determining the probability of false alarms. The higher the
+                    sensitivity value, the greater chance for false alarms. Value will not be set if not applicable for the
+                    sensor.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+  
+    <xs:complexType name="ScoringCriteria">
+        <xs:annotation>
+            <xs:documentation>
+                The class of device used for this score.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="criteria" type="SensingModality" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+        <xs:attribute name="value" type="xs:double" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    The actual score.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+  
+    <xs:complexType name="ProbabilityFactor">
+        <xs:attribute name="value" type="xs:double" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    The confidence factor for the classification.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="ConfidenceFactor">
+        <xs:sequence>
+            <xs:element name="score" type="ScoringCriteria"
+              minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        There can be multiple scores per confidence factor.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="value" type="xs:double" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    The confidence factor for the classification.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+</xs:schema>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/observation"
+  targetNamespace="http://th.dod.mil/core/types/observation"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  elementFormDefault="qualified">
+
+  <xs:simpleType name="ObservationSubTypeEnum">
+    <xs:annotation>
+      <xs:documentation>
+          Lexical identifier that uniquely defines the type of observation.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none">
+        <xs:annotation>
+          <xs:documentation>
+            The observation does not contain any of the other enum values above. For example, only contains 
+            asset location.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="audioMetadata" />
+      <xs:enumeration value="detection" />
+      <xs:enumeration value="digitalMedia">
+        <xs:annotation>
+          <xs:documentation>
+            If the observation contains either an image, video or audio.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="imageMetadata" />
+      <xs:enumeration value="status" />
+      <xs:enumeration value="videoMetadata" />
+      <xs:enumeration value="weather" />
+      <xs:enumeration value="waterQuality" />
+      <xs:enumeration value="cbrneTrigger" />
+      <xs:enumeration value="biological" />
+      <xs:enumeration value="chemical" />
+      <xs:enumeration value="power" />
+      <xs:enumeration value="channelMetadata" />
+    </xs:restriction>
+  </xs:simpleType>   
+
+  <xs:simpleType name="RelationshipTypeEnum">
+     <xs:restriction base="xs:string">
+       <xs:enumeration value="parent" />
+       <xs:enumeration value="child" />
+       <xs:enumeration value="peer" />
+     </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

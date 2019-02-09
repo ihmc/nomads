@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    xmlns:shared="http://th.dod.mil/core/types"
+    xmlns:spatial="http://th.dod.mil/core/types/spatial"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />    
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include> 
+  
+    <xs:element name="targetRefinementCommand" type="TargetRefinementCommand" />
+    <xs:complexType name="TargetRefinementCommand" >
+        <xs:annotation>
+            <xs:documentation>
+            Manipulate refinement metadata for an asset which is capable of target identification. 
+            This command should be used to improve target identification for an asset via RefinementParams 
+            that may characterize the target.  The RefinementParams should be processed in the order they are
+            created.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">
+                <xs:sequence>
+                    <xs:element name="refinement" type="RefinementParams" minOccurs="1" maxOccurs="unbounded"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+  
+   <xs:complexType name="RefinementParams">
+        <xs:annotation>
+            <xs:documentation>
+                Refinement information. If no metadata parameters are specified the action shall apply to all plug-in 
+                known pending changes.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="channelMetadata" type="ChannelMetadata" minOccurs="0" maxOccurs="1" />
+            <xs:element name="refinementAction" type="RefinementActionEnum" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                         The intended action of the command argument(s).
+                    </xs:documentation>
+                </xs:annotation>
+           </xs:element>
+           <xs:element name="timeMs" type="shared:positiveLong" minOccurs="0" maxOccurs="1">
+               <xs:annotation>
+                    <xs:documentation>
+                         Point in time the target refinement was identified.  Measured in milliseconds, since the epoch.
+                    </xs:documentation>
+                </xs:annotation>
+           </xs:element>
+           <xs:element name="estimatedLocation" type="spatial:Coordinates" minOccurs="0" maxOccurs="1">
+               <xs:annotation>
+                    <xs:documentation>
+                         Coordinates of the estimated location of the target.
+                    </xs:documentation>
+                </xs:annotation>
+           </xs:element>                        
+       </xs:sequence>
+   </xs:complexType>
+   
+   <xs:complexType name="ChannelMetadata">
+        <xs:annotation>
+            <!-- Override the generated proto type name to avoid name clashes in generated protobuf code. -->
+            <xs:appinfo>name=RefinementChannelMetadata</xs:appinfo>
+            <xs:documentation>
+                This type describes attributes specific to an RF channel.
+            </xs:documentation>
+        </xs:annotation>
+       <xs:sequence>
+           <xs:element name="channel" type="shared:positiveInt" minOccurs="0" maxOccurs="unbounded">
+               <!--  Channel(s) to be refined for target tracking -->
+           </xs:element>
+           <xs:element name="estimatedFrequency" type="shared:FrequencyKhz" minOccurs="0" maxOccurs="1">
+               <!-- Estimated frequency of the target for the specified channel(s). -->
+           </xs:element>
+       </xs:sequence>
+   </xs:complexType>
+   
+   <xs:simpleType name="RefinementActionEnum">
+        <xs:annotation>
+            <xs:documentation>
+                The possible actions for the specified refinement metadata.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Add">
+                <xs:annotation>
+                    <xs:documentation>
+                        Add refinement to an asset that is doing target identification.  This command will give the asset additional metadata that may improve it's accuracy. 
+                        A subsequent command must be sent with the Commit action to commit the refinements.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Commit">
+                <xs:annotation>
+                    <xs:documentation>
+                        This action should be used to confirm the previously sent target refinements were valid. 
+                        Any RefineParameters set may be used to denote a final refinement before committing all 
+                        refinements added.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Clear">
+                <xs:annotation>
+                    <xs:documentation>
+                        Clears any refinements that were added for an asset to consider for a target identification.
+                        The RefinementParams elements are used to form a query to clear refinements meeting the 
+                        criteria specified. If a field is not specified, all refinements for the given field should be 
+                        cleared.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

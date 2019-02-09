@@ -1,0 +1,51 @@
+.jfx-tool-bar {
+    -fx-font-size: 15;
+    -fx-font-weight: BOLD;
+    -fx-background-color: secondary-light-color;
+    -fx-pref-width: 100%;
+    -fx-pref-height: 40px;
+}
+
+.jfx-tool-bar HBox {
+    -fx-alignment: center;
+    -fx-spacing: 25;
+    -fx-padding: 5, 0, 0, 0;
+}
+
+.jfx-tool-bar Label {
+    -fx-text-fill: WHITE;
+}
+
+.jfx-hamburger {
+    -fx-cursor: hand;
+}
+
+.jfx-hamburger StackPane {
+    -fx-background-color: primary-light-color;
+    -fx-background-radius: 5px;
+}
+
+
+.jfx-tool-bar .jfx-options-burger {
+    -fx-padding: 5px;
+}
+
+.jfx-tool-bar .jfx-options-burger StackPane {
+    -fx-pref-width: 4px;
+}
+
+
+#menudrawer {
+    -fx-background-color: primary-light-color;
+}
+
+
+#author-label{
+    -fx-font-weight: bold;
+}
+
+.email-label{
+    -fx-underline: true;
+    -fx-text-fill: #7399c6;
+    -fx-cursor: hand;
+}

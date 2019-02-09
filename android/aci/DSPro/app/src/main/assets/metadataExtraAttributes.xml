@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<Metadata>
+	<Field>
+		<FieldName>Classification</FieldName>
+		<FieldType>TEXT</FieldType>
+	</Field>
+	<Field>
+		<FieldName>Description</FieldName>
+		<FieldType>TEXT</FieldType>
+	</Field>
+	<Field>
+		<FieldName>Node_Type</FieldName>
+		<FieldType>TEXT</FieldType>
+	</Field>
+	<Field>
+		<FieldName>Track_ID</FieldName>
+		<FieldType>TEXT</FieldType>
+	</Field>
+	<Field>
+		<FieldName>Application_Metadata</FieldName>
+		<FieldType>TEXT</FieldType>
+	</Field>
+	<Field>
+		<FieldName>Application_Metadata_Format</FieldName>
+		<FieldType>TEXT</FieldType>
+	</Field>
+</Metadata>

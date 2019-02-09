@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/observation/types"
+  targetNamespace="http://th.dod.mil/core/observation/types"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+  xmlns:shared="http://th.dod.mil/core/types"
+  xmlns:weather="http://th.dod.mil/core/types/weather"
+  xmlns:spatial="http://th.dod.mil/core/types/spatial"
+  elementFormDefault="qualified">
+  <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/weather" schemaLocation="../../types/weather/WeatherTypes.xsd" />
+  <xs:import namespace="http://th.dod.mil/core/types/spatial" schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+  
+  <xs:complexType name="Precipitation">
+    <xs:annotation>
+      <xs:documentation>Detailed description of the observed precipitation.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="rate" type="xs:double" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                The precipitation rate in millimeters per hour.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="accumulation" type="xs:double" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                The accumulation in millimeters.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  
+  <xs:complexType name="WeatherCondition">
+     <xs:annotation>
+       <xs:documentation>A report of weather condition. See AFMAN 15-111, section 13.8.</xs:documentation>
+     </xs:annotation>
+     <xs:sequence>
+       <xs:element name="phenomena" type="weather:WeatherPhenomena" minOccurs="1" maxOccurs="1" />
+     </xs:sequence>
+     <xs:attribute name="intensity" type="weather:WeatherIntensityEnum" use="optional" />
+     <xs:attribute name="qualifier" type="weather:WeatherQualifierEnum" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                Qualifies a weather phenomena, same as descriptor concept in AFMAN 15-111, but descriptor conflicts with
+                other fields in the API.
+            </xs:documentation>
+        </xs:annotation>
+     </xs:attribute>
+  </xs:complexType>
+  
+  <xs:complexType name="RoadCondition">
+    <xs:annotation>
+      <xs:documentation>Detailed description of an observed road condition.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="surfaceTemperature" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1" />
+      <xs:element name="subSurfaceTemperature" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1" />
+      <xs:element name="freezingPoint" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1" />
+      <xs:element name="type" type="weather:RoadConditionType" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+    <xs:attribute name="chemicalSaturation" type="xs:double" use="optional" >
+        <xs:annotation>
+            <xs:documentation>
+                The quantity of treatment in parts per one hundred thousand.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  
+  <xs:complexType name="Lightning">
+    <xs:annotation>
+      <xs:documentation>Information about recorded lightening.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="distance" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Distance of the lightning strike, typically the closest one.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="rate" type="shared:CountsPerTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                How many lightning strikes per unit of time.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="WindMeasurement">
+    <xs:sequence>
+      <xs:element name="direction" type="spatial:HeadingDegrees" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Direction the wind is coming from.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="speed" type="shared:SpeedMetersPerSecond" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Wind speed.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="timeWindowSeconds" type="shared:TimeWindowSeconds">
+        <xs:annotation>
+            <xs:documentation>
+                Window of time the measurement applies to.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  
+  <xs:complexType name="SkyCover">
+    <xs:annotation>
+      <xs:documentation>
+        A description of the sky as seen from the surface of the earth. See AFMAN 15-111 Chapter 9.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="layerHeight" type="spatial:HaeMeters" minOccurs="1" maxOccurs="1" />
+      <xs:element name="layerAmount" type="weather:SkyCoverAmountEnum" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="Weather">
+    <xs:annotation>
+      <xs:documentation>Detailed description of the weather conditions.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="temperature" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+          <xs:documentation>Ambient air temperature measurement.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="pressure" type="shared:PressureMillibars" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Atmospheric pressure measurement at current location and altitude.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="pressureAtSeaLevel" type="shared:PressureMillibars" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                Pressure measurement at current location corrected to sea level.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="pressureAltitude" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" />
+      <xs:element name="densityAltitude" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" />
+      <xs:element name="visibility" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+          <xs:documentation>Range of visibility measurement.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="windAvg" type="WindMeasurement" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Average wind measurement.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="windGust" type="WindMeasurement" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+            <xs:documentation>
+                Maximum wind gust within the window.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="waterAvgSpeed" type="shared:SpeedMetersPerSecond" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+          <xs:documentation>Average water speed for the last 10 minutes.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="waterTemperature" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+          <xs:documentation>Water temperature measurement.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="waterDepth" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" >
+        <xs:annotation>
+          <xs:documentation>Water depth measurement.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="precipitation" type="Precipitation" minOccurs="0" maxOccurs="1" >
+      </xs:element>
+      <xs:element name="roadCondition" type="RoadCondition" minOccurs="0" maxOccurs="1" >
+      </xs:element>
+      <xs:element name="ceilingHeight" type="spatial:DistanceMeters" minOccurs="0" maxOccurs="1" >
+      </xs:element>
+      <xs:element name="solarRadiance" type="shared:RadianceJoulesPerSqMeter" minOccurs="0" maxOccurs="1" >
+      </xs:element>
+      <xs:element name="weatherConditions" type="WeatherCondition" minOccurs="0" maxOccurs="unbounded" />
+       
+      <xs:element name="lightning" type="Lightning" minOccurs="0" maxOccurs="1" />
+      
+      <xs:element name="skyCovers" type="SkyCover" minOccurs="0" maxOccurs="unbounded" />
+      
+      <xs:element name="dewPoint" type="shared:TemperatureCelsius" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+            <xs:documentation>
+                The temperature to which a given parcel of air must be cooled at constant pressure 
+                and constant water vapor content in order for saturation to occur.
+            </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="relativeHumidity" type="shared:percentage" use="optional">
+        <xs:annotation>
+            <xs:documentation>
+                The ratio, expressed as a percentage, of the actual vapor pressure of the air to the 
+                saturation vapor pressure.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>    
+  </xs:complexType>
+</xs:schema>

@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/types/status"
+  targetNamespace="http://th.dod.mil/core/types/status"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:shared="http://th.dod.mil/core/types"
+  elementFormDefault="qualified">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../SharedTypes.xsd" />
+ 
+    <xs:complexType name="OperatingStatus">
+        <xs:annotation>
+            <xs:documentation>
+                Types defines the operating status of an entity (e.g., asset, component).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="summary" type="SummaryStatusEnum" use="required" />
+        <xs:attribute name="description" type="xs:string" use="optional" >
+          <xs:annotation>
+            <xs:documentation>
+                Free form string to include finer details beyond a summary.
+            </xs:documentation>
+        </xs:annotation>
+        </xs:attribute>        
+    </xs:complexType>
+    
+    <xs:simpleType name="SummaryStatusEnum">
+        <xs:annotation>
+            <xs:documentation>
+                Enumeration defines the summary statuses of an entity (e.g., asset, component).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Unknown">
+                <xs:annotation>
+                    <xs:documentation>
+                        Status of the device or component is unknown.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Off">
+                <xs:annotation>
+                    <xs:documentation>
+                        Connected device or component is turned off or not operating.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Good">
+                <xs:annotation>
+                    <xs:documentation>
+                        Used when the device or component is responsive and working as expected.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Degraded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Used when the device or component is only somewhat responsive and producing some invalid data.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Bad">
+                <xs:annotation>
+                    <xs:documentation>
+                        Used when the device or component is unresponsive or producing invalid data.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+  <xs:complexType name="ComponentStatus">
+    <xs:annotation>
+        <xs:documentation>
+            Type describes the status of an individual component.
+        </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+        <xs:element name="component" type="shared:ComponentType" minOccurs="1" maxOccurs="1" />
+        <xs:element name="status" type="OperatingStatus" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:simpleType name="AmbientTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Temperature">
+        <xs:annotation>
+          <xs:documentation>
+            Ambient temperature affects the asset's performance.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="Occlusion">
+        <xs:annotation>
+          <xs:documentation>
+            Something is blocking the asset from operating at full capacity.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="AmbientType">
+    <xs:annotation>
+        <xs:documentation>
+            Type defines a type of ambient condition.
+        </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="value" type="AmbientTypeEnum" use="required" />
+    <xs:attribute name="description" type="xs:string" use="optional" >
+      <xs:annotation>
+        <xs:documentation>
+          Free form string to further describe the type, should be provided if type is Other.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>        
+  </xs:complexType>
+  
+  <xs:complexType name="AmbientStatus">
+    <xs:annotation>
+        <xs:documentation>
+            Type describes the status of ambient conditions that may affect sensor performance.
+        </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+        <xs:element name="type" type="AmbientType" minOccurs="1" maxOccurs="1" />
+        <xs:element name="status" type="OperatingStatus" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="ChargeLevelEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Dead"/>
+      <xs:enumeration value="Low"/>
+      <xs:enumeration value="Good"/>
+      <xs:enumeration value="Full"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="ChargePercentage">
+    <xs:restriction base="xs:double">
+      <xs:minInclusive value="0.0"/>
+      <xs:maxInclusive value="100.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:complexType name="BatteryChargeLevel">
+    <xs:choice>
+        <xs:element name="chargeLevel" type="ChargeLevelEnum" minOccurs="1" maxOccurs="1" />
+        <xs:element name="chargePercentage" type="ChargePercentage" minOccurs="1" maxOccurs="1" />
+    </xs:choice>
+  </xs:complexType>
+  
+  <xs:complexType name="InternalArchiveStatus">
+    <xs:annotation>
+        <xs:documentation>
+         Describes the status of the storage of data within a physical asset.
+        </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+        <xs:element name="archivingInProgress" type="xs:boolean" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates whether or not internal storage of data on the 
+                    physical asset is currently being performed.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="archiveTimeAvailable" type="shared:positiveLong" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    The amount of archive time that is available.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+        <xs:element name="totalArchiveTime" type="shared:positiveLong" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+                <xs:documentation>
+                    The total amount of time that archiving has been performed.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

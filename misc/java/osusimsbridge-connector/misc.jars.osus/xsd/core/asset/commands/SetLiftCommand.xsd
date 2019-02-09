@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="commands.asset.core.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    targetNamespace="commands.asset.core.th.dod.mil"
+    xmlns:spatial="http://th.dod.mil/core/types/spatial"
+    elementFormDefault="qualified" jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types/spatial" 
+        schemaLocation="../../types/spatial/SpatialTypes.xsd" />
+    <xs:include schemaLocation="BaseTypes.xsd"></xs:include>
+  
+    <xs:element name="setLiftCommand" type="SetLiftCommand"/>
+    <xs:complexType name="SetLiftCommand">
+        <xs:annotation>
+            <xs:documentation>Command the asset to adjust the position of a lift (a camera mast or similar mechanism) given the parameters.</xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="Command">    
+                <xs:choice>
+                    <xs:element name="height" type="spatial:DistanceMeters"  minOccurs="1" maxOccurs="1" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                New height for the lift in meters. This value is an absolute position, specified relative to the platform.
+                                Some lifts do not have feedback capability and do not support this command - check the asset capabilities to
+                                see if this field is supported.
+                            </xs:documentation>
+                       </xs:annotation>
+                    </xs:element>
+                    <xs:element name="heightOffset" type="spatial:DistanceMeters"  minOccurs="1" maxOccurs="1" >
+                        <xs:annotation>
+                            <xs:documentation>
+                                New height for the lift in meters. This value is an offset specified relative to the current position
+                                of the lift.
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:choice>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+</xs:schema>

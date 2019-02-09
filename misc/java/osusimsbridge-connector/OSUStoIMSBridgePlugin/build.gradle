@@ -1,0 +1,36 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'biz.aQute.bnd.builder'
+import aQute.bnd.gradle.Bundle
+
+repositories {
+    mavenCentral()
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'biz.aQute.bnd:biz.aQute.bnd.gradle:3.5.0'
+    }
+}
+
+configurations {
+    bundleCompile
+}
+
+sourceSets{
+    bundle
+}
+
+task bundle(type: Bundle) {
+    from sourceSets.bundle.output
+    bndfile = 'bnd.bnd'
+    sourceSet = sourceSets.bundle
+}
+
+dependencies {
+    compile fileTree(dir: '../libs', include: ['*.jar'])
+    compile fileTree(dir: '../misc.jars.osus/lib', include: ['*.jar'])
+}

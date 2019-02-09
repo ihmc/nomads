@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="inventory.model.th.dod.mil" 
+    targetNamespace="inventory.model.th.dod.mil"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" 
+    elementFormDefault="qualified"
+    version="1.0.0">
+    <xs:element name="InventoryItem">
+        <xs:complexType>
+            <xs:annotation>
+                <xs:documentation>
+                This complex type lists all required fields for each device added to inventory
+                </xs:documentation>
+            </xs:annotation>
+            <xs:sequence>
+                <xs:element name = "location" type = "xs:string" minOccurs = "1" maxOccurs = "1" >
+                <!-- Human readable description of location of the device -->
+                </xs:element>
+                
+                <xs:element name = "owner" type = "xs:string" minOccurs = "1" maxOccurs = "1" >
+                <!-- Individual or unit/division owner of the device -->
+                </xs:element>
+                
+                <xs:element name = "dateEntered" type = "xs:dateTime" minOccurs = "1" maxOccurs = "1" >
+                <!-- User-specified date that the device was entered to inventory -->
+                </xs:element>
+                
+                <xs:element name = "id" type = "xs:string" minOccurs = "1" maxOccurs = "1" >
+                <!-- Unique id of the device such as a serial number (if available) -->
+                </xs:element>
+                
+                <xs:element name = "className" type = "xs:string" minOccurs = "1" maxOccurs = "1" >
+                <!-- cassName is the fully qualified name of the class that implements 
+                the device. className shall be unique for each device. -->
+                </xs:element>
+                
+                <xs:element name = "type" type="EquipmentTypeEnum" minOccurs = "1" maxOccurs = "1" >
+                <!-- Type of device component added to the inventory -->
+                </xs:element>
+                
+                <xs:element name = "operationalStatus" type="OperationalStatusTypeEnum" minOccurs = "1" maxOccurs = "1" >
+                <!-- Operational status of the device added to the inventory -->
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+   </xs:element>
+   
+    <xs:simpleType name="OperationalStatusTypeEnum">
+          <xs:restriction base="xs:string">
+            <xs:enumeration value = "FullyMissionCapable" />
+            <xs:enumeration value = "PartiallyMissionCapable" />
+            <xs:enumeration value = "NotMissionCapable" />                                  
+          </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="EquipmentTypeEnum">
+          <xs:restriction base="xs:string">
+            <xs:enumeration value = "Controller" />
+            <xs:enumeration value = "Asset" />
+            <xs:enumeration value = "Comms" />
+            <xs:enumeration value = "Algorithm" />
+          </xs:restriction>
+      </xs:simpleType> 
+   
+</xs:schema>

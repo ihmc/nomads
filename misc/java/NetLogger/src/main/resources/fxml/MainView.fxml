@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+
+<?import com.jfoenix.controls.JFXDrawersStack?>
+<?import javafx.geometry.Insets?>
+<AnchorPane fx:id="_mainContainerAnchorPane" prefHeight="850.0" prefWidth="1500.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="netlogger.NetLogger">
+    <children>
+        <BorderPane prefWidth="1500.0">
+            <center>
+                <JFXDrawersStack fx:id="_navDrawerStack">
+                    <Pane fx:id="_mutablePane" prefWidth="1380" />
+                    <BorderPane.margin>
+                        <Insets left="5" />
+                    </BorderPane.margin>
+                </JFXDrawersStack>
+
+            </center>
+            <top>
+               <fx:include fx:id="_toolbar" source="toolbar/Toolbar.fxml" />
+            </top>
+        </BorderPane>
+    </children>
+
+    <stylesheets>
+        <URL value="@../css/listview-design.css"/>
+    </stylesheets>
+</AnchorPane>

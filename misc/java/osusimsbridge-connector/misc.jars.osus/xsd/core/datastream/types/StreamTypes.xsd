@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+==============================================================================
+ This software is part of the Open Standard for Unattended Sensors (OSUS)
+ reference implementation (OSUS-R).
+
+ To the extent possible under law, the author(s) have dedicated all copyright
+ and related and neighboring rights to this software to the public domain
+ worldwide. This software is distributed without any warranty.
+
+ You should have received a copy of the CC0 Public Domain Dedication along
+ with this software. If not, see
+ <http://creativecommons.org/publicdomain/zero/1.0/>.
+==============================================================================
+-->
+<xs:schema xmlns="http://th.dod.mil/core/datastream/types"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+    targetNamespace="http://th.dod.mil/core/datastream/types"
+    xmlns:shared="http://th.dod.mil/core/types" elementFormDefault="qualified"
+    jaxb:version="2.1">
+    <xs:import namespace="http://th.dod.mil/core/types" schemaLocation="../../types/SharedTypes.xsd" />
+    
+    <!-- The string value of CustomStream should be the fully qualified class name of the interface
+    that defines it -->
+    <xs:simpleType name="CustomStream">
+        <xs:restriction base="xs:string"/>
+    </xs:simpleType>
+    
+    <xs:complexType name="StreamFormat">
+        <!-- Format of the stream can be either a standard MIME-type or a custom format -->
+        <xs:choice minOccurs="1" maxOccurs="1">
+            <xs:element name="mimeFormat" type="shared:MimeType" />
+            <xs:element name="customFormat" type="CustomStream" />
+        </xs:choice>
+    </xs:complexType>    
+
+</xs:schema>

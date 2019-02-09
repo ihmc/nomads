@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+<?import com.jfoenix.controls.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" spacing="10.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="nats.NatsTopicsList">
+   <children>
+      <HBox spacing="10.0">
+         <children>
+            <Label fx:id="_nameLabel" text="NAME">
+               <HBox.margin>
+                  <Insets />
+               </HBox.margin>
+               <font>
+                  <Font name="System Bold" size="18.0" />
+               </font>
+            </Label>
+            <JFXCheckBox fx:id="_selectAllCheck" text=" ">
+               <HBox.margin>
+                  <Insets top="5.0" />
+               </HBox.margin></JFXCheckBox>
+         </children>
+      </HBox>
+      <VBox fx:id="_appTopicVBox" spacing="10.0">
+         <padding>
+            <Insets left="10.0" />
+         </padding></VBox>
+   </children>
+</VBox>

@@ -1,0 +1,203 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E2D2DCEC-A041-4C93-958D-714CB7A14AC4}</ProjectGuid>
+    <RootNamespace>voilib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>
+      </SDLCheck>
+      <AdditionalIncludeDirectories>..\;..\ctxt;..\util;..\core;..\..\lcppdc;..\..\milstd2525;..\..\c45;..\..\..\..\util\cpp;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_MBCS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader />
+    </ClCompile>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\;..\ctxt;..\util;..\core;..\..\lcppdc;..\..\milstd2525;..\..\c45;..\..\..\..\util\cpp;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_MBCS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\;..\ctxt;..\util;..\core;..\..\lcppdc;..\..\milstd2525;..\..\c45;..\..\..\..\externals\TinyXPath;..\..\..\..\util\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\;..\ctxt;..\util;..\core;..\..\lcppdc;..\..\milstd2525;..\..\c45;..\..\..\..\util\cpp;..\..\..\..\externals\TinyXPath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\core\Cache.h" />
+    <ClInclude Include="..\core\Comparator.h" />
+    <ClInclude Include="..\core\Match.h" />
+    <ClInclude Include="..\core\MatchMakingFilters.h" />
+    <ClInclude Include="..\core\MatchMakingPolicies.h" />
+    <ClInclude Include="..\core\MetadataImpl.h" />
+    <ClInclude Include="..\core\VoiImpl.h" />
+    <ClInclude Include="..\ctxt\AreaOfInterest.h" />
+    <ClInclude Include="..\ctxt\Path.h" />
+    <ClInclude Include="..\ctxt\Pedigree.h" />
+    <ClInclude Include="..\CustomPolicy.h" />
+    <ClInclude Include="..\InformationObject.h" />
+    <ClInclude Include="..\MetadataConfiguration.h" />
+    <ClInclude Include="..\MetadataInterface.h" />
+    <ClInclude Include="..\MetaDataRanker.h" />
+    <ClInclude Include="..\MetadataRankerConfiguration.h" />
+    <ClInclude Include="..\MetadataRankerLocalConfiguration.h" />
+    <ClInclude Include="..\NodeContext.h" />
+    <ClInclude Include="..\NodePath.h" />
+    <ClInclude Include="..\Rank.h" />
+    <ClInclude Include="..\Score.h" />
+    <ClInclude Include="..\util\BoundingBox.h" />
+    <ClInclude Include="..\util\C45Utils.h" />
+    <ClInclude Include="..\util\NodeIdSet.h" />
+    <ClInclude Include="..\util\RankByTargetMap.h" />
+    <ClInclude Include="..\util\RankFactory.h" />
+    <ClInclude Include="..\util\VoiDefs.h" />
+    <ClInclude Include="..\Voi.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\core\Cache.cpp" />
+    <ClCompile Include="..\core\Comparator.cpp" />
+    <ClCompile Include="..\core\Match.cpp" />
+    <ClCompile Include="..\core\MatchMakingFilters.cpp" />
+    <ClCompile Include="..\core\MatchMakingPolicies.cpp" />
+    <ClCompile Include="..\core\MetadataImpl.cpp" />
+    <ClCompile Include="..\core\VoiImpl.cpp" />
+    <ClCompile Include="..\ctxt\AreaOfInterest.cpp" />
+    <ClCompile Include="..\ctxt\Path.cpp" />
+    <ClCompile Include="..\ctxt\Pedigree.cpp" />
+    <ClCompile Include="..\InformationObject.cpp" />
+    <ClCompile Include="..\MetadataInterface.cpp" />
+    <ClCompile Include="..\MetaDataRanker.cpp" />
+    <ClCompile Include="..\MetadataRankerConfiguration.cpp" />
+    <ClCompile Include="..\MetadataRankerLocalConfiguration.cpp" />
+    <ClCompile Include="..\NodeContext.cpp" />
+    <ClCompile Include="..\NodePath.cpp" />
+    <ClCompile Include="..\Rank.cpp" />
+    <ClCompile Include="..\Score.cpp" />
+    <ClCompile Include="..\util\BoundingBox.cpp" />
+    <ClCompile Include="..\util\C45Utils.cpp" />
+    <ClCompile Include="..\util\NodeIdSet.cpp" />
+    <ClCompile Include="..\util\RankByTargetMap.cpp" />
+    <ClCompile Include="..\util\RankFactory.cpp" />
+    <ClCompile Include="..\Voi.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
