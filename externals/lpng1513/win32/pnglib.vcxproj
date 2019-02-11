@@ -56,7 +56,7 @@
     <ProjectGuid>{FE0F78B9-3EC5-4825-A769-04CC2A90324B}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>pnglib</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

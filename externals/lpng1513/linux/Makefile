@@ -1,5 +1,5 @@
 #Environment
-ARCH = $(shell sh ../../../util/scripts/guessArch.sh)
+ARCH = $(shell sh guessArch.sh)
 
 all: libpng.a
 
