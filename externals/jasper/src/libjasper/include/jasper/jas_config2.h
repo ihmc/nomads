@@ -80,7 +80,7 @@
 
 #define	HAVE_FCNTL_H		1
 #define	HAVE_LIMITS_H		1
-#define	HAVE_IO_H		1
+#define	HAVE_IO_H			1
 #define	HAVE_WINDOWS_H		1
 #define	HAVE_SYS_TYPES_H	1
 #define	HAVE_STDLIB_H		1
