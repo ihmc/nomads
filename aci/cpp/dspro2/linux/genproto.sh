@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMPORTS="../../../../externals/protobuf/protobuf-3.1.0/include"
+IMPORTS="../../../../externals/protobuf/3.6.1/include"
 SRC_DIR="../../../../../measure"
 DST_DIR="../comm"
 

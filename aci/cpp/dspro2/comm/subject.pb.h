@@ -30,7 +30,7 @@
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
 #include <google/protobuf/generated_enum_reflection.h>
 // @@protoc_insertion_point(includes)
-#define PROTOBUF_INTERNAL_EXPORT_protobuf_subject_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_protobuf_subject_2eproto 
 
 namespace protobuf_subject_2eproto {
 // Internal implementation detail -- do not use these members.

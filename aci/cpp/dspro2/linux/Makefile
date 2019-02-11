@@ -22,11 +22,11 @@ schedulerobjects = $(schedulersources:../scheduler/%.cpp=%.o)
 proxysources = $(wildcard ../proxy/*.cpp)
 proxyobjects = $(proxysources:../proxy/%.cpp=%.o)
 
-commsources = $(wildcard ../comm/*.cpp)
-commobjects = $(commsources:../comm/%.cpp=%.o)
+commsources = $(wildcard ../comm/*.cpp) $(wildcard ../comm/*.cc)
+commobjects = $(commsources:../comm/%.cpp=%.o) $(commsources:../comm/%.cc=%.o)
 
-disservicecommsources = $(wildcard ../comm/disservice/*.cpp)
-disservicecommobjects = $(disservicecommsources:../comm/disservice/%.cpp=%.o)
+disservicecommsources = $(wildcard ../comm/disservice/*.cpp) $(wildcard ../comm/subjects/disservice/*.cc)
+disservicecommobjects = $(disservicecommsources:../comm/disservice/%.cpp=%.o) $(disservicecommsources:../comm/subjects/disservice/%.cc=%.o)
 
 mocketscommsources = $(wildcard ../comm/mockets/*.cpp)
 mocketscommobjects = $(mocketscommsources:../comm/mockets/%.cpp=%.o)
@@ -87,7 +87,13 @@ allobjs = $(rankingobjects) $(awarenesspartsobjects) $(awarenessobjects) $(sched
 %.o : ../comm/%.cpp
 	$(CPP) $(CPPFLAGS) -c $<
 
+%.o : ../comm/%.cc
+	$(CPP) $(CPPFLAGS) -c $<
+
 %.o : ../comm/disservice/%.cpp
+	$(CPP) $(CPPFLAGS) -c $<
+
+%.o : ../comm/subjects/disservice/%.cc
 	$(CPP) $(CPPFLAGS) -c $<
 
 %.o : ../comm/mockets/%.cpp

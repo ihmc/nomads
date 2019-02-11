@@ -36,7 +36,7 @@
 #include <google/protobuf/timestamp.pb.h>
 #include "subject.pb.h"
 // @@protoc_insertion_point(includes)
-#define PROTOBUF_INTERNAL_EXPORT_protobuf_measure_2eproto
+#define PROTOBUF_INTERNAL_EXPORT_protobuf_measure_2eproto 
 
 namespace protobuf_measure_2eproto {
 // Internal implementation detail -- do not use these members.
@@ -76,13 +76,13 @@ namespace measure {
 
 // ===================================================================
 
-class Measure_StringsEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<Measure_StringsEntry_DoNotUse,
+class Measure_StringsEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<Measure_StringsEntry_DoNotUse, 
     ::std::string, ::std::string,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
     0 > {
 public:
-  typedef ::google::protobuf::internal::MapEntry<Measure_StringsEntry_DoNotUse,
+  typedef ::google::protobuf::internal::MapEntry<Measure_StringsEntry_DoNotUse, 
     ::std::string, ::std::string,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
@@ -97,13 +97,13 @@ public:
 
 // -------------------------------------------------------------------
 
-class Measure_IntegersEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<Measure_IntegersEntry_DoNotUse,
+class Measure_IntegersEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<Measure_IntegersEntry_DoNotUse, 
     ::std::string, ::google::protobuf::int64,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
     ::google::protobuf::internal::WireFormatLite::TYPE_INT64,
     0 > {
 public:
-  typedef ::google::protobuf::internal::MapEntry<Measure_IntegersEntry_DoNotUse,
+  typedef ::google::protobuf::internal::MapEntry<Measure_IntegersEntry_DoNotUse, 
     ::std::string, ::google::protobuf::int64,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
     ::google::protobuf::internal::WireFormatLite::TYPE_INT64,
@@ -118,13 +118,13 @@ public:
 
 // -------------------------------------------------------------------
 
-class Measure_DoublesEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<Measure_DoublesEntry_DoNotUse,
+class Measure_DoublesEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<Measure_DoublesEntry_DoNotUse, 
     ::std::string, double,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
     ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE,
     0 > {
 public:
-  typedef ::google::protobuf::internal::MapEntry<Measure_DoublesEntry_DoNotUse,
+  typedef ::google::protobuf::internal::MapEntry<Measure_DoublesEntry_DoNotUse, 
     ::std::string, double,
     ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
     ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE,
@@ -340,7 +340,7 @@ inline ::measure::Subject Measure::subject() const {
   return static_cast< ::measure::Subject >(subject_);
 }
 inline void Measure::set_subject(::measure::Subject value) {
-
+  
   subject_ = value;
   // @@protoc_insertion_point(field_set:measure.Measure.subject)
 }
@@ -414,13 +414,13 @@ inline const ::google::protobuf::Timestamp& Measure::timestamp() const {
 }
 inline ::google::protobuf::Timestamp* Measure::release_timestamp() {
   // @@protoc_insertion_point(field_release:measure.Measure.timestamp)
-
+  
   ::google::protobuf::Timestamp* temp = timestamp_;
   timestamp_ = NULL;
   return temp;
 }
 inline ::google::protobuf::Timestamp* Measure::mutable_timestamp() {
-
+  
   if (timestamp_ == NULL) {
     auto* p = CreateMaybeMessage<::google::protobuf::Timestamp>(GetArenaNoVirtual());
     timestamp_ = p;
@@ -440,9 +440,9 @@ inline void Measure::set_allocated_timestamp(::google::protobuf::Timestamp* time
       timestamp = ::google::protobuf::internal::GetOwnedMessage(
           message_arena, timestamp, submessage_arena);
     }
-
+    
   } else {
-
+    
   }
   timestamp_ = timestamp;
   // @@protoc_insertion_point(field_set_allocated:measure.Measure.timestamp)
@@ -457,13 +457,13 @@ inline const ::std::string& Measure::requestid() const {
   return requestid_.GetNoArena();
 }
 inline void Measure::set_requestid(const ::std::string& value) {
-
+  
   requestid_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
   // @@protoc_insertion_point(field_set:measure.Measure.requestID)
 }
 #if LANG_CXX11
 inline void Measure::set_requestid(::std::string&& value) {
-
+  
   requestid_.SetNoArena(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
   // @@protoc_insertion_point(field_set_rvalue:measure.Measure.requestID)
@@ -471,31 +471,31 @@ inline void Measure::set_requestid(::std::string&& value) {
 #endif
 inline void Measure::set_requestid(const char* value) {
   GOOGLE_DCHECK(value != NULL);
-
+  
   requestid_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
   // @@protoc_insertion_point(field_set_char:measure.Measure.requestID)
 }
 inline void Measure::set_requestid(const char* value, size_t size) {
-
+  
   requestid_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
   // @@protoc_insertion_point(field_set_pointer:measure.Measure.requestID)
 }
 inline ::std::string* Measure::mutable_requestid() {
-
+  
   // @@protoc_insertion_point(field_mutable:measure.Measure.requestID)
   return requestid_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline ::std::string* Measure::release_requestid() {
   // @@protoc_insertion_point(field_release:measure.Measure.requestID)
-
+  
   return requestid_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 inline void Measure::set_allocated_requestid(::std::string* requestid) {
   if (requestid != NULL) {
-
+    
   } else {
-
+    
   }
   requestid_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), requestid);
   // @@protoc_insertion_point(field_set_allocated:measure.Measure.requestID)
