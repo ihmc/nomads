@@ -193,51 +193,5 @@ federation/tools/SOIGen2-0.10.5-clients/src/EelScenarioEntry.java
 federation/tools/SOIGen2-0.10.5-clients/src/EelScenarioReader.java
 federation/tools/SOIGen2-0.10.5-clients/src/Utils.java
 
-# SQLite
-externals/SQLite/Makefile.in
-externals/SQLite/aclocal.m4
-externals/SQLite/compile
-externals/SQLite/config.guess
-externals/SQLite/config.sub
-externals/SQLite/configure
-externals/SQLite/depcomp
-externals/SQLite/install-sh
-externals/SQLite/ltmain.sh
-externals/SQLite/missing
-externals/jasper/configure
-externals/jasper/src/libjasper/include/jasper/jas_config.h
-externals/jasper/src/libjasper/include/jasper/jas_config.h.in
-externals/libjpeg/jconfig.h
-externals/msgpack/configure
-externals/SQLite/Makefile
-externals/SQLite/sqlite3
-externals/SQLite/sqlite3.pc
-
-# TinyXPath
-externals/TinyXPath/Makefile
-externals/TinyXPath/Makefile.in
-externals/TinyXPath/aclocal.m4
-externals/TinyXPath/compile
-externals/TinyXPath/configure
-externals/TinyXPath/depcomp
-externals/TinyXPath/install-sh
-externals/TinyXPath/missing
-externals/TinyXPath/tinyxpath
-
-# Dali
-externals/dali-1.0/unix/Makefile
-
-# LibJpeg
-externals/libjpeg/Makefile
-
-# Libpng
-externals/lpng1513/Makefile
-
-# MsgPack
-externals/msgpack/Makefile
-externals/msgpack/config.h
-externals/msgpack/src/Makefile
-externals/msgpack/test/Makefile
-
 # NetCacher
 netcacher/.idea

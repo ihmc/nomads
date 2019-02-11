@@ -1,3 +1,51 @@
 # Libraries source code
 /protobuf/protobuf-3.1.0/sources
 /openssl/1.0.2h/sources
+
+# SQLite
+/SQLite/Makefile.in
+/SQLite/aclocal.m4
+/SQLite/compile
+/SQLite/config.guess
+/SQLite/config.sub
+/SQLite/configure
+/SQLite/depcomp
+/SQLite/install-sh
+/SQLite/ltmain.sh
+/SQLite/missing
+/SQLite/Makefile
+/SQLite/sqlite3
+/SQLite/sqlite3.pc
+
+# Jasper
+/jasper/configure
+/jasper/src/libjasper/include/jasper/jas_config.h
+/jasper/src/libjasper/include/jasper/jas_config.h.in
+
+# TinyXPath
+/TinyXPath/Makefile
+/TinyXPath/Makefile.in
+/TinyXPath/aclocal.m4
+/TinyXPath/compile
+/TinyXPath/configure
+/TinyXPath/depcomp
+/TinyXPath/install-sh
+/TinyXPath/missing
+/TinyXPath/tinyxpath
+
+# Dali
+/dali-1.0/unix/Makefile
+
+# LibJpeg
+/libjpeg/Makefile
+/libjpeg/jconfig.h
+
+# Libpng
+/lpng1513/Makefile
+
+# MsgPack
+/msgpack/configure
+/msgpack/Makefile
+/msgpack/config.h
+/msgpack/src/Makefile
+/msgpack/test/Makefile
