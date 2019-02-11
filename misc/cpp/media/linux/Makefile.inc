@@ -29,7 +29,7 @@ EXTRA_LIB += $(shell if [ ${HAS_CRYPTO_LIB} -gt 0 ]; then echo "$(EXTERNALS_LIB)
 HAS_Z_LIB = $(shell g++ -lz 2>&1 | grep "undefined reference to" 1>/dev/null; echo $$?)
 EXTRA_LIB += $(shell if [ ${HAS_Z_LIB} -gt 0 ]; then echo "$(EXTERNALS_LIB)/libz.a"; else  echo "-lz"; fi)
 
-cppflags= -g -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
+cppflags= -g -std=c++11 -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
 NOWANTS=../FFMPEGReader.cpp ../FFMPEGReader.h ../FFMPEGUtil.cpp ../FFMPEGUtil.h  ../FFMPEGWriter.cpp ../FFMPEGWriter.h FFMPEGReaderTest.cpp
 sources = $(filter-out $(NOWANTS),$(wildcard ../*.cpp))
 #sources = $(wildcard ../*.cpp)
