@@ -1,9 +1,8 @@
-@echo off
+@ECHO OFF
 
-SET PROTO_VER=3.1.0
-SET BIN=..\..\..\..\externals-win\protobuf\protobuf-%PROTO_VER%\bin\protoc.exe
-REM SET BIN=build\protobuf-%PROTO_VER%\bin\protoc.exe
-SET SRC_DIR=..\..\..\..\measure
+SET PROTO_VER=3.6.1
+SET BIN=..\..\..\..\externals-win\protobuf\%PROTO_VER%\bin\protoc.exe
+SET SRC_DIR=..\..\..\..\..\measure
 SET OUT_DIR=..
 SET TMP_DIR=temp
 
