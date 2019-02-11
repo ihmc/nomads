@@ -138,7 +138,7 @@
       <AdditionalDependencies>WS2_32.lib;nats_static_MTd.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MTd.lib;protobuf-c_MTd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalOptions>/SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -169,7 +169,7 @@ xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"</Comma
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>WS2_32.lib;nats_static_MTd.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MTd.lib;protobuf-c_MTd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -206,7 +206,7 @@ xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"</Co
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalDependencies>WS2_32.lib;nats_static_MT.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MT.lib;ssleay32MT.lib;libprotobuf_MT.lib;protobuf-c_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
@@ -238,7 +238,7 @@ xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"</Comma
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x86;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x86;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x86;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x86;..\..\..\..\externals-win\windows\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalDependencies>WS2_32.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MTd.lib;ssleay32MTd.lib;libprotobuf_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
@@ -271,7 +271,7 @@ xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86\*.dll" "..\..\..\bin\"</Comma
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalDependencies>WS2_32.lib;nats_static_MT.lib;avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;libeay32MT.lib;ssleay32MT.lib;libprotobuf_MT.lib;protobuf-c_MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -302,7 +302,7 @@ xcopy /y "..\..\..\..\externals\ffmpeg\bin\win\x86_64\*.dll" "..\..\..\bin\"</Co
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\externals-win\protobuf-c\1.3.1\lib\vs2017\x64;..\..\..\..\externals-win\protobuf\3.6.1\lib\vs2017\x64;..\..\..\..\externals-win\openssl\1.0.2h\lib\vs2017\x64;..\..\..\..\externals-win\cnats\1.8.0\lib\vs2017\x64;..\..\..\..\externals-win\windows\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libc.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <AdditionalDependencies>WS2_32.lib;nats_static_MT.lib;nats_static.lib;libeay32_release.lib;ssleay32_release.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
