@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1996
+ * Copyright (c) 1993, 1994, 1995, 1996, 1997
  *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * @(#) $Header: /export/cvs/nomads.root/externals/include/pcap/pcap-namedb.h,v 1.1 2010/02/17 17:10:10 nsuri Exp $ (LBL)
+ * @(#) $Header: /tcpdump/master/libpcap/pcap.h,v 1.59 2006/10/04 18:09:22 guy Exp $ (LBL)
  */
 
 /*
  * For backwards compatibility.
  *
- * Note to OS vendors: do NOT get rid of this file!  Some applications
- * might expect to be able to include <pcap-namedb.h>.
+ * Note to OS vendors: do NOT get rid of this file!  Many applications
+ * expect to be able to include <pcap.h>, and at least some of them
+ * go through contortions in their configure scripts to try to detect
+ * OSes that have "helpfully" moved pcap.h to <pcap/pcap.h> without
+ * leaving behind a <pcap.h> file.
  */
-#include <pcap/namedb.h>
+#include <pcap/pcap.h>

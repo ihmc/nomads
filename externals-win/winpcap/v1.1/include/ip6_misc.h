@@ -18,7 +18,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * @(#) $Header: /export/cvs/nomads.root/externals/include/pcap/ip6_misc.h,v 1.1 2010/02/17 17:10:10 nsuri Exp $ (LBL)
+ * @(#) $Header: /tcpdump/master/libpcap/Win32/Include/ip6_misc.h,v 1.5 2006-01-22 18:02:18 gianluca Exp $ (LBL)
  */
 
 /*
