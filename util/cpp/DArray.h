@@ -180,7 +180,7 @@ namespace NOMADSUtil
         {
              pArray = (T *) malloc (sizeof (T) * uiCurrSize);
         }
-        for (int i = 0; i < uiCurrSize; i++)         // Create a copy of Source.
+        for (unsigned int i = 0; i < uiCurrSize; i++)         // Create a copy of Source.
         {                                            // Can be made more efficient
              pArray [i] = SourceArray . pArray [i];      // by using memcpy()
         }
