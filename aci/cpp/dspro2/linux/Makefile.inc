@@ -30,7 +30,7 @@ OPEN_SSL_HOME=$(EXTERNALS)/openssl/1.0.2h
 ZLIB_HOME=$(EXTERNALS)/zlib
 NATS_HOME=$(EXTERNALS)/cnats/cnats-master
 NATSWR_HOME=$(NOMADS_HOME)/misc/cpp/natswr
-PROTOBUF_HOME=$(EXTERNALS)/protobuf/protobuf-3.1.0
+PROTOBUF_HOME=$(EXTERNALS)/protobuf/3.6.1
 
 EXECUTABLE = DSPro
 DSPROSHELL = DSProShell
@@ -72,17 +72,17 @@ CPPFLAGS = -std=c++11 -no-pie -g -Wall -Wextra -Werror -Wno-unused-parameter -Wn
 		-I$(GRP_MANAGER_HOME)/ \
 		-I$(LCPPDC_HOME)/ \
 		-I$(VOI_HOME)/ \
-		-I$(VOI_HOME)/core \
-		-I$(VOI_HOME)/ctxt \
-		-I$(VOI_HOME)/util \
+		-I$(VOI_HOME)/core/ \
+		-I$(VOI_HOME)/ctxt/ \
+		-I$(VOI_HOME)/util/ \
 		-I$(CHUNKING_HOME)/ \
-		-I$(CHUNKING_HOME)/proxy \
-		-isystem$(PROTOBUF_HOME)/$(PRECOMPILED_LIB_FOLDER)/include/ \
+		-I$(CHUNKING_HOME)/proxy/ \
+		-isystem$(PROTOBUF_HOME)/include/ \
 		-I$(NATSWR_HOME)/ \
 		-I$(ZLIB_HOME)/ \
 		-I../jni/ \
 		-I$(NOMADS_HOME)/externals/JDK/ \
-		-I$(NOMADS_HOME)/externals/JDK/$(LIB_FOLDER) 
+		-I$(NOMADS_HOME)/externals/JDK/$(LIB_FOLDER)/
 
 LD_FLAGS = -lpthread -ldl
 
@@ -107,12 +107,12 @@ LIBS=libdspro.a \
 	$(TINYXPATH_HOME)/libtinyxpath.a \
 	$(DALI_HOME)/$(LIB_FOLDER)/libdvmmpeg.a \
 	$(DALI_HOME)/$(LIB_FOLDER)/libdvmbasic.a \
-	$(OPEN_SSL_HOME)/$(ARCH)/lib/libssl.a \
-	$(OPEN_SSL_HOME)/$(ARCH)/lib/libcrypto.a \
+	$(OPEN_SSL_HOME)/lib/$(ARCH)/libssl.a \
+	$(OPEN_SSL_HOME)/lib/$(ARCH)/libcrypto.a \
 	$(ZLIB_HOME)/$(LIB_FOLDER)/libz.a \
 	$(NATSWR_HOME)/$(LIB_FOLDER)/libnatswr.a \
 	$(NATS_HOME)/$(LIB_FOLDER)/libnats_static.a \
-	$(PROTOBUF_HOME)/$(PRECOMPILED_LIB_FOLDER)/lib/libprotobuf.a \
+	$(PROTOBUF_HOME)/lib/$(PRECOMPILED_LIB_FOLDER)/libprotobuf.a \
 	$(EXTRA_LIB)
 
 #	$(NORM_HOME)/lib/libnorm.a \

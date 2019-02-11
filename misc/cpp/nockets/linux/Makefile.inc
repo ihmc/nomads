@@ -22,7 +22,7 @@ INCLUDES=-I..-I../test \
 	-isystem $(UTIL_HOME)/cpp \
 	-isystem $(UTIL_HOME)/cpp/net
 
-cppflags=-g -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
+cppflags=-g -std=c++11 -fPIC $(ARCH_FLAGS) $(LD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
 sources = $(wildcard ../*.cpp)
 objects = $(sources:../%.cpp=%.o)
 LIBS=$(UTIL_HOME)/cpp/$(LIB_FOLDER)/libutil.a  $(NORM_HOME)/include

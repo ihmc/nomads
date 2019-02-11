@@ -17,7 +17,7 @@ ARCH = $(shell sh ../../../../util/scripts/guessArch.sh)
 include ../../../../util/scripts/Makefile.$(ARCH)
 
 CFLAGS = -g -Wall -DUNIX $(BUILD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM
-CPPFLAGS = -g -Wall -DUNIX $(ARCH_FLAGS) $(BUILD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM -I.. \
+CPPFLAGS = -g -std=c++11 -Wall -DUNIX $(ARCH_FLAGS) $(BUILD_FLAGS) -DENABLE_DEBUG -DERROR_CHECKING -DLITTLE_ENDIAN_SYSTEM -I.. \
             -I$(NOMADS_HOME)/util/cpp
 LD_FLAGS = -lpthread -lnsl -ldl
 

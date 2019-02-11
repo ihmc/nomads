@@ -7,8 +7,8 @@ UTIL_HOME = $(NOMADS_HOME)/util
 MOCKETS_HOME = $(NOMADS_HOME)/mockets
 NETSENSOR_HOME = $(NOMADS_HOME)/misc/cpp/netsensor
 EXTERNALS = $(NOMADS_HOME)/externals
-PROTOBUF_HOME = $(EXTERNALS)/protobuf/protobuf-3.1.0/$(ARCH)
-OPENSSL_HOME = $(EXTERNALS)/openssl/1.0.2h/$(ARCH)
+PROTOBUF_HOME = $(EXTERNALS)/protobuf/3.6.1
+OPENSSL_HOME = $(EXTERNALS)/openssl/1.0.2h
 LIBZ_HOME = $(EXTERNALS)/zlib
 LZMA_HOME = $(EXTERNALS)/xz
 LZMA_LIB = $(LZMA_HOME)/src/liblzma/api
@@ -41,8 +41,8 @@ LIB_LIST = $(NETSENSOR_HOME)/linux/libnetsensor.a \
 	   $(UTIL_HOME)/cpp/$(LIB_FOLDER)/libutil.a \
 	   $(LIBZ_HOME)/$(LIB_FOLDER)/libz.a \
 	   $(LZMA_HOME)/$(LIB_FOLDER)/liblzma.a \
-	   -L$(PROTOBUF_HOME)/lib \
-	   -L$(OPENSSL_HOME)/lib
+	   -L$(PROTOBUF_HOME)/lib/$(ARCH) \
+	   -L$(OPENSSL_HOME)/lib/$(ARCH)
 
 LD_FLAGS = -lpcap -lprotobuf -lssl -lcrypto -lpthread -ldl
 

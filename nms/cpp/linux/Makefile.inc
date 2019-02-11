@@ -32,7 +32,7 @@ INCLUDES=-I..\
 	-I$(EXTERNALS)/include
 
 #sanitizer=-fsanitize=address -fno-omit-frame-pointer -fsanitize-address-use-after-scope -Wshadow
-cppflags= -g -fPIC $(ARCH_FLAGS) ${sanitizer} -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
+cppflags= -g -std=c++11 -fPIC $(ARCH_FLAGS) ${sanitizer} -DENABLE_DEBUG -DERROR_CHECKING $(options) $(INCLUDES)
 
 sources = $(filter-out ../NMSLauncher.cpp, $(wildcard ../*.cpp))
 objects = $(sources:../%.cpp=%.o)
