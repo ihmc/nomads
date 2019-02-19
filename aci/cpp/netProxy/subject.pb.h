@@ -83,12 +83,13 @@ enum Subject {
   dspro_matches = 31,
   dspro_publications = 32,
   data_tracking = 33,
+  iw = 34,
   Subject_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   Subject_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool Subject_IsValid(int value);
 const Subject Subject_MIN = host;
-const Subject Subject_MAX = data_tracking;
+const Subject Subject_MAX = iw;
 const int Subject_ARRAYSIZE = Subject_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Subject_descriptor();
