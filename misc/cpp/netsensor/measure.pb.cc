@@ -154,6 +154,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::measure::Measure, integers_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::measure::Measure, doubles_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::measure::Measure, timestamp_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::measure::Measure, requestid_),
 };
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, 7, sizeof(::measure::Measure_StringsEntry_DoNotUse)},
@@ -191,22 +192,22 @@ void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
       "\n\rmeasure.proto\022\007measure\032\037google/protobu"
-      "f/timestamp.proto\032\rsubject.proto\"\376\002\n\007Mea"
+      "f/timestamp.proto\032\rsubject.proto\"\221\003\n\007Mea"
       "sure\022!\n\007subject\030\001 \001(\0162\020.measure.Subject\022"
       ".\n\007strings\030\002 \003(\0132\035.measure.Measure.Strin"
       "gsEntry\0220\n\010integers\030\003 \003(\0132\036.measure.Meas"
       "ure.IntegersEntry\022.\n\007doubles\030\004 \003(\0132\035.mea"
       "sure.Measure.DoublesEntry\022-\n\ttimestamp\030\005"
-      " \001(\0132\032.google.protobuf.Timestamp\032.\n\014Stri"
-      "ngsEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001"
-      "\032/\n\rIntegersEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030"
-      "\002 \001(\003:\0028\001\032.\n\014DoublesEntry\022\013\n\003key\030\001 \001(\t\022\r"
-      "\n\005value\030\002 \001(\001:\0028\001B:\n\034us.ihmc.sensei.prot"
-      "o.measureB\014MeasureProtoP\001Z\007measure\240\001\001b\006p"
-      "roto3"
+      " \001(\0132\032.google.protobuf.Timestamp\022\021\n\trequ"
+      "estID\030\006 \001(\t\032.\n\014StringsEntry\022\013\n\003key\030\001 \001(\t"
+      "\022\r\n\005value\030\002 \001(\t:\0028\001\032/\n\rIntegersEntry\022\013\n\003"
+      "key\030\001 \001(\t\022\r\n\005value\030\002 \001(\003:\0028\001\032.\n\014DoublesE"
+      "ntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\001:\0028\001B#\n\005"
+      "protoB\014MeasureProtoP\001Z\007measure\240\001\001b\006proto"
+      "3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 525);
+      descriptor, 521);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "measure.proto", &protobuf_RegisterTypes);
   ::protobuf_google_2fprotobuf_2ftimestamp_2eproto::AddDescriptors();
@@ -295,6 +296,7 @@ const int Measure::kStringsFieldNumber;
 const int Measure::kIntegersFieldNumber;
 const int Measure::kDoublesFieldNumber;
 const int Measure::kTimestampFieldNumber;
+const int Measure::kRequestIDFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 Measure::Measure()
@@ -311,6 +313,10 @@ Measure::Measure(const Measure& from)
   strings_.MergeFrom(from.strings_);
   integers_.MergeFrom(from.integers_);
   doubles_.MergeFrom(from.doubles_);
+  requestid_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.requestid().size() > 0) {
+    requestid_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.requestid_);
+  }
   if (from.has_timestamp()) {
     timestamp_ = new ::google::protobuf::Timestamp(*from.timestamp_);
   } else {
@@ -321,6 +327,7 @@ Measure::Measure(const Measure& from)
 }
 
 void Measure::SharedCtor() {
+  requestid_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&timestamp_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&subject_) -
       reinterpret_cast<char*>(&timestamp_)) + sizeof(subject_));
@@ -332,6 +339,7 @@ Measure::~Measure() {
 }
 
 void Measure::SharedDtor() {
+  requestid_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete timestamp_;
 }
 
@@ -358,6 +366,7 @@ void Measure::Clear() {
   strings_.Clear();
   integers_.Clear();
   doubles_.Clear();
+  requestid_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   if (GetArenaNoVirtual() == NULL && timestamp_ != NULL) {
     delete timestamp_;
   }
@@ -470,6 +479,22 @@ bool Measure::MergePartialFromCodedStream(
             static_cast< ::google::protobuf::uint8>(42u /* 42 & 0xFF */)) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessage(
                input, mutable_timestamp()));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // string requestID = 6;
+      case 6: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(50u /* 50 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_requestid()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->requestid().data(), static_cast<int>(this->requestid().length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "measure.Measure.requestID"));
         } else {
           goto handle_unusual;
         }
@@ -665,6 +690,16 @@ void Measure::SerializeWithCachedSizes(
       5, this->_internal_timestamp(), output);
   }
 
+  // string requestID = 6;
+  if (this->requestid().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->requestid().data(), static_cast<int>(this->requestid().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "measure.Measure.requestID");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      6, this->requestid(), output);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
@@ -855,6 +890,17 @@ void Measure::SerializeWithCachedSizes(
         5, this->_internal_timestamp(), deterministic, target);
   }
 
+  // string requestID = 6;
+  if (this->requestid().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->requestid().data(), static_cast<int>(this->requestid().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "measure.Measure.requestID");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        6, this->requestid(), target);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
@@ -914,6 +960,13 @@ size_t Measure::ByteSizeLong() const {
     }
   }
 
+  // string requestID = 6;
+  if (this->requestid().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->requestid());
+  }
+
   // .google.protobuf.Timestamp timestamp = 5;
   if (this->has_timestamp()) {
     total_size += 1 +
@@ -957,6 +1010,10 @@ void Measure::MergeFrom(const Measure& from) {
   strings_.MergeFrom(from.strings_);
   integers_.MergeFrom(from.integers_);
   doubles_.MergeFrom(from.doubles_);
+  if (from.requestid().size() > 0) {
+
+    requestid_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.requestid_);
+  }
   if (from.has_timestamp()) {
     mutable_timestamp()->::google::protobuf::Timestamp::MergeFrom(from.timestamp());
   }
@@ -992,6 +1049,8 @@ void Measure::InternalSwap(Measure* other) {
   strings_.Swap(&other->strings_);
   integers_.Swap(&other->integers_);
   doubles_.Swap(&other->doubles_);
+  requestid_.Swap(&other->requestid_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
   swap(timestamp_, other->timestamp_);
   swap(subject_, other->subject_);
   _internal_metadata_.Swap(&other->_internal_metadata_);

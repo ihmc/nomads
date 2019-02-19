@@ -189,28 +189,27 @@ void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
       "\n\rtraffic.proto\022\tnetsensor\032\014prefix.proto"
-      "\032\016datatype.proto\032\037google/protobuf/timest"
-      "amp.proto\"[\n\022TrafficByInterface\022\033\n\023monit"
-      "oringInterface\030\001 \001(\t\022(\n\nmicroflows\030\002 \003(\013"
-      "2\024.netsensor.Microflow\"Z\n\tMicroflow\022\r\n\005i"
-      "pSrc\030\001 \001(\r\022\r\n\005ipDst\030\002 \001(\r\022\036\n\005stats\030\003 \003(\013"
-      "2\017.netsensor.Stat\022\017\n\007latency\030\004 \001(\r\"\207\001\n\004S"
-      "tat\022%\n\010statType\030\001 \001(\0162\023.netsensor.StatTy"
-      "pe\022\020\n\010protocol\030\002 \001(\t\022\017\n\007srcPort\030\003 \001(\r\022\017\n"
-      "\007dstPort\030\004 \001(\r\022$\n\010averages\030\005 \003(\0132\022.netse"
-      "nsor.Average\"r\n\007Average\022\022\n\nresolution\030\001 "
-      "\001(\r\022!\n\006prefix\030\002 \001(\0162\021.netsensor.Prefix\022\014"
-      "\n\004sent\030\003 \001(\r\022\020\n\010received\030\004 \001(\r\022\020\n\010observ"
-      "ed\030\005 \001(\rB>\n\036us.ihmc.ddam.sensors.netsens"
-      "orB\014TrafficProtoP\001Z\tnetsensor\240\001\001b\006proto3"
+      "\032\016datatype.proto\"[\n\022TrafficByInterface\022\033"
+      "\n\023monitoringInterface\030\001 \001(\t\022(\n\nmicroflow"
+      "s\030\002 \003(\0132\024.netsensor.Microflow\"Z\n\tMicrofl"
+      "ow\022\r\n\005ipSrc\030\001 \001(\r\022\r\n\005ipDst\030\002 \001(\r\022\036\n\005stat"
+      "s\030\003 \003(\0132\017.netsensor.Stat\022\017\n\007latency\030\004 \001("
+      "\r\"\207\001\n\004Stat\022%\n\010statType\030\001 \001(\0162\023.netsensor"
+      ".StatType\022\020\n\010protocol\030\002 \001(\t\022\017\n\007srcPort\030\003"
+      " \001(\r\022\017\n\007dstPort\030\004 \001(\r\022$\n\010averages\030\005 \003(\0132"
+      "\022.netsensor.Average\"r\n\007Average\022\022\n\nresolu"
+      "tion\030\001 \001(\r\022!\n\006prefix\030\002 \001(\0162\021.netsensor.P"
+      "refix\022\014\n\004sent\030\003 \001(\r\022\020\n\010received\030\004 \001(\r\022\020\n"
+      "\010observed\030\005 \001(\rB>\n\036us.ihmc.ddam.sensors."
+      "netsensorB\014TrafficProtoP\001Z\tnetsensor\240\001\001b"
+      "\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 600);
+      descriptor, 567);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "traffic.proto", &protobuf_RegisterTypes);
   ::protobuf_prefix_2eproto::AddDescriptors();
   ::protobuf_datatype_2eproto::AddDescriptors();
-  ::protobuf_google_2fprotobuf_2ftimestamp_2eproto::AddDescriptors();
 }
 
 void AddDescriptors() {

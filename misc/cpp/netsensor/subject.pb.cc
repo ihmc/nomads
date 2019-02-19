@@ -50,7 +50,7 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\rsubject.proto\022\007measure*\214\004\n\007Subject\022\010\n\004"
+      "\n\rsubject.proto\022\007measure*\351\004\n\007Subject\022\010\n\004"
       "host\020\000\022\013\n\007network\020\001\022\013\n\007traffic\020\002\022\007\n\003cpu\020"
       "\003\022\n\n\006memory\020\004\022\006\n\002os\020\005\022\022\n\016network_health\020"
       "\006\022\016\n\ndisservice\020\007\022\013\n\007mockets\020\010\022\024\n\020link_d"
@@ -63,12 +63,14 @@ void AddDescriptorsImpl() {
       "_addr_mapping\020\026\022\032\n\026netproxy_proto_mappin"
       "g\020\027\022\026\n\022netproxy_link_desc\020\030\022\031\n\025netproxy_"
       "link_traffic\020\031\022\025\n\021network_interface\020\032\022\007\n"
-      "\003rtt\020\033\022\017\n\013packet_loss\020\034\022\006\n\002iw\020\035B:\n\034us.ih"
-      "mc.sensei.proto.measureB\014SubjectProtoP\001Z"
-      "\007measure\240\001\001b\006proto3"
+      "\003rtt\020\033\022\017\n\013packet_loss\020\034\022\r\n\tdspro_log\020\035\022\016"
+      "\n\ndspro_conf\020\036\022\021\n\rdspro_matches\020\037\022\026\n\022dsp"
+      "ro_publications\020 \022\021\n\rdata_tracking\020!\022\006\n\002"
+      "iw\020\"B#\n\005protoB\014SubjectProtoP\001Z\007measure\240\001"
+      "\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 619);
+      descriptor, 689);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "subject.proto", &protobuf_RegisterTypes);
 }
@@ -121,6 +123,11 @@ bool Subject_IsValid(int value) {
     case 27:
     case 28:
     case 29:
+    case 30:
+    case 31:
+    case 32:
+    case 33:
+    case 34:
       return true;
     default:
       return false;

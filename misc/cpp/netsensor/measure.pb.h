@@ -254,6 +254,20 @@ class Measure : public ::google::protobuf::Message /* @@protoc_insertion_point(c
   ::google::protobuf::Map< ::std::string, double >*
       mutable_doubles();
 
+  // string requestID = 6;
+  void clear_requestid();
+  static const int kRequestIDFieldNumber = 6;
+  const ::std::string& requestid() const;
+  void set_requestid(const ::std::string& value);
+  #if LANG_CXX11
+  void set_requestid(::std::string&& value);
+  #endif
+  void set_requestid(const char* value);
+  void set_requestid(const char* value, size_t size);
+  ::std::string* mutable_requestid();
+  ::std::string* release_requestid();
+  void set_allocated_requestid(::std::string* requestid);
+
   // .google.protobuf.Timestamp timestamp = 5;
   bool has_timestamp() const;
   void clear_timestamp();
@@ -294,6 +308,7 @@ class Measure : public ::google::protobuf::Message /* @@protoc_insertion_point(c
       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
       ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE,
       0 > doubles_;
+  ::google::protobuf::internal::ArenaStringPtr requestid_;
   ::google::protobuf::Timestamp* timestamp_;
   int subject_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
@@ -431,6 +446,59 @@ inline void Measure::set_allocated_timestamp(::google::protobuf::Timestamp* time
   }
   timestamp_ = timestamp;
   // @@protoc_insertion_point(field_set_allocated:measure.Measure.timestamp)
+}
+
+// string requestID = 6;
+inline void Measure::clear_requestid() {
+  requestid_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& Measure::requestid() const {
+  // @@protoc_insertion_point(field_get:measure.Measure.requestID)
+  return requestid_.GetNoArena();
+}
+inline void Measure::set_requestid(const ::std::string& value) {
+  
+  requestid_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:measure.Measure.requestID)
+}
+#if LANG_CXX11
+inline void Measure::set_requestid(::std::string&& value) {
+  
+  requestid_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:measure.Measure.requestID)
+}
+#endif
+inline void Measure::set_requestid(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  requestid_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:measure.Measure.requestID)
+}
+inline void Measure::set_requestid(const char* value, size_t size) {
+  
+  requestid_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:measure.Measure.requestID)
+}
+inline ::std::string* Measure::mutable_requestid() {
+  
+  // @@protoc_insertion_point(field_mutable:measure.Measure.requestID)
+  return requestid_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* Measure::release_requestid() {
+  // @@protoc_insertion_point(field_release:measure.Measure.requestID)
+  
+  return requestid_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void Measure::set_allocated_requestid(::std::string* requestid) {
+  if (requestid != NULL) {
+    
+  } else {
+    
+  }
+  requestid_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), requestid);
+  // @@protoc_insertion_point(field_set_allocated:measure.Measure.requestID)
 }
 
 #ifdef __GNUC__

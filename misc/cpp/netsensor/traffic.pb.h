@@ -32,7 +32,6 @@
 #include <google/protobuf/unknown_field_set.h>
 #include "prefix.pb.h"
 #include "datatype.pb.h"
-#include <google/protobuf/timestamp.pb.h>
 // @@protoc_insertion_point(includes)
 #define PROTOBUF_INTERNAL_EXPORT_protobuf_traffic_2eproto 
 

@@ -78,7 +78,12 @@ enum Subject {
   network_interface = 26,
   rtt = 27,
   packet_loss = 28,
-  iw = 29,
+  dspro_log = 29,
+  dspro_conf = 30,
+  dspro_matches = 31,
+  dspro_publications = 32,
+  data_tracking = 33,
+  iw = 34,
   Subject_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   Subject_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
