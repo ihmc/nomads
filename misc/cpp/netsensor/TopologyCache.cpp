@@ -59,6 +59,7 @@ namespace IHMC_NETSENSOR
             _pMutex.unlock();
             return pTmpList;
         }
+		return nullptr;
     }
 
     bool TopologyCache::isInternalEntry(const char *pszIPAddr)
@@ -73,6 +74,7 @@ namespace IHMC_NETSENSOR
             _pMutex.unlock();
             return isEntry;
         }
+		return false;
     }
 
     void TopologyCache::addInternalEntry(const char *pszIPAddr)

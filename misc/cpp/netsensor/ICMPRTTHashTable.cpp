@@ -190,23 +190,22 @@ namespace IHMC_NETSENSOR
         }
     }
 
-    PtrLList<measure::Measure>* ICMPRTTHashTable::createMeasures(String sSensorIP)
+    PtrLList<measure::Measure>* ICMPRTTHashTable::createMeasures (String sSensorIP)
     {
-        PtrLList<measure::Measure>* pMeasureList = new PtrLList<measure::Measure>(true);
+        auto pMeasureList = new PtrLList<measure::Measure>(true);
         ProtobufWrapper protobufWrapper;
         if (_mutex.lock() == NOMADSUtil::Mutex::RC_Ok)
         {
             for (StringHashtable<StringHashtable<ICMPRTTList>>::Iterator ii = _rttHashTable.getAllElements();
                 !ii.end(); ii.nextElement())
             {
-                StringHashtable<ICMPRTTList> *pDestLevel = ii.getValue();
+                auto pDestLevel = ii.getValue();
                 if (pDestLevel == nullptr) {
                     continue;
                 }
 
-                for (StringHashtable<ICMPRTTList>::Iterator i = pDestLevel->getAllElements();
-                    !i.end(); i.nextElement()) {
-                    ICMPRTTList *pRttList = i.getValue();
+                for (auto i = pDestLevel->getAllElements(); !i.end(); i.nextElement()) {
+                    auto pRttList = i.getValue();
 
                     float  avgRTT = pRttList->getAverageRTT();
                     uint32 minRTT = pRttList->getMinRTT();
@@ -222,6 +221,7 @@ namespace IHMC_NETSENSOR
             _mutex.unlock();
             return pMeasureList;
         }
+		return pMeasureList;
     }
 
     bool ICMPRTTHashTable::isValidTypeForRTT(uint8 type)

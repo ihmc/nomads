@@ -53,22 +53,22 @@ namespace IHMC_NETSENSOR
 
     uint32 ICMPRTTList::getCount(void)
     {
+		uint32 ui32Count = 0;
         if ((_mutex.lock() == NOMADSUtil::Mutex::RC_Ok))
         {
-            uint32 _ui32Count = 0;
-
-            for (UInt32Hashtable<RTTContainer>::Iterator i = _rttTable.getAllElements(); !i.end();
-                i.nextElement())
+            for (auto i = _rttTable.getAllElements(); !i.end(); i.nextElement())
             {
                 RTTContainer *pContainer = i.getValue();
                 if (pContainer->getRcvTime() != 0) {
-                    _ui32Count++;
+                    ui32Count++;
                 }
             }
 
             _mutex.unlock();
-            return _ui32Count;
+            return ui32Count;
         }
+		return ui32Count;
+
     }
 
     uint32 ICMPRTTList::getMinRTT(void)

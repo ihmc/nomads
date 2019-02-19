@@ -247,28 +247,20 @@ namespace IHMC_NETSENSOR
 
         if (_pTMutex.lock() == Mutex::RC_Ok) {
             for (auto iv = _icmpHashTable.getAllElements(); !iv.end() && bKeepCleaning; iv.nextElement()) {
-                destAddrLevel *pL3 = iv.getValue();
+                auto pL3 = iv.getValue();
 
                 for (auto iii = pL3->getAllElements(); (!iii.end() && bKeepCleaning); iii.nextElement())
                 {
                     typeLevel * pL2 = iii.getValue();
-
                     for (auto ii = pL2->getAllElements(); (!ii.end() && bKeepCleaning); ii.nextElement())
                     {
-                        codeLevel * pL1 = ii.getValue();
+                        auto pL1 = ii.getValue();
 
                         for (auto i = pL1->getAllElements(); (!i.end() && bKeepCleaning); i.nextElement()) {
                             //ICMPTypesContainer * tempInfo = i.getValue();
 
                             if (i.getValue()->isExpired()) {
                                 list.emplace_front (i.getKey(), ii.getKey(), iii.getKey(), iv.getKey());
-                                /*
-                                k1[ui32CleaningCounter] = i.getKey();
-                                k2[ui32CleaningCounter] = ii.getKey();
-                                k3[ui32CleaningCounter] = iii.getKey();
-                                k4[ui32CleaningCounter] = iv.getKey();
-                                */
-                                
                                 ui32CleaningCounter++;
                                 bKeepCleaning = (ui32CleaningCounter < ui32MaxCleaningNumber);
                             }
@@ -277,9 +269,9 @@ namespace IHMC_NETSENSOR
                 }
             }
             for (auto iter = list.begin(); iter != list.end(); iter++) {
-                destAddrLevel   * iii = _icmpHashTable.get (std::get<3> (*iter));
-                typeLevel       * ii = iii->get (std::get<2> (*iter));
-                codeLevel       * i = ii->get (std::get<1> (*iter));
+                auto iii = _icmpHashTable.get (std::get<3> (*iter));
+                auto ii = iii->get (std::get<2> (*iter));
+                auto i = ii->get (std::get<1> (*iter));
                 delete i->remove (std::get<0> (*iter));
                 if (i->getCount() == 0) {
                     delete ii->remove (std::get<1> (*iter));
@@ -312,6 +304,7 @@ namespace IHMC_NETSENSOR
 
             return ui32CleaningCounter;
         }
+		return ui32CleaningCounter;
     }
 
     // Print values from the hashtable

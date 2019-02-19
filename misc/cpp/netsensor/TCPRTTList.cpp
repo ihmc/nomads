@@ -85,11 +85,11 @@ namespace IHMC_NETSENSOR
         return ui32CleaningCounter;
     }
 
-    uint32 TCPRTTList::getCount() 
+    uint32 TCPRTTList::getCount (void) 
     {
+		uint32 ui32Count = 0;
         if (_mutex.lock() == Mutex::RC_Ok)
         {
-            uint32 _ui32Count = 0;
             for (SeqLevel::Iterator ii = _tcpRTTTable.getAllElements(); !ii.end();
                 ii.nextElement())
             {
@@ -99,13 +99,14 @@ namespace IHMC_NETSENSOR
                 {
                     RTTContainer *pContainer = i.getValue();
                     if (pContainer->getRcvTime() != 0) {
-                        _ui32Count++;
+                        ui32Count++;
                     }
                 }
             }
-            return _ui32Count;
+            return ui32Count;
             _mutex.unlock();
         }
+		return ui32Count;
     }
 
     bool TCPRTTList::hasAckNum(uint32 ui32AckNum)
