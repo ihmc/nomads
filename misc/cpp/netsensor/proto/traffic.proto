@@ -4,7 +4,6 @@ package netsensor;
 
 import "prefix.proto";
 import "datatype.proto";
-import "google/protobuf/timestamp.proto";
 
 option go_package = "netsensor";
 option java_package = "us.ihmc.ddam.sensors.netsensor";
