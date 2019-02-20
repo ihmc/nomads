@@ -98,30 +98,30 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -130,7 +130,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include\x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -150,7 +150,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include\x64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -167,7 +167,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include\x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -189,7 +189,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include\x86;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -211,7 +211,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include\x64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -230,7 +230,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;LITTLE_ENDIAN_SYSTEM;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\awareness;..\awareness\parts;..\comm;..\comm\disservice;..\comm\mockets;..\comm\netlogger;..\comm\tcp;..\comm\udp;..\comm\subjects\disservice;..\controllers;..\controllers\forwarding;..\controllers\query;..\proxy;..\ranking;..\scheduler;..\storage;..\apps;..\..\DisService;..\..\..\..\mockets\cpp;..\..\..\..\misc\cpp\lcppdc;..\..\..\..\misc\cpp\c45;..\..\..\..\misc\cpp\milstd2525;..\..\..\..\misc\cpp\chunking\proxy;..\..\..\..\misc\cpp\chunking;..\..\..\..\misc\cpp\natswr;..\..\..\..\misc\cpp\voi\util;..\..\..\..\misc\cpp\voi\ctxt;..\..\..\..\misc\cpp\voi\core;..\..\..\..\misc\cpp\voi;..\..\..\..\util\cpp;..\..\..\..\util\cpp\proxy;..\..\..\..\util\cpp\net;..\..\..\..\util\cpp\graph;..\..\..\..\externals\SQLite;..\..\..\..\externals\TinyXPath;..\..\..\..\externals\zlib;..\..\..\..\externals-win\protobuf\3.6.1\include\x64;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
