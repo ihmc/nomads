@@ -119,7 +119,6 @@ int CommAdaptorManager::init (NOMADSUtil::ConfigManager *pCfgMgr, const char *ps
     // -------------------------------------------------------------------------
 
     if (bUseDisservice) {
-
         // Enable DisService
         _adaptors[DISSERVICE_ADAPTOR_ID].uiId = DISSERVICE_ADAPTOR_ID;
         _adaptors[DISSERVICE_ADAPTOR_ID].pAdaptor = DisServiceAdaptor::getDisServiceAdaptor (DISSERVICE_ADAPTOR_ID, _nodeId,
@@ -143,7 +142,6 @@ int CommAdaptorManager::init (NOMADSUtil::ConfigManager *pCfgMgr, const char *ps
     // -------------------------------------------------------------------------
 
     if (bUseMockets) {
-
         // Enable mockets
         unsigned int uiIndex = _adaptors.firstFree();
         _adaptors[uiIndex].uiId = uiIndex;
@@ -165,7 +163,6 @@ int CommAdaptorManager::init (NOMADSUtil::ConfigManager *pCfgMgr, const char *ps
     // -------------------------------------------------------------------------
 
     if (bUseTCP) {
-
         // Enable TCP
         unsigned int uiIndex = _adaptors.firstFree();
         _adaptors[uiIndex].uiId = uiIndex;
@@ -188,7 +185,6 @@ int CommAdaptorManager::init (NOMADSUtil::ConfigManager *pCfgMgr, const char *ps
     // -------------------------------------------------------------------------
 
     if (bUseUDP) {
-
         // Enable UDP
         unsigned int uiIndex = _adaptors.firstFree();
         _adaptors[uiIndex].uiId = uiIndex;
@@ -210,7 +206,6 @@ int CommAdaptorManager::init (NOMADSUtil::ConfigManager *pCfgMgr, const char *ps
     // -------------------------------------------------------------------------
 
     if (bUseNats) {
-
         // Enable NATS
         unsigned int uiIndex = _adaptors.firstFree();
         _adaptors[uiIndex].uiId = uiIndex;

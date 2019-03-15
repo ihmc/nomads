@@ -154,7 +154,7 @@ namespace NET_LOGGER
                 }
             }
 
-            void addString (const char *pszKey, const char*pszValue)
+            void addString (const char * pszKey, const char * pszValue)
             {
                 if (pszKey != nullptr) {
                     std::string value (pszValue);

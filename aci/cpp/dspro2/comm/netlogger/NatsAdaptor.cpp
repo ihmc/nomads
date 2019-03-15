@@ -31,14 +31,11 @@ const unsigned short NatsAdaptor::DEFAULT_PORT = 4222;
 
 NatsAdaptor::NatsAdaptor (unsigned int uiId, CommAdaptorListener *pListener,
                           const char *pszNodeId)
-    : CommAdaptor (uiId, NATS, true, false, pszNodeId, pListener)
-      , _nats (true)
-{
-}
+    : CommAdaptor (uiId, NATS, true, false, pszNodeId, pListener), _nats (true)
+{ }
 
 NatsAdaptor::~NatsAdaptor (void)
-{
-}
+{ }
 
 int NatsAdaptor::init (ConfigManager *pCfgMgr)
 {
