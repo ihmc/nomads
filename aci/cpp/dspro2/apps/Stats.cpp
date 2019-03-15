@@ -95,14 +95,14 @@ void Stats::run (void)
             FileWriter fw (_filename, "w");
 
             // Publications
-            NetLogger::Measure *pByMime = MeasureFactory::createMeasure ("dspro.statistics.pub.types", NetLogger::Measure::PUBS);
-            NetLogger::Measure *pByGroup = MeasureFactory::createMeasure ("dspro.statistics.pub.groups", NetLogger::Measure::PUBS);
+            auto * const pPubsByMime = MeasureFactory::createMeasure ("nodemon.dspro.statistics.pub.types", NetLogger::Measure::PUBS);
+            auto * const pPubsByGroup = MeasureFactory::createMeasure ("nodemon.dspro.statistics.pub.groups", NetLogger::Measure::PUBS);
             _mPub.lock();
-            DSPRO_STATS::dump (_pubByMimeType, fw, "\nPublications by MIME type\n", "%u", pByMime);
-            DSPRO_STATS::dump (_pubByGroup, fw, "\nPublications by Group name\n", "%u", pByGroup);
+            DSPRO_STATS::dump (_pubByMimeType, fw, "\nPublications by MIME type\n", "%u", pPubsByMime);
+            DSPRO_STATS::dump (_pubByGroup, fw, "\nPublications by Group name\n", "%u", pPubsByGroup);
             _mPub.unlock();
-            checkAndNotify (pByMime);    delete pByMime;
-            checkAndNotify (pByGroup);   delete pByGroup;
+            checkAndNotify (pPubsByMime);    delete pPubsByMime;
+            checkAndNotify (pPubsByGroup);   delete pPubsByGroup;
 
             // Usage
             _mUsageById.lock();
@@ -110,32 +110,31 @@ void Stats::run (void)
             _mUsageById.unlock();
 
             // Matches
-            NetLogger::Measure *pByPeer = MeasureFactory::createMeasure ("dspro.statistics.match.peeers", NetLogger::Measure::MATCH);
+            auto * const pMatchesByPeer = MeasureFactory::createMeasure ("nodemon.dspro.statistics.match.peers", NetLogger::Measure::MATCH);
             _mMatchByPeer.lock();
-            DSPRO_STATS::dump (_matchesByMimeType, fw, "\nMatches by MIME type\n", "%u", pByPeer);
+            DSPRO_STATS::dump (_matchesByPeerID, fw, "\nMatches by Peer Id\n", "%u", pMatchesByPeer);
             _mMatchByPeer.unlock();
-            checkAndNotify (pByPeer);    delete pByPeer;
-
-            pByMime = MeasureFactory::createMeasure ("dspro.statistics.match.types", NetLogger::Measure::MATCH);
-            pByGroup = MeasureFactory::createMeasure ("dspro.statistics.match.groups", NetLogger::Measure::MATCH);
+            checkAndNotify (pMatchesByPeer);    delete pMatchesByPeer;
+            auto * const pMatchesByMimeType = MeasureFactory::createMeasure ("nodemon.dspro.statistics.match.types", NetLogger::Measure::MATCH);
+            auto * const pMatchesByGroupName = MeasureFactory::createMeasure ("nodemon.dspro.statistics.match.groups", NetLogger::Measure::MATCH);
             _mMatchByType.lock();
-            DSPRO_STATS::dump (_matchesByGroup, fw, "\nMatches by Group name\n", "%u", pByMime);
-            DSPRO_STATS::dump (_matchesByPeer, fw, "\nMatches by Peer Id\n", "%u", pByGroup);
+            DSPRO_STATS::dump (_matchesByMimeType, fw, "\nMatches by MIME type\n", "%u", pMatchesByMimeType);
+            DSPRO_STATS::dump (_matchesByGroupName, fw, "\nMatches by Group name\n", "%u", pMatchesByGroupName);
             _mMatchByType.unlock();
-            checkAndNotify (pByMime);    delete pByMime;
-            checkAndNotify (pByGroup);   delete pByGroup;
+            checkAndNotify (pMatchesByMimeType);    delete pMatchesByMimeType;
+            checkAndNotify (pMatchesByGroupName);   delete pMatchesByGroupName;
 
             // Counts
             _mCountsByPeer.lock();
-            std::map<std::string, CountsByInterface> *pCountsByPeer = _pNewCountsByPeer;
+            auto * const pCountsByPeer = _pNewCountsByPeer;
             _pNewCountsByPeer = nullptr;
             _mCountsByPeer.unlock();
             if (pCountsByPeer != nullptr) {
-                for (auto& byPeer : *pCountsByPeer) {
+                for (const auto & byPeer : *pCountsByPeer) {
                     const std::string remotePeer (byPeer.first);
-                    for (auto& byRemotePeerInterface : byPeer.second) {
+                    for (const auto & byRemotePeerInterface : byPeer.second) {
                         const std::string remotePeerIface (byRemotePeerInterface.first);
-                        for (auto& byIncomingInterface : byRemotePeerInterface.second) {
+                        for (const auto & byIncomingInterface : byRemotePeerInterface.second) {
                             const std::string incomingIface (byIncomingInterface.first);
 
                             NetLogger::Measure *pByInterface = MeasureFactory::createMeasure ("dspro.statistics.network.count", NetLogger::Measure::NET);
@@ -183,7 +182,7 @@ void Stats::addMessage (const char *pszGroup, const char *pszMimeType)
 void Stats::addMatch (const char *pszTargetPeer)
 {
     _mMatchByPeer.lock();
-    DSPRO_STATS::increment (pszTargetPeer, _matchesByPeer);
+    DSPRO_STATS::increment (pszTargetPeer, _matchesByPeerID);
     _mMatchByPeer.unlock();
 }
 
@@ -191,7 +190,7 @@ void Stats::addMatch (const char *pszGroup, const char *pszMimeType)
 {
     _mMatchByType.lock();
     DSPRO_STATS::increment (pszMimeType, _matchesByMimeType);
-    DSPRO_STATS::increment (pszGroup, _matchesByGroup);
+    DSPRO_STATS::increment (pszGroup, _matchesByGroupName);
     _mMatchByType.unlock();
 }
 

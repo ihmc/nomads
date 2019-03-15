@@ -108,7 +108,7 @@ namespace IHMC_ACI
             const std::string _nodeId;
 
             std::map<std::string, CountsByInterface> _mCumulativeCountsByPeer;
-            std::map<std::string, CountsByInterface> *_pNewCountsByPeer;
+            std::map<std::string, CountsByInterface> * _pNewCountsByPeer;
 
             NOMADSUtil::StringHashtable<uint32> _usageById;
 
@@ -116,8 +116,8 @@ namespace IHMC_ACI
             NOMADSUtil::StringHashtable<uint32> _pubByGroup;
 
             NOMADSUtil::StringHashtable<uint32> _matchesByMimeType;
-            NOMADSUtil::StringHashtable<uint32> _matchesByGroup;
-            NOMADSUtil::StringHashtable<uint32> _matchesByPeer;
+            NOMADSUtil::StringHashtable<uint32> _matchesByGroupName;
+            NOMADSUtil::StringHashtable<uint32> _matchesByPeerID;
 
             mutable NOMADSUtil::Mutex _mCountsByPeer;
             mutable NOMADSUtil::Mutex _mUsageById;
